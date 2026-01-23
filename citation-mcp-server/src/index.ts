@@ -40,6 +40,60 @@ function normalizeText(text: string): string {
   return text.replace(/\s+/g, ' ').trim().toLowerCase();
 }
 
+// Normalize text for matching (handles Unicode characters)
+function normalizeForMatching(text: string): string {
+  return text
+    .toLowerCase()
+    .normalize('NFD') // Decompose accented characters
+    .replace(/[\u0300-\u036f]/g, '') // Remove diacritics
+    .replace(/[^\w\s\d]/g, ' ') // Replace special chars with spaces
+    .replace(/\s+/g, ' ') // Normalize whitespace
+    .trim();
+}
+
+// Flexible author-year matching
+function matchesAuthorYear(filename: string, authorYear: string): boolean {
+  const normalizedFilename = normalizeForMatching(filename);
+  const normalizedAuthorYear = normalizeForMatching(authorYear);
+  
+  // Direct match
+  if (normalizedFilename.includes(normalizedAuthorYear)) {
+    return true;
+  }
+  
+  // Extract year from authorYear (last 4 digits)
+  const yearMatch = authorYear.match(/(\d{4})/);
+  if (!yearMatch) {
+    return false;
+  }
+  const year = yearMatch[1];
+  
+  // Extract author part (everything before the year)
+  const authorPart = authorYear.replace(/\d{4}/, '').trim();
+  const normalizedAuthorPart = normalizeForMatching(authorPart);
+  
+  // Try various patterns:
+  // 1. "Author - YYYY" or "Author et al. - YYYY"
+  // 2. "Author YYYY" or "Author et al. YYYY"
+  // 3. Just check if both author and year are present
+  
+  const hasYear = normalizedFilename.includes(year);
+  if (!hasYear) {
+    return false;
+  }
+  
+  // Check if author part matches (handling "et al." variations)
+  const authorWords = normalizedAuthorPart.split(/\s+/).filter(w => w.length > 0);
+  
+  for (const word of authorWords) {
+    if (word.length > 2 && normalizedFilename.includes(word)) {
+      return true;
+    }
+  }
+  
+  return false;
+}
+
 // Load source mappings
 function loadSourceMappings(): Map<string, SourceInfo> {
   const sources = new Map<string, SourceInfo>();
@@ -69,7 +123,7 @@ function loadSourceMappings(): Map<string, SourceInfo> {
   return sources;
 }
 
-// Search for text in extracted files
+// Search for text in extracted files with fuzzy matching
 function searchInFiles(searchTerm: string, authorFilter?: string): SearchResult[] {
   if (!fs.existsSync(EXTRACTED_TEXT_DIR)) {
     return [];
@@ -80,33 +134,73 @@ function searchInFiles(searchTerm: string, authorFilter?: string): SearchResult[
     .filter(f => f.endsWith('.txt'));
 
   const normalizedSearch = normalizeText(searchTerm);
+  const searchWords = normalizedSearch.split(' ').filter(w => w.length > 2);
 
   for (const filename of files) {
-    // Apply author filter if provided
-    if (authorFilter && !filename.toLowerCase().includes(authorFilter.toLowerCase())) {
+    // Apply author filter if provided (flexible matching)
+    if (authorFilter && !matchesAuthorYear(filename, authorFilter)) {
       continue;
     }
 
     const filepath = path.join(EXTRACTED_TEXT_DIR, filename);
     const content = fs.readFileSync(filepath, 'utf-8');
     const lines = content.split('\n');
+    const normalizedContent = normalizeText(content);
 
     const matches: SearchResult['matches'] = [];
 
-    for (let i = 0; i < lines.length; i++) {
-      const normalizedLine = normalizeText(lines[i]);
-      
-      if (normalizedLine.includes(normalizedSearch)) {
-        // Get context (2 lines before and after)
-        const contextStart = Math.max(0, i - 2);
-        const contextEnd = Math.min(lines.length, i + 3);
-        const context = lines.slice(contextStart, contextEnd).join('\n');
+    // First try exact match
+    if (normalizedContent.includes(normalizedSearch)) {
+      // Find all occurrences
+      let searchIndex = 0;
+      while (true) {
+        const foundIndex = normalizedContent.indexOf(normalizedSearch, searchIndex);
+        if (foundIndex === -1) break;
 
-        matches.push({
-          lineNumber: i + 1,
-          text: lines[i].trim(),
-          context: context
-        });
+        // Find which line this is in
+        let charCount = 0;
+        for (let i = 0; i < lines.length; i++) {
+          const lineLength = normalizeText(lines[i]).length + 1;
+          if (charCount <= foundIndex && charCount + lineLength > foundIndex) {
+            // Get context (2 lines before and after)
+            const contextStart = Math.max(0, i - 2);
+            const contextEnd = Math.min(lines.length, i + 3);
+            const context = lines.slice(contextStart, contextEnd).join('\n');
+
+            matches.push({
+              lineNumber: i + 1,
+              text: lines[i].trim(),
+              context: context
+            });
+            break;
+          }
+          charCount += lineLength;
+        }
+
+        searchIndex = foundIndex + normalizedSearch.length;
+      }
+    } else {
+      // Fuzzy matching: find lines with high word overlap
+      for (let i = 0; i < lines.length; i++) {
+        const normalizedLine = normalizeText(lines[i]);
+        
+        // Count matching words
+        const matchingWords = searchWords.filter(word => normalizedLine.includes(word)).length;
+        const similarity = searchWords.length > 0 ? matchingWords / searchWords.length : 0;
+        
+        // Include if similarity is high enough (>= 70%)
+        if (similarity >= 0.7) {
+          // Get context (2 lines before and after)
+          const contextStart = Math.max(0, i - 2);
+          const contextEnd = Math.min(lines.length, i + 3);
+          const context = lines.slice(contextStart, contextEnd).join('\n');
+
+          matches.push({
+            lineNumber: i + 1,
+            text: lines[i].trim(),
+            context: context
+          });
+        }
       }
     }
 
@@ -134,41 +228,107 @@ function verifyQuote(quote: string, authorYear: string): {
   similarity: number;
   sourceFile?: string;
   matchedText?: string;
+  contextBefore?: string;
+  contextAfter?: string;
+  nearestMatch?: string;
+  error?: string;
+  availableFiles?: string[];
+  searchedDirectory?: string;
 } {
+  // Check if directory exists
   if (!fs.existsSync(EXTRACTED_TEXT_DIR)) {
-    return { verified: false, similarity: 0 };
+    return { 
+      verified: false, 
+      similarity: 0,
+      error: `Extracted text directory not found: ${EXTRACTED_TEXT_DIR}`,
+      searchedDirectory: EXTRACTED_TEXT_DIR
+    };
   }
 
-  const files = fs.readdirSync(EXTRACTED_TEXT_DIR)
-    .filter(f => f.endsWith('.txt') && f.includes(authorYear));
+  // Get all available files
+  const allFiles = fs.readdirSync(EXTRACTED_TEXT_DIR)
+    .filter(f => f.endsWith('.txt'));
+
+  // Find files matching the author-year pattern (flexible matching)
+  const files = allFiles.filter(f => matchesAuthorYear(f, authorYear));
 
   if (files.length === 0) {
-    return { verified: false, similarity: 0 };
+    return { 
+      verified: false, 
+      similarity: 0,
+      error: `No source file found matching "${authorYear}"`,
+      availableFiles: allFiles.slice(0, 10), // Show first 10 files as examples
+      searchedDirectory: EXTRACTED_TEXT_DIR
+    };
   }
 
   const sourceFile = files[0];
   const filepath = path.join(EXTRACTED_TEXT_DIR, sourceFile);
-  const content = fs.readFileSync(filepath, 'utf-8');
+  
+  let content: string;
+  try {
+    content = fs.readFileSync(filepath, 'utf-8');
+  } catch (err) {
+    return {
+      verified: false,
+      similarity: 0,
+      error: `Failed to read source file: ${err instanceof Error ? err.message : String(err)}`,
+      sourceFile,
+      searchedDirectory: EXTRACTED_TEXT_DIR
+    };
+  }
 
   const normalizedQuote = normalizeText(quote);
   const normalizedContent = normalizeText(content);
+  const lines = content.split('\n');
 
   // Check for exact match
   if (normalizedContent.includes(normalizedQuote)) {
+    // Find the exact location in the original text to get context
+    const quoteStart = normalizedContent.indexOf(normalizedQuote);
+    const quoteEnd = quoteStart + normalizedQuote.length;
+    
+    // Find line numbers for context
+    let charCount = 0;
+    let startLine = 0;
+    let endLine = 0;
+    
+    for (let i = 0; i < lines.length; i++) {
+      const lineLength = normalizeText(lines[i]).length + 1; // +1 for newline
+      if (charCount <= quoteStart && charCount + lineLength > quoteStart) {
+        startLine = i;
+      }
+      if (charCount <= quoteEnd && charCount + lineLength >= quoteEnd) {
+        endLine = i;
+        break;
+      }
+      charCount += lineLength;
+    }
+    
+    // Get context (2 lines before and after)
+    const contextStart = Math.max(0, startLine - 2);
+    const contextEnd = Math.min(lines.length - 1, endLine + 2);
+    const contextBefore = lines.slice(contextStart, startLine).join('\n');
+    const contextAfter = lines.slice(endLine + 1, contextEnd + 1).join('\n');
+    
     return {
       verified: true,
       similarity: 1.0,
       sourceFile,
-      matchedText: quote
+      matchedText: quote,
+      contextBefore: contextBefore || undefined,
+      contextAfter: contextAfter || undefined,
+      searchedDirectory: EXTRACTED_TEXT_DIR
     };
   }
 
-  // Fuzzy matching with sliding window
+  // Fuzzy matching with sliding window to find nearest match
   const quoteWords = normalizedQuote.split(' ');
   const contentWords = normalizedContent.split(' ');
   const windowSize = quoteWords.length;
 
   let bestSimilarity = 0;
+  let bestMatchIndex = 0;
   let bestMatch = '';
 
   for (let i = 0; i <= contentWords.length - windowSize; i++) {
@@ -180,6 +340,7 @@ function verifyQuote(quote: string, authorYear: string): {
 
     if (similarity > bestSimilarity) {
       bestSimilarity = similarity;
+      bestMatchIndex = i;
       bestMatch = window;
     }
 
@@ -188,11 +349,55 @@ function verifyQuote(quote: string, authorYear: string): {
     }
   }
 
+  // Find the best match in the original text to get proper context
+  if (bestSimilarity > 0) {
+    // Reconstruct position in original text
+    let charCount = 0;
+    let wordCount = 0;
+    let matchStartLine = 0;
+    let matchEndLine = 0;
+    
+    const normalizedLines = lines.map(l => normalizeText(l));
+    
+    for (let i = 0; i < normalizedLines.length; i++) {
+      const lineWords = normalizedLines[i].split(' ').filter(w => w.length > 0);
+      
+      if (wordCount <= bestMatchIndex && wordCount + lineWords.length > bestMatchIndex) {
+        matchStartLine = i;
+      }
+      if (wordCount <= bestMatchIndex + windowSize && wordCount + lineWords.length >= bestMatchIndex + windowSize) {
+        matchEndLine = i;
+        break;
+      }
+      
+      wordCount += lineWords.length;
+    }
+    
+    // Get context (2 lines before and after)
+    const contextStart = Math.max(0, matchStartLine - 2);
+    const contextEnd = Math.min(lines.length - 1, matchEndLine + 2);
+    const contextBefore = lines.slice(contextStart, matchStartLine).join('\n');
+    const contextAfter = lines.slice(matchEndLine + 1, contextEnd + 1).join('\n');
+    const nearestMatch = lines.slice(matchStartLine, matchEndLine + 1).join('\n');
+    
+    return {
+      verified: bestSimilarity >= 0.85,
+      similarity: bestSimilarity,
+      sourceFile,
+      matchedText: bestMatch,
+      nearestMatch: nearestMatch || undefined,
+      contextBefore: contextBefore || undefined,
+      contextAfter: contextAfter || undefined,
+      searchedDirectory: EXTRACTED_TEXT_DIR
+    };
+  }
+
   return {
-    verified: bestSimilarity >= 0.85,
+    verified: false,
     similarity: bestSimilarity,
     sourceFile,
-    matchedText: bestMatch
+    matchedText: bestMatch,
+    searchedDirectory: EXTRACTED_TEXT_DIR
   };
 }
 
@@ -200,6 +405,159 @@ function verifyQuote(quote: string, authorYear: string): {
 function listSources(): SourceInfo[] {
   const sources = loadSourceMappings();
   return Array.from(sources.values());
+}
+
+// Parse claims_and_evidence.md and extract all quotes
+interface ClaimQuote {
+  claimId: string;
+  claimTitle: string;
+  authorYear: string;
+  quote: string;
+  quoteType: 'Primary' | 'Supporting';
+  lineNumber: number;
+}
+
+function extractQuotesFromClaims(): ClaimQuote[] {
+  if (!fs.existsSync(CLAIMS_FILE)) {
+    return [];
+  }
+
+  const content = fs.readFileSync(CLAIMS_FILE, 'utf-8');
+  const lines = content.split('\n');
+  const quotes: ClaimQuote[] = [];
+
+  let currentClaimId = '';
+  let currentClaimTitle = '';
+  let currentAuthorYear = '';
+  let inQuote = false;
+  let currentQuote = '';
+  let currentQuoteType: 'Primary' | 'Supporting' = 'Primary';
+  let quoteStartLine = 0;
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+
+    // Match claim headers like "## C_01: ..."
+    const claimMatch = line.match(/^## (C_\d+):\s*(.+)$/);
+    if (claimMatch) {
+      currentClaimId = claimMatch[1];
+      currentClaimTitle = claimMatch[2];
+      currentAuthorYear = '';
+      continue;
+    }
+
+    // Match source line like "**Source**: Johnson2007 (Source ID: 1)"
+    const sourceMatch = line.match(/\*\*Source\*\*:\s*(\w+\d{4})/);
+    if (sourceMatch) {
+      currentAuthorYear = sourceMatch[1];
+      continue;
+    }
+
+    // Match quote type headers
+    if (line.includes('**Primary Quote**')) {
+      currentQuoteType = 'Primary';
+      continue;
+    }
+    if (line.includes('**Supporting Quotes**')) {
+      currentQuoteType = 'Supporting';
+      continue;
+    }
+
+    // Start of quote (line starting with ">")
+    if (line.trim().startsWith('>') && !inQuote) {
+      inQuote = true;
+      quoteStartLine = i + 1;
+      currentQuote = line.trim().substring(1).trim(); // Remove ">" and trim
+      continue;
+    }
+
+    // Continuation of quote
+    if (inQuote && line.trim().startsWith('>')) {
+      currentQuote += ' ' + line.trim().substring(1).trim();
+      continue;
+    }
+
+    // End of quote
+    if (inQuote && !line.trim().startsWith('>')) {
+      inQuote = false;
+      if (currentQuote && currentAuthorYear && currentClaimId) {
+        // Remove surrounding quotes if present
+        const cleanQuote = currentQuote.replace(/^[""]|[""]$/g, '').trim();
+        quotes.push({
+          claimId: currentClaimId,
+          claimTitle: currentClaimTitle,
+          authorYear: currentAuthorYear,
+          quote: cleanQuote,
+          quoteType: currentQuoteType,
+          lineNumber: quoteStartLine
+        });
+      }
+      currentQuote = '';
+    }
+  }
+
+  return quotes;
+}
+
+// Verify all quotes in claims_and_evidence.md
+interface QuoteVerificationResult {
+  claimId: string;
+  claimTitle: string;
+  authorYear: string;
+  quote: string;
+  quoteType: 'Primary' | 'Supporting';
+  lineNumber: number;
+  verified: boolean;
+  similarity: number;
+  sourceFile?: string;
+  nearestMatch?: string;
+  contextBefore?: string;
+  contextAfter?: string;
+  error?: string;
+}
+
+function verifyAllQuotes(): {
+  totalQuotes: number;
+  verifiedQuotes: number;
+  incorrectQuotes: QuoteVerificationResult[];
+  missingSourceFiles: string[];
+} {
+  const quotes = extractQuotesFromClaims();
+  const results: QuoteVerificationResult[] = [];
+  const missingSourceFiles = new Set<string>();
+
+  for (const quote of quotes) {
+    const verification = verifyQuote(quote.quote, quote.authorYear);
+    
+    if (verification.error && verification.error.includes('No source file found')) {
+      missingSourceFiles.add(quote.authorYear);
+    }
+
+    if (!verification.verified || verification.similarity < 0.85) {
+      results.push({
+        claimId: quote.claimId,
+        claimTitle: quote.claimTitle,
+        authorYear: quote.authorYear,
+        quote: quote.quote,
+        quoteType: quote.quoteType,
+        lineNumber: quote.lineNumber,
+        verified: verification.verified,
+        similarity: verification.similarity,
+        sourceFile: verification.sourceFile,
+        nearestMatch: verification.nearestMatch,
+        contextBefore: verification.contextBefore,
+        contextAfter: verification.contextAfter,
+        error: verification.error
+      });
+    }
+  }
+
+  return {
+    totalQuotes: quotes.length,
+    verifiedQuotes: quotes.length - results.length,
+    incorrectQuotes: results,
+    missingSourceFiles: Array.from(missingSourceFiles)
+  };
 }
 
 // Create MCP server
@@ -251,6 +609,14 @@ const tools: Tool[] = [
         }
       },
       required: ['quote', 'author_year']
+    }
+  },
+  {
+    name: 'verify_all_quotes',
+    description: 'Verify all quotes in claims_and_evidence.md file. Returns a report of incorrect quotes with their nearest matches and context. Use this to audit all citations at once.',
+    inputSchema: {
+      type: 'object',
+      properties: {}
     }
   },
   {
@@ -318,6 +684,17 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         };
       }
 
+      case 'verify_all_quotes': {
+        const result = verifyAllQuotes();
+        
+        return {
+          content: [{
+            type: 'text',
+            text: JSON.stringify(result, null, 2)
+          }]
+        };
+      }
+
       case 'list_sources': {
         const sources = listSources();
         
@@ -337,7 +714,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         }
 
         const files = fs.readdirSync(EXTRACTED_TEXT_DIR)
-          .filter(f => f.endsWith('.txt') && f.includes(authorYear));
+          .filter(f => f.endsWith('.txt') && matchesAuthorYear(f, authorYear));
 
         if (files.length === 0) {
           throw new Error(`No source file found for ${authorYear}`);

@@ -11,6 +11,190 @@ interface ClaimData {
   primaryQuote: string;
   verified?: boolean;
   similarity?: number;
+  nearestMatch?: string;
+  contextBefore?: string;
+  contextAfter?: string;
+  error?: string;
+}
+
+interface ClaimTreeItem {
+  id: string;
+  label: string;
+  category?: string;
+  verified?: boolean;
+  similarity?: number;
+  collapsibleState: vscode.TreeItemCollapsibleState;
+  children?: ClaimTreeItem[];
+  claimData?: ClaimData;
+}
+
+class ClaimsTreeDataProvider implements vscode.TreeDataProvider<ClaimTreeItem> {
+  private _onDidChangeTreeData: vscode.EventEmitter<ClaimTreeItem | undefined | null | void> = new vscode.EventEmitter<ClaimTreeItem | undefined | null | void>();
+  readonly onDidChangeTreeData: vscode.Event<ClaimTreeItem | undefined | null | void> = this._onDidChangeTreeData.event;
+
+  constructor() {}
+
+  refresh(): void {
+    claimsCache = null;
+    this._onDidChangeTreeData.fire();
+  }
+
+  getTreeItem(element: ClaimTreeItem): vscode.TreeItem {
+    const treeItem = new vscode.TreeItem(element.label, element.collapsibleState);
+    
+    if (element.claimData) {
+      // This is a claim item
+      treeItem.command = {
+        command: 'citationHover.goToClaim',
+        title: 'Go to Claim',
+        arguments: [element.claimData]
+      };
+      
+      // Set icon based on verification status
+      if (element.verified === true) {
+        treeItem.iconPath = new vscode.ThemeIcon('pass', new vscode.ThemeColor('testing.iconPassed'));
+      } else if (element.verified === false) {
+        treeItem.iconPath = new vscode.ThemeIcon('error', new vscode.ThemeColor('testing.iconFailed'));
+      } else {
+        treeItem.iconPath = new vscode.ThemeIcon('circle-outline', new vscode.ThemeColor('testing.iconUnset'));
+      }
+      
+      // Add tooltip with details
+      const similarity = element.similarity !== undefined ? `${(element.similarity * 100).toFixed(0)}%` : 'N/A';
+      treeItem.tooltip = `${element.id}: ${element.claimData.title}\n\nCategory: ${element.claimData.category}\nSource: ${element.claimData.source}\nVerified: ${element.verified ? 'Yes' : 'No'} (${similarity})`;
+      
+      // Add context value for right-click menu
+      treeItem.contextValue = 'claim';
+    } else {
+      // This is a category/status group
+      treeItem.iconPath = new vscode.ThemeIcon('folder');
+      treeItem.contextValue = 'group';
+    }
+    
+    return treeItem;
+  }
+
+  async getChildren(element?: ClaimTreeItem): Promise<ClaimTreeItem[]> {
+    if (!element) {
+      // Root level - show status groups
+      return this.getRootItems();
+    } else if (element.children) {
+      // Return pre-computed children
+      return element.children;
+    }
+    return [];
+  }
+
+  private async getRootItems(): Promise<ClaimTreeItem[]> {
+    const workspaceFolders = vscode.workspace.workspaceFolders;
+    if (!workspaceFolders) {
+      return [];
+    }
+
+    // Load claims if not cached
+    if (!claimsCache) {
+      claimsCache = await loadClaimsData(workspaceFolders[0].uri);
+    }
+
+    // Validate all claims
+    for (const [id, claimData] of claimsCache) {
+      if (claimData.verified === undefined) {
+        await validateQuote(claimData, workspaceFolders[0].uri);
+      }
+    }
+
+    // Group claims by verification status and category
+    const verified: ClaimData[] = [];
+    const unverified: ClaimData[] = [];
+    const draft: ClaimData[] = [];
+
+    for (const [id, claimData] of claimsCache) {
+      if (claimData.verified === true) {
+        verified.push(claimData);
+      } else if (claimData.verified === false) {
+        unverified.push(claimData);
+      } else {
+        draft.push(claimData);
+      }
+    }
+
+    const rootItems: ClaimTreeItem[] = [];
+
+    // Verified claims grouped by category
+    if (verified.length > 0) {
+      const verifiedItem: ClaimTreeItem = {
+        id: 'verified',
+        label: `✅ Verified (${verified.length})`,
+        collapsibleState: vscode.TreeItemCollapsibleState.Expanded,
+        children: this.groupByCategory(verified)
+      };
+      rootItems.push(verifiedItem);
+    }
+
+    // Unverified claims
+    if (unverified.length > 0) {
+      const unverifiedItem: ClaimTreeItem = {
+        id: 'unverified',
+        label: `❌ Unverified (${unverified.length})`,
+        collapsibleState: vscode.TreeItemCollapsibleState.Expanded,
+        children: unverified.map(claim => this.createClaimItem(claim))
+      };
+      rootItems.push(unverifiedItem);
+    }
+
+    // Draft claims
+    if (draft.length > 0) {
+      const draftItem: ClaimTreeItem = {
+        id: 'draft',
+        label: `⚪ Draft (${draft.length})`,
+        collapsibleState: vscode.TreeItemCollapsibleState.Collapsed,
+        children: draft.map(claim => this.createClaimItem(claim))
+      };
+      rootItems.push(draftItem);
+    }
+
+    return rootItems;
+  }
+
+  private groupByCategory(claims: ClaimData[]): ClaimTreeItem[] {
+    const categories = new Map<string, ClaimData[]>();
+    
+    for (const claim of claims) {
+      const category = claim.category || 'Other';
+      if (!categories.has(category)) {
+        categories.set(category, []);
+      }
+      categories.get(category)!.push(claim);
+    }
+
+    const categoryIcons: { [key: string]: string } = {
+      'Method': '📊',
+      'Result': '📈',
+      'Challenge': '⚠️',
+      'Context': '📝',
+      'Application': '🔧',
+      'Theory': '💡'
+    };
+
+    return Array.from(categories.entries()).map(([category, claims]) => ({
+      id: `category-${category}`,
+      label: `${categoryIcons[category] || '📁'} ${category} (${claims.length})`,
+      collapsibleState: vscode.TreeItemCollapsibleState.Collapsed,
+      children: claims.map(claim => this.createClaimItem(claim))
+    }));
+  }
+
+  private createClaimItem(claim: ClaimData): ClaimTreeItem {
+    return {
+      id: claim.id,
+      label: `${claim.id}: ${claim.title.substring(0, 50)}${claim.title.length > 50 ? '...' : ''}`,
+      category: claim.category,
+      verified: claim.verified,
+      similarity: claim.similarity,
+      collapsibleState: vscode.TreeItemCollapsibleState.None,
+      claimData: claim
+    };
+  }
 }
 
 let claimsCache: Map<string, ClaimData> | null = null;
@@ -18,12 +202,32 @@ let claimsFileWatcher: vscode.FileSystemWatcher | null = null;
 let diagnosticCollection: vscode.DiagnosticCollection;
 let validationCache: Map<string, boolean> = new Map();
 
+// Import tree providers
+import { ClaimsTreeProvider, SourcesTreeProvider } from './treeProviders';
+let claimsTreeProvider: ClaimsTreeProvider;
+let sourcesTreeProvider: SourcesTreeProvider;
+
 export function activate(context: vscode.ExtensionContext) {
   console.log('Citation Hover extension is now active');
 
   // Create diagnostic collection
   diagnosticCollection = vscode.languages.createDiagnosticCollection('citationHover');
   context.subscriptions.push(diagnosticCollection);
+
+  // Create tree view providers
+  claimsTreeProvider = new ClaimsTreeProvider();
+  sourcesTreeProvider = new SourcesTreeProvider();
+  
+  const claimsTreeView = vscode.window.createTreeView('citationHoverClaims', {
+    treeDataProvider: claimsTreeProvider,
+    showCollapseAll: true
+  });
+  
+  const sourcesTreeView = vscode.window.createTreeView('citationHoverSources', {
+    treeDataProvider: sourcesTreeProvider
+  });
+  
+  context.subscriptions.push(claimsTreeView, sourcesTreeView);
 
   // Register hover provider for markdown files
   const hoverProvider = vscode.languages.registerHoverProvider('markdown', {
@@ -41,6 +245,38 @@ export function activate(context: vscode.ExtensionContext) {
     claimsCache = null;
     validationCache.clear();
     vscode.window.showInformationMessage('Citation Hover: Cache cleared');
+  });
+
+  const searchZoteroCommand = vscode.commands.registerCommand('citationHover.searchZotero', async () => {
+    await searchZoteroForSelection();
+  });
+
+  const goToClaimCommand = vscode.commands.registerCommand('citationHover.goToClaim', async (claimData: ClaimData) => {
+    await goToClaim(claimData);
+  });
+
+  const jumpToClaimCommand = vscode.commands.registerCommand('citationHover.jumpToClaim', async (claimId: string) => {
+    await jumpToClaim(claimId);
+  });
+
+  const extractPdfCommand = vscode.commands.registerCommand('citationHover.extractPdf', async (pdfPath: string) => {
+    await extractPdfText(pdfPath);
+  });
+
+  const refreshSourcesCommand = vscode.commands.registerCommand('citationHover.refreshSources', () => {
+    sourcesTreeProvider.refresh();
+  });
+
+  const openExtractedTextCommand = vscode.commands.registerCommand('citationHover.openExtractedText', async (pdfBaseName: string, folder: string) => {
+    await openExtractedText(pdfBaseName, folder);
+  });
+
+  const refreshTreeCommand = vscode.commands.registerCommand('citationHover.refreshTree', () => {
+    claimsTreeProvider.refresh();
+  });
+
+  const showQuoteDiffCommand = vscode.commands.registerCommand('citationHover.showQuoteDiff', async (claimData: ClaimData) => {
+    await showQuoteDiff(claimData);
   });
 
   // Watch for changes to claims file
@@ -74,7 +310,19 @@ export function activate(context: vscode.ExtensionContext) {
     })
   );
 
-  context.subscriptions.push(hoverProvider, validateCommand, clearCacheCommand);
+  context.subscriptions.push(
+    hoverProvider, 
+    validateCommand, 
+    clearCacheCommand, 
+    searchZoteroCommand, 
+    goToClaimCommand, 
+    jumpToClaimCommand,
+    extractPdfCommand,
+    refreshSourcesCommand,
+    openExtractedTextCommand,
+    refreshTreeCommand, 
+    showQuoteDiffCommand
+  );
 }
 
 function setupFileWatcher(context: vscode.ExtensionContext) {
@@ -90,6 +338,7 @@ function setupFileWatcher(context: vscode.ExtensionContext) {
   claimsFileWatcher.onDidChange(() => {
     claimsCache = null;
     validationCache.clear();
+    claimsTreeProvider.refresh();
     console.log('Claims file changed, cache cleared');
   });
 
@@ -130,24 +379,52 @@ async function provideClaimHover(
   markdown.isTrusted = true;
   
   // Add verification indicator
-  const verificationIcon = claimData.verified ? '✅' : '❌';
-  const verificationText = claimData.verified 
-    ? `Verified (${(claimData.similarity! * 100).toFixed(0)}% match)` 
-    : '⚠️ Quote not found in source';
+  const verificationIcon = claimData.verified ? '✅' : claimData.verified === false ? '❌' : '⚪';
+  let verificationText = '';
+  
+  if (claimData.verified === true) {
+    verificationText = `Verified (${(claimData.similarity! * 100).toFixed(0)}% match)`;
+  } else if (claimData.verified === false) {
+    if (claimData.error) {
+      verificationText = `⚠️ ${claimData.error}`;
+    } else {
+      verificationText = `⚠️ Quote not verified (${(claimData.similarity! * 100).toFixed(0)}% similarity)`;
+    }
+  } else {
+    verificationText = 'Not validated';
+  }
   
   markdown.appendMarkdown(`${verificationIcon} **${claimId}**: ${claimData.title}\n\n`);
   markdown.appendMarkdown(`**Category**: ${claimData.category}  \n`);
   markdown.appendMarkdown(`**Source**: ${claimData.source}  \n`);
   markdown.appendMarkdown(`**Verification**: ${verificationText}\n\n`);
   
+  // Show the quote
   if (claimData.primaryQuote && !claimData.primaryQuote.includes('[Note:')) {
-    markdown.appendMarkdown(`> ${claimData.primaryQuote}\n\n`);
+    markdown.appendMarkdown(`**Your Quote:**\n> ${claimData.primaryQuote}\n\n`);
+    
+    // If not verified but we have a nearest match, show it
+    if (claimData.verified === false && claimData.nearestMatch && claimData.similarity && claimData.similarity > 0.5) {
+      markdown.appendMarkdown(`**Nearest Match in Source** (${(claimData.similarity * 100).toFixed(0)}% similar):\n`);
+      
+      if (claimData.contextBefore) {
+        markdown.appendMarkdown(`\n*[...context before...]*\n`);
+      }
+      
+      markdown.appendMarkdown(`> ${claimData.nearestMatch}\n`);
+      
+      if (claimData.contextAfter) {
+        markdown.appendMarkdown(`*[...context after...]*\n`);
+      }
+      
+      markdown.appendMarkdown(`\n`);
+    }
   } else {
     markdown.appendMarkdown(`*[Quotes to be extracted]*\n\n`);
   }
   
   if (claimData.context) {
-    markdown.appendMarkdown(`*Context: ${claimData.context}*`);
+    markdown.appendMarkdown(`---\n*Context: ${claimData.context}*`);
   }
 
   return new vscode.Hover(markdown, range);
@@ -227,21 +504,65 @@ function normalizeText(text: string): string {
   return text.replace(/\s+/g, ' ').trim().toLowerCase();
 }
 
-function similarityScore(str1: string, str2: string): number {
-  // Simple Levenshtein-based similarity
-  const longer = str1.length > str2.length ? str1 : str2;
-  const shorter = str1.length > str2.length ? str2 : str1;
+// Normalize text for matching (handles Unicode characters)
+function normalizeForMatching(text: string): string {
+  return text
+    .toLowerCase()
+    .normalize('NFD') // Decompose accented characters
+    .replace(/[\u0300-\u036f]/g, '') // Remove diacritics
+    .replace(/[^\w\s\d]/g, ' ') // Replace special chars with spaces
+    .replace(/\s+/g, ' ') // Normalize whitespace
+    .trim();
+}
+
+// Flexible author-year matching
+function matchesAuthorYear(filename: string, authorYear: string): boolean {
+  const normalizedFilename = normalizeForMatching(filename);
+  const normalizedAuthorYear = normalizeForMatching(authorYear);
   
-  if (longer.length === 0) {
-    return 1.0;
+  // Direct match
+  if (normalizedFilename.includes(normalizedAuthorYear)) {
+    return true;
   }
   
-  // Check if shorter is contained in longer
-  if (longer.includes(shorter)) {
-    return shorter.length / longer.length;
+  // Extract year from authorYear (last 4 digits)
+  const yearMatch = authorYear.match(/(\d{4})/);
+  if (!yearMatch) {
+    return false;
+  }
+  const year = yearMatch[1];
+  
+  // Extract author part (everything before the year)
+  const authorPart = authorYear.replace(/\d{4}/, '').trim();
+  const normalizedAuthorPart = normalizeForMatching(authorPart);
+  
+  // Check if year is present
+  const hasYear = normalizedFilename.includes(year);
+  if (!hasYear) {
+    return false;
   }
   
-  return 0;
+  // Check if author part matches (handling "et al." variations)
+  const authorWords = normalizedAuthorPart.split(/\s+/).filter(w => w.length > 0);
+  
+  for (const word of authorWords) {
+    if (word.length > 2 && normalizedFilename.includes(word)) {
+      return true;
+    }
+  }
+  
+  return false;
+}
+
+function similarityScore(quote: string, window: string): number {
+  // Word-based similarity matching the MCP server approach
+  const quoteWords = quote.toLowerCase().split(' ').filter(w => w.length > 0);
+  const windowLower = window.toLowerCase();
+  
+  // Count matching words
+  const matchingWords = quoteWords.filter(word => windowLower.includes(word)).length;
+  
+  return matchingWords / quoteWords.length;
 }
 
 async function validateQuote(claimData: ClaimData, documentUri: vscode.Uri): Promise<void> {
@@ -262,6 +583,7 @@ async function validateQuote(claimData: ClaimData, documentUri: vscode.Uri): Pro
 
   const workspaceFolder = vscode.workspace.getWorkspaceFolder(documentUri);
   if (!workspaceFolder) {
+    claimData.error = 'No workspace folder found';
     return;
   }
 
@@ -272,15 +594,19 @@ async function validateQuote(claimData: ClaimData, documentUri: vscode.Uri): Pro
   const extractedTextDir = path.join(workspaceFolder.uri.fsPath, extractedTextPath);
   
   if (!fs.existsSync(extractedTextDir)) {
+    claimData.error = 'Extracted text directory not found';
+    claimData.verified = false;
+    claimData.similarity = 0;
     return;
   }
 
-  // Find source file
+  // Find source file (flexible matching)
   const authorYear = claimData.source.split(' ')[0]; // Extract AuthorYear from "AuthorYear (Source ID: X)"
   const files = fs.readdirSync(extractedTextDir);
-  const sourceFile = files.find(f => f.includes(authorYear) && f.endsWith('.txt'));
+  const sourceFile = files.find(f => f.endsWith('.txt') && matchesAuthorYear(f, authorYear));
   
   if (!sourceFile) {
+    claimData.error = `No source file found for ${authorYear}`;
     claimData.verified = false;
     claimData.similarity = 0;
     validationCache.set(cacheKey, false);
@@ -289,37 +615,112 @@ async function validateQuote(claimData: ClaimData, documentUri: vscode.Uri): Pro
 
   // Read and search source file
   const sourceFilePath = path.join(extractedTextDir, sourceFile);
-  const sourceText = fs.readFileSync(sourceFilePath, 'utf-8');
+  let sourceText: string;
   
+  try {
+    sourceText = fs.readFileSync(sourceFilePath, 'utf-8');
+  } catch (err) {
+    claimData.error = `Failed to read source file: ${err}`;
+    claimData.verified = false;
+    claimData.similarity = 0;
+    return;
+  }
+  
+  const lines = sourceText.split('\n');
   const normalizedQuote = normalizeText(claimData.primaryQuote);
   const normalizedSource = normalizeText(sourceText);
   
   // Check for exact match
   if (normalizedSource.includes(normalizedQuote)) {
+    // Find the exact location to get context
+    const quoteStart = normalizedSource.indexOf(normalizedQuote);
+    const quoteEnd = quoteStart + normalizedQuote.length;
+    
+    // Find line numbers for context
+    let charCount = 0;
+    let startLine = 0;
+    let endLine = 0;
+    
+    for (let i = 0; i < lines.length; i++) {
+      const lineLength = normalizeText(lines[i]).length + 1; // +1 for newline
+      if (charCount <= quoteStart && charCount + lineLength > quoteStart) {
+        startLine = i;
+      }
+      if (charCount <= quoteEnd && charCount + lineLength >= quoteEnd) {
+        endLine = i;
+        break;
+      }
+      charCount += lineLength;
+    }
+    
+    // Get context (2 lines before and after)
+    const contextStart = Math.max(0, startLine - 2);
+    const contextEnd = Math.min(lines.length - 1, endLine + 2);
+    
+    claimData.contextBefore = lines.slice(contextStart, startLine).join('\n').trim();
+    claimData.contextAfter = lines.slice(endLine + 1, contextEnd + 1).join('\n').trim();
     claimData.verified = true;
     claimData.similarity = 1.0;
     validationCache.set(cacheKey, true);
     return;
   }
 
-  // Fuzzy match with sliding window
-  const quoteWords = normalizedQuote.split(' ');
-  const sourceWords = normalizedSource.split(' ');
+  // Fuzzy match with sliding window - matching MCP server approach
+  const quoteWords = normalizedQuote.split(' ').filter(w => w.length > 0);
+  const sourceWords = normalizedSource.split(' ').filter(w => w.length > 0);
   const windowSize = quoteWords.length;
   
   let bestSimilarity = 0;
+  let bestMatchIndex = 0;
+  let bestMatch = '';
   
   for (let i = 0; i <= sourceWords.length - windowSize; i++) {
     const window = sourceWords.slice(i, i + windowSize).join(' ');
-    const similarity = similarityScore(normalizedQuote, window);
+    
+    // Count matching words
+    const matchingWords = quoteWords.filter(word => window.includes(word)).length;
+    const similarity = matchingWords / quoteWords.length;
     
     if (similarity > bestSimilarity) {
       bestSimilarity = similarity;
+      bestMatchIndex = i;
+      bestMatch = window;
     }
     
-    if (bestSimilarity >= threshold) {
+    if (similarity >= 0.85) {
       break;
     }
+  }
+
+  // Find the best match in the original text to get proper context
+  if (bestSimilarity > 0) {
+    let wordCount = 0;
+    let matchStartLine = 0;
+    let matchEndLine = 0;
+    
+    const normalizedLines = lines.map(l => normalizeText(l));
+    
+    for (let i = 0; i < normalizedLines.length; i++) {
+      const lineWords = normalizedLines[i].split(' ').filter(w => w.length > 0);
+      
+      if (wordCount <= bestMatchIndex && wordCount + lineWords.length > bestMatchIndex) {
+        matchStartLine = i;
+      }
+      if (wordCount <= bestMatchIndex + windowSize && wordCount + lineWords.length >= bestMatchIndex + windowSize) {
+        matchEndLine = i;
+        break;
+      }
+      
+      wordCount += lineWords.length;
+    }
+    
+    // Get context (2 lines before and after)
+    const contextStart = Math.max(0, matchStartLine - 2);
+    const contextEnd = Math.min(lines.length - 1, matchEndLine + 2);
+    
+    claimData.contextBefore = lines.slice(contextStart, matchStartLine).join('\n').trim();
+    claimData.contextAfter = lines.slice(matchEndLine + 1, contextEnd + 1).join('\n').trim();
+    claimData.nearestMatch = lines.slice(matchStartLine, matchEndLine + 1).join('\n').trim();
   }
 
   claimData.verified = bestSimilarity >= threshold;
@@ -360,9 +761,21 @@ async function validateDocumentQuotes(document: vscode.TextDocument): Promise<vo
       const line = document.positionAt(match.index).line;
       const range = new vscode.Range(line, 0, line, match[0].length);
       
+      let message = `Quote for ${claimId} could not be verified`;
+      
+      if (claimData.error) {
+        message += `: ${claimData.error}`;
+      } else if (claimData.similarity !== undefined) {
+        message += ` in source file (${(claimData.similarity * 100).toFixed(0)}% similarity)`;
+        
+        if (claimData.nearestMatch && claimData.similarity > 0.5) {
+          message += `. Hover to see nearest match.`;
+        }
+      }
+      
       const diagnostic = new vscode.Diagnostic(
         range,
-        `Quote for ${claimId} could not be verified in source file (${(claimData.similarity! * 100).toFixed(0)}% similarity)`,
+        message,
         vscode.DiagnosticSeverity.Warning
       );
       diagnostic.source = 'Citation Hover';
@@ -371,6 +784,1205 @@ async function validateDocumentQuotes(document: vscode.TextDocument): Promise<vo
   }
 
   diagnosticCollection.set(document.uri, diagnostics);
+}
+
+async function searchZoteroForSelection(): Promise<void> {
+  const editor = vscode.window.activeTextEditor;
+  if (!editor) {
+    vscode.window.showErrorMessage('No active editor');
+    return;
+  }
+
+  // Get selected text or current line
+  let searchText = '';
+  const selection = editor.selection;
+  
+  if (!selection.isEmpty) {
+    searchText = editor.document.getText(selection);
+  } else {
+    // Use current line if no selection
+    const line = editor.document.lineAt(selection.active.line);
+    searchText = line.text;
+  }
+
+  searchText = searchText.trim();
+  
+  if (!searchText) {
+    vscode.window.showErrorMessage('No text selected');
+    return;
+  }
+
+  // Limit search text length for display
+  const displayText = searchText.length > 100 
+    ? searchText.substring(0, 100) + '...' 
+    : searchText;
+
+  await vscode.window.withProgress({
+    location: vscode.ProgressLocation.Notification,
+    title: `Searching Zotero for: "${displayText}"`,
+    cancellable: false
+  }, async (progress) => {
+    try {
+      // Call Zotero MCP semantic search
+      const config = vscode.workspace.getConfiguration('citationHover');
+      const resultLimit = config.get<number>('zoteroSearchLimit', 5);
+      
+      progress.report({ message: 'Querying Zotero library...' });
+      
+      // Execute MCP command via VS Code's command palette
+      // Note: This requires the Zotero MCP server to be configured
+      const results = await executeZoteroSearch(searchText, resultLimit);
+      
+      if (!results || results.length === 0) {
+        vscode.window.showInformationMessage('No relevant papers found in Zotero library');
+        return;
+      }
+
+      progress.report({ message: 'Displaying results...' });
+      
+      // Show results in a new document
+      await displaySearchResults(searchText, results);
+      
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      vscode.window.showErrorMessage(`Zotero search failed: ${errorMsg}`);
+    }
+  });
+}
+
+async function executeZoteroSearch(query: string, limit: number): Promise<any[]> {
+  // Call Zotero MCP via the mcp_zotero_zotero_semantic_search tool
+  // Since VS Code extensions can't directly call MCP tools, we'll use a workaround:
+  // 1. Write query to a temp file
+  // 2. Use a Python/Node script to call MCP
+  // 3. Read results from temp file
+  
+  // For a simpler approach, we'll shell out to call the MCP server
+  const { execSync } = require('child_process');
+  const os = require('os');
+  const tmpDir = os.tmpdir();
+  const queryFile = path.join(tmpDir, 'zotero-query.json');
+  const resultFile = path.join(tmpDir, 'zotero-results.json');
+  
+  try {
+    // Write query
+    fs.writeFileSync(queryFile, JSON.stringify({ query, limit }));
+    
+    // Get workspace root
+    const workspaceFolders = vscode.workspace.workspaceFolders;
+    if (!workspaceFolders) {
+      throw new Error('No workspace folder open');
+    }
+    
+    const workspaceRoot = workspaceFolders[0].uri.fsPath;
+    const scriptPath = path.join(workspaceRoot, 'call_zotero_mcp.py');
+    
+    // Check if helper script exists
+    if (!fs.existsSync(scriptPath)) {
+      throw new Error('Zotero MCP helper script not found. Please create call_zotero_mcp.py in workspace root.');
+    }
+    
+    // Call helper script
+    execSync(`python3 "${scriptPath}" "${queryFile}" "${resultFile}"`, {
+      cwd: workspaceRoot,
+      timeout: 30000 // 30 second timeout
+    });
+    
+    // Read results
+    if (!fs.existsSync(resultFile)) {
+      throw new Error('No results returned from Zotero search');
+    }
+    
+    const resultsJson = fs.readFileSync(resultFile, 'utf-8');
+    const results = JSON.parse(resultsJson);
+    
+    // Clean up temp files
+    try {
+      fs.unlinkSync(queryFile);
+      fs.unlinkSync(resultFile);
+    } catch (e) {
+      // Ignore cleanup errors
+    }
+    
+    return results;
+    
+  } catch (error) {
+    // Clean up on error
+    try {
+      if (fs.existsSync(queryFile)) fs.unlinkSync(queryFile);
+      if (fs.existsSync(resultFile)) fs.unlinkSync(resultFile);
+    } catch (e) {
+      // Ignore cleanup errors
+    }
+    
+    throw error;
+  }
+}
+
+async function displaySearchResults(query: string, results: any[]): Promise<void> {
+  // Create interactive webview panel instead of static markdown
+  const panel = vscode.window.createWebviewPanel(
+    'zoteroSearchResults',
+    'Zotero Search Results',
+    vscode.ViewColumn.Beside,
+    {
+      enableScripts: true,
+      retainContextWhenHidden: true
+    }
+  );
+
+  panel.webview.html = getSearchResultsHtml(query, results);
+  
+  // Handle messages from webview
+  panel.webview.onDidReceiveMessage(
+    async message => {
+      switch (message.command) {
+        case 'addToClaims':
+          await addResultToClaims(message.item);
+          break;
+        case 'copyBibTeX':
+          await copyBibTeX(message.itemKey);
+          break;
+        case 'viewFullText':
+          await viewFullText(message.itemKey);
+          break;
+        case 'openInZotero':
+          await openInZotero(message.itemKey);
+          break;
+      }
+    },
+    undefined,
+    []
+  );
+}
+
+function getSearchResultsHtml(query: string, results: any[]): string {
+  const resultsHtml = results.map((item, index) => {
+    const authors = item.creators && item.creators.length > 0
+      ? item.creators.map((c: any) => c.lastName || c.name).join(', ')
+      : 'Unknown authors';
+    
+    const year = item.date ? extractYear(item.date) : 'n.d.';
+    const authorYear = `${getFirstAuthor(item)}${year}`;
+    const relevance = item.similarity ? (item.similarity * 100).toFixed(0) : '?';
+    const abstract = item.abstractNote || 'No abstract available';
+    const tags = item.tags && item.tags.length > 0
+      ? item.tags.map((t: any) => t.tag || t).join(', ')
+      : '';
+    
+    return `
+      <div class="result-card">
+        <div class="result-header">
+          <div class="result-number">${index + 1}</div>
+          <div class="result-title-section">
+            <h3 class="result-title">${escapeHtml(item.title || 'Untitled')}</h3>
+            <div class="result-meta">
+              <span class="authors">${escapeHtml(authors)}</span>
+              <span class="year">${escapeHtml(year)}</span>
+              <span class="relevance" title="Semantic similarity score">
+                <span class="relevance-bar" style="width: ${relevance}%"></span>
+                ${relevance}% relevant
+              </span>
+            </div>
+          </div>
+        </div>
+        
+        <div class="result-abstract">
+          <details>
+            <summary>Abstract</summary>
+            <p>${escapeHtml(abstract)}</p>
+          </details>
+        </div>
+        
+        ${tags ? `<div class="result-tags">${escapeHtml(tags)}</div>` : ''}
+        
+        <div class="result-actions">
+          <button class="btn btn-primary" onclick="addToClaims(${index})">
+            ➕ Add to Claims
+          </button>
+          <button class="btn btn-secondary" onclick="viewFullText('${escapeHtml(item.key || '')}')">
+            📄 View Full Text
+          </button>
+          <button class="btn btn-secondary" onclick="copyBibTeX('${escapeHtml(item.key || '')}')">
+            📋 Copy Citation
+          </button>
+          <button class="btn btn-secondary" onclick="openInZotero('${escapeHtml(item.key || '')}')">
+            🔗 Open in Zotero
+          </button>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  return `
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Zotero Search Results</title>
+      <style>
+        body {
+          font-family: var(--vscode-font-family);
+          color: var(--vscode-foreground);
+          background-color: var(--vscode-editor-background);
+          padding: 20px;
+          line-height: 1.6;
+        }
+        
+        .header {
+          margin-bottom: 30px;
+          padding-bottom: 20px;
+          border-bottom: 2px solid var(--vscode-panel-border);
+        }
+        
+        .header h1 {
+          margin: 0 0 10px 0;
+          color: var(--vscode-foreground);
+        }
+        
+        .query {
+          font-size: 1.1em;
+          color: var(--vscode-descriptionForeground);
+          font-style: italic;
+        }
+        
+        .result-count {
+          margin-top: 10px;
+          color: var(--vscode-descriptionForeground);
+        }
+        
+        .result-card {
+          background-color: var(--vscode-editor-background);
+          border: 1px solid var(--vscode-panel-border);
+          border-radius: 6px;
+          padding: 20px;
+          margin-bottom: 20px;
+          transition: box-shadow 0.2s;
+        }
+        
+        .result-card:hover {
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        }
+        
+        .result-header {
+          display: flex;
+          gap: 15px;
+          margin-bottom: 15px;
+        }
+        
+        .result-number {
+          flex-shrink: 0;
+          width: 32px;
+          height: 32px;
+          background-color: var(--vscode-button-background);
+          color: var(--vscode-button-foreground);
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-weight: bold;
+        }
+        
+        .result-title-section {
+          flex: 1;
+        }
+        
+        .result-title {
+          margin: 0 0 8px 0;
+          font-size: 1.2em;
+          color: var(--vscode-foreground);
+        }
+        
+        .result-meta {
+          display: flex;
+          gap: 15px;
+          flex-wrap: wrap;
+          align-items: center;
+          font-size: 0.9em;
+          color: var(--vscode-descriptionForeground);
+        }
+        
+        .authors {
+          font-weight: 500;
+        }
+        
+        .year {
+          color: var(--vscode-descriptionForeground);
+        }
+        
+        .relevance {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          padding: 2px 8px;
+          background-color: var(--vscode-badge-background);
+          color: var(--vscode-badge-foreground);
+          border-radius: 12px;
+          font-size: 0.85em;
+        }
+        
+        .relevance-bar {
+          height: 4px;
+          background-color: var(--vscode-progressBar-background);
+          border-radius: 2px;
+          display: inline-block;
+        }
+        
+        .result-abstract {
+          margin: 15px 0;
+        }
+        
+        .result-abstract details {
+          cursor: pointer;
+        }
+        
+        .result-abstract summary {
+          color: var(--vscode-textLink-foreground);
+          font-weight: 500;
+          padding: 5px 0;
+          user-select: none;
+        }
+        
+        .result-abstract summary:hover {
+          color: var(--vscode-textLink-activeForeground);
+        }
+        
+        .result-abstract p {
+          margin: 10px 0;
+          padding: 10px;
+          background-color: var(--vscode-textBlockQuote-background);
+          border-left: 3px solid var(--vscode-textBlockQuote-border);
+          color: var(--vscode-foreground);
+        }
+        
+        .result-tags {
+          margin: 10px 0;
+          font-size: 0.85em;
+          color: var(--vscode-descriptionForeground);
+        }
+        
+        .result-actions {
+          display: flex;
+          gap: 10px;
+          flex-wrap: wrap;
+          margin-top: 15px;
+          padding-top: 15px;
+          border-top: 1px solid var(--vscode-panel-border);
+        }
+        
+        .btn {
+          padding: 6px 12px;
+          border: none;
+          border-radius: 4px;
+          cursor: pointer;
+          font-size: 0.9em;
+          transition: opacity 0.2s;
+        }
+        
+        .btn:hover {
+          opacity: 0.8;
+        }
+        
+        .btn-primary {
+          background-color: var(--vscode-button-background);
+          color: var(--vscode-button-foreground);
+          font-weight: 500;
+        }
+        
+        .btn-secondary {
+          background-color: var(--vscode-button-secondaryBackground);
+          color: var(--vscode-button-secondaryForeground);
+        }
+        
+        .no-results {
+          text-align: center;
+          padding: 40px;
+          color: var(--vscode-descriptionForeground);
+        }
+      </style>
+    </head>
+    <body>
+      <div class="header">
+        <h1>🔍 Zotero Search Results</h1>
+        <div class="query">"${escapeHtml(query)}"</div>
+        <div class="result-count">${results.length} relevant papers found</div>
+      </div>
+      
+      ${results.length > 0 ? resultsHtml : '<div class="no-results">No results found</div>'}
+      
+      <script>
+        const vscode = acquireVsCodeApi();
+        const results = ${JSON.stringify(results)};
+        
+        function addToClaims(index) {
+          vscode.postMessage({
+            command: 'addToClaims',
+            item: results[index]
+          });
+        }
+        
+        function viewFullText(itemKey) {
+          vscode.postMessage({
+            command: 'viewFullText',
+            itemKey: itemKey
+          });
+        }
+        
+        function copyBibTeX(itemKey) {
+          vscode.postMessage({
+            command: 'copyBibTeX',
+            itemKey: itemKey
+          });
+        }
+        
+        function openInZotero(itemKey) {
+          vscode.postMessage({
+            command: 'openInZotero',
+            itemKey: itemKey
+          });
+        }
+      </script>
+    </body>
+    </html>
+  `;
+}
+
+function escapeHtml(text: string): string {
+  const map: { [key: string]: string } = {
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#039;'
+  };
+  return text.replace(/[&<>"']/g, m => map[m]);
+}
+
+function extractYear(dateString: string): string {
+  const match = dateString.match(/\d{4}/);
+  return match ? match[0] : dateString;
+}
+
+function getFirstAuthor(item: any): string {
+  if (!item.creators || item.creators.length === 0) {
+    return 'Unknown';
+  }
+  const first = item.creators[0];
+  return first.lastName || first.name || 'Unknown';
+}
+
+async function addResultToClaims(item: any): Promise<void> {
+  const workspaceFolders = vscode.workspace.workspaceFolders;
+  if (!workspaceFolders) {
+    vscode.window.showErrorMessage('No workspace folder open');
+    return;
+  }
+
+  const config = vscode.workspace.getConfiguration('citationHover');
+  const claimsPath = config.get<string>('claimsFilePath', '01_Knowledge_Base/claims_and_evidence.md');
+  const fullPath = path.join(workspaceFolders[0].uri.fsPath, claimsPath);
+
+  if (!fs.existsSync(fullPath)) {
+    vscode.window.showErrorMessage('claims_and_evidence.md not found');
+    return;
+  }
+
+  // Read current claims to get next ID
+  const content = fs.readFileSync(fullPath, 'utf-8');
+  const claimIds = Array.from(content.matchAll(/## (C_\d+):/g)).map(m => m[1]);
+  const nextId = getNextClaimId(claimIds);
+
+  // Extract info from item
+  const authors = item.creators && item.creators.length > 0
+    ? item.creators.map((c: any) => c.lastName || c.name).join(', ')
+    : 'Unknown';
+  const year = item.date ? extractYear(item.date) : 'n.d.';
+  const firstAuthor = getFirstAuthor(item);
+  const authorYear = `${firstAuthor}${year}`;
+  const title = item.title || 'Untitled';
+  const abstract = item.abstractNote || '';
+
+  // Prompt user for claim details
+  const claimTitle = await vscode.window.showInputBox({
+    prompt: 'Enter claim title',
+    placeHolder: 'Brief description of the claim',
+    value: title.substring(0, 100)
+  });
+
+  if (!claimTitle) {
+    return; // User cancelled
+  }
+
+  const category = await vscode.window.showQuickPick(
+    ['Method', 'Result', 'Challenge', 'Context', 'Application', 'Theory'],
+    { placeHolder: 'Select claim category' }
+  );
+
+  if (!category) {
+    return;
+  }
+
+  const context = await vscode.window.showInputBox({
+    prompt: 'Enter context/nuance (optional)',
+    placeHolder: 'Additional context about this claim'
+  });
+
+  // Create new claim entry
+  const newClaim = `
+## ${nextId}: ${claimTitle}
+
+**Category**: ${category}  
+**Source**: ${authorYear} (Source ID: TBD)  
+**Context**: ${context || 'TBD'}
+
+**Primary Quote**:
+> [Note: Extract specific quote from paper]
+
+**Supporting Quotes**:
+> [Note: Add supporting quotes if needed]
+
+**Notes**:
+- Title: ${title}
+- Authors: ${authors}
+- Year: ${year}
+${abstract ? `- Abstract: ${abstract.substring(0, 200)}...` : ''}
+- Zotero Key: ${item.key || 'N/A'}
+
+---
+`;
+
+  // Append to claims file
+  fs.appendFileSync(fullPath, newClaim);
+
+  // Open claims file and navigate to new claim
+  const doc = await vscode.workspace.openTextDocument(fullPath);
+  const editor = await vscode.window.showTextDocument(doc);
+  
+  // Find the new claim position
+  const text = doc.getText();
+  const claimPos = text.indexOf(`## ${nextId}:`);
+  if (claimPos !== -1) {
+    const position = doc.positionAt(claimPos);
+    editor.selection = new vscode.Selection(position, position);
+    editor.revealRange(new vscode.Range(position, position), vscode.TextEditorRevealType.InCenter);
+  }
+
+  vscode.window.showInformationMessage(`Added ${nextId} to claims`);
+  
+  // Clear cache so new claim is picked up
+  claimsCache = null;
+}
+
+function getNextClaimId(existingIds: string[]): string {
+  if (existingIds.length === 0) {
+    return 'C_01';
+  }
+  
+  // Extract numbers and find max
+  const numbers = existingIds.map(id => {
+    const match = id.match(/C_(\d+)/);
+    return match ? parseInt(match[1], 10) : 0;
+  });
+  
+  const maxNum = Math.max(...numbers);
+  const nextNum = maxNum + 1;
+  
+  return `C_${nextNum.toString().padStart(2, '0')}`;
+}
+
+async function copyBibTeX(itemKey: string): Promise<void> {
+  try {
+    // This would call Zotero MCP to get BibTeX
+    // For now, show a message
+    await vscode.env.clipboard.writeText(`@article{${itemKey},\n  // BibTeX entry\n}`);
+    vscode.window.showInformationMessage('Citation copied to clipboard');
+  } catch (error) {
+    vscode.window.showErrorMessage(`Failed to copy citation: ${error}`);
+  }
+}
+
+async function viewFullText(itemKey: string): Promise<void> {
+  const workspaceFolders = vscode.workspace.workspaceFolders;
+  if (!workspaceFolders) {
+    vscode.window.showErrorMessage('No workspace folder open');
+    return;
+  }
+
+  const config = vscode.workspace.getConfiguration('citationHover');
+  const extractedTextPath = config.get<string>('extractedTextPath', 'literature/ExtractedText');
+  const extractedTextDir = path.join(workspaceFolders[0].uri.fsPath, extractedTextPath);
+
+  if (!fs.existsSync(extractedTextDir)) {
+    vscode.window.showErrorMessage('Extracted text directory not found');
+    return;
+  }
+
+  // Try to find matching file
+  const files = fs.readdirSync(extractedTextDir);
+  const matchingFile = files.find(f => f.includes(itemKey) || f.endsWith('.txt'));
+
+  if (matchingFile) {
+    const filePath = path.join(extractedTextDir, matchingFile);
+    const doc = await vscode.workspace.openTextDocument(filePath);
+    await vscode.window.showTextDocument(doc, vscode.ViewColumn.Beside);
+  } else {
+    vscode.window.showWarningMessage('Full text not found. Extract it first.');
+  }
+}
+
+async function openInZotero(itemKey: string): Promise<void> {
+  if (!itemKey) {
+    vscode.window.showErrorMessage('No Zotero item key available');
+    return;
+  }
+
+  // Zotero deep link format: zotero://select/library/items/ITEMKEY
+  const zoteroUrl = `zotero://select/library/items/${itemKey}`;
+  
+  try {
+    await vscode.env.openExternal(vscode.Uri.parse(zoteroUrl));
+  } catch (error) {
+    vscode.window.showErrorMessage(`Failed to open Zotero: ${error}`);
+  }
+}
+
+async function goToClaim(claimData: ClaimData): Promise<void> {
+  const workspaceFolders = vscode.workspace.workspaceFolders;
+  if (!workspaceFolders) {
+    return;
+  }
+
+  const config = vscode.workspace.getConfiguration('citationHover');
+  const claimsPath = config.get<string>('claimsFilePath', '01_Knowledge_Base/claims_and_evidence.md');
+  const fullPath = path.join(workspaceFolders[0].uri.fsPath, claimsPath);
+
+  if (!fs.existsSync(fullPath)) {
+    vscode.window.showErrorMessage('claims_and_evidence.md not found');
+    return;
+  }
+
+  const doc = await vscode.workspace.openTextDocument(fullPath);
+  const editor = await vscode.window.showTextDocument(doc);
+
+  // Find the claim position
+  const text = doc.getText();
+  const claimPos = text.indexOf(`## ${claimData.id}:`);
+  
+  if (claimPos !== -1) {
+    const position = doc.positionAt(claimPos);
+    editor.selection = new vscode.Selection(position, position);
+    editor.revealRange(new vscode.Range(position, position), vscode.TextEditorRevealType.InCenter);
+  }
+}
+
+async function showQuoteDiff(claimData: ClaimData): Promise<void> {
+  // Create a webview panel showing the diff
+  const panel = vscode.window.createWebviewPanel(
+    'quoteDiff',
+    `Quote Verification: ${claimData.id}`,
+    vscode.ViewColumn.Beside,
+    {
+      enableScripts: true,
+      retainContextWhenHidden: true
+    }
+  );
+
+  panel.webview.html = getQuoteDiffHtml(claimData);
+  
+  // Handle messages from webview
+  panel.webview.onDidReceiveMessage(
+    async message => {
+      switch (message.command) {
+        case 'replaceQuote':
+          await replaceQuoteInClaims(claimData, message.newQuote);
+          panel.dispose();
+          break;
+        case 'goToClaim':
+          await goToClaim(claimData);
+          break;
+      }
+    },
+    undefined,
+    []
+  );
+}
+
+function getQuoteDiffHtml(claimData: ClaimData): string {
+  const yourQuote = claimData.primaryQuote || '';
+  const sourceQuote = claimData.nearestMatch || '';
+  const similarity = claimData.similarity !== undefined ? (claimData.similarity * 100).toFixed(0) : '0';
+  
+  // Simple word-level diff
+  const yourWords = yourQuote.split(/\s+/);
+  const sourceWords = sourceQuote.split(/\s+/);
+  
+  let diffHtml = '';
+  if (claimData.verified === false && sourceQuote) {
+    diffHtml = generateDiffHtml(yourWords, sourceWords);
+  }
+
+  return `
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Quote Verification</title>
+      <style>
+        body {
+          font-family: var(--vscode-font-family);
+          color: var(--vscode-foreground);
+          background-color: var(--vscode-editor-background);
+          padding: 20px;
+          line-height: 1.6;
+        }
+        
+        .header {
+          margin-bottom: 30px;
+          padding-bottom: 20px;
+          border-bottom: 2px solid var(--vscode-panel-border);
+        }
+        
+        .status {
+          display: inline-block;
+          padding: 4px 12px;
+          border-radius: 12px;
+          font-size: 0.9em;
+          font-weight: 500;
+          margin-left: 10px;
+        }
+        
+        .status-verified {
+          background-color: var(--vscode-testing-iconPassed);
+          color: white;
+        }
+        
+        .status-unverified {
+          background-color: var(--vscode-testing-iconFailed);
+          color: white;
+        }
+        
+        .similarity {
+          font-size: 1.2em;
+          margin: 10px 0;
+          color: var(--vscode-descriptionForeground);
+        }
+        
+        .quote-section {
+          margin: 20px 0;
+          padding: 15px;
+          background-color: var(--vscode-textBlockQuote-background);
+          border-left: 4px solid var(--vscode-textBlockQuote-border);
+          border-radius: 4px;
+        }
+        
+        .quote-section h3 {
+          margin-top: 0;
+          color: var(--vscode-foreground);
+        }
+        
+        .quote-text {
+          font-size: 1.05em;
+          line-height: 1.8;
+          margin: 10px 0;
+        }
+        
+        .diff-view {
+          margin: 20px 0;
+          padding: 15px;
+          background-color: var(--vscode-editor-background);
+          border: 1px solid var(--vscode-panel-border);
+          border-radius: 4px;
+        }
+        
+        .diff-view h3 {
+          margin-top: 0;
+        }
+        
+        .word-removed {
+          background-color: rgba(255, 0, 0, 0.3);
+          text-decoration: line-through;
+          padding: 2px 4px;
+          border-radius: 2px;
+        }
+        
+        .word-added {
+          background-color: rgba(0, 255, 0, 0.3);
+          padding: 2px 4px;
+          border-radius: 2px;
+        }
+        
+        .word-same {
+          color: var(--vscode-foreground);
+        }
+        
+        .context {
+          margin: 15px 0;
+          padding: 10px;
+          background-color: var(--vscode-editor-background);
+          border: 1px solid var(--vscode-panel-border);
+          border-radius: 4px;
+          font-size: 0.9em;
+          color: var(--vscode-descriptionForeground);
+        }
+        
+        .actions {
+          margin-top: 30px;
+          padding-top: 20px;
+          border-top: 1px solid var(--vscode-panel-border);
+          display: flex;
+          gap: 10px;
+        }
+        
+        .btn {
+          padding: 8px 16px;
+          border: none;
+          border-radius: 4px;
+          cursor: pointer;
+          font-size: 0.95em;
+          transition: opacity 0.2s;
+        }
+        
+        .btn:hover {
+          opacity: 0.8;
+        }
+        
+        .btn-primary {
+          background-color: var(--vscode-button-background);
+          color: var(--vscode-button-foreground);
+          font-weight: 500;
+        }
+        
+        .btn-secondary {
+          background-color: var(--vscode-button-secondaryBackground);
+          color: var(--vscode-button-secondaryForeground);
+        }
+      </style>
+    </head>
+    <body>
+      <div class="header">
+        <h1>${escapeHtml(claimData.id)}: ${escapeHtml(claimData.title)}</h1>
+        <div>
+          <strong>Source:</strong> ${escapeHtml(claimData.source)}
+          <span class="status ${claimData.verified ? 'status-verified' : 'status-unverified'}">
+            ${claimData.verified ? '✅ Verified' : '❌ Unverified'}
+          </span>
+        </div>
+        <div class="similarity">Similarity: ${similarity}%</div>
+      </div>
+      
+      <div class="quote-section">
+        <h3>Your Quote</h3>
+        <div class="quote-text">${escapeHtml(yourQuote)}</div>
+      </div>
+      
+      ${sourceQuote ? `
+        <div class="quote-section">
+          <h3>Source Text (Nearest Match)</h3>
+          <div class="quote-text">${escapeHtml(sourceQuote)}</div>
+        </div>
+        
+        ${diffHtml ? `
+          <div class="diff-view">
+            <h3>Differences</h3>
+            <div class="quote-text">${diffHtml}</div>
+          </div>
+        ` : ''}
+        
+        ${claimData.contextBefore ? `
+          <div class="context">
+            <strong>Context Before:</strong><br>
+            ${escapeHtml(claimData.contextBefore)}
+          </div>
+        ` : ''}
+        
+        ${claimData.contextAfter ? `
+          <div class="context">
+            <strong>Context After:</strong><br>
+            ${escapeHtml(claimData.contextAfter)}
+          </div>
+        ` : ''}
+      ` : `
+        <div class="quote-section">
+          <h3>⚠️ Source Text Not Found</h3>
+          <p>${claimData.error || 'Could not find matching text in source file.'}</p>
+        </div>
+      `}
+      
+      <div class="actions">
+        ${sourceQuote && !claimData.verified ? `
+          <button class="btn btn-primary" onclick="replaceQuote()">
+            Replace with Source Quote
+          </button>
+        ` : ''}
+        <button class="btn btn-secondary" onclick="goToClaim()">
+          Go to Claim in File
+        </button>
+      </div>
+      
+      <script>
+        const vscode = acquireVsCodeApi();
+        
+        function replaceQuote() {
+          vscode.postMessage({
+            command: 'replaceQuote',
+            newQuote: ${JSON.stringify(sourceQuote)}
+          });
+        }
+        
+        function goToClaim() {
+          vscode.postMessage({
+            command: 'goToClaim'
+          });
+        }
+      </script>
+    </body>
+    </html>
+  `;
+}
+
+function generateDiffHtml(yourWords: string[], sourceWords: string[]): string {
+  // Simple LCS-based diff
+  const lcs = longestCommonSubsequence(yourWords, sourceWords);
+  const lcsSet = new Set(lcs);
+  
+  let html = '<div>';
+  
+  // Show your quote with removals
+  html += '<div style="margin-bottom: 15px;"><strong>Your version:</strong><br>';
+  for (const word of yourWords) {
+    if (lcsSet.has(word)) {
+      html += `<span class="word-same">${escapeHtml(word)} </span>`;
+    } else {
+      html += `<span class="word-removed">${escapeHtml(word)} </span>`;
+    }
+  }
+  html += '</div>';
+  
+  // Show source quote with additions
+  html += '<div><strong>Source version:</strong><br>';
+  for (const word of sourceWords) {
+    if (lcsSet.has(word)) {
+      html += `<span class="word-same">${escapeHtml(word)} </span>`;
+    } else {
+      html += `<span class="word-added">${escapeHtml(word)} </span>`;
+    }
+  }
+  html += '</div>';
+  
+  html += '</div>';
+  return html;
+}
+
+function longestCommonSubsequence(arr1: string[], arr2: string[]): string[] {
+  const m = arr1.length;
+  const n = arr2.length;
+  const dp: number[][] = Array(m + 1).fill(0).map(() => Array(n + 1).fill(0));
+  
+  for (let i = 1; i <= m; i++) {
+    for (let j = 1; j <= n; j++) {
+      if (arr1[i - 1].toLowerCase() === arr2[j - 1].toLowerCase()) {
+        dp[i][j] = dp[i - 1][j - 1] + 1;
+      } else {
+        dp[i][j] = Math.max(dp[i - 1][j], dp[i][j - 1]);
+      }
+    }
+  }
+  
+  // Backtrack to find LCS
+  const lcs: string[] = [];
+  let i = m, j = n;
+  while (i > 0 && j > 0) {
+    if (arr1[i - 1].toLowerCase() === arr2[j - 1].toLowerCase()) {
+      lcs.unshift(arr1[i - 1]);
+      i--;
+      j--;
+    } else if (dp[i - 1][j] > dp[i][j - 1]) {
+      i--;
+    } else {
+      j--;
+    }
+  }
+  
+  return lcs;
+}
+
+async function replaceQuoteInClaims(claimData: ClaimData, newQuote: string): Promise<void> {
+  const workspaceFolders = vscode.workspace.workspaceFolders;
+  if (!workspaceFolders) {
+    return;
+  }
+
+  const config = vscode.workspace.getConfiguration('citationHover');
+  const claimsPath = config.get<string>('claimsFilePath', '01_Knowledge_Base/claims_and_evidence.md');
+  const fullPath = path.join(workspaceFolders[0].uri.fsPath, claimsPath);
+
+  if (!fs.existsSync(fullPath)) {
+    vscode.window.showErrorMessage('claims_and_evidence.md not found');
+    return;
+  }
+
+  let content = fs.readFileSync(fullPath, 'utf-8');
+  
+  // Find and replace the quote
+  const claimRegex = new RegExp(`(## ${claimData.id}:.*?\\*\\*Primary Quote\\*\\*[^\\n]*:\\n> )([^\\n]+)`, 's');
+  const match = content.match(claimRegex);
+  
+  if (match) {
+    content = content.replace(claimRegex, `$1${newQuote}`);
+    fs.writeFileSync(fullPath, content);
+    
+    vscode.window.showInformationMessage(`Updated quote for ${claimData.id}`);
+    
+    // Clear cache and refresh
+    claimsCache = null;
+    validationCache.clear();
+    claimsTreeProvider.refresh();
+  } else {
+    vscode.window.showErrorMessage(`Could not find quote for ${claimData.id}`);
+  }
+}
+
+// Jump to claim function
+async function jumpToClaim(claimId: string): Promise<void> {
+  const workspaceFolders = vscode.workspace.workspaceFolders;
+  if (!workspaceFolders) {
+    return;
+  }
+
+  const config = vscode.workspace.getConfiguration('citationHover');
+  const claimsPath = config.get<string>('claimsFilePath', '01_Knowledge_Base/claims_and_evidence.md');
+  const fullPath = path.join(workspaceFolders[0].uri.fsPath, claimsPath);
+
+  if (!fs.existsSync(fullPath)) {
+    vscode.window.showErrorMessage('claims_and_evidence.md not found');
+    return;
+  }
+
+  const doc = await vscode.workspace.openTextDocument(fullPath);
+  const editor = await vscode.window.showTextDocument(doc);
+
+  // Find claim position
+  const text = doc.getText();
+  const claimPos = text.indexOf(`## ${claimId}:`);
+  
+  if (claimPos !== -1) {
+    const position = doc.positionAt(claimPos);
+    editor.selection = new vscode.Selection(position, position);
+    editor.revealRange(new vscode.Range(position, position), vscode.TextEditorRevealType.InCenter);
+  }
+}
+
+// Extract PDF text function
+async function extractPdfText(pdfPath: string): Promise<void> {
+  const workspaceFolders = vscode.workspace.workspaceFolders;
+  if (!workspaceFolders) {
+    vscode.window.showErrorMessage('No workspace folder open');
+    return;
+  }
+
+  await vscode.window.withProgress({
+    location: vscode.ProgressLocation.Notification,
+    title: `Extracting text from ${path.basename(pdfPath)}`,
+    cancellable: false
+  }, async (progress) => {
+    try {
+      progress.report({ message: 'Running docling extraction...' });
+
+      const workspaceRoot = workspaceFolders[0].uri.fsPath;
+      const extractScript = path.join(workspaceRoot, 'extract_with_docling.py');
+
+      if (!fs.existsSync(extractScript)) {
+        vscode.window.showErrorMessage('extract_with_docling.py not found in workspace root');
+        return;
+      }
+
+      // Call extraction script
+      const { execSync } = require('child_process');
+      execSync(`python3 "${extractScript}" "${pdfPath}"`, {
+        cwd: workspaceRoot,
+        timeout: 120000, // 2 minute timeout
+        encoding: 'utf-8'
+      });
+
+      progress.report({ message: 'Extraction complete' });
+
+      // Refresh sources tree
+      if (sourcesTreeProvider) {
+        sourcesTreeProvider.refresh();
+      }
+
+      vscode.window.showInformationMessage(`Extracted text from ${path.basename(pdfPath)}`);
+
+      // Ask if user wants to open the extracted file
+      const config = vscode.workspace.getConfiguration('citationHover');
+      const extractedTextPath = config.get<string>('extractedTextPath', 'literature/ExtractedText');
+      const extractedDir = path.join(workspaceRoot, extractedTextPath);
+      
+      // Find the newly created file (most recent .txt file)
+      if (fs.existsSync(extractedDir)) {
+        const files = fs.readdirSync(extractedDir)
+          .filter(f => f.endsWith('.txt'))
+          .map(f => ({
+            name: f,
+            path: path.join(extractedDir, f),
+            mtime: fs.statSync(path.join(extractedDir, f)).mtime
+          }))
+          .sort((a, b) => b.mtime.getTime() - a.mtime.getTime());
+
+        if (files.length > 0) {
+          const openFile = await vscode.window.showInformationMessage(
+            'Open extracted text?',
+            'Yes',
+            'No'
+          );
+
+          if (openFile === 'Yes') {
+            const doc = await vscode.workspace.openTextDocument(files[0].path);
+            await vscode.window.showTextDocument(doc, vscode.ViewColumn.Beside);
+          }
+        }
+      }
+
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      vscode.window.showErrorMessage(`Extraction failed: ${errorMsg}`);
+    }
+  });
+}
+
+// Open extracted text function
+async function openExtractedText(pdfBaseName: string, folder: string): Promise<void> {
+  const workspaceFolders = vscode.workspace.workspaceFolders;
+  if (!workspaceFolders) {
+    return;
+  }
+
+  const config = vscode.workspace.getConfiguration('citationHover');
+  const extractedTextPath = config.get<string>('extractedTextPath', 'literature/ExtractedText');
+  const extractedDir = path.join(workspaceFolders[0].uri.fsPath, extractedTextPath);
+
+  if (!fs.existsSync(extractedDir)) {
+    vscode.window.showErrorMessage('Extracted text directory not found');
+    return;
+  }
+
+  // Find matching extracted file
+  const files = fs.readdirSync(extractedDir).filter(f => f.endsWith('.txt'));
+  const matchingFile = files.find(f => 
+    f.includes(pdfBaseName) || 
+    f.includes(folder) ||
+    pdfBaseName.includes(f.replace('.txt', ''))
+  );
+
+  if (matchingFile) {
+    const filePath = path.join(extractedDir, matchingFile);
+    const doc = await vscode.workspace.openTextDocument(filePath);
+    await vscode.window.showTextDocument(doc, vscode.ViewColumn.Beside);
+  } else {
+    vscode.window.showWarningMessage('Could not find extracted text file');
+  }
 }
 
 async function validateAllQuotes(): Promise<void> {
@@ -443,3 +2055,4 @@ export function deactivate() {
     diagnosticCollection.dispose();
   }
 }
+

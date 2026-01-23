@@ -18,6 +18,45 @@ Format: Use BibTeX keys in the format \cite{AuthorYear}.
 
 Verification: Before making a claim, you must verify it against the source text. If you cannot find a source, explicitly state that.
 
+Citation MCP Server Tools
+The citation MCP server provides tools for searching and verifying quotes from extracted source texts:
+
+1. Search for Quotes
+   - Use: `mcp_citation_search_quotes(search_term="text to find", author_filter="Author2024")`
+   - Returns: Exact quotes from papers with line numbers and context
+   - Use this to find relevant passages before adding claims
+
+2. Verify Quotes
+   - Use: `mcp_citation_verify_quote(quote="exact quote text", author_year="Author2024")`
+   - Returns: Verification status, similarity score, source file name
+   - ALWAYS verify quotes before adding them to claims_and_evidence.md
+   - Threshold: 85% similarity required for verification
+
+3. List Available Sources
+   - Use: `mcp_citation_list_sources()`
+   - Returns: All papers with extracted full text available
+   - Check this to see what sources can be quoted
+
+4. Get Full Source Text
+   - Use: `mcp_citation_get_source_text(author_year="Author2024")`
+   - Returns: Complete extracted text from a paper
+   - Use when you need to read the full paper
+
+Author-Year Format:
+- The citation server uses flexible matching for author-year identifiers
+- "Johnson2007" matches "Johnson et al. - 2007 - Title.txt"
+- "Soneson2014" matches "Soneson et al. - 2014 - Title.txt"
+- Format: FirstAuthorLastName + Year (e.g., "Johnson2007", "Breiman2001")
+
+Quote Verification Workflow:
+1. Search for relevant text: `mcp_citation_search_quotes(search_term="batch effects")`
+2. Copy exact quote from search results
+3. Verify quote: `mcp_citation_verify_quote(quote="...", author_year="Johnson2007")`
+4. If verified (similarity ≥ 0.85), add to claims_and_evidence.md
+5. If not verified, search for better quote or adjust text
+
+This prevents hallucinations and ensures all quotes are traceable to source documents.
+
 Searching for Additional Sources
 When a source is needed but not in Zotero:
 1. Use web_search to find relevant academic papers, articles, or resources

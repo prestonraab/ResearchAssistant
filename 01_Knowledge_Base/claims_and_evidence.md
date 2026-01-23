@@ -94,7 +94,7 @@ Each claim section includes:
 **Context**: Each classifier type has distinct characteristics for different scenarios.
 
 **Primary Quote** (Lines 1223-1224):
-> "Conventional machine learning methods, such as Support Vector Machines (SVM), k-Nearest Neighbor (kNN), Naïve Bayes (NB), Random Forest (RF), and related methods have been widely applied for gene expression analysis."
+> "Conventional machine learning methods, such as Support Vector Machines (SVM), k-Nearest Neighbor (kNN), Naïve Bayes (NB), Random Forest (RF), and related methods were used in a body of works on early cancer detection"
 
 **Supporting Quotes**:
 - (Lines 243-248): "DL-based methods have generally outperformed conventional ML methods, and it can be expected that most future models for gene expression analysis will be based on DL networks. Currently, several approaches that employed MLP or CNN networks in combination with efficient feature engineering and transfer learning techniques have achieved test accuracies upwards of 90%."
@@ -179,8 +179,12 @@ Each claim section includes:
 **Source**: Korsunsky2019 (Source ID: 8)  
 **Context**: Fast and scalable, can handle ~1 million cells.
 
-**Primary Quote** (Lines 155-162, from Tran2020 benchmark):
-> "Harmony [13], first employs PCA for dimensionality reduction. In the PCA space, Harmony iteratively removes batch effects present. At each iteration, it clusters similar cells from different batches while maximizing the diversity of batches within each cluster and then calculates a correction factor for each cell to be applied. This approach is fast and can accurately detect the true biological connection across datasets."
+**Primary Quote** (Results):
+> "Harmony iteratively learns a cell-specific linear correction function. Harmony begins with a low-dimensional embedding of cells, such as principal components analysis (PCA), (Supplementary Note 1 and Methods). Using this embedding, Harmony first groups cells into multi-dataset clusters (Fig. 1a). We use soft clustering to assign cells to potentially multiple clusters, to account for smooth transitions between cell states."
+
+**Supporting Quotes**:
+- (Results): "After clustering, each dataset has cluster-specific centroids (Fig. 1b) that are used to compute cluster-specific linear correction factors (Fig. 1c). Since clusters correspond to cell types and states, cluster-specific correction factors correspond to individual cell-type and cell-state specific correction factors."
+- (Results): "Finally, each cell is assigned a cluster-weighted average of these terms and corrected by its cell-specific linear factor (Fig. 1d). Since each cell may be in multiple clusters, each cell has a potentially unique correction factor. Harmony iterates these four steps until cell cluster assignments are stable."
 
 ---
 
@@ -190,8 +194,11 @@ Each claim section includes:
 **Source**: Welch2019 (Source ID: 9)  
 **Context**: Performs well when batches have non-identical cell type compositions.
 
-**Primary Quote** (Lines 164-179, from Tran2020 benchmark):
-> "LIGER is a newly developed method to handle a perceived shortcoming of other methods, which is the assumption that differences between datasets are entirely due to technical variations and not of biological origins, thus aiming to remove all of them [14]. LIGER uses integrative non-negative matrix factorization to first obtain a low-dimensional representation of the input data. The representation is composed of two parts: a set of batch-specific factors and a set of shared factors."
+**Primary Quote** (Comparing and contrasting single-cell datasets with shared and dataset-specific factors):
+> "LIGER takes as input multiple single-cell datasets, which may be scRNA-seq experiments from different individuals, time points, or species-or measurements from different molecular modalities, such as single-cell epigenome data or spatial gene expression data (Figure 1A). LIGER then employs integrative non-negative matrix factorization (iNMF) (Yang and Michailidis, 2016) to learn a low-dimensional space in which each cell is defined by one set of dataset-specific factors, or metagenes, and another set of shared metagenes (Figure 1B)."
+
+**Supporting Quotes**:
+- (Methods): "Each factor often corresponds to a biologically interpretable signal-like the genes that define a particular cell type. A tuning parameter, λ, allows adjusting the size of dataset-specific effects to reflect the divergence of the datasets being analyzed."
 
 ---
 
@@ -201,15 +208,18 @@ Each claim section includes:
 **Source**: Stuart2019 (Source ID: 10)  
 **Context**: Uses CCA to project datasets into shared space before finding anchors.
 
-**Primary Quote** (Lines 150-154, from Tran2020 benchmark):
-> "The Seurat MultiCCA method from the popular Seurat package... newer version, Seurat Integration (Seurat 3) [12], first uses CCA to project the data into a subspace to identify correlations across datasets. The MNNs are then computed in the CCA subspace and serve as 'anchors' to correct the data."
+**Primary Quote** (Discussion):
+> "Our integration strategy builds upon previous work in the application of CCA to identify shared sources of variation across experiments (Butler et al., 2018) and the concept of mutual nearest neighbors to identify biologically matched cells in a pair of datasets (Haghverdi et al., 2018). Furthermore, we leverage ideas from the construction of SNN graphs to score, identify, and downweight the contribution of inaccurate anchors to substantially increase integration robustness."
+
+**Supporting Quotes**:
+- (Abstract): "We introduce an analytical strategy for integrating scRNA-seq datasets based on common sources of variation, enabling the identification of shared populations across datasets and downstream comparative analysis."
 
 ---
 
 ## C_15: BatchQC provides interactive software for evaluating sample and batch effects with PCA, heatmaps, dendrograms, and other diagnostics
 
 **Category**: Method  
-**Source**: Kauffmann2016 (Source ID: 11)  
+**Source**: Manimaran2016 (Source ID: 11)  
 **Context**: Supports multiple batch correction methods including ComBat, ComBat-Seq, limma, and SVA.
 
 **Primary Quote** (Abstract):
@@ -242,8 +252,12 @@ Each claim section includes:
 **Source**: Piccolo2022 (Source ID: 13)  
 **Context**: Number of samples and genes did not strongly correlate with classification performance.
 
-**Primary Quote**:
-> [Note: Full text extraction completed. Specific quotations to be added after review of extracted text.]
+**Primary Quote** (Abstract):
+> "The ability to classify patients based on gene-expression data varies by algorithm and performance metric"
+
+**Supporting Quotes**:
+- (Results): "the performance rankings differed considerably depending on which evaluation metric we used"
+- (Results): "conclusions drawn from benchmark comparisons depend heavily on which metric(s) are considered important"
 
 ---
 
@@ -253,8 +267,8 @@ Each claim section includes:
 **Source**: Wilks2021 (Source ID: 14)  
 **Context**: Comprises over 750,000 individual sequencing runs from SRA, GTEx, and TCGA, enables cross-dataset comparisons.
 
-**Primary Quote**:
-> [Note: Full text extraction completed. Specific quotations to be added after review of extracted text.]
+**Primary Quote** (Abstract):
+> "We present recount3, a resource consisting of over 750,000 publicly available human and mouse RNA sequencing (RNA-seq) samples uniformly processed by our new Monorail analysis pipeline."
 
 ---
 
@@ -264,8 +278,8 @@ Each claim section includes:
 **Source**: Babichev2025 (Source ID: 15)  
 **Context**: Focuses on selecting and evaluating proximity metrics for clustering and classification tasks.
 
-**Primary Quote**:
-> [Note: Quotes to be extracted from source.]
+**Primary Quote** (Abstract):
+> "This study presents the development and application of a hybrid model for evaluating proximity metrics in high-dimensional gene expression data, integrating data mining and machine learning methods within a comprehensive framework."
 
 ---
 
@@ -275,8 +289,8 @@ Each claim section includes:
 **Source**: Babichev2025 (Source ID: 15)  
 **Context**: Selected for their theoretical soundness and practical relevance in transcriptomics.
 
-**Primary Quote**:
-> [Note: Quotes to be extracted from source.]
+**Primary Quote** (Introduction):
+> "correlation, mutual information, and Wasserstein distance are well-suited for gene expression analysis. Correlation captures linear relationships and is widely used in co-expression networks. Mutual information captures non-linear dependencies, while Wasserstein distance compares entire distributions and is robust in high-dimensional spaces."
 
 ---
 
@@ -286,8 +300,11 @@ Each claim section includes:
 **Source**: Babichev2025 (Source ID: 15)  
 **Context**: Dataset included over 6,000 patient samples covering 13 cancer types.
 
-**Primary Quote**:
-> [Note: Quotes to be extracted from source.]
+**Primary Quote** (Abstract):
+> "In the initial modeling stage using gene expression data from over 6,000 patient samples covering 13 cancer types (TCGA dataset), the proposed model achieved classification accuracy exceeding 95.9% and a weighted F1-score above 95.8%."
+
+**Supporting Quotes**:
+- (Results): "For the internal dataset consisting of 6344 samples across 13 cancer types, the hybrid model yielded a mean accuracy of 95.9% and a weighted F1-score of 95.8% under a two-cluster structure."
 
 ---
 
@@ -297,8 +314,11 @@ Each claim section includes:
 **Source**: Babichev2025 (Source ID: 15)  
 **Context**: Accuracies reached 96.28% and 97.43% respectively.
 
-**Primary Quote**:
-> [Note: Quotes to be extracted from source.]
+**Primary Quote** (Abstract):
+> "External validation using Alzheimer's (GSE174367) and Type 2 Diabetes (GSE81608) datasets confirmed the model's generalizability, with accuracy values reaching 96.28% and 97.43%, and weighted F1-scores of 96.26% and 97.41%, respectively."
+
+**Supporting Quotes**:
+- (Results): "For Alzheimer's disease data (GSE174367), accuracy reached 96.28% (Wasserstein) and 96.25% (Correlation), while for Type 2 Diabetes data (GSE81608), accuracy peaked at 97.43% (Correlation) and 97.38% (Wasserstein)."
 
 ---
 
@@ -308,8 +328,11 @@ Each claim section includes:
 **Source**: Babichev2025 (Source ID: 15)  
 **Context**: Hyperparameters optimized using Bayesian optimization.
 
-**Primary Quote**:
-> [Note: Quotes to be extracted from source.]
+**Primary Quote** (Abstract):
+> "A stacking model was implemented to enhance classification robustness, compensating for potential clustering errors and delivering consistent performance across varying metrics and cluster structures."
+
+**Supporting Quotes**:
+- (Methods): "Random Forest models were used at the base level, while a logistic regression model served as the meta-classifier. Hyperparameters were optimized using Bayesian optimization, ensuring automated fine-tuning."
 
 ---
 
@@ -319,8 +342,8 @@ Each claim section includes:
 **Source**: Babichev2025 (Source ID: 15)  
 **Context**: Minimizes sum of distances between points and cluster medoids.
 
-**Primary Quote**:
-> [Note: Quotes to be extracted from source.]
+**Primary Quote** (Methods):
+> "K-Medoids minimizes the sum of distances between points in clusters and the centers of those clusters (medoids). The key advantage of the K-Medoids algorithm is its ability to work with any distance measures, including non-Euclidean metrics such as mutual information-based distance, correlation distance, or Wasserstein distance."
 
 ---
 
@@ -330,8 +353,8 @@ Each claim section includes:
 **Source**: Babichev2025 (Source ID: 15)  
 **Context**: Wasserstein metric showed better balance between classification quality and cluster uniformity in multi-cluster structures.
 
-**Primary Quote**:
-> [Note: Quotes to be extracted from source.]
+**Primary Quote** (Results):
+> "These results strongly support the underlying modeling assumption that proximity metrics which reflect global statistical relationships (such as correlation) or distributional geometry (such as Wasserstein) are more effective for evaluating distances between gene expression profiles than metrics based on local entropy-based divergence."
 
 ---
 
@@ -341,8 +364,11 @@ Each claim section includes:
 **Source**: Campain2010 (Source ID: 16)  
 **Context**: Aids in finding effects that exist and important subtle variations.
 
-**Primary Quote**:
-> [Note: Quotes to be extracted from source.]
+**Primary Quote** (Background):
+> "Meta-analysis refers to an integrative data analysis method that traditionally is defined as a synthesis or at times review of results from datasets that are independent but related. Meta-analysis has ranging benefits. Power can be added to an analysis, obtained by the increase in sample size of the study. This aids the ability of the analysis to find effects that exist"
+
+**Supporting Quotes**:
+- (Background): "Meta-analysis can also be important when studies have conflicting conclusions as they may estimate an average effect or highlight an important subtle variation"
 
 ---
 
@@ -352,8 +378,8 @@ Each claim section includes:
 **Source**: Campain2010 (Source ID: 16)  
 **Context**: Differing platforms and probe mapping make comparisons difficult; laboratory effects like experimental procedures and sample preparation also contribute.
 
-**Primary Quote**:
-> [Note: Quotes to be extracted from source.]
+**Primary Quote** (Background):
+> "There are a number of issues associated with applying meta-analysis in gene expression studies. These include problems common to traditional meta-analysis such as overcoming different aims, design and populations of interest. There are also concerns specific to gene expression data including challenges with probes and probe sets, differing platforms being compared and laboratory effects."
 
 ---
 
@@ -363,8 +389,8 @@ Each claim section includes:
 **Source**: Campain2010 (Source ID: 16)  
 **Context**: Designed to be resilient to varying complexity levels in meta-analysis and robust against measure-specific and platform-specific bias.
 
-**Primary Quote**:
-> [Note: Quotes to be extracted from source.]
+**Primary Quote** (Background):
+> "Our method, 'meta differential expression via distance synthesis', (mDEDS) is used to identify differentially expressed (DE) genes which extends the DEDS method. This new method makes use of multiple statistical measure across datasets to obtain a DE list, but becomes a novel tool, with respect to DEDS with the ability to integrate multiple datasets."
 
 ---
 
@@ -374,8 +400,8 @@ Each claim section includes:
 **Source**: Campain2010 (Source ID: 16)  
 **Context**: 'Relative' methods include Fisher's inverse chi-square, GeneMeta, and RankProd; 'absolute' methods are exemplified by the 'simple' meta method.
 
-**Primary Quote**:
-> [Note: Quotes to be extracted from source.]
+**Primary Quote** (Background):
+> "We also perform a comparison study of meta-analysis methods including the Fisher's inverse chi-square method, GeneMeta, Probability of Expression (POE), POE with Integrative Correlation (IC), RankProd (the latter four are available from Bioconductor) and mDEDS as well as two naive methods, 'dataset cross-validation' and a 'simple' meta-method."
 
 ---
 
@@ -385,8 +411,8 @@ Each claim section includes:
 **Source**: Campain2010 (Source ID: 16)  
 **Context**: Tests the null hypothesis of no differences in expression means between groups for a given gene.
 
-**Primary Quote**:
-> [Note: Quotes to be extracted from source.]
+**Primary Quote** (Background):
+> "Fisher's inverse chi-square method" [mentioned as one of the meta-analysis methods compared in the study]
 
 ---
 
@@ -396,8 +422,11 @@ Each claim section includes:
 **Source**: Clough2023 (Source ID: 17)  
 **Context**: Handles over 200,000 studies and 6.5 million samples, all indexed, searchable, and downloadable.
 
-**Primary Quote**:
-> [Note: Quotes to be extracted from source.]
+**Primary Quote** (Abstract):
+> "The Gene Expression Omnibus (GEO) is an international public repository that archives gene expression and epigenomics data sets generated by next-generation sequencing and microarray technologies."
+
+**Supporting Quotes**:
+- (Content): "At the time of writing the GEO database contains over 6.5 million samples from over 200 000 studies, from over 6000 different organisms, deposited by 70 000 unique submitters, making it one of the most extensive and diverse repositories of functional genomic data in the world."
 
 ---
 
@@ -407,8 +436,8 @@ Each claim section includes:
 **Source**: Clough2023 (Source ID: 17)  
 **Context**: New interactive graphical plots help users identify differentially expressed genes and assess data set quality.
 
-**Primary Quote**:
-> [Note: Quotes to be extracted from source.]
+**Primary Quote** (Abstract):
+> "Data are typically submitted to GEO by researchers in compliance with widespread journal and funder mandates to make generated data publicly accessible. The resource handles raw data files, processed data tables and descriptive metadata."
 
 ---
 
@@ -418,8 +447,8 @@ Each claim section includes:
 **Source**: Clough2023 (Source ID: 17)  
 **Context**: RNA-seq studies have represented over half of all studies submitted each year since 2018.
 
-**Primary Quote**:
-> [Note: Quotes to be extracted from source.]
+**Primary Quote** (Content):
+> "Between 2009 and 2015 GEO released fewer than 100 single-cell RNA-seq studies per year. Since 2017, the number of single-cell RNA-seq studies increased each year such that in 2022, 21% of RNA-seq studies released were single-cell RNA-seq studies."
 
 ---
 
@@ -429,8 +458,8 @@ Each claim section includes:
 **Source**: Clough2023 (Source ID: 17)  
 **Context**: Reflects the growing focus on single-cell transcriptomes.
 
-**Primary Quote**:
-> [Note: Quotes to be extracted from source.]
+**Primary Quote** (Content):
+> "in 2022, 21% of RNA-seq studies released were single-cell RNA-seq studies"
 
 ---
 
@@ -440,8 +469,8 @@ Each claim section includes:
 **Source**: Clough2023 (Source ID: 17)  
 **Context**: Over 31,000 third-party papers use GEO data to support or complement independent studies.
 
-**Primary Quote**:
-> [Note: Quotes to be extracted from source.]
+**Primary Quote** (Conclusion):
+> "GEO is a widely used international public repository for high-throughput gene expression and epigenomic data and continues to grow at an increasing rate. The database has become an essential resource for researchers across a wide range of disciplines, including genomics, molecular biology, biomedicine and bioinformatics."
 
 ---
 
@@ -451,30 +480,41 @@ Each claim section includes:
 **Source**: Leek2010 (Source ID: 18)  
 **Context**: This phenomenon is true even for well-designed, randomized studies.
 
-**Primary Quote**:
-> [Note: Quotes to be extracted from source.]
+**Primary Quote** (Abstract):
+> "High-throughput technologies are widely used, for example to assay genetic variants, gene and protein expression, and epigenetic modifications. One often overlooked complication with such studies is batch effects, which occur because measurements are affected by laboratory conditions, reagent lots and personnel differences. This becomes a major problem when batch effects are correlated with an outcome of interest and lead to incorrect conclusions."
+
+**Supporting Quotes**:
+- (Introduction): "Batch effects are sub-groups of measurements that have qualitatively different behaviour across conditions and are unrelated to the biological or scientific variables in a study."
+- (Downstream consequences): "In the most benign cases, batch effects will lead to increased variability and decreased power to detect a real biological signal. Of more concern are cases in which batch effects are confounded with an outcome of interest and result in misleading biological or clinical conclusions."
 
 ---
 
 ## C_37: Surrogate Variable Analysis (SVA) is a method to identify, estimate, and utilize components of expression heterogeneity
 
 **Category**: Method  
-**Source**: Leek2010 (Source ID: 18)  
+**Source**: Leek2007 (Source ID: 7)  
 **Context**: Can be applied in conjunction with standard analysis techniques to accurately capture the relationship between expression and any modeled variables of interest.
 
-**Primary Quote**:
-> [Note: Quotes to be extracted from source.]
+**Primary Quote** (Abstract):
+> "We introduce 'surrogate variable analysis' (SVA) to overcome the problems caused by heterogeneity in expression studies. SVA can be applied in conjunction with standard analysis techniques to accurately capture the relationship between expression and any modeled variables of interest."
+
+**Supporting Quotes**:
+- (Results): "The SVA approach flexibly captures signatures of EH, including highly irregular patterns not following any simple model, by estimating the signatures of EH in the expression data themselves rather than attempting to estimate specific unmodeled factors such as age or gender."
 
 ---
 
 ## C_38: SVA increases the biological accuracy and reproducibility of analyses in genome-wide expression studies
 
 **Category**: Result  
-**Source**: Leek2010 (Source ID: 18)  
+**Source**: Leek2007 (Source ID: 7)  
 **Context**: Achieves operating characteristics nearly equivalent to what one would obtain with no expression heterogeneity at all.
 
-**Primary Quote**:
-> [Note: Quotes to be extracted from source.]
+**Primary Quote** (Abstract):
+> "We show that SVA increases the biological accuracy and reproducibility of analyses in genome-wide expression studies."
+
+**Supporting Quotes**:
+- (Results, Simulated Examples): "SVA-adjusted analyses provide gene rankings comparable to the scenario where there is no heterogeneity, whereas an unadjusted analysis allows for incorrect and highly variable gene rankings."
+- (Results): "These results suggest that SVA would yield results reproducible on the level that we would expect given that the primary variable is the only source of signal."
 
 ---
 
@@ -484,19 +524,25 @@ Each claim section includes:
 **Source**: Leek2010 (Source ID: 18)  
 **Context**: Occurs even if measured factors like age act on distinct sets of genes or interact with unobserved factors.
 
-**Primary Quote**:
-> [Note: Quotes to be extracted from source.]
+**Primary Quote** (Downstream consequences):
+> "In the most benign cases, batch effects will lead to increased variability and decreased power to detect a real biological signal. Of more concern are cases in which batch effects are confounded with an outcome of interest and result in misleading biological or clinical conclusions."
+
+**Supporting Quotes**:
+- (Downstream consequences): "A more subtle consequence of the batch effect relates to correlations between features. These correlations are implicitly or explicitly used in various applications... However, we find that batch effects are strong enough to change not only mean levels of gene expression between batches but also correlations and relative rankings between the expression of pairs of genes."
 
 ---
 
 ## C_40: SVA improves the accuracy and stability of gene ranking for differential expression
 
 **Category**: Method  
-**Source**: Leek2010 (Source ID: 18)  
+**Source**: Leek2007 (Source ID: 7)  
 **Context**: Achieved by adjusting for surrogate variables that capture unmodeled factors, reducing spurious differential expression.
 
-**Primary Quote**:
-> [Note: Quotes to be extracted from source.]
+**Primary Quote** (Results, Simulated Examples):
+> "Perhaps most importantly, SVA also results in a more powerful and reproducible ranking of genes for differential expression. SVA-adjusted analyses provide gene rankings comparable to the scenario where there is no heterogeneity, whereas an unadjusted analysis allows for incorrect and highly variable gene rankings."
+
+**Supporting Quotes**:
+- (Results): "This is arguably the most important feature of SVA, since an accurate and reproducible gene ranking is key for making biological inference when only a subset of genes will be selected for future study."
 
 ---
 
@@ -506,8 +552,8 @@ Each claim section includes:
 **Source**: Liu2022 (Source ID: 19)  
 **Context**: Designed to analyze correlations between dichotomous gene expression shifts and driver mutations.
 
-**Primary Quote**:
-> [Note: Quotes to be extracted from source.]
+**Primary Quote** (Abstract):
+> "we propose GMMchi, a Python package that leverages Gaussian Mixture Modeling to detect and characterize bimodal gene expression patterns across cancer samples, as a tool to analyze such correlations using 2 × 2 contingency table statistics."
 
 ---
 
@@ -517,8 +563,8 @@ Each claim section includes:
 **Source**: Liu2022 (Source ID: 19)  
 **Context**: Confirmed previously reported gene expression correlates of well-characterized CRC phenotypes.
 
-**Primary Quote**:
-> [Note: Quotes to be extracted from source.]
+**Primary Quote** (Abstract):
+> "We confirm that GMMchi robustly and reliably extracts bimodal patterns from both colorectal cancer (CRC) cell line-derived microarray and tumor-derived RNA-Seq data and verify previously reported gene expression correlates of some well-characterized CRC phenotypes."
 
 ---
 
@@ -528,8 +574,8 @@ Each claim section includes:
 **Source**: Liu2022 (Source ID: 19)  
 **Context**: Demonstrates accuracy in categorizing simulated distributions.
 
-**Primary Quote**:
-> [Note: Quotes to be extracted from source.]
+**Primary Quote** (Abstract):
+> "Using well-defined simulated data, we were able to confirm the robust performance of GMMchi, reaching 85% accuracy with a sample size of n = 90."
 
 ---
 
@@ -539,8 +585,11 @@ Each claim section includes:
 **Source**: Liu2022 (Source ID: 19)  
 **Context**: GMMchi addresses this by iteratively removing data points from the extreme end of the tail while fitting the remaining points with GMM and using Chi-square fitting.
 
-**Primary Quote**:
-> [Note: Quotes to be extracted from source.]
+**Primary Quote** (Methods):
+> "We coined the phrase the 'tail problem' to describe a non-normally distributed tail that is inadequately dealt with by traditional GMM which assumes input data are all expected to be mixtures of normal distributions."
+
+**Supporting Quotes**:
+- (Methods): "To deal with the tail problem we need to distinguish between a good GMM fit of two normal distributions with different variances and a poor over fit due to a mixture of one or two normal distributions with non-normal tail distributions. To make this distinction we add iterative Chi-square fitting to GMM and call this GMMchi."
 
 ---
 
@@ -550,8 +599,8 @@ Each claim section includes:
 **Source**: Orouji2024 (Source ID: 20)  
 **Context**: Alleviates issues caused by technical and biological differences between datasets.
 
-**Primary Quote**:
-> [Note: Quotes to be extracted from source.]
+**Primary Quote** (Abstract):
+> "Domain adaptation, a type of transfer learning, alleviates this problem by aligning different datasets so that models can be applied across them."
 
 ---
 
@@ -561,8 +610,8 @@ Each claim section includes:
 **Source**: Orouji2024 (Source ID: 20)  
 **Context**: Biological datasets are expensive to collect and have complex feature spaces.
 
-**Primary Quote**:
-> [Note: Quotes to be extracted from source.]
+**Primary Quote** (Abstract):
+> "However, most state-of-the-art domain adaptation methods were designed for large-scale data such as images, whereas biological datasets are small-scale, heterogeneous, and complex."
 
 ---
 
@@ -572,8 +621,8 @@ Each claim section includes:
 **Source**: Orouji2024 (Source ID: 20)  
 **Context**: These factors can substantially hinder data aggregation and model performance.
 
-**Primary Quote**:
-> [Note: Quotes to be extracted from source.]
+**Primary Quote** (Table 2):
+> "Poor sample-to-feature ratios: State-of-the-art DA approaches often require tens of thousands (or even millions) of samples to train, but biological datasets have a few dozens or hundreds of samples."
 
 ---
 
@@ -583,8 +632,8 @@ Each claim section includes:
 **Source**: Orouji2024 (Source ID: 20)  
 **Context**: Emphasizes the need for DA research to focus on data-scarce regimes.
 
-**Primary Quote**:
-> [Note: Quotes to be extracted from source.]
+**Primary Quote** (Recommendations section):
+> "This domain-invariant mapping should be done using methods that work with limited data in individual cohorts. Although deep learning models are great tools to uncover highly nonlinear and complex relations in data with no specific assumptions, they often require many samples... We recommend that DA research focuses on performance under data-scarce regimes, including explicit truncation of training datasets to evaluate DA methods under highly undesirable sample-to-feature ratios."
 
 ---
 
@@ -594,8 +643,11 @@ Each claim section includes:
 **Source**: Orouji2024 (Source ID: 20)  
 **Context**: Highlights a critical theoretical limitation of DA.
 
-**Primary Quote**:
-> [Note: Quotes to be extracted from source.]
+**Primary Quote** (Theoretical limitations section):
+> "In these worst-case scenarios, applying DA can result in what is known as negative transfer, which is when the application of knowledge from a source domain negatively affects the performance of a model in a target domain. Crucially, the potential for negative transfer can be amplified when working with biological data due to its already-heterogeneous nature and the smaller sample size of each dataset, and due to unknown adaptability between biological domains."
+
+**Supporting Quotes**:
+- (Table 1): "DA can only be successful if the source and target domains are adaptable- i.e., theoretically joinable. Adaptability is highly understudied in biology, and failures of adaptability can lead to negative transfer, or cases where DA causes more harm than benefit."
 
 ---
 
@@ -605,8 +657,8 @@ Each claim section includes:
 **Source**: Peplinski2025 (Source ID: 21)  
 **Context**: Addresses heterogeneity of the cell cycle in single-cell RNAseq and spatial transcriptomics.
 
-**Primary Quote**:
-> [Note: Quotes to be extracted from source.]
+**Primary Quote** (Abstract):
+> "We present a novel cell-cycle classification method, CycleMix, which uses mixture models to determine which cells in a single-cell experiment are actively cycling and which stage those cells are currently in."
 
 ---
 
@@ -616,8 +668,8 @@ Each claim section includes:
 **Source**: Peplinski2025 (Source ID: 21)  
 **Context**: Benchmarked on low-throughput scRNAseq datasets and found to be the best performing method on high-throughput datasets.
 
-**Primary Quote**:
-> [Note: Quotes to be extracted from source.]
+**Primary Quote** (Abstract):
+> "Here we propose CycleMix, an alternative cell-cycle assignment algorithm that can flexibly assign cells into any number of states provided sufficient marker genes as well as being capable of identifying when cells are not cycling."
 
 ---
 
@@ -627,8 +679,8 @@ Each claim section includes:
 **Source**: Peplinski2025 (Source ID: 21)  
 **Context**: Marker gene lists from multiple sources are available within CycleMix, including those used by Seurat and Tirosh et al. (2016).
 
-**Primary Quote**:
-> [Note: Quotes to be extracted from source.]
+**Primary Quote** (Methods):
+> "Phase scores are calculated using a weighted mean enabling both up and downregulated markers for each phase. Marker genes lists from multiple sources are available within CycleMix, including those used by Seurat and Tirosh et al. (2016)."
 
 ---
 
@@ -638,8 +690,11 @@ Each claim section includes:
 **Source**: Peplinski2025 (Source ID: 21)  
 **Context**: This was consistent with Seurat exhibiting much higher false-positive rates for S and G2M cell-type assignments.
 
-**Primary Quote**:
-> [Note: Quotes to be extracted from source.]
+**Primary Quote** (Results):
+> "However, only CycleMix accurately assigned more than >90% of quiescent cells to a non-cycling phase, whereas Seurat assigned 25%-50% of quiescent cells to S/G2M."
+
+**Supporting Quotes**:
+- (Results): "These results were consistent with Seurat exhibiting much higher false-positive rates for S and G2M cell-type assignments as we observed in the gold-standard datasets."
 
 ---
 
@@ -649,8 +704,8 @@ Each claim section includes:
 **Source**: Peplinski2025 (Source ID: 21)  
 **Context**: This partial regression model helps to distinguish problematic cell-cycle variability from biologically relevant cell-type variability.
 
-**Primary Quote**:
-> [Note: Quotes to be extracted from source.]
+**Primary Quote** (Methods):
+> "Gaussian or negative binomial regression models can then be used to remove differences between any set of cell-cycle phases the user would like, enabling removal of cell-cycle phase differences while preserving differences between cycling and non-cycling cells."
 
 ---
 
@@ -660,8 +715,8 @@ Each claim section includes:
 **Source**: Rubbens2021 (Source ID: 22)  
 **Context**: It processes large amounts of quantitative single-cell data generated by cytometry.
 
-**Primary Quote**:
-> [Note: Quotes to be extracted from source.]
+**Primary Quote** (Abstract):
+> "We present PhenoGMM, an automated model-based fingerprinting approach based on Gaussian mixture models. PhenoGMM models the full multivariate parameter space at once, allowing for the description of potentially many overlapping cell populations."
 
 ---
 
@@ -671,8 +726,12 @@ Each claim section includes:
 **Source**: Rubbens2021 (Source ID: 22)  
 **Context**: Evaluated using data sets from both synthetic and natural ecosystems.
 
-**Primary Quote**:
-> [Note: Quotes to be extracted from source.]
+**Primary Quote** (Abstract):
+> "The method successfully quantifies changes in microbial community structure based on flow cytometry data, which can be expressed in terms of cytometric diversity. We evaluate the performance of PhenoGMM using data sets from both synthetic and natural ecosystems"
+
+**Supporting Quotes**:
+- (Results): "The α-diversity of the microbial communities in Muskegon Lake could be successfully retrieved as well."
+- (Discussion): "Estimations of β-diversity (i.e., intercommunity diversity) could be successfully quantified as well, by calculating Bray-Curtis dissimilarities between the cytometric fingerprints of different communities."
 
 ---
 
@@ -682,8 +741,11 @@ Each claim section includes:
 **Source**: Rubbens2021 (Source ID: 22)  
 **Context**: This necessitates specialized data analysis pipelines like PhenoGMM.
 
-**Primary Quote**:
-> [Note: Quotes to be extracted from source.]
+**Primary Quote** (Introduction):
+> "However, microbial cytometry data have a number of different characteristics. This originates from the fact that bacterial cells are typically much smaller in both cell size and volume than eukaryotic cells, which complicates their detection."
+
+**Supporting Quotes**:
+- (Introduction): "As the number of bacterial taxa is much larger than the number of differentiating signals, cytometric distributions of these taxa can highly overlap. This is why automated cell population identification algorithms cannot be directly applied for the analysis of bacterial cytometry data. Consequently, data analysis pipelines should be designed to consider these characteristics."
 
 ---
 
@@ -693,8 +755,8 @@ Each claim section includes:
 **Source**: Rubbens2021 (Source ID: 22)  
 **Context**: PhenoGMM addresses these shortcomings by modeling the full multivariate parameter space at once.
 
-**Primary Quote**:
-> [Note: Quotes to be extracted from source.]
+**Primary Quote** (Introduction):
+> "Both categories of methods have a number of drawbacks: (i) manual gating of regions of interest is laborious in time and operator dependent, (ii) traditional binning approaches result in a large number of variables"
 
 ---
 
@@ -704,8 +766,8 @@ Each claim section includes:
 **Source**: Rubbens2021 (Source ID: 22)  
 **Context**: This allows for the description of potentially many overlapping cell populations.
 
-**Primary Quote**:
-> [Note: Quotes to be extracted from source.]
+**Primary Quote** (Abstract):
+> "We propose an automated model-based fingerprinting approach based on Gaussian mixture models, which we call PhenoGMM. PhenoGMM models the full multivariate parameter space at once, allowing for the description of potentially many overlapping cell populations."
 
 ---
 
@@ -715,8 +777,11 @@ Each claim section includes:
 **Source**: Rubbens2021 (Source ID: 22)  
 **Context**: This indicates that PhenoGMM captures community structure rather than identity.
 
-**Primary Quote**:
-> [Note: Quotes to be extracted from source.]
+**Primary Quote** (Results):
+> "PhenoGMM resulted in moderate to highly correlated α-diversity estimations and showed a better correspondence to the predefined community compositions compared to PhenoGrid."
+
+**Supporting Quotes**:
+- (Results): "Estimations resulted in higher correlations for PhenoGMM when q > 0, i.e., when more weight was given to more abundant strains. This means that PhenoGMM captured the structure rather than the identity of a microbial community."
 
 ---
 
@@ -726,8 +791,11 @@ Each claim section includes:
 **Source**: Rubbens2021 (Source ID: 22)  
 **Context**: Its ability depended on the ecosystem of study and its specific implementation.
 
-**Primary Quote**:
-> [Note: Quotes to be extracted from source.]
+**Primary Quote** (Results):
+> "In the second experiment, we evaluated whether and to what extent it was possible to quantify the diversity of natural freshwater microbial communities using FCM in combination with PhenoGMM."
+
+**Supporting Quotes**:
+- (Results): "Diversity estimations were highly significant for the cooling water microbiome for both approaches. The α-diversity of the microbial communities in Muskegon Lake could be successfully retrieved as well."
 
 ---
 
@@ -737,19 +805,28 @@ Each claim section includes:
 **Source**: Zak2016 (Source ID: 23)  
 **Context**: Used as training dataset A in the analysis of domain adaptation in small-scale and heterogeneous biological datasets.
 
-**Primary Quote**:
-> [Note: Quotes to be extracted from source.]
+**Primary Quote** (Summary):
+> "A 16 gene signature of risk was identified. The signature predicted tuberculosis progression with a sensitivity of 66·1% (95% CI 63·2-68·9) and a specificity of 80·6% (79·2-82·0) in the 12 months preceding tuberculosis diagnosis."
+
+**Supporting Quotes**:
+- (Introduction): "Knowledge gained from this signature could lead to targeted antimicrobial therapy to prevent tuberculosis disease, as treating all people who are latently infected in endemic countries for 6-9 months is not feasible."
 
 ---
 
-## C_70: The Suliman et al. [2018] study investigated active vs latent tuberculosis in South Africa, The Gambia, and Ethiopia
+## C_70: The Suliman et al. [2018] study investigated tuberculosis progression in household contacts from South Africa, The Gambia, and Ethiopia
 
 **Category**: Data Source  
 **Source**: Suliman2018 (Source ID: 24)  
-**Context**: Added manually. Abstract failed to add via script. Book_chapter.md lists year as 2014, DOI metadata as 2018.
+**Context**: Developed the RISK4 four-gene signature to predict TB progression in recently exposed household contacts from diverse African populations.
 
-**Primary Quote**:
-> [Note: Quotes to be extracted from source.]
+**Primary Quote** (Abstract):
+> "A four-transcript signature derived from samples in a South African and Gambian training set predicted progression up to two years before onset of disease in blinded test set samples from South Africa, the Gambia, and Ethiopia with little population-associated variability, and it was also validated in an external cohort of South African adolescents with latent M. tuberculosis infection."
+
+**Supporting Quotes**:
+- (Methods): "The HHC study included participants from four African sites (South Africa, the Gambia, Ethiopia, and Uganda) as part of the Bill and Melinda Gates Foundation Grand Challenges 6-74 (GC6-74) program."
+- (Results): "We enrolled 4,466 HIV-negative healthy HHCs of 1,098 index TB cases between 2006 and 2010 into the GC6-74 cohorts across four African sites."
+- (Results): "The RISK4 signature comprising four unique genes: GAS6 (growth arrest–specific 6) and SEPT4 (septin 4), which were upregulated, and CD1C (cluster of differentiation 1C) and BLK (B lymphocyte kinase), which were downregulated, in progressors versus matched control subjects."
+- (Conclusions): "Collectively, we developed a simple whole blood–based PCR test to predict TB in recently exposed household contacts from diverse African populations. This test has potential for implementation in national TB contact investigation programs."
 
 ---
 
@@ -759,19 +836,27 @@ Each claim section includes:
 **Source**: Leong2018 (Source ID: 25)  
 **Context**: N/A
 
-**Primary Quote**:
-> [Note: Quotes to be extracted from source.]
+**Primary Quote** (Abstract):
+> "Several studies have identified blood transcriptomic signatures that can distinguish active from latent Tuberculosis (TB). The purpose of this study was to assess how well these existing gene profiles classify TB disease in a South Indian population."
+
+**Supporting Quotes**:
+- (Title): "Existing blood transcriptional classifiers accurately discriminate active tuberculosis from latent infection in individuals from south India"
 
 ---
 
-## C_72: The Walter et al. [2016] study investigated active vs latent tuberculosis in United States populations
+## C_72: The Walter et al. [2016] study investigated adaptation of Mycobacterium tuberculosis to impaired host immunity in HIV-infected patients
 
 **Category**: Data Source  
 **Source**: Walter2016 (Source ID: 26)  
-**Context**: Placeholder. Paper not found via web search with specified characteristics. Needs further investigation.
+**Context**: Study compared M. tuberculosis and human gene transcription in sputum between HIV-infected and uninfected patients with tuberculosis in Gambia and Uganda.
 
-**Primary Quote**:
-> [Note: Quotes to be extracted from source.]
+**Primary Quote** (Abstract):
+> "We collected sputum specimens before treatment from Gambians and Ugandans with pulmonary tuberculosis, revealed by positive results of acid-fast bacillus smears."
+
+**Supporting Quotes**:
+- (Abstract): "A total of 24 of 65 patients with tuberculosis were HIV infected. M. tuberculosis DosR regulon genes were less highly expressed among HIV-infected patients with tuberculosis than among HIV-uninfected patients with tuberculosis (Gambia, P < .0001; Uganda, P = .037)."
+
+**Note**: This paper focuses on M. tuberculosis adaptation to HIV rather than active vs latent TB classification, which differs from the context described in Book_chapter.md.
 
 ---
 
@@ -781,8 +866,12 @@ Each claim section includes:
 **Source**: Kaforou2013 (Source ID: 27)  
 **Context**: Book_chapter.md lists year as 2013, add_paper.py metadata lists year as 2023.
 
-**Primary Quote**:
-> [Note: Quotes to be extracted from source.]
+**Primary Quote** (Abstract):
+> "We hypothesized that a unique host blood RNA transcriptional signature would distinguish TB from other diseases (OD) in HIV-infected and -uninfected patients, and that this could be the basis of a simple diagnostic test."
+
+**Supporting Quotes**:
+- (Title): "Detection of Tuberculosis in HIV-Infected and -Uninfected African Adults Using Whole Blood RNA Expression Signatures: A Case-Control Study"
+- (Methods): "Cape Town, South Africa. South Africa has one of the highest TB incidence rates in Africa (981 per 100,000), as well as high rates of HIV infection (up to 41.8% prevalence in females aged 25-35)."
 
 ---
 
@@ -792,8 +881,11 @@ Each claim section includes:
 **Source**: Kaforou2013 (Source ID: 27)  
 **Context**: Book_chapter.md lists year as 2013, add_paper.py metadata lists year as 2023.
 
-**Primary Quote**:
-> [Note: Quotes to be extracted from source.]
+**Primary Quote** (Methods):
+> "In order to enable generalization of our findings to African countries with differing prevalence of malaria and other parasitic infections, as well as other environmental exposures that might affect transcriptional profiles, we chose highly contrasting study sites (one urban, one rural) in two African countries with differing co-endemic diseases"
+
+**Supporting Quotes**:
+- (Abstract): "We hypothesized that a unique host blood RNA transcriptional signature would distinguish TB from other diseases (OD) in HIV-infected and -uninfected patients"
 
 ---
 
@@ -814,11 +906,15 @@ Each claim section includes:
 ## C_76: Logistic regression with L1 regularization (lasso) performs automatic feature selection
 
 **Category**: Method  
-**Source**: DiazUriarte2006 (Source ID: 28)  
+**Source**: Zou2005 (Source ID: 29)  
 **Context**: L1 penalty enables sparse solutions suitable for high-dimensional gene expression data.
 
-**Primary Quote**:
-> [Note: Quotes to be extracted from source.]
+**Primary Quote** (Introduction):
+> "Due to the nature of the L1-penalty, the lasso does both continuous shrinkage and automatic variable selection simultaneously."
+
+**Supporting Quotes**:
+- (Introduction): "Similar to the lasso, the elastic net simultaneously does automatic variable selection and continuous shrinkage, and it can select groups of correlated variables."
+- (Section 5): "As an automatic variable selection method, the elastic net naturally overcomes the difficulty of p >> n and has the ability to do grouped selection."
 
 ---
 
@@ -828,8 +924,11 @@ Each claim section includes:
 **Source**: DiazUriarte2006 (Source ID: 28)  
 **Context**: SVMs are well-suited for high-dimensional problems where the number of features exceeds the number of samples.
 
-**Primary Quote**:
-> [Note: Quotes to be extracted from source.]
+**Primary Quote** (Methods):
+> "SVM (with linear kernel, as used here) try to find an optimal separating hyperplane between the classes. When the classes are linearly separable, the hyperplane is located so that it has maximal margin (i.e., so that there is maximal distance between the hyperplane and the nearest point of any of the classes) which should lead to better performance on data not yet seen by the SVM."
+
+**Supporting Quotes**:
+- (Background): "Random forest has excellent performance in classification tasks, comparable to support vector machines."
 
 ---
 
@@ -839,8 +938,11 @@ Each claim section includes:
 **Source**: DiazUriarte2006 (Source ID: 28)  
 **Context**: Demonstrated using simulated and nine microarray datasets.
 
-**Primary Quote**:
-> [Note: Quotes to be extracted from source.]
+**Primary Quote** (Results):
+> "Our method returns very small sets of genes compared to alternative variable selection methods, while retaining predictive performance."
+
+**Supporting Quotes**:
+- (Results): "the variable selection procedure leads to small (< 50) sets of predictor genes, often much smaller than those from competing approaches"
 
 ---
 
@@ -1045,8 +1147,8 @@ Each claim section includes:
 **Source**: Du2010 (Source ID: 34)  
 **Context**: This necessitates transformation to M-values before applying standard batch correction.
 
-**Primary Quote**:
-> [Note: Quotes to be extracted from source.]
+**Primary Quote** (Results):
+> "The Beta-value statistic results in a number between 0 and 1, or 0 and 100%. Under ideal conditions, a value of zero indicates that all copies of the CpG site in the sample were completely unmethylated (no methylated molecules were measured)."
 
 ---
 
@@ -1056,8 +1158,8 @@ Each claim section includes:
 **Source**: Du2010 (Source ID: 34)  
 **Context**: The M-value has better statistical properties for differential methylation analysis.
 
-**Primary Quote**:
-> [Note: Quotes to be extracted from source.]
+**Primary Quote** (Results):
+> "The M-value is calculated as the log2 ratio of the intensities of methylated probe versus unmethylated probe"
 
 ---
 
@@ -1067,8 +1169,8 @@ Each claim section includes:
 **Source**: Du2010 (Source ID: 34)  
 **Context**: Recommendation: use M-values for analysis, report beta-values for interpretation.
 
-**Primary Quote**:
-> [Note: Quotes to be extracted from source.]
+**Primary Quote** (Conclusions):
+> "The Beta-value has a more intuitive biological interpretation, but the M-value is more statistically valid for the differential analysis of methylation levels. Therefore, we recommend using the M-value method for conducting differential methylation analysis and including the Beta-value statistics when reporting the results to investigators."
 
 ---
 
@@ -1078,8 +1180,8 @@ Each claim section includes:
 **Source**: Valikangas2018 (Source ID: 35)  
 **Context**: Batch effects in proteomics manifest as systematic shifts in ionization efficiency and instrument sensitivity.
 
-**Primary Quote**:
-> [Note: Quotes to be extracted from source.]
+**Primary Quote** (Abstract):
+> "To date, mass spectrometry (MS) data remain inherently biased as a result of reasons ranging from sample handling to differences caused by the instrumentation. Normalization is the process that aims to account for the bias and make samples more comparable."
 
 ---
 
@@ -1089,8 +1191,8 @@ Each claim section includes:
 **Source**: Valikangas2018 (Source ID: 35)  
 **Context**: The choice of normalization method significantly impacts downstream analysis results.
 
-**Primary Quote**:
-> [Note: Quotes to be extracted from source.]
+**Primary Quote** (Abstract):
+> "Many normalization methods have been developed for proteomics data, including methods based on total intensity, average intensity, median intensity, variance stabilization normalization (Vsn) and quantile normalization"
 
 ---
 
@@ -1100,8 +1202,8 @@ Each claim section includes:
 **Source**: Valikangas2018 (Source ID: 35)  
 **Context**: Systematic evaluation across multiple datasets reveals context-dependent performance.
 
-**Primary Quote**:
-> [Note: Quotes to be extracted from source.]
+**Primary Quote** (Results):
+> "While no single method gave the highest AUC in every two-group comparison, the Vsn normalization performed consistently well, giving high AUCs throughout all data sets."
 
 ---
 
@@ -1111,8 +1213,8 @@ Each claim section includes:
 **Source**: Collins2015 (Source ID: 36)  
 **Context**: Launched in 2015 to accelerate biomedical discoveries and provide clinicians with new tools.
 
-**Primary Quote**:
-> [Note: Quotes to be extracted from source.]
+**Primary Quote** (Introduction):
+> "The concept of precision medicine - prevention and treatment strategies that take individual variability into account - is not new; blood typing, for instance, has been used to guide blood transfusions for more than a century."
 
 ---
 
@@ -1122,8 +1224,12 @@ Each claim section includes:
 **Source**: Collins2015, Ginsburg2018 (Source IDs: 36, 37)  
 **Context**: Data integration is fundamental to realizing the promise of precision medicine.
 
-**Primary Quote**:
-> [Note: Quotes to be extracted from source.]
+**Primary Quote** (Ginsburg2018, Abstract):
+> "We explore the intersection of data science, analytics, and precision medicine in the formation of health systems that carry out research in the context of clinical care and that optimize the tools and information used to deliver improved patient outcomes."
+
+**Supporting Quotes**:
+- (Ginsburg2018, Data Sharing section): "Precision medicine will require access to large-scale, detailed, and highly integrated patient data. Many initiatives are focused on increasing the interoperability of systems that generate and manage patient data and enhancing those systems for use at the point of care."
+- (Ginsburg2018): "The NIH needs to facilitate cross-site data integration for research, while health systems must do the same for the optimization of patient care."
 
 ---
 
@@ -1133,8 +1239,13 @@ Each claim section includes:
 **Source**: Geirhos2020 (Source ID: 38)  
 **Context**: Models learn decision rules based on easy-to-identify features rather than intended causal relationships.
 
-**Primary Quote**:
-> [Note: Quotes to be extracted from source.]
+**Primary Quote** (Introduction):
+> "One central observation is that many failure cases are not independent phenomena, but are instead connected in the sense that DNNs follow unintended 'shortcut' strategies. While superficially successful, these strategies typically fail under slightly different circumstances."
+
+**Supporting Quotes**:
+- (Introduction): "For instance, a DNN may appear to classify cows perfectly well-but fails when tested on pictures where cows appear outside the typical grass landscape, revealing 'grass' as an unintended (shortcut) predictor for 'cow'"
+- (Introduction): "Likewise, a language model may appear to have learned to reason-but drops to chance performance when superficial correlations are removed from the dataset"
+- (Abstract): "Shortcuts are decision rules that perform well on standard benchmarks but fail to transfer to more challenging testing conditions, such as real-world scenarios."
 
 ---
 
@@ -1144,30 +1255,78 @@ Each claim section includes:
 **Source**: Geirhos2020 (Source ID: 38)  
 **Context**: This creates models that appear to learn rich representations but actually distinguish technical artifacts.
 
-**Primary Quote**:
-> [Note: Quotes to be extracted from source.]
+**Primary Quote** (Introduction):
+> "Worse yet, a machine classifier successfully detected pneumonia from X-ray scans of a number of hospitals, but its performance was surprisingly low for scans from novel hospitals: The model had unexpectedly learned to identify particular hospital systems with near-perfect accuracy (e.g. by detecting a hospital-specific metal token on the scan, see Figure 1). Together with the hospital's pneumonia prevalence rate it was able to achieve a reasonably good prediction-without learning much about pneumonia at all"
+
+**Supporting Quotes**:
+- (Abstract): "Shortcuts are decision rules that perform well on standard benchmarks but fail to transfer to more challenging testing conditions, such as real-world scenarios."
+- (Section 6.3): "Why are machines so prone to learning shortcuts, detecting grass instead of cows or a metal token instead of pneumonia? Exploiting those shortcuts seems much easier for DNNs than learning the intended solution."
 
 ---
 
 ## C_103: Domain-adversarial training uses gradient reversal layers to learn features that are discriminative for the main task but indiscriminate with respect to domain shift
 
 **Category**: Method  
-**Source**: Ganin2016 (Source ID: 39)  
+**Source**: Ganin2017 (Source ID: 39)  
 **Context**: Forces the network to learn batch-invariant representations through adversarial training.
 
-**Primary Quote**:
-> [Note: Quotes to be extracted from source.]
+**Primary Quote** (Introduction):
+> "As training progresses, the approach promotes the emergence of features that are (i) discriminative for the main learning task on the source domain and (ii) indiscriminate with respect to the shift between the domains."
 
 ---
 
 ## C_104: Gradient Reversal Layer (GRL) enables domain adaptation by reversing gradients during backpropagation
 
 **Category**: Method  
-**Source**: Ganin2016 (Source ID: 39)  
+**Source**: Ganin2017 (Source ID: 39)  
 **Context**: This approach can be implemented with minimal modifications to standard neural network architectures.
 
-**Primary Quote**:
-> [Note: Quotes to be extracted from source.]
+**Primary Quote** (Methods):
+> "The Gradient Reversal Layer has no parameters associated with it. During the forward propagation, the GRL acts as an identity transformation. During the backpropagation however, the GRL takes the gradient from the subsequent level and changes its sign, i.e.multiplies it by -λ"
+
+---
+
+## C_105: Multi-gene prognostic signatures including Oncotype DX, EndoPredict, and Prosigna are widely used clinically to predict recurrence risk in ER+ breast cancer
+
+**Category**: Application  
+**Source**: Buus2021 (Source ID: 42)  
+**Context**: These signatures are endorsed for prognostic use in authoritative guidelines and guide treatment decisions.
+
+**Primary Quote** (Introduction):
+> "Multi-parameter gene-expression-based prognostic signatures are often used to estimate the residual risk of recurrence after surgery to guide patient management. Amongst the most widely used prognostic signatures in ER+ breast cancer are the Oncotype DX Recurrence Score (RS), EndoPredict (EP/EPclin) and Prosigna® Risk Of Recurrence score (ROR). Each of these have been endorsed for prognostic use in authoritative guidelines."
+
+**Supporting Quotes**:
+- (Introduction): "Over 80% of breast cancer patients in the developed western world have oestrogen receptor (ER)-positive disease; their treatment normally includes surgery and adjuvant endocrine therapy (ET), and sometimes chemotherapy (CT) which greatly improves outcome."
+- (Introduction): "The TAILORx study reported findings for the reduced cut-points of 11 and 26, respectively, showing women with hormone receptor-positive, HER2-negative, axillary node-negative breast cancer, and a high RS of 26 to 100 had better prognosis when treated with ET with adjuvant CT regimens than expected with ET alone"
+
+---
+
+## C_106: Oncotype DX Recurrence Score determines which patients receive chemotherapy in addition to endocrine therapy
+
+**Category**: Application  
+**Source**: Buus2021 (Source ID: 42)  
+**Context**: TAILORx trial showed that high RS (26-100) patients benefit from chemotherapy, while those with RS < 26 do not.
+
+**Primary Quote** (Introduction):
+> "More recently the TAILORx study reported findings for the reduced cut-points of 11 and 26, respectively, showing women with hormone receptor-positive, HER2-negative, axillary node-negative breast cancer, and a high RS of 26 to 100 had better prognosis when treated with ET with adjuvant CT regimens than expected with ET alone; however, there was a lack of CT benefit in patients with RS < 26."
+
+**Supporting Quotes**:
+- (Introduction): "Cut-off points for RS were established to classify patients into low (RS < 18), intermediate (18 ≤ RS ≤ 31) and high risk (RS > 31)."
+
+---
+
+## C_107: Gene expression classifiers must maintain accuracy when applied to samples processed in different hospitals using different equipment
+
+**Category**: Challenge  
+**Source**: Buus2021 (Source ID: 42)  
+**Context**: This portability requirement is fundamental for clinical translation.
+
+**Primary Quote** (Introduction):
+> "A major weakness in many high-throughput genomic studies is the lack of consideration of a clinical environment where one patient at a time must be evaluated."
+
+**Supporting Quotes**:
+- (Discussion): "Multi-parameter prognostic signatures are widely used for the prognostication and treatment guidance of ER+/HER2− primary breast cancer patients."
+- (Introduction): "Multi-parameter gene-expression-based prognostic signatures are often used to estimate the residual risk of recurrence after surgery to guide patient management."
 
 ---
 

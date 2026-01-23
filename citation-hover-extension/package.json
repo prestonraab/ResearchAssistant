@@ -22,8 +22,93 @@
       {
         "command": "citationHover.clearCache",
         "title": "Citation Hover: Clear Cache"
+      },
+      {
+        "command": "citationHover.searchZotero",
+        "title": "Citation Hover: Search Zotero for Selection"
+      },
+      {
+        "command": "citationHover.refreshTree",
+        "title": "Refresh Claims",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "citationHover.goToClaim",
+        "title": "Go to Claim"
+      },
+      {
+        "command": "citationHover.showQuoteDiff",
+        "title": "Show Quote Verification"
+      },
+      {
+        "command": "citationHover.jumpToClaim",
+        "title": "Jump to Claim"
+      },
+      {
+        "command": "citationHover.extractPdf",
+        "title": "Extract Text from PDF",
+        "icon": "$(file-text)"
+      },
+      {
+        "command": "citationHover.refreshSources",
+        "title": "Refresh Sources",
+        "icon": "$(refresh)"
       }
     ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "citation-hover",
+          "title": "Citation Hover",
+          "icon": "$(quote)"
+        }
+      ]
+    },
+    "views": {
+      "citation-hover": [
+        {
+          "id": "citationHoverClaims",
+          "name": "Claims"
+        },
+        {
+          "id": "citationHoverSources",
+          "name": "Sources"
+        }
+      ]
+    },
+    "menus": {
+      "view/title": [
+        {
+          "command": "citationHover.refreshTree",
+          "when": "view == citationHoverClaims",
+          "group": "navigation"
+        },
+        {
+          "command": "citationHover.refreshSources",
+          "when": "view == citationHoverSources",
+          "group": "navigation"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "citationHover.showQuoteDiff",
+          "when": "view == citationHoverClaims && viewItem == claim",
+          "group": "inline"
+        },
+        {
+          "command": "citationHover.extractPdf",
+          "when": "view == citationHoverSources && viewItem == zoteroPdf",
+          "group": "inline"
+        }
+      ],
+      "editor/context": [
+        {
+          "command": "citationHover.searchZotero",
+          "when": "editorHasSelection && editorLangId == markdown",
+          "group": "citation"
+        }
+      ]
+    },
     "configuration": {
       "title": "Citation Hover",
       "properties": {
@@ -53,6 +138,23 @@
           "type": "boolean",
           "default": true,
           "description": "Show diagnostic warnings for unverified quotes in claims_and_evidence.md"
+        },
+        "citationHover.zoteroMcpEndpoint": {
+          "type": "string",
+          "default": "",
+          "description": "Endpoint for Zotero MCP server (leave empty to use default MCP configuration)"
+        },
+        "citationHover.zoteroSearchLimit": {
+          "type": "number",
+          "default": 5,
+          "minimum": 1,
+          "maximum": 20,
+          "description": "Number of results to return from Zotero semantic search"
+        },
+        "citationHover.zoteroStoragePath": {
+          "type": "string",
+          "default": "~/Zotero/storage",
+          "description": "Path to Zotero storage directory containing PDFs"
         }
       }
     }
