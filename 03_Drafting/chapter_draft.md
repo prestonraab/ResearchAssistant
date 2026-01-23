@@ -1,0 +1,418 @@
+# Impacts of Batch Effects on the Performance of Machine Learning Classifiers Across Multiple Studies
+
+#### Chapter for "Artificial Intelligence and Machine Learning in Genomics and Precision Medicine"
+
+---
+
+## Abstract
+
+The integration of genomic datasets is a cornerstone of modern precision medicine, necessitated by the need for increased statistical power and the validation of biological patterns across diverse populations. \cite{U7KBKA47, 6R8SKJSG} By aggregating data from independent cohorts, researchers can move beyond the limitations of small sample sizes to build more robust machine learning classifiers. \cite{U7KBKA47, 6R8SKJSG} However, this potential is frequently undermined by "batch effects"—systematic technical variations that can lead a classifier to learn how to distinguish between experimental batches rather than meaningful biological conditions. Even when batch labels are known, these effects can inflate performance estimates obtained through cross-validation within a single study while simultaneously causing poor performance on independent datasets. This chapter examines how batch effects degrade predictor performance and explores statistical adjustment methods designed to mitigate these artifacts while preserving biological signal.
+
+---
+
+## Background and Significance
+
+### Classification in Precision Medicine
+
+Classification—the task of assigning observations to predefined categories based on their features—has become essential for biomedical research and clinical practice. In precision medicine, classification methods enable researchers to distinguish between disease states, predict treatment responses, identify biomarkers, and stratify patient populations for targeted therapeutic interventions. These approaches can tailor treatments to individual patients based on their molecular profiles, distinguish cancer subtypes with different prognoses, and identify patients likely to benefit from specific therapeutic interventions.
+
+Biomedical classification tasks utilize diverse data types, including gene expression profiles, protein abundance measurements, genomic sequences, clinical variables, and imaging data. Each of these data modalities provides complementary information about biological systems and disease mechanisms.
+
+### The Clinical Stakes
+
+In precision medicine, even modest drops in classifier performance due to batch effects can mean the difference between accurate diagnosis and misclassification. When molecular classifiers guide treatment decisions—determining which patients receive aggressive chemotherapy or targeted therapies—technical artifacts that degrade performance translate directly into clinical harm. A classifier trained in one laboratory must maintain its accuracy when applied to samples processed in different hospitals, using different equipment, by different technicians. This portability from bench to bedside is not merely a statistical concern but a fundamental requirement for translating genomic discoveries into clinical practice.
+
+### The Imperative to Combine Datasets
+
+Combining datasets becomes essential when logistical considerations restrict sample size, when sequential data collection is required, or when validation across independent cohorts is needed. Larger sample sizes increase statistical power, enable validation across independent cohorts, and improve the generalizability of findings.
+
+The Gene Expression Omnibus (GEO) serves as a critical international public repository for such data, archiving vast collections of gene expression and epigenomics data from both next-generation sequencing and microarray technologies. With over 200,000 studies and 6.5 million samples, GEO facilitates the generation of consistently computed RNA-seq count matrices. This wealth of data is widely reused for diverse applications, including identifying novel gene expression patterns, finding disease predictors, integrating disparate datasets, and developing advanced computational and machine learning methods. Yet the utility of this data is contingent upon our ability to mitigate technical noise.
+
+### The Challenge of Batch Effects
+
+All of these types of data have batch effects between datasets. Batch effects arise from differences in experimental protocols, equipment, reagent lots, processing dates, and other technical factors that vary between studies or even within studies over time.
+
+Batch effects can substantially degrade classifier performance when applied to new batches, leading to overly optimistic performance estimates when using cross-validation within a single batch, while simultaneously causing poor generalization to independent datasets. When classifiers are trained on data containing batch effects, they may learn to distinguish batches rather than biological conditions, leading to poor generalization. Hybrid models, integrating data mining and machine learning, offer a promising approach for evaluating proximity metrics in high-dimensional gene expression data for disease diagnosis.
+
+Statistical adjustment methods, commonly referred to as adjusters or batch correction methods, aim to remove technical variation while preserving biological signal. The balance between these objectives varies across methods and contexts.
+
+### Focus on Gene Expression Data
+
+For our purposes, and without loss of generality, we focus on RNA sequencing (RNA-seq) data, which has become the dominant technology for measuring gene expression in modern genomics research.
+
+Gene expression data are generated through high-throughput sequencing technologies that quantify the abundance of RNA transcripts in biological samples. These measurements provide a snapshot of cellular activity, reflecting which genes are actively transcribed under specific conditions, disease states, or in response to treatments. Within biological and biomedical research, gene expression data enable the identification of disease-associated pathways, the discovery of therapeutic targets, and the development of diagnostic and prognostic biomarkers.
+
+Classification of gene expression data proves particularly useful in precision medicine to tailor treatments to individual patients based on their molecular profiles. Gene expression classifiers can distinguish between cancer subtypes with different prognoses, predict drug sensitivity, or identify patients likely to benefit from specific therapeutic interventions. The application of machine learning methods to gene expression data has shown promise for cancer classification and other precision medicine applications.
+
+The Gene Expression Omnibus (GEO) serves as a critical international public repository for such data, archiving vast collections of gene expression and epigenomics data from both next-generation sequencing and microarray technologies. With over 200,000 studies and 6.5 million samples, GEO facilitates the generation of consistently computed RNA-seq count matrices and offers web-based tools like GEO2R for differential gene expression analysis. The repository has seen a significant shift towards next-generation sequencing, with RNA-seq comprising 85% of submissions and single-cell RNA-seq studies increasing to 21% of all RNA-seq studies by 2022. This wealth of data is widely reused for diverse applications, including identifying novel gene expression patterns, finding disease predictors, integrating disparate datasets, and developing advanced computational and machine learning methods.
+
+Gene expression data provide an excellent context for understanding how batch effects can be modeled and removed, as the technical variation introduced by sequencing technologies is well-characterized and substantial.
+
+Integrating gene expression data across multiple studies offers substantial benefits: increased sample sizes improve the robustness of classifiers, independent validation cohorts provide evidence of generalizability, and meta-analyses can reveal consistent patterns across diverse populations. However, batch effects pose particular challenges for gene expression data due to the sensitivity of sequencing technologies to technical variation.
+
+Batch effects manifest in gene expression data as systematic shifts in expression levels between batches, differences in variance structure, and alterations in the relationships between genes. These technical artifacts can be substantial—often comparable to or larger than the biological signals of interest—making them a primary concern when combining datasets. For RNA-seq count data specifically, the data are typically skewed and over-dispersed, which complicates batch correction methods that assume Gaussian distributions.
+
+When classifiers are trained on data containing batch effects, they may learn to distinguish batches rather than biological conditions, leading to poor generalization. Even when batch labels are known and can be accounted for, the presence of batch effects can inflate performance estimates obtained through cross-validation within a single study, while simultaneously causing poor performance on independent datasets. This phenomenon, where batch effects confound performance estimates, represents a critical challenge in developing generalizable classifiers.
+
+### Unknown Batch Effects
+
+In some cases, batch labels may be unknown or only partially known, particularly when working with publicly available data where experimental metadata may be incomplete. Sometimes we don't know the batch labels—especially with public data where complete experimental metadata may not be provided. Methods such as surrogate variable analysis (SVA) can identify and adjust for unknown batch effects by extracting surrogate variables from high-dimensional data that capture unwanted effects. SVA was introduced by Leek and Storey (2007) to model unknown, latent sources of variation in genomics data, and is available in the Bioconductor sva package. This topic extends beyond the scope of the present chapter, which focuses on supervised batch correction methods where batch labels are known. A second discussion of SVA appears in "The Horizon" section, where we examine how SVA is being integrated into modern automated pipelines for advanced applications.
+
+---
+
+## Machine Learning Classifiers for Gene Expression Data
+
+The landscape of gene expression classification has shifted from traditional linear discriminant analysis toward methods capable of handling the $p \gg n$ problem, where the number of features (genes) vastly outnumbers the number of samples. The field has evolved from traditional statistical methods toward modern machine learning approaches, increasingly favoring flexible, data-driven methods that can capture complex, non-linear patterns in high-dimensional genomic data.
+
+### Classifier Architectures
+
+For gene expression data specifically, several classifier types have shown particular utility: support vector machines (SVM), random forests, logistic regression with regularization, and, when sufficient data are available, neural networks. Each classifier type has distinct characteristics that make it suitable for different scenarios and data types.
+
+#### Regularized Linear Models
+
+Built-in regularization is vital for high-dimensional gene expression data; without it, simpler models like standard logistic regression succumb to technical noise in batch-affected datasets.
+
+Elastic net is particularly well-suited to the $p \gg n$ problem characteristic of gene expression data, where thousands of genes (features) vastly outnumber samples. \cite{TXKAG4BA} By combining L1 and L2 regularization, elastic net simultaneously performs feature selection (identifying which genes matter) and shrinkage (preventing overfitting to noise). The L1 penalty drives coefficients of irrelevant genes to exactly zero, creating sparse models that are interpretable and computationally efficient. The L2 penalty encourages a grouping effect where correlated genes—common in biological pathways—tend to be selected or excluded together, preserving biological coherence. This dual regularization is particularly effective at ignoring technical noise from batch effects while retaining biological signal, as demonstrated by elastic net's superior performance across adjustment methods in our results.
+
+Logistic regression without regularization struggles in the $p \gg n$ regime because it attempts to fit a coefficient for every gene, leading to overfitting and instability. When combined with regularization techniques such as L1 (lasso) or L2 (ridge) penalties, logistic regression becomes viable for gene expression data by constraining the solution space and preventing overfitting. Regularization helps prevent overfitting in high-dimensional settings and can perform automatic feature selection.
+
+#### Ensemble Methods
+
+Ensemble methods are robust to the high-dimensional, noisy nature of gene expression data because they aggregate predictions across multiple models, each trained on different subsets of samples and features. This averaging effect reduces sensitivity to outliers and technical artifacts, including batch effects.
+
+Random forests construct ensembles of decision trees, where each tree is trained on a bootstrap sample of the data and a random subset of features. \cite{6U3RSD58} For gene expression data, this means each tree sees a different combination of genes and samples, preventing any single technical artifact from dominating the model. The final prediction aggregates votes across all trees, providing robustness to noise and the ability to capture complex interactions between genes. Random forests also provide measures of feature importance, which can aid in biological interpretation by identifying which genes contribute most to classification decisions.
+
+XGBoost, a gradient boosting implementation, builds trees sequentially to correct errors from previous iterations, often achieving excellent performance on structured data. \cite{HC57XGAZ} The method uses a sparsity-aware algorithm for sparse data and provides efficient handling of large-scale datasets through optimized cache access patterns and data compression.
+
+#### Non-linear Geometric Models
+
+These models identify decision boundaries in high-dimensional gene expression space using geometric principles. For gene expression data, where biological classes may not be linearly separable due to complex regulatory networks and pathway interactions, the ability to learn non-linear boundaries is crucial.
+
+Support vector machines identify optimal decision boundaries by finding hyperplanes that maximize the margin between classes. \cite{IWRVSPHQ} SVMs are particularly effective for the $p \gg n$ problem in gene expression data because they focus on support vectors—the most informative samples near the decision boundary—rather than attempting to model all samples equally. The kernel trick allows SVMs to implicitly map gene expression profiles into higher-dimensional spaces where complex, non-linear biological patterns become linearly separable, making them versatile for diverse biological patterns.
+
+Neural networks, including multi-layer perceptrons and more sophisticated architectures, can achieve excellent performance when sufficient data are available. \cite{GNFV76AH} For gene expression data, neural networks can learn hierarchical representations where early layers capture individual gene patterns and deeper layers integrate these into pathway-level or systems-level features. Neural networks outperform other methods only when training set sizes are very large, as the high-dimensional nature of gene expression data (many features, few samples) has historically limited deep learning effectiveness. Deep learning approaches have shown particular promise for identifying complex, non-linear patterns in gene expression data that may be missed by simpler methods.
+
+These classifiers are useful across various types of genomics data beyond gene expression, including DNA methylation profiles, copy number variations, and protein expression data, though the specific characteristics of each data type may favor certain classifier types.
+
+### The Role of Data Scale
+
+Neural networks can achieve excellent performance when sufficient data are available. For genomics data, this requirement is sometimes met, for example, when combining all available data from public repositories like the Gene Expression Omnibus (GEO), which contains millions of samples across thousands of studies. The availability of consistently computed RNA-seq count matrices from resources like GEO facilitates the application of deep learning approaches that can identify complex, non-linear patterns in large-scale gene expression data.
+
+Piccolo et al. (2022) demonstrated that classification performance for gene-expression data depends strongly on algorithm choice and performance metric. The number of samples and genes did not strongly correlate with classification performance, and hyperparameter tuning substantially affects performance. This finding emphasizes the importance of careful algorithm selection and evaluation metric choice when building predictive models based on gene expression.
+
+---
+
+## Batch Correction Methods
+
+Gene expression data provide an excellent context for understanding how batch effects can be modeled and removed, as the technical variation introduced by sequencing technologies is well-characterized and substantial. The sensitivity of sequencing technologies to technical variation makes batch effects particularly pronounced in gene expression data.
+
+### A Taxonomy of Batch Correction Methods
+
+Batch correction methods can be organized into three main categories based on their underlying approach: Scale/Location methods, Matrix Factorization methods, and Nearest Neighbor methods.
+
+**Scale/Location Methods** adjust the mean (location) and variance (scale) of features across batches, assuming batch effects manifest as systematic shifts in these parameters. ComBat and its variants (ComBat-Seq, ComBat with mean-only adjustment) exemplify this approach, using Empirical Bayes methods to estimate and remove batch-specific location and scale parameters. These methods work well when batch effects primarily affect the first two moments of the distribution.
+
+**Matrix Factorization Methods** decompose the data into biological and technical components, attempting to separate signal from noise through dimensionality reduction. Methods like LIGER use non-negative matrix factorization to identify shared biological factors while isolating dataset-specific technical factors. Surrogate Variable Analysis (SVA) also falls into this category, extracting latent variables that capture unwanted variation. These methods are particularly useful when batch effects are complex and cannot be adequately modeled by simple location/scale adjustments.
+
+**Nearest Neighbor Methods** identify corresponding samples or features across batches and use these correspondences to align datasets. MNN and FastMNN exemplify this approach, finding mutual nearest neighbors between batches and using these anchors to correct batch effects. While effective for single-cell data with discrete cell populations, these methods struggle with the continuous variation characteristic of bulk RNA-seq data, as demonstrated by our results.
+
+### The ComBat Framework
+
+The ComBat model works particularly well for bulk RNA sequencing data, where it has become a standard method for batch correction. ComBat uses Empirical Bayes methods to estimate location (L) and scale (S) parameters for each batch, assuming the data follow a Gaussian distribution. This approach allows ComBat to borrow information across genes when estimating batch effects, making it robust even when the number of samples per batch is small.
+
+ComBat was originally developed for microarray data and has been successfully applied to bulk RNA-seq data. While standard ComBat assumes a Gaussian distribution—a condition often violated by the raw, over-dispersed nature of RNA-seq counts—practitioners frequently apply it to log-transformed data to approximate normality. However, this transformation can stabilize variance at the cost of distorting the underlying count structure. \cite{SY5YRHHX} ComBat-Seq offers a superior alternative by modeling the data directly via a negative binomial distribution, thus preserving the integer nature of the counts and providing a more principled approach for modern sequencing pipelines.
+
+Beyond its effectiveness for bulk RNA data, ComBat exemplifies the Empirical Bayes approach to batch correction, which has influenced the development of many subsequent methods. Understanding ComBat provides insight into the general principles of batch correction: identifying systematic technical variation, estimating its magnitude, and removing it while preserving biological signal.
+
+### Methods for Other Modalities
+
+For single-cell RNA sequencing data, methods such as Harmony, LIGER, and Seurat have been developed to address the unique challenges of single-cell data, including sparsity, high dimensionality, and the need to preserve cell type identity. Harmony integrates single-cell datasets by removing batch effects while preserving biological structure through iterative batch-centroid correction in PC space, and is fast and scalable. LIGER uses integrative non-negative matrix factorization (iNMF) to separate shared biological factors from dataset-specific technical factors, performing well when batches have non-identical cell type compositions. Seurat v3 uses anchor-based integration with mutual nearest neighbors (MNNs) to correct batch effects while preserving cell-type structure. However, these single-cell methods are not appropriate for bulk RNA-seq data.
+
+### The Failure of Mutual Nearest Neighbors for Bulk RNA-Seq
+
+The analysis included both MNN (mutual nearest neighbors) and FastMNN as batch correction methods for bulk RNA-seq data. FastMNN showed consistently poor performance across all classifiers, with mean MCC differences from baseline ranging from -0.148 (XGBoost) to -0.441 (shrinkage LDA), all highly significant ($p < 10^{-5}$). Standard MNN also showed significant performance decreases, though less severe than FastMNN, with mean differences ranging from -0.114 (KNN) to -0.281 (shrinkage LDA). These results suggest that mutual nearest neighbor-based correction methods, while effective for discrete cell populations in single-cell data, may disrupt continuous biological variation patterns in bulk RNA-seq data.
+
+**The "Islands vs. Continent" Problem.** Single-cell data have "islands"—discrete cell types with distinct expression profiles separated by clear boundaries in expression space. \cite{7PZXDBIM} MNN works by finding mutual nearest neighbors between these islands across batches, assuming that the same cell types exist in both datasets. \cite{7PZXDBIM} Bulk RNA-seq data, in contrast, represent a "continent"—continuous variation across samples with no discrete boundaries. Each bulk sample is an aggregate of multiple cell types, creating a smooth gradient of expression rather than distinct clusters. When MNN attempts to find "nearest neighbors" in this continuous space, it creates artificial discontinuities by forcing samples into discrete correspondence, disrupting the biological gradients that classifiers need to learn. This fundamental mismatch between the method's assumptions (discrete populations) and the data structure (continuous variation) explains why MNN-based approaches consistently degrade classifier performance on bulk RNA-seq data.
+
+### The Link Between Adjustment and Classifier Performance
+
+Batch effects can introduce systematic biases that classifiers learn to exploit, leading to inflated performance on training data but poor generalization. Effective batch correction removes these technical artifacts, allowing classifiers to focus on biological signals and improving cross-study performance.
+
+Cross-study performance serves as a good indicator of both biological preservation and batch reduction because it directly tests whether a classifier can generalize to independent datasets with potentially different technical characteristics. High cross-study performance suggests that batch effects have been successfully removed while biological signal has been preserved.
+
+Common evaluation metrics such as within-study cross-validation can be misleading in the presence of batch effects. Cross-validation within a single study may give optimistic performance estimates because the classifier can learn batch-specific patterns that do not generalize. These limitations highlight the importance of using cross-study validation to obtain realistic performance estimates.
+
+Principal component analysis (PCA) and other visualization methods can help identify batch effects but do not directly measure their impact on classifier performance. While PCA can confirm that batches now 'overlap' visually, it cannot guarantee that the biological signal needed for classification has been preserved. Successful batch mixing in a 2D PCA plot is a necessary but insufficient condition for a generalizable classifier. BatchQC provides interactive software for evaluating sample and batch effects with PCA, heatmaps, dendrograms, and other diagnostics. The tool supports multiple batch correction methods including ComBat, ComBat-Seq, limma, and SVA, and includes metrics such as kBET for quantifying batch mixing.
+
+### Clinical Portability: The Single Sample Problem
+
+Most batch correction methods require a "batch" of samples to estimate and remove technical variation—they need multiple samples from each batch to calculate batch-specific parameters. \cite{WK56IHGB, 9ARJGGTA} In precision medicine, however, we often face the "batch of one" scenario: a single patient sample arrives at the clinic, processed on whatever equipment is available that day, by whichever technician is on duty. \cite{WK56IHGB, 9ARJGGTA} How do we apply a classifier trained on batch-corrected research data to this new, single sample that constitutes its own unique "batch"? \cite{WK56IHGB, 9ARJGGTA}
+
+This single sample problem has profound implications for translating research classifiers into clinical practice. \cite{WK56IHGB, 9ARJGGTA} A classifier trained on ComBat-adjusted data from multiple research cohorts cannot apply ComBat to a single incoming patient sample—there is no batch to correct. The classifier must either be robust to the technical variation of the new sample's processing conditions, or we must develop alternative strategies such as reference-based normalization methods that can adjust a single sample against a pre-defined reference distribution. \cite{WK56IHGB, 9ARJGGTA} This challenge underscores why cross-study validation, which tests generalization to new technical conditions, is a better proxy for clinical performance than within-study cross-validation.
+
+Emerging approaches to address the single sample problem include reference-based normalization, where a single sample is adjusted against a pre-computed reference distribution from training data. \cite{WK56IHGB, 9ARJGGTA} Frozen robust multiarray analysis (fRMA) pioneered this approach for microarrays by precomputing probe-specific effects and variances from large public databases, allowing individual arrays to be normalized without requiring a batch. \cite{WK56IHGB} Similar reference-based strategies have been developed for other platforms, including NanoString nCounter data, demonstrating that single-patient molecular testing is feasible with appropriate normalization methods. \cite{9ARJGGTA} The choice of classifier architecture also matters: methods with strong built-in regularization, like elastic net, may be more robust to technical variation in single samples than methods that rely heavily on local structure, like KNN.
+
+---
+
+## Case Study: Cross-Study Tuberculosis Classification
+
+Rather than presenting this as a standalone experimental section, we frame it as a case study that illustrates the concepts discussed earlier—demonstrating how batch effects, adjustment methods, and classifier choice interact in a real-world scenario.
+
+### Datasets: A Natural Stress Test for Batch Correction
+
+To rigorously evaluate the impact of batch effects on classifier performance, we selected tuberculosis gene expression datasets that represent "Real World Noise"—the ultimate test of cross-population generalizability. Rather than choosing datasets that are technically similar, we deliberately selected studies that juxtapose adolescent prospective cohorts with adult case-control studies, whole blood samples with sputum specimens, and data collected across three continents using different sequencing platforms. This heterogeneity is not a limitation but a feature: if batch correction methods can preserve biological signal while removing technical artifacts across this diversity, they are likely to succeed in real-world precision medicine applications.
+
+The classification task—distinguishing active tuberculosis from latent infection—remains constant across all datasets, providing a common biological thread. However, the technical and demographic characteristics vary dramatically:
+
+| Study | Region | Population | Sample Type | Design | Key Characteristics |
+|-------|--------|------------|-------------|--------|---------------------|
+| Zak et al. (2016) \cite{ATTXF4B6} | South Africa | Adolescents (12-18 years) | Whole blood | Prospective cohort | Longitudinal sampling every 6 months to predict progression |
+| Anderson et al. (2014) \cite{Anderson2014_Key} | South Africa, Malawi | Adults | Whole blood | Case-control | HIV-infected and -uninfected cohorts |
+| Leong et al. (2018) \cite{AABTK2K9} | India | Adults | Whole blood | Case-control | South Indian population, active vs latent |
+| Walter et al. (2016) \cite{Walter2016_Key} | Gambia, Uganda | Adults | Sputum | Case-control | HIV status comparison, bacterial and host transcription |
+| Kaforou et al. (2013) \cite{GVWW6MZB} | South Africa | Adults (Xhosa, 18+) | Whole blood | Case-control | HIV-infected and -uninfected cohorts |
+
+This collection spans adolescent prospective cohorts and adult case-control studies, whole blood and sputum samples, and three continents with diverse genetic backgrounds and HIV co-infection patterns. The technical heterogeneity—different laboratories, sequencing platforms, RNA extraction protocols, and processing dates—creates the batch effects that batch correction methods must address. The biological heterogeneity—age, HIV status, sample type, and population genetics—represents the diversity that classifiers must generalize across. If a classifier trained on South African adolescent blood samples can accurately predict tuberculosis status in Ugandan adult sputum samples, we have achieved the cross-population generalizability that precision medicine demands.
+
+### Classifier Performance Rankings: Lessons Learned
+
+Despite the variety of adjustment methods, a clear hierarchy emerges with elastic net and random forests consistently outperforming other methods, demonstrating the importance of built-in regularization for high-dimensional gene expression data.
+
+**Methods.** The analysis evaluated classifier performance across multiple tuberculosis gene expression datasets using leave-one-study-out cross-validation. Nine machine learning classifiers were tested: elastic net (regularized logistic regression), k-nearest neighbors (KNN), logistic regression, neural networks, random forests, shrinkage linear discriminant analysis (LDA), support vector machines (SVM), and XGBoost. Ten batch adjustment methods were compared: ComBat, ComBat with mean-only adjustment, ComBat-Seq supervised adjustment, naive merging (unadjusted), mutual nearest neighbors (MNN), FastMNN, nonparanormal transformation (NPN), rank-based normalization applied twice, rank-based normalization of samples, and within-study cross-validation as a baseline. Performance was assessed using multiple metrics including Matthews correlation coefficient (MCC), accuracy, balanced accuracy, area under the ROC curve (AUC), sensitivity, and specificity. The experimental design included 3 to 6 datasets per analysis configuration, with test studies including GSE37250_SA (South Africa), GSE37250_M (Malawi), GSE39941_M (Malawi), India, USA, and Africa cohorts.
+
+**Results (Figure 1).**
+![Figure 1: Average Rank by Classifier](figures/average_rank_by_classifier.png)
+*Figure 1: Classifier performance rankings aggregated across all batch adjustment methods. Elastic net and random forests consistently outperform other methods, demonstrating the importance of built-in regularization for high-dimensional gene expression data.*
+
+Across all batch adjustment methods, elastic net and random forest classifiers demonstrated the strongest overall performance, followed closely by neural networks, SVM, and XGBoost. KNN showed moderate performance, while logistic regression without regularization performed poorly, likely due to the high-dimensional nature of gene expression data. These rankings remained relatively stable across different adjustment methods, suggesting that classifier choice has a substantial impact on performance independent of batch correction approach.
+
+Elastic net's superior performance stems from its dual regularization mechanism that is particularly well-suited to distinguishing biological signal from technical noise. The L1 penalty performs automatic feature selection, driving coefficients of genes that vary primarily due to batch effects toward zero, since these genes will not consistently predict the outcome across different batches. The L2 penalty stabilizes the solution by grouping correlated genes, which is crucial because biologically meaningful genes often work in coordinated pathways, while batch-affected genes tend to vary independently. This combination means that elastic net naturally "ignores" technical noise—genes whose expression varies due to batch effects fail to receive consistent non-zero weights across cross-validation folds, while genes with genuine biological signal receive stable, non-zero coefficients. This explains why elastic net maintains strong performance even with imperfect batch correction: its regularization provides an additional layer of protection against technical artifacts.
+
+The L1 penalty (lasso) drives coefficients to exactly zero, performing automatic feature selection by eliminating genes that don't consistently predict across batches. The L2 penalty (ridge) shrinks coefficients toward zero without eliminating them, and encourages grouping of correlated features—biologically related genes in pathways tend to be selected or excluded together. Together, these mechanics create a model that is sparse (few genes), stable (correlated genes grouped), and robust to technical noise (batch-specific genes eliminated).
+
+Classifier complexity relates to the model's capacity to capture patterns in the data. More complex models (e.g., neural networks) may overfit when sample sizes are small, while simpler models (e.g., logistic regression) may underfit when patterns are non-linear. The results demonstrate that moderately complex classifiers with built-in regularization (elastic net, random forests) achieved the best balance between model flexibility and generalization. Simple logistic regression without regularization performed poorly in this high-dimensional setting, while elastic net's L1/L2 regularization enabled effective feature selection and robust performance. Random forests' ensemble approach provided robustness to noise and batch effects. Neural networks and SVM, despite their complexity, also performed well, suggesting that the sample sizes across combined studies were sufficient to train these more flexible models.
+
+### Interaction Effects Between Adjusters and Classifiers
+
+Different batch correction methods may preserve or remove different aspects of the data structure, which could interact with how different classifiers learn decision boundaries. For example, some adjusters may preserve non-linear relationships better than others, potentially favoring classifiers that can exploit such patterns.
+
+The analysis reveals that classifier performance is largely independent of the specific batch adjustment method used, with some notable exceptions. Statistical testing comparing each adjuster to within-study cross-validation baseline showed consistent patterns across classifiers, with most adjusters showing significant performance differences ($p < 0.05$) compared to the baseline.
+
+**Results (Figure 2).**
+![Figure 2: Adjusters on Classifiers Relative Aggregated](figures/adjusters_on_classifiers_relative_aggregated.png)
+*Figure 2: Change in classifier performance with batch adjustment. Each panel shows the delta (Δ, change in MCC) when applying a specific batch adjustment method compared to within-study baseline. Positive values indicate improvement; negative values indicate degradation. A negative delta indicates that the model is no longer exploiting batch-specific artifacts present in the training data, revealing the true difficulty of the biological task. The dramatic negative delta for supervised adjustment with KNN (bottom left) reveals the catastrophic failure mode when correction methods use class labels. Most other adjuster-classifier combinations show modest negative deltas, indicating that cross-study generalization is inherently more challenging than within-study validation, regardless of batch correction approach.*
+
+Figure 2 reveals that most batch adjustment methods result in negative deltas (performance decreases) compared to within-study baseline, indicating that cross-study generalization is inherently more challenging than within-study validation. The magnitude of these deltas varies substantially across adjuster-classifier combinations.
+
+For elastic net, all adjustment methods except naive merging showed significantly reduced performance compared to within-study cross-validation ($p < 0.01$), with mean MCC differences ranging from -0.049 (naive) to -0.161 (rank samples). ComBat-supervised adjustment showed particularly poor performance (mean difference: -0.104, $p < 0.001$).
+
+While performance generally decreased consistently across adjusters for most classifiers, ComBat-supervised adjustment showed a particularly severe interaction with KNN (mean difference: -1.119, $p < 10^{-10}$), far worse than its effect on other classifiers. This suggests that KNN's distance-based learning mechanism is particularly sensitive to the specific transformations introduced by supervised batch correction. In contrast, logistic regression showed relative robustness to most adjustment methods, with only ComBat-supervised causing significant degradation. FastMNN showed consistently poor performance across all classifiers (mean differences ranging from -0.148 to -0.441), suggesting this method may not be well-suited for bulk RNA-seq data despite its success in single-cell applications.
+
+The observed robustness of logistic regression likely stems from its global linear decision boundary, which is less sensitive to local distributional shifts. In contrast, the high sensitivity of KNN to batch adjustment—particularly supervised methods—highlights the danger of "local" learning. When supervised adjustment shifts samples to satisfy class-based mean/variance constraints, it creates high-density clusters in feature space. KNN "sees" these technical artifacts as biological proximity, leading to the "hall of mirrors" effect where internal validation metrics soar while cross-study generalizability collapses.
+
+The severe interaction between ComBat-supervised and KNN arises because supervised adjustment uses class labels during batch correction, potentially creating artificial separation in feature space that KNN's distance-based approach exploits, leading to overfitting.
+
+---
+
+## The Perils of Supervised Batch Correction
+
+### A Critical Warning for Practitioners
+
+Technical "corrections" that utilize the target variable can create a hall of mirrors, where internal validation looks perfect while real-world performance fails. This is the most important finding for practitioners.
+
+Imbalanced training data can introduce biases that are amplified by batch effects. When one class is underrepresented, batch effects can further confound the relationship between features and outcomes, leading to classifiers that perform poorly on balanced test sets. The unbalanced tuberculosis analysis examined classifier performance when training data had imbalanced class ratios (train_imbalance_ratio = 1.0, indicating equal representation during training) but test sets had varying imbalance ratios ranging from 0.74 to 1.46.
+
+Using class labels or known groups for batch adjustment—supervised adjustment—can lead to overfitting and poor generalization. The adjustment process may inadvertently remove biological signal along with batch effects when class labels are used. ComBat-supervised adjustment demonstrated this failure mode dramatically in the unbalanced data analysis.
+
+**Results (Figure 3).**
+![Figure 3: Unbalanced TB Analysis](figures/unbalanced_tb_analysis.png)
+*Figure 3: The catastrophic delta of supervised adjustment. This figure shows the change in performance (MCC) for different classifier-adjuster combinations on imbalanced test data. The large negative deltas for KNN with supervised adjustment (red bars extending far below zero, reaching MCC of -0.47) demonstrate performance worse than random chance—a delta of approximately -0.7 from reasonable performance. This dramatic negative change occurs because supervised correction creates artificial separation in training data that completely fails to generalize, illustrating the "hall of mirrors" effect where internal validation appears perfect while real-world performance collapses.*
+
+### The Mechanism of Failure
+
+Supervised adjustment "forces" a separation between classes within the training batch. A distance-based classifier like KNN then learns these artificial boundaries, which vanish entirely when the model is applied to an independent test set.
+
+KNN with supervised adjustment achieved negative MCC values in most test cases (ranging from -0.470 to -0.160), indicating performance worse than random chance. In contrast, KNN with unsupervised ComBat maintained reasonable performance, demonstrating that the failure is specific to supervised correction, not inherent to KNN.
+
+Figure 3 shows large negative deltas (red bars extending far below zero) for KNN with supervised adjustment, reaching MCC of -0.47—a delta of approximately -0.7 from reasonable performance. This visual representation makes the catastrophic nature of the failure immediately apparent.
+
+ComBat-supervised adjustment showed catastrophic failure with KNN across all test studies, achieving negative MCC values in most cases (ranging from -0.470 to -0.160), indicating performance worse than random chance. For the GSE37250_M test set, ComBat-supervised with KNN achieved an MCC of -0.470 and accuracy of only 25.6%, with specificity of just 31.4%. This dramatic failure occurred despite the training data being balanced, demonstrating that supervised adjustment creates artifacts that prevent generalization. Other classifiers also showed degraded performance with ComBat-supervised, though less severe: elastic net showed MCC values ranging from -0.013 to 0.865 across test sets, with particularly poor performance on GSE37250_M (MCC = -0.013). Random forests with ComBat-supervised showed highly variable performance, ranging from MCC of -0.156 (GSE37250_M) to 0.833 (GSE37250_SA).
+
+### Appropriate Unsupervised Correction
+
+In contrast to supervised adjustment, standard ComBat adjustment maintained reasonable performance across imbalanced test sets. For elastic net with ComBat, MCC values ranged from 0.452 (Africa) to 0.886 (India), with accuracies between 73.5% and 94.2%. Random forests with ComBat showed MCC values from 0.444 (Africa) to 0.857 (USA), demonstrating robust performance despite test set imbalance. The unadjusted (naive) approach showed extreme variability, with some classifiers achieving MCC of 0 (indicating complete failure) on certain test sets, while others maintained moderate performance. For example, unadjusted elastic net achieved MCC values ranging from 0 (GSE37250_SA) to 0.866 (USA), highlighting the unpredictable nature of batch effects on imbalanced data. These results demonstrate that while class imbalance poses challenges, appropriate unsupervised batch correction methods can maintain classifier performance, whereas supervised methods that use class labels during adjustment create severe overfitting that prevents generalization.
+
+---
+
+## Considerations for Cross-Study Validation
+
+Internal cross-validation can be misleading because classifiers can learn batch-specific patterns that do not generalize, emphasizing the importance of independent validation cohorts for realistic performance estimates.
+
+### The Limitations of Internal Cross-Validation
+
+Comparing internal cross-validation performance to cross-study performance reveals important limitations of standard evaluation approaches. Cross-validation within a single study may give optimistic performance estimates because the classifier can learn batch-specific patterns that do not generalize. This finding emphasizes the importance of independent validation cohorts for obtaining realistic performance estimates.
+
+**Results (Figure 4).**
+![Figure 4: Ranking Comparison Balanced vs Unbalanced](figures/ranking_comparison_balanced_vs_unbalanced.png)
+*Figure 4: The optimism delta of within-study validation. Comparing within-study cross-validation (left) to cross-study validation (right) reveals a systematic positive delta in the former—classifiers appear to perform better when tested on the same batch they were trained on, even with cross-validation. This "optimism delta" occurs because within-study validation allows classifiers to exploit batch-specific patterns. Cross-study performance shows the true delta when these technical patterns are absent, providing a more realistic (and typically lower) estimate of how classifiers will perform on new data with different technical characteristics. This delta between validation strategies is the best predictor of clinical performance, where each patient sample represents a new "batch."*
+
+The optimism delta quantifies how much within-study cross-validation overestimates true generalization performance. Classifiers appear to perform better on within-study validation because they can exploit batch-specific patterns that don't generalize to independent datasets. This systematic inflation of performance estimates is a critical consideration for practitioners.
+
+Figure 4 shows side-by-side comparisons of within-study and cross-study performance, making the systematic positive delta (higher performance for within-study) immediately visible. The visual gap between the two validation strategies emphasizes the magnitude of performance inflation.
+
+### Batch Adjustment Versus Meta-Analysis
+
+The choice between batch adjustment and meta-analysis represents an important consideration. While batch adjustment allows direct combination of datasets, meta-analysis approaches, such as those discussed by Campain and Yang (2010), combine results across studies without merging the raw data. Meta-analysis in gene expression studies aims to increase statistical power and identify consistent patterns by synthesizing results from independent but related datasets. However, challenges exist due to differing study aims, designs, populations, platforms, and laboratory effects. Meta-analysis methods can be categorized into 'relative' approaches, which correlate genes to a phenotype within datasets, and 'absolute' approaches, which combine raw or transformed data to increase statistical power. Taminau et al. (2014) found that merging (batch correction + pooled analysis) identified more differentially expressed genes than meta-analysis approaches, though meta-analysis still found robust DEGs. The choice depends on data availability, heterogeneity, sample sizes, and goals (DE vs pathway vs biomarker discovery).
+
+---
+
+## Summary of Recommendations for Practitioners
+
+The empirical results from the tuberculosis case study, combined with the theoretical understanding of batch effects and classifier architectures, yield clear guidance for practitioners building cross-study gene expression classifiers.
+
+### Decision Matrix for Batch Correction and Classifier Selection
+
+**For bulk RNA-seq data integration:**
+
+1. **If goal is clinical deployment (Single Sample) → Then use Reference-based normalization and avoid KNN**
+   - **Rationale:** Most batch correction methods require multiple samples per batch to estimate parameters. Clinical samples arrive individually, constituting their own unique "batch."
+   - **Recommended:** Classifiers with strong regularization (elastic net) that are robust to technical variation; reference-based normalization approaches that can adjust a single sample against a pre-defined reference distribution
+   - **Avoid:** KNN and other distance-based methods that rely heavily on local structure
+   - **Evaluate:** Test generalization to new technical conditions during development
+
+2. **If goal is biological discovery across GEO → Then use ComBat-Seq + Elastic Net**
+   - **Rationale:** Large-scale integration across public repositories requires robust batch correction that preserves count structure and classifiers that naturally ignore technical noise.
+   - **Recommended:** ComBat-Seq (preserves count structure) or standard ComBat on log-transformed data for batch correction; elastic net or random forests as first-line classifiers
+   - **Why:** Built-in regularization provides robustness to residual batch effects; elastic net's L1/L2 penalties naturally ignore technical noise
+   - **Alternative:** Neural networks or SVM if sample sizes are large (>1000 samples)
+
+3. **If goal is within-study analysis → Then prioritize validation strategy over batch correction**
+   - **Rationale:** Within-study cross-validation can give optimistic performance estimates by allowing classifiers to learn batch-specific patterns.
+   - **Required:** Leave-one-study-out cross-validation for realistic performance estimates
+   - **Insufficient:** Within-study cross-validation alone (gives optimistic estimates)
+   - **Goal:** Cross-study performance is the best proxy for clinical portability
+
+4. **If integrating across platforms → Then use rank-based normalization or quantile methods**
+   - **Rationale:** Different platforms (microarray vs. RNA-seq, different sequencing technologies) have fundamentally different distributional properties.
+   - **Recommended:** Rank-based normalization or unsupervised scale/location methods that don't assume specific distributional forms
+   - **Avoid:** Methods that assume specific distributional forms (e.g., negative binomial) when platforms differ substantially
+
+5. **If batch labels are unknown → Then consider SVA or other latent factor methods**
+   - **Rationale:** When working with public data where experimental metadata may be incomplete, batch labels may be unknown or only partially known.
+   - **Recommended:** Surrogate Variable Analysis (SVA) to identify and adjust for unknown batch effects
+   - **Note:** This extends beyond the scope of supervised batch correction but is increasingly important for large-scale data integration
+
+### Red Flags: When Batch Correction Has Failed
+
+**Warning signs that batch correction may have introduced artifacts:**
+
+- KNN or distance-based classifiers show dramatically better performance than regularized methods (suggests artificial clustering)
+- Within-study cross-validation performance is much higher than cross-study performance (suggests batch confounding)
+- Supervised adjustment was used and performance seems "too good" (hall of mirrors effect)
+- Performance degrades catastrophically on a single held-out study (suggests batch-specific overfitting)
+
+**How to diagnose correction problems:**
+
+- Compare within-study and cross-study validation performance—large gaps indicate batch confounding
+- Check if distance-based methods (KNN) outperform regularized methods (elastic net)—this reversal suggests artificial structure
+- Examine performance on each held-out study individually—catastrophic failure on one study indicates batch-specific overfitting
+- Verify that unsupervised methods were used—supervised adjustment is a red flag
+
+### The Hierarchy of Concerns
+
+**When building cross-study classifiers, prioritize in this order:**
+
+1. **Classifier architecture:** Choose methods with built-in regularization (elastic net, random forests) — This has the largest impact on performance
+2. **Validation strategy:** Use cross-study validation, not within-study cross-validation — This determines whether performance estimates are realistic
+3. **Batch correction method:** Use unsupervised methods appropriate for your data type — This matters, but less than classifier choice
+4. **Avoid supervised correction:** Never use class labels during batch adjustment — This prevents catastrophic failure modes
+5. **Evaluate generalization:** Test on truly independent cohorts with different technical characteristics — This validates real-world applicability
+
+This hierarchy reflects a key insight from the results: classifier choice and validation strategy matter more than the specific batch correction method, as long as you avoid catastrophic failures (supervised adjustment with KNN, MNN on bulk data).
+
+---
+
+## The Horizon of Batch Effect Mitigation
+
+As we move toward larger-scale integration, such as the use of the entire GEO repository for "foundation models" in genomics, the field must look beyond static batch correction. Future workflows will likely integrate Surrogate Variable Analysis (SVA) to capture latent, unmeasured heterogeneity alongside Domain Adaptation techniques that allow neural networks to "learn" to be batch-invariant.
+
+### Modern Approaches: Self-Supervised Learning and Batch-Aware Training
+
+The emergence of foundation models in genomics—large neural networks pre-trained on massive datasets like the entire GEO repository—introduces new considerations for batch effect mitigation. These models are typically trained using self-supervised learning, where the model learns representations from unlabeled data before being fine-tuned for specific tasks. A critical question arises: should we pre-train on batch-corrected or uncorrected data?
+
+Pre-training on uncorrected data may allow the model to learn robust representations that are inherently invariant to technical variation, rather than relying on explicit batch correction. If the model sees enough diverse batches during pre-training, it may learn to distinguish biological signal (which is consistent across batches) from technical noise (which varies randomly across batches). This approach could produce models that generalize better to new, unseen technical conditions—including the single-sample clinical scenario.
+
+**The Risk of Batch as a Latent Feature (Shortcut Learning).** However, a critical risk emerges in self-supervised learning: if the model is not explicitly de-biased during training, it may learn to represent "batch" as one of its primary latent dimensions. \cite{DCHDE4E7} This phenomenon is known as "Shortcut Learning" in the machine learning literature—the model takes the shortcut of learning the batch (which is easy to identify) rather than the biology (which is hard). \cite{DCHDE4E7} Since batch effects often explain substantial variance in the data, an unsupervised model optimizing for reconstruction or contrastive objectives may inadvertently encode batch identity as a core feature. \cite{DCHDE4E7} This creates a subtle failure mode where the model appears to learn rich representations but has actually learned to distinguish technical artifacts rather than biological patterns. \cite{DCHDE4E7}
+
+When SSL models are trained to maximize reconstruction accuracy or contrastive similarity, they naturally learn to represent the largest sources of variance in the data. If batch effects explain substantial variance—as they often do in genomic data—the model may encode batch identity as a primary latent dimension because doing so improves the training objective. The model has no inherent way to distinguish "biological variance" from "technical variance" without explicit supervision or constraints.
+
+When batch identity becomes a primary latent dimension, the model's learned representations are dominated by technical artifacts rather than biological patterns. Downstream tasks that use these representations will inherit this bias, leading to classifiers that perform well within batches but fail catastrophically across batches. This is particularly insidious because the model may appear to learn rich, high-quality representations during pre-training, with the failure only becoming apparent during cross-batch evaluation.
+
+Detecting this failure requires careful evaluation: the model may perform well on within-batch tasks while failing catastrophically on cross-batch generalization. This underscores the importance of batch-aware evaluation metrics even for foundation models, and suggests that explicit batch-adversarial training (such as gradient reversal layers) may be necessary to prevent batch identity from dominating the learned representations. For clinical deployment, this means foundation models must be evaluated specifically for cross-batch generalization, not just overall performance.
+
+This consideration adds a layer of sophistication by revealing that foundation models, despite their scale and power, are not immune to batch effects—they may simply encode them in more subtle ways. The discussion moves beyond "should we use foundation models?" to "how do we ensure foundation models learn biology, not batch?" This framing positions batch effect mitigation as an ongoing concern even in the era of large-scale pre-training.
+
+Batch-aware training strategies explicitly incorporate batch information during model training to learn batch-invariant representations. \cite{XDFQK28Q} Gradient Reversal Layers (GRL) add an adversarial component to the neural network that tries to predict the batch label from the learned representations, while the main network tries to prevent this prediction. \cite{XDFQK28Q} This adversarial training forces the network to learn features that are useful for the biological task but uninformative about batch identity—effectively making the model "forget" the batch during training. \cite{XDFQK28Q} Domain adaptation techniques similarly aim to align the feature distributions across batches, allowing models trained on one set of technical conditions to generalize to others. These approaches represent a paradigm shift from correcting the data before training to training models that are inherently robust to batch effects.
+
+The utility of machine learning in genomics extends beyond pure prediction to biological discovery. By utilizing the feature importance metrics of random forests or the sparsity-inducing weights of elastic net, researchers can distill thousands of genes into a "minimal signature" suitable for cost-effective clinical assays.
+
+Ultimately, the successful mitigation of batch effects ensures that these signatures represent genuine disease biology rather than the technical idiosyncrasies of a specific laboratory. The molecular profiles we identify in the lab must be the same ones that guide clinical decisions at the bedside, regardless of which machine or reagent kit was used to generate the data. The molecular signatures discovered through careful batch correction and robust machine learning must translate from bench to bedside, maintaining their predictive power across the technical heterogeneity inherent in real-world clinical settings, providing a reliable bridge from the digital repository of GEO to the bedside of the patient.
+
+### Generalizability to Other Omics
+
+While this chapter focuses on RNA-seq data as an exemplar, the book's title—"Artificial Intelligence and Machine Learning in Genomics and Precision Medicine"—signals a broader scope. This section is therefore vital, not peripheral, as it demonstrates how the principles learned from RNA-seq extend across the full spectrum of genomic and multi-omic data types used in precision medicine.
+
+The specific statistical properties differ across modalities, requiring modality-specific adaptations of batch correction methods, yet the underlying principles remain constant.
+
+**RNA-seq: Negative Binomial distribution.** RNA-seq count data follow a negative binomial distribution, characterized by over-dispersion where the variance exceeds the mean. This distributional property motivates methods like ComBat-Seq that explicitly model the negative binomial structure rather than assuming Gaussian distributions. The integer nature of counts and the mean-variance relationship are fundamental characteristics that batch correction methods must respect.
+
+**DNA Methylation: Beta distribution (use limma or ComBat on M-values).** DNA methylation beta values are bounded between 0 and 1, representing the proportion of methylated sites, and approximately follow a beta distribution. \cite{BIEDGK29} This bounded nature violates the assumptions of methods designed for unbounded continuous or count data. \cite{BIEDGK29} Practitioners typically transform beta values to M-values (log2 ratio of methylated to unmethylated intensities) before applying ComBat or limma, as M-values are approximately normally distributed and unbounded, making them more suitable for standard batch correction methods. \cite{BIEDGK29} Specialized methods like GMQN (Gaussian Mixture Quantile Normalization) have been developed specifically for methylation data. \cite{GMQN_Key}
+
+**Protein abundance (Mass Spec): Often log-normal.** Mass spectrometry data for protein abundance are often log-normally distributed and may have substantial missingness due to detection limits. \cite{V3WF2W22} Batch effects manifest as systematic shifts in ionization efficiency and instrument sensitivity. \cite{V3WF2W22} ComBat's Gaussian assumptions may be more appropriate for log-transformed proteomics data than for raw counts. \cite{V3WF2W22} However, the high degree of missingness requires specialized handling that differs from RNA-seq workflows.
+
+**Key insight: While the math changes, the strategy of location/scale adjustment is foundational.** Despite these distributional differences, the fundamental strategy of location/scale adjustment remains constant across modalities. Whether adjusting the mean and variance of Gaussian-distributed M-values, the dispersion parameters of negative binomial counts, or the ionization efficiency of log-normal protein abundances, the core principle is the same: estimate systematic technical variation and remove it while preserving biological signal. The math changes—negative binomial models for RNA-seq, beta/M-value transformations for methylation, log-normal models for proteomics—but the conceptual framework of identifying and removing batch-specific location and scale parameters is foundational to understanding batch correction across all high-throughput omics technologies.
+
+The core principles discussed in this chapter apply universally across omics modalities:
+- Systematic technical variation exists in all high-throughput data
+- Location/scale adjustment principles remain constant even as distributional assumptions change
+- The need to preserve biological signal while removing technical noise is universal
+- Validating through cross-study performance is essential regardless of data type
+- Avoiding supervised correction prevents catastrophic overfitting across all modalities
+
+Batch effects in other omics modalities are comparable in magnitude and impact to those in transcriptomics. Protein abundance measurements from mass spectrometry face similar batch effects from instrument calibration, ionization efficiency, and sample processing. DNA methylation data from BeadChip arrays exhibit batch effects from array manufacturing lots, scanner settings, and bisulfite conversion efficiency. The fundamental challenge remains consistent: technical variation that can be comparable to or larger than biological signal.
+
+By explicitly connecting RNA-seq principles to other omics modalities, the chapter becomes a reference for researchers working across the full spectrum of precision medicine data types. The lessons learned from RNA-seq—particularly about classifier choice, validation strategy, and the perils of supervised correction—provide actionable guidance for proteomics, metabolomics, and methylation studies. The classifier considerations—regularization, ensemble methods, distance-based approaches—similarly translate across omics, though the optimal choice may vary with data characteristics. The single sample problem, the optimism delta of within-study validation, and the catastrophic failure of supervised adjustment are universal concerns in precision medicine, regardless of the specific omics modality.
+
+This section is formatted as a prominent subsection within "The Horizon" to signal its importance and match the book's multi-omic scope. Rather than relegating multi-omic considerations to a brief "box" or footnote, this treatment acknowledges that readers working with methylation, proteomics, or other omics data will find the chapter's principles directly applicable to their work.
+
+### Feature Selection and Biological Interpretation
+
+Batch effect mitigation is the prerequisite for reliable feature selection. Without proper batch correction first, feature selection identifies batch artifacts instead of biological signals. If the data is poorly corrected, the "features" selected will be technical noise, not biomarkers.
+
+In the context of Precision Medicine, feature selection enables minimal diagnostic signatures—reducing thousands of genes to a small panel suitable for cost-effective clinical assays. However, this utility depends entirely on selecting genes that represent genuine disease biology rather than technical artifacts. A minimal signature derived from batch-confounded data will fail catastrophically when deployed in a clinical setting with different technical conditions.
+
+Each classifier type can be used to identify important genes that drive classification decisions, but only after appropriate batch correction. Random forests provide feature importance measures that can identify key predictive genes, with variable importance measures serving as effective screening tools for gene expression studies. Logistic regression with L1 regularization (lasso) performs automatic feature selection by shrinking coefficients of less important features to zero, enabling sparse solutions suitable for high-dimensional data. Elastic net combines L1 and L2 regularization to perform feature selection while grouping correlated genes, making it particularly effective for identifying biologically coherent gene sets. Support vector machines can identify support vectors that define decision boundaries, providing insight into which samples are most informative for classification. Random forest gene selection has been shown to yield very small sets of genes while preserving predictive accuracy, often smaller than alternative methods. \cite{JSWIXH6M}
+
+**Reduce cost and complexity (fewer genes = cheaper assays).** Focusing on a smaller set of informative genes reduces the cost and complexity of diagnostic or prognostic tests. Smaller gene signatures can be implemented as cost-effective qPCR panels that are more practical for widespread clinical deployment than large-scale expression profiling.
+
+**Interpretation (sheds light on the biology involved).** Identifying important genes provides biological interpretation by highlighting genes that shed light on the underlying biology. These genes often point to specific pathways or mechanisms involved in disease, enabling hypothesis generation for further research and potentially revealing therapeutic targets.
+
+This prerequisite relationship cannot be overstated: feature selection applied to batch-confounded data will reliably identify genes whose expression varies between batches, not genes whose expression varies with disease. The resulting "biomarker panel" will perform well within the training cohort but fail completely on independent data processed under different technical conditions. This failure mode is particularly insidious because the feature selection process appears to work—producing sparse models with good internal validation performance—while actually encoding technical artifacts that prevent clinical translation.
+
+### The Impact of Unmeasured Factors and Surrogate Variable Analysis
+
+While the first mention of SVA (in the "Unknown Batch Effects" section) introduced the problem of unknown batch labels, here we examine how SVA is being integrated into modern automated pipelines for advanced applications.
+
+Beyond known batch effects, unmeasured or unmodeled factors pose a significant challenge in gene expression studies, introducing widespread and detrimental effects such as reduced power, unwanted dependencies, and spurious signals, even in well-designed randomized studies. These unmodeled sources of heterogeneity can lead to extra variability in expression levels and generate spurious associations due to confounding. To address this, Surrogate Variable Analysis (SVA) was developed to identify, estimate, and utilize components of expression heterogeneity (EH) directly from the expression data itself. SVA can be applied in conjunction with standard analysis techniques to accurately capture the relationship between expression and any modeled variables of interest, ultimately increasing the biological accuracy and reproducibility of analyses in genome-wide expression studies. By adjusting for surrogate variables that capture these unmodeled factors, SVA improves the accuracy and stability of gene ranking for differential expression, leading to more powerful and reproducible results, which is crucial for making reliable biological inferences when selecting genes for further study.
+
+The integration of SVA into modern workflows represents an evolution from manual batch correction—where researchers explicitly identify and correct for known technical factors—to automated detection of latent factors that may include both known and unknown sources of variation. This is particularly important for large-scale data integration projects, such as building foundation models on the entire GEO repository, where manually curating batch labels for hundreds of thousands of samples is impractical. Automated pipelines that incorporate SVA can identify and adjust for systematic variation without requiring complete metadata, enabling more robust integration of heterogeneous public data. However, this automation comes with the caveat that SVA may identify and remove biological variation if it is confounded with technical factors, emphasizing the continued importance of careful experimental design and validation.
+
+### Domain Adaptation in Biological Datasets
+
+Domain adaptation (DA), a subfield of transfer learning, offers a solution to the challenge of machine learning models failing to generalize across biological datasets from different cohorts or laboratories. DA works by aligning the statistical distributions of source and target domains, thereby enabling models to be applied effectively across varied datasets. However, most existing DA methods, often designed for large-scale data like images, struggle with biological datasets due to their smaller sample sizes, high dimensionality (more features than samples), and inherent complexity and heterogeneity. Specific challenges include poor sample-to-feature ratios, complex feature spaces with missing values or differing dimensionalities, heterogeneous features with unknown mappings, and skewed feature importance distributions where only a few features are critical. The development of effective DA techniques for biological datasets necessitates methods that perform well with limited data in individual cohorts, such as simpler neural network architectures, and a focus on evaluating DA methods under highly undesirable sample-to-feature ratios. It is also crucial to consider the theoretical limitations of DA, as a failure of adaptability between domains can result in "negative transfer," where knowledge from a source domain adversely impacts model performance in a target domain.
+
+---
+
+## Narrative Transformation Summary
+
+Every factual claim in chapter_draft.md traces back to verified claims in manuscript.md, which in turn reference claims_matrix.md and source documents. The two-document workflow allows narrative polish while maintaining verification integrity.
