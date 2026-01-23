@@ -1,0 +1,70 @@
+{
+  "name": "citation-hover",
+  "displayName": "Citation Hover",
+  "description": "Shows evidence quotes when hovering over claim citations",
+  "version": "0.1.0",
+  "engines": {
+    "vscode": "^1.80.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onLanguage:markdown"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "citationHover.validateAllQuotes",
+        "title": "Citation Hover: Validate All Quotes"
+      },
+      {
+        "command": "citationHover.clearCache",
+        "title": "Citation Hover: Clear Cache"
+      }
+    ],
+    "configuration": {
+      "title": "Citation Hover",
+      "properties": {
+        "citationHover.claimsFilePath": {
+          "type": "string",
+          "default": "01_Knowledge_Base/claims_and_evidence.md",
+          "description": "Relative path to the claims and evidence file from workspace root"
+        },
+        "citationHover.searchPattern": {
+          "type": "string",
+          "default": "**/claims_and_evidence.md",
+          "description": "Glob pattern to search for claims file if not found at specified path"
+        },
+        "citationHover.extractedTextPath": {
+          "type": "string",
+          "default": "literature/ExtractedText",
+          "description": "Relative path to extracted text files from workspace root"
+        },
+        "citationHover.validationThreshold": {
+          "type": "number",
+          "default": 0.85,
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Similarity threshold for fuzzy quote matching (0-1)"
+        },
+        "citationHover.showDiagnostics": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show diagnostic warnings for unverified quotes in claims_and_evidence.md"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./"
+  },
+  "devDependencies": {
+    "@types/node": "^18.0.0",
+    "@types/vscode": "^1.80.0",
+    "typescript": "^5.0.0"
+  }
+}

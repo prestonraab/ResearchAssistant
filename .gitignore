@@ -32,3 +32,6 @@ wheels/
 .env
 .env.local
 literature/ExtractedText
+citation-hover-extension/node_modules
+citation-mcp-server/node_modules
+.kiro/settings/mcp.json
