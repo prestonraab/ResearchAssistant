@@ -113,7 +113,7 @@ This file contains all **Result** claims with their supporting evidence.
 **Context**: Benchmarked on both gold-standard and silver-standard datasets across different single-cell RNA-seq technologies.
 
 **Primary Quote** (Discussion):
-> "CycleMix uses a Gaussian mixture model to assign cells to cell-cycle phases using the BIC to select the optimal model (Figure 1). This enabled it to more accurately distinguish cycling vs. non-cycling cells than the most commonly used approaches, while maintaining a high degree of scalability."
+> "We present CycleMix, a novel scalable cell-cycle classification algorithm based on Gaussian Mixture modeling. Briefly, this approach uses a weighted average log-normalized expression to combine positive and negative gene markers to generate stage-specific scores which are binarized into discrete classifications by fitting a mixture of Gaussian distributions and using the BIC to select the optimal model (Figure 1). This enabled it to more accurately distinguish cycling vs. non-cycling cells than the most commonly used approaches, while maintaining a high degree of scalability."
 
 **Supporting Quotes**:
 - (Abstract): "Here we propose CycleMix, an alternative cell-cycle assignment algorithm that can flexibly assign cells into any number of states provided sufficient marker genes as well as being capable of identifying when cells are not cycling."

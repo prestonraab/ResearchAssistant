@@ -82,7 +82,7 @@ This file contains all **Data Source** claims with their supporting evidence.
 **Context**: This study examines a different classification task (HIV+ vs HIV- in active TB patients) compared to most other studies in this collection which focus on active vs latent TB or TB progression. Study compared M. tuberculosis and human gene transcription in sputum samples.
 
 **Primary Quote** (Abstract):
-> "We compared M. tuberculosis and human gene transcription in sputum between HIV-infected and uninfected patients with tuberculosis."
+> "It is unknown whether immunosuppression influences the physiologic state of Mycobacterium tuberculosis in vivo. We evaluated the impact of host immunity by comparing M. tuberculosis and human gene transcription in sputum between human immunodeficiency virus (HIV)-infected and uninfected patients with tuberculosis."
 
 **Supporting Quotes**:
 - (Title): "Adaptation of Mycobacterium tuberculosis to Impaired Host Immunity in HIV-Infected Patients"

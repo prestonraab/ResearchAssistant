@@ -90,7 +90,7 @@ This file contains **Method** claims related to batch correction methods and bas
 **Context**: Benchmark studies have identified algorithms that perform relatively well on gene expression data.
 
 **Primary Quote** (Results section):
-> "Later benchmark studies highlighted two types of algorithm-SVM and random forests-that performed relatively well on gene-expression data. Overall, they found that SVMs significantly outperformed random forests, although random forests outperformed SVMs in some cases."
+> "Later benchmark studies highlighted two types of algorithm-SVM and random forests-that performed relatively well on gene-expression data. Statnikov, et al. examined 22 datasets and specifically compared the predictive capability of these two algorithm types. Overall, they found that SVMs significantly outperformed random forests, although random forests outperformed SVMs in some cases."
 
 **Supporting Quotes**:
 - (Díaz-Uriarte2006): "Random forest has excellent performance in classification tasks, comparable to support vector machines."

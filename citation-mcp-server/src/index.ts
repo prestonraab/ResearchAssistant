@@ -14,6 +14,7 @@ import * as path from 'path';
 const WORKSPACE_ROOT = process.env.CITATION_WORKSPACE_ROOT || process.cwd();
 const EXTRACTED_TEXT_DIR = path.join(WORKSPACE_ROOT, 'literature', 'ExtractedText');
 const CLAIMS_FILE = path.join(WORKSPACE_ROOT, '01_Knowledge_Base', 'claims_and_evidence.md');
+const CLAIMS_DIR = path.join(WORKSPACE_ROOT, '01_Knowledge_Base', 'claims');
 const SOURCES_FILE = path.join(WORKSPACE_ROOT, '01_Knowledge_Base', 'sources.md');
 
 interface SearchResult {
@@ -423,84 +424,169 @@ interface ClaimQuote {
   quote: string;
   quoteType: 'Primary' | 'Supporting';
   lineNumber: number;
+  sourceFile: string;
 }
 
 function extractQuotesFromClaims(): ClaimQuote[] {
-  if (!fs.existsSync(CLAIMS_FILE)) {
-    return [];
-  }
-
-  const content = fs.readFileSync(CLAIMS_FILE, 'utf-8');
-  const lines = content.split('\n');
   const quotes: ClaimQuote[] = [];
+  
+  // Check if claims are in separate files (new structure)
+  if (fs.existsSync(CLAIMS_DIR)) {
+    const claimFiles = fs.readdirSync(CLAIMS_DIR)
+      .filter(f => f.endsWith('.md'))
+      .map(f => path.join(CLAIMS_DIR, f));
+    
+    for (const filepath of claimFiles) {
+      const content = fs.readFileSync(filepath, 'utf-8');
+      const lines = content.split('\n');
+      const filename = path.basename(filepath);
+      
+      let currentClaimId = '';
+      let currentClaimTitle = '';
+      let currentAuthorYear = '';
+      let inQuote = false;
+      let currentQuote = '';
+      let currentQuoteType: 'Primary' | 'Supporting' = 'Primary';
+      let quoteStartLine = 0;
 
-  let currentClaimId = '';
-  let currentClaimTitle = '';
-  let currentAuthorYear = '';
-  let inQuote = false;
-  let currentQuote = '';
-  let currentQuoteType: 'Primary' | 'Supporting' = 'Primary';
-  let quoteStartLine = 0;
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
 
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
+        // Match claim headers like "## C_01: ..."
+        const claimMatch = line.match(/^## (C_\d+[a-z]?):\s*(.+)$/);
+        if (claimMatch) {
+          currentClaimId = claimMatch[1];
+          currentClaimTitle = claimMatch[2];
+          currentAuthorYear = '';
+          continue;
+        }
 
-    // Match claim headers like "## C_01: ..."
-    const claimMatch = line.match(/^## (C_\d+):\s*(.+)$/);
-    if (claimMatch) {
-      currentClaimId = claimMatch[1];
-      currentClaimTitle = claimMatch[2];
-      currentAuthorYear = '';
-      continue;
-    }
+        // Match source line like "**Source**: Johnson2007 (Source ID: 1)"
+        const sourceMatch = line.match(/\*\*Source\*\*:\s*(\w+\d{4})/);
+        if (sourceMatch) {
+          currentAuthorYear = sourceMatch[1];
+          continue;
+        }
 
-    // Match source line like "**Source**: Johnson2007 (Source ID: 1)"
-    const sourceMatch = line.match(/\*\*Source\*\*:\s*(\w+\d{4})/);
-    if (sourceMatch) {
-      currentAuthorYear = sourceMatch[1];
-      continue;
-    }
+        // Match quote type headers
+        if (line.includes('**Primary Quote**')) {
+          currentQuoteType = 'Primary';
+          continue;
+        }
+        if (line.includes('**Supporting Quotes**')) {
+          currentQuoteType = 'Supporting';
+          continue;
+        }
 
-    // Match quote type headers
-    if (line.includes('**Primary Quote**')) {
-      currentQuoteType = 'Primary';
-      continue;
-    }
-    if (line.includes('**Supporting Quotes**')) {
-      currentQuoteType = 'Supporting';
-      continue;
-    }
+        // Start of quote (line starting with ">")
+        if (line.trim().startsWith('>') && !inQuote) {
+          inQuote = true;
+          quoteStartLine = i + 1;
+          currentQuote = line.trim().substring(1).trim(); // Remove ">" and trim
+          continue;
+        }
 
-    // Start of quote (line starting with ">")
-    if (line.trim().startsWith('>') && !inQuote) {
-      inQuote = true;
-      quoteStartLine = i + 1;
-      currentQuote = line.trim().substring(1).trim(); // Remove ">" and trim
-      continue;
-    }
+        // Continuation of quote
+        if (inQuote && line.trim().startsWith('>')) {
+          currentQuote += ' ' + line.trim().substring(1).trim();
+          continue;
+        }
 
-    // Continuation of quote
-    if (inQuote && line.trim().startsWith('>')) {
-      currentQuote += ' ' + line.trim().substring(1).trim();
-      continue;
-    }
-
-    // End of quote
-    if (inQuote && !line.trim().startsWith('>')) {
-      inQuote = false;
-      if (currentQuote && currentAuthorYear && currentClaimId) {
-        // Remove surrounding quotes if present
-        const cleanQuote = currentQuote.replace(/^[""]|[""]$/g, '').trim();
-        quotes.push({
-          claimId: currentClaimId,
-          claimTitle: currentClaimTitle,
-          authorYear: currentAuthorYear,
-          quote: cleanQuote,
-          quoteType: currentQuoteType,
-          lineNumber: quoteStartLine
-        });
+        // End of quote
+        if (inQuote && !line.trim().startsWith('>')) {
+          inQuote = false;
+          if (currentQuote && currentAuthorYear && currentClaimId) {
+            // Remove surrounding quotes if present
+            const cleanQuote = currentQuote.replace(/^[""]|[""]$/g, '').trim();
+            quotes.push({
+              claimId: currentClaimId,
+              claimTitle: currentClaimTitle,
+              authorYear: currentAuthorYear,
+              quote: cleanQuote,
+              quoteType: currentQuoteType,
+              lineNumber: quoteStartLine,
+              sourceFile: filename
+            });
+          }
+          currentQuote = '';
+        }
       }
-      currentQuote = '';
+    }
+  }
+  // Fallback to old single-file structure
+  else if (fs.existsSync(CLAIMS_FILE)) {
+    const content = fs.readFileSync(CLAIMS_FILE, 'utf-8');
+    const lines = content.split('\n');
+
+    let currentClaimId = '';
+    let currentClaimTitle = '';
+    let currentAuthorYear = '';
+    let inQuote = false;
+    let currentQuote = '';
+    let currentQuoteType: 'Primary' | 'Supporting' = 'Primary';
+    let quoteStartLine = 0;
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+
+      // Match claim headers like "## C_01: ..."
+      const claimMatch = line.match(/^## (C_\d+[a-z]?):\s*(.+)$/);
+      if (claimMatch) {
+        currentClaimId = claimMatch[1];
+        currentClaimTitle = claimMatch[2];
+        currentAuthorYear = '';
+        continue;
+      }
+
+      // Match source line like "**Source**: Johnson2007 (Source ID: 1)"
+      const sourceMatch = line.match(/\*\*Source\*\*:\s*(\w+\d{4})/);
+      if (sourceMatch) {
+        currentAuthorYear = sourceMatch[1];
+        continue;
+      }
+
+      // Match quote type headers
+      if (line.includes('**Primary Quote**')) {
+        currentQuoteType = 'Primary';
+        continue;
+      }
+      if (line.includes('**Supporting Quotes**')) {
+        currentQuoteType = 'Supporting';
+        continue;
+      }
+
+      // Start of quote (line starting with ">")
+      if (line.trim().startsWith('>') && !inQuote) {
+        inQuote = true;
+        quoteStartLine = i + 1;
+        currentQuote = line.trim().substring(1).trim(); // Remove ">" and trim
+        continue;
+      }
+
+      // Continuation of quote
+      if (inQuote && line.trim().startsWith('>')) {
+        currentQuote += ' ' + line.trim().substring(1).trim();
+        continue;
+      }
+
+      // End of quote
+      if (inQuote && !line.trim().startsWith('>')) {
+        inQuote = false;
+        if (currentQuote && currentAuthorYear && currentClaimId) {
+          // Remove surrounding quotes if present
+          const cleanQuote = currentQuote.replace(/^[""]|[""]$/g, '').trim();
+          quotes.push({
+            claimId: currentClaimId,
+            claimTitle: currentClaimTitle,
+            authorYear: currentAuthorYear,
+            quote: cleanQuote,
+            quoteType: currentQuoteType,
+            lineNumber: quoteStartLine,
+            sourceFile: 'claims_and_evidence.md'
+          });
+        }
+        currentQuote = '';
+      }
     }
   }
 
@@ -515,6 +601,7 @@ interface QuoteVerificationResult {
   quote: string;
   quoteType: 'Primary' | 'Supporting';
   lineNumber: number;
+  claimFile: string;
   verified: boolean;
   similarity: number;
   sourceFile?: string;
@@ -549,6 +636,7 @@ function verifyAllQuotes(): {
         quote: quote.quote,
         quoteType: quote.quoteType,
         lineNumber: quote.lineNumber,
+        claimFile: quote.sourceFile,
         verified: verification.verified,
         similarity: verification.similarity,
         sourceFile: verification.sourceFile,

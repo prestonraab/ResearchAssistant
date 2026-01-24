@@ -55,7 +55,7 @@ This file contains **Method** claims related to classifier details and data-spec
 **Context**: Particularly useful when the number of predictors (p) is much larger than the number of observations (n).
 
 **Primary Quote** (Section 2.1):
-> "We call the function (1-α)|β|₁ + α|β|₂ the elastic net penalty, which is a convex combination of the lasso and ridge penalty."
+> "We call the function (1-α)|β|₁ + α|β|₂ the elastic net penalty, which is a convex combination of the lasso and ridge penalty. When α = 1, the naïve elastic net becomes simple ridge regression."
 
 **Supporting Quotes**:
 - (Introduction): "We propose a new regularization technique which we call the elastic net. Similar to the lasso, the elastic net simultaneously does automatic variable selection and continuous shrinkage, and it can select groups of correlated variables."
@@ -127,7 +127,7 @@ This file contains **Method** claims related to classifier details and data-spec
 **Context**: Ensemble approach aggregates predictions across multiple trees.
 
 **Primary Quote** (Abstract):
-> "Using a random selection of features to split each node yields error rates that compare favorably to Adaboost, but are more robust with respect to noise."
+> "Using a random selection of features to split each node yields error rates that compare favorably to Adaboost (Y. Freund & R. Schapire, Machine Learning: Proceedings of the Thirteenth International conference, ***, 148-156), but are more robust with respect to noise."
 
 **Supporting Quotes**:
 - (Section 2.1): "This result explains why random forests do not overfit as more trees are added, but produce a limiting value of the generalization error."
