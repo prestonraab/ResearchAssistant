@@ -38,12 +38,49 @@
         "icon": "$(refresh)"
       },
       {
+        "command": "researchAssistant.showClaimsPanel",
+        "title": "Research Assistant: Show Claims Panel"
+      },
+      {
         "command": "researchAssistant.analyzeCoverage",
         "title": "Research Assistant: Analyze Coverage"
       },
       {
         "command": "researchAssistant.showDashboard",
         "title": "Research Assistant: Show Dashboard"
+      },
+      {
+        "command": "researchAssistant.searchPapersForSection",
+        "title": "Search Papers",
+        "icon": "$(search)"
+      },
+      {
+        "command": "researchAssistant.viewClaimsForSection",
+        "title": "View Claims",
+        "icon": "$(list-unordered)"
+      },
+      {
+        "command": "researchAssistant.analyzeGapForSection",
+        "title": "Analyze Gap",
+        "icon": "$(graph)"
+      },
+      {
+        "command": "researchAssistant.bulkImport",
+        "title": "Research Assistant: Bulk Import",
+        "icon": "$(cloud-download)"
+      },
+      {
+        "command": "researchAssistant.batchVerifyQuotes",
+        "title": "Research Assistant: Batch Verify Quotes"
+      },
+      {
+        "command": "researchAssistant.exportCoverage",
+        "title": "Research Assistant: Export Coverage Report"
+      },
+      {
+        "command": "researchAssistant.searchAll",
+        "title": "Research Assistant: Search All",
+        "icon": "$(search)"
       }
     ],
     "viewsContainers": {
@@ -58,12 +95,22 @@
     "views": {
       "researchAssistant": [
         {
+          "id": "researchAssistant.dashboard",
+          "type": "webview",
+          "name": "Dashboard"
+        },
+        {
           "id": "researchAssistant.outline",
           "name": "Outline & Coverage"
         },
         {
           "id": "researchAssistant.claims",
           "name": "Claims"
+        },
+        {
+          "id": "researchAssistant.claimsPanel",
+          "type": "webview",
+          "name": "Claims Panel"
         },
         {
           "id": "researchAssistant.papers",
@@ -82,6 +129,23 @@
           "command": "researchAssistant.refreshClaims",
           "when": "view == researchAssistant.claims",
           "group": "navigation"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "researchAssistant.searchPapersForSection",
+          "when": "view == researchAssistant.outline && viewItem == section",
+          "group": "1_actions@1"
+        },
+        {
+          "command": "researchAssistant.viewClaimsForSection",
+          "when": "view == researchAssistant.outline && viewItem == section",
+          "group": "1_actions@2"
+        },
+        {
+          "command": "researchAssistant.analyzeGapForSection",
+          "when": "view == researchAssistant.outline && viewItem == section",
+          "group": "1_actions@3"
         }
       ]
     },

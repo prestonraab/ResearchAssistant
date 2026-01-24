@@ -274,6 +274,10 @@ export class ClaimsManager {
     return Array.from(this.claims.values());
   }
 
+  getAllClaims(): Claim[] {
+    return this.getClaims();
+  }
+
   getClaim(id: string): Claim | null {
     return this.claims.get(id) || null;
   }
@@ -359,6 +363,40 @@ export class ClaimsManager {
       claim.primaryQuote.toLowerCase().includes(lowerQuery) ||
       claim.context.toLowerCase().includes(lowerQuery)
     );
+  }
+
+  /**
+   * Detect similar claims using semantic similarity
+   * @param text The claim text to compare against
+   * @param threshold Similarity threshold (0-1), default 0.85
+   * @returns Array of similar claims with similarity scores
+   */
+  async detectSimilarClaims(text: string, threshold: number = 0.85): Promise<Array<{ claim: Claim; similarity: number }>> {
+    // This is a placeholder implementation
+    // In production, this should use the EmbeddingService
+    const lowerText = text.toLowerCase();
+    const results: Array<{ claim: Claim; similarity: number }> = [];
+    
+    for (const claim of this.claims.values()) {
+      // Simple word-based similarity as fallback
+      const claimLower = claim.text.toLowerCase();
+      const words1 = new Set(lowerText.split(/\s+/));
+      const words2 = new Set(claimLower.split(/\s+/));
+      
+      const intersection = new Set([...words1].filter(x => words2.has(x)));
+      const union = new Set([...words1, ...words2]);
+      
+      const similarity = intersection.size / union.size;
+      
+      if (similarity >= threshold) {
+        results.push({ claim, similarity });
+      }
+    }
+    
+    // Sort by similarity descending
+    results.sort((a, b) => b.similarity - a.similarity);
+    
+    return results;
   }
 
   /**

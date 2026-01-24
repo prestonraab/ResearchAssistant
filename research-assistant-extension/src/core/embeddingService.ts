@@ -1,4 +1,5 @@
 import * as crypto from 'crypto';
+import { getPerformanceMonitor } from './performanceMonitor';
 
 export interface EmbeddingVector {
   text: string;
@@ -25,6 +26,9 @@ export class EmbeddingService {
   private vocabulary: Map<string, number> = new Map();
   private idfScores: Map<string, number> = new Map();
   private documentCount: number = 0;
+  private performanceMonitor = getPerformanceMonitor();
+  private cacheHits: number = 0;
+  private cacheMisses: number = 0;
 
   constructor(maxCacheSize: number = 1000) {
     this.maxCacheSize = maxCacheSize;
@@ -38,19 +42,24 @@ export class EmbeddingService {
    * @returns A normalized embedding vector
    */
   async generateEmbedding(text: string): Promise<number[]> {
-    // Check cache first
-    const cached = this.getCachedEmbedding(text);
-    if (cached) {
-      return cached;
-    }
+    return this.performanceMonitor.measureAsync('embedding.generate', async () => {
+      // Check cache first
+      const cached = this.getCachedEmbedding(text);
+      if (cached) {
+        this.cacheHits++;
+        return cached;
+      }
 
-    // Generate new embedding
-    const vector = this.computeEmbedding(text);
-    
-    // Cache the result
-    this.cacheEmbedding(text, vector);
-    
-    return vector;
+      this.cacheMisses++;
+
+      // Generate new embedding
+      const vector = this.computeEmbedding(text);
+      
+      // Cache the result
+      this.cacheEmbedding(text, vector);
+      
+      return vector;
+    });
   }
 
   /**
@@ -196,10 +205,13 @@ export class EmbeddingService {
    * Get cache statistics.
    */
   getCacheStats(): { size: number; maxSize: number; hitRate: number } {
+    const totalRequests = this.cacheHits + this.cacheMisses;
+    const hitRate = totalRequests > 0 ? this.cacheHits / totalRequests : 0;
+    
     return {
       size: this.cache.size,
       maxSize: this.maxCacheSize,
-      hitRate: 0 // TODO: Track hits/misses for accurate hit rate
+      hitRate
     };
   }
 

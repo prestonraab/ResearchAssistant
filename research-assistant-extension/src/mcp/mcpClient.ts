@@ -103,6 +103,28 @@ export class MCPClientManager {
     backoffMultiplier: 2,
   };
 
+  // Grouped API access
+  public readonly zotero = {
+    semanticSearch: (query: string, limit?: number) => this.zoteroSemanticSearch(query, limit),
+    getItemMetadata: (itemKey: string) => this.getItemMetadata(itemKey),
+    getItemFulltext: (itemKey: string) => this.getItemFulltext(itemKey),
+    getCollections: () => this.getCollections(),
+    getCollectionItems: (collectionKey: string, limit?: number) => this.getCollectionItems(collectionKey, limit),
+    getRecent: (limit?: number) => this.getRecent(limit),
+    getItemChildren: (itemKey: string) => this.getItemChildren(itemKey),
+  };
+
+  public readonly citation = {
+    verifyQuote: (quote: string, authorYear: string) => this.verifyQuote(quote, authorYear),
+    searchQuotes: (searchTerm: string, authorFilter?: string) => this.searchQuotes(searchTerm, authorFilter),
+    verifyAllQuotes: () => this.verifyAllQuotes(),
+  };
+
+  public readonly docling = {
+    convertDocument: (source: string) => this.convertDocument(source),
+    exportToMarkdown: (documentKey: string, maxSize?: number) => this.exportToMarkdown(documentKey, maxSize),
+  };
+
   constructor() {
     this.loadConfig();
   }
@@ -356,6 +378,102 @@ export class MCPClientManager {
       return collections;
     } catch (error) {
       console.error('Get collections failed:', error);
+      const fallback = cached || [];
+      this.setCache(cacheKey, fallback);
+      return fallback;
+    }
+  }
+
+  async getCollectionItems(collectionKey: string, limit?: number): Promise<any[]> {
+    const cacheKey = this.getCacheKey('zotero:collection-items', collectionKey, limit || 'all');
+    const cached = this.getFromCache<any[]>(cacheKey);
+    
+    if (cached) {
+      return cached;
+    }
+
+    if (!this.isConnected('zotero')) {
+      console.warn('Zotero MCP not connected, returning cached collection items');
+      const emptyResult: any[] = [];
+      this.setCache(cacheKey, emptyResult);
+      return emptyResult;
+    }
+    
+    try {
+      const items = await this.withRetry(async () => {
+        // Placeholder for actual MCP call
+        // In real implementation: call mcp_zotero_zotero_get_collection_items
+        return [] as any[];
+      });
+      
+      this.setCache(cacheKey, items);
+      return items;
+    } catch (error) {
+      console.error('Get collection items failed:', error);
+      const fallback = cached || [];
+      this.setCache(cacheKey, fallback);
+      return fallback;
+    }
+  }
+
+  async getRecent(limit: number = 10): Promise<any[]> {
+    const cacheKey = this.getCacheKey('zotero:recent', limit);
+    const cached = this.getFromCache<any[]>(cacheKey);
+    
+    if (cached) {
+      return cached;
+    }
+
+    if (!this.isConnected('zotero')) {
+      console.warn('Zotero MCP not connected, returning cached recent items');
+      const emptyResult: any[] = [];
+      this.setCache(cacheKey, emptyResult);
+      return emptyResult;
+    }
+    
+    try {
+      const items = await this.withRetry(async () => {
+        // Placeholder for actual MCP call
+        // In real implementation: call mcp_zotero_zotero_get_recent
+        return [] as any[];
+      });
+      
+      this.setCache(cacheKey, items);
+      return items;
+    } catch (error) {
+      console.error('Get recent items failed:', error);
+      const fallback = cached || [];
+      this.setCache(cacheKey, fallback);
+      return fallback;
+    }
+  }
+
+  async getItemChildren(itemKey: string): Promise<any[]> {
+    const cacheKey = this.getCacheKey('zotero:children', itemKey);
+    const cached = this.getFromCache<any[]>(cacheKey);
+    
+    if (cached) {
+      return cached;
+    }
+
+    if (!this.isConnected('zotero')) {
+      console.warn('Zotero MCP not connected, returning cached item children');
+      const emptyResult: any[] = [];
+      this.setCache(cacheKey, emptyResult);
+      return emptyResult;
+    }
+    
+    try {
+      const children = await this.withRetry(async () => {
+        // Placeholder for actual MCP call
+        // In real implementation: call mcp_zotero_zotero_get_item_children
+        return [] as any[];
+      });
+      
+      this.setCache(cacheKey, children);
+      return children;
+    } catch (error) {
+      console.error('Get item children failed:', error);
       const fallback = cached || [];
       this.setCache(cacheKey, fallback);
       return fallback;

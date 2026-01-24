@@ -407,6 +407,66 @@ describe('ClaimsManager', () => {
     });
   });
 
+  describe('detectSimilarClaims', () => {
+    beforeEach(async () => {
+      const claimContent = `## C_01: ComBat uses Empirical Bayes for batch effect correction
+
+**Category**: Method  
+**Source**: Johnson2007 (Source ID: 1)  
+
+---
+
+## C_02: Empirical Bayes methods are used in ComBat for adjusting batch effects
+
+**Category**: Method  
+**Source**: Zhang2020 (Source ID: 2)  
+
+---
+
+## C_03: Machine learning approaches for classification
+
+**Category**: Method  
+**Source**: Smith2021 (Source ID: 3)  
+
+---
+`;
+
+      await fs.writeFile(claimsFilePath, claimContent);
+      await manager.loadClaims();
+    });
+
+    it('should detect similar claims above threshold', async () => {
+      const results = await manager.detectSimilarClaims('ComBat uses Empirical Bayes for batch correction', 0.5);
+      
+      expect(results.length).toBeGreaterThan(0);
+      expect(results[0].claim.id).toMatch(/C_0[12]/); // Should match C_01 or C_02
+      expect(results[0].similarity).toBeGreaterThan(0.5);
+    });
+
+    it('should return empty array when no similar claims found', async () => {
+      const results = await manager.detectSimilarClaims('Quantum computing algorithms', 0.85);
+      
+      expect(results).toHaveLength(0);
+    });
+
+    it('should sort results by similarity descending', async () => {
+      const results = await manager.detectSimilarClaims('ComBat Empirical Bayes batch', 0.3);
+      
+      if (results.length > 1) {
+        for (let i = 0; i < results.length - 1; i++) {
+          expect(results[i].similarity).toBeGreaterThanOrEqual(results[i + 1].similarity);
+        }
+      }
+    });
+
+    it('should respect similarity threshold', async () => {
+      const highThreshold = await manager.detectSimilarClaims('ComBat batch correction', 0.9);
+      const lowThreshold = await manager.detectSimilarClaims('ComBat batch correction', 0.3);
+      
+      expect(lowThreshold.length).toBeGreaterThanOrEqual(highThreshold.length);
+    });
+  });
+
   describe('mergeClaims', () => {
     beforeEach(async () => {
       const claimContent = `## C_01: First claim

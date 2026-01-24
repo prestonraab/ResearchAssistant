@@ -1,0 +1,309 @@
+body {
+  padding: 0;
+  margin: 0;
+  font-family: var(--vscode-font-family);
+  font-size: var(--vscode-font-size);
+  color: var(--vscode-foreground);
+  background-color: var(--vscode-editor-background);
+}
+
+.claims-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* Controls Section */
+.controls {
+  padding: 12px;
+  background-color: var(--vscode-sideBar-background);
+  border-bottom: 1px solid var(--vscode-panel-border);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.filter-section,
+.sort-section {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.filter-section label,
+.sort-section label {
+  font-weight: 600;
+  min-width: 70px;
+  font-size: 12px;
+}
+
+.filter-section select,
+.filter-section input,
+.sort-section select {
+  flex: 1;
+  padding: 4px 8px;
+  background-color: var(--vscode-input-background);
+  color: var(--vscode-input-foreground);
+  border: 1px solid var(--vscode-input-border);
+  border-radius: 2px;
+  font-size: 12px;
+}
+
+.filter-section input:focus,
+.filter-section select:focus,
+.sort-section select:focus {
+  outline: 1px solid var(--vscode-focusBorder);
+}
+
+/* Claims List */
+.claims-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px;
+}
+
+.loading,
+.empty-state {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--vscode-descriptionForeground);
+  font-style: italic;
+}
+
+/* Claim Card */
+.claim-card {
+  background-color: var(--vscode-editor-background);
+  border: 1px solid var(--vscode-panel-border);
+  border-radius: 4px;
+  margin-bottom: 8px;
+  transition: all 0.2s ease;
+}
+
+.claim-card:hover {
+  border-color: var(--vscode-focusBorder);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.claim-card.selected {
+  border-color: var(--vscode-button-background);
+  background-color: var(--vscode-list-activeSelectionBackground);
+}
+
+.claim-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.claim-checkbox {
+  cursor: pointer;
+  margin: 0;
+}
+
+.claim-id {
+  font-weight: 700;
+  color: var(--vscode-textLink-foreground);
+  min-width: 50px;
+}
+
+.claim-category {
+  padding: 2px 8px;
+  background-color: var(--vscode-badge-background);
+  color: var(--vscode-badge-foreground);
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.claim-source {
+  flex: 1;
+  font-size: 12px;
+  color: var(--vscode-descriptionForeground);
+}
+
+.badge {
+  padding: 2px 6px;
+  border-radius: 10px;
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.badge.verified {
+  background-color: var(--vscode-testing-iconPassed);
+  color: white;
+}
+
+.claim-actions {
+  display: flex;
+  gap: 4px;
+  margin-left: auto;
+}
+
+.icon-button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px 6px;
+  border-radius: 3px;
+  font-size: 14px;
+  color: var(--vscode-foreground);
+  transition: background-color 0.2s;
+}
+
+.icon-button:hover {
+  background-color: var(--vscode-toolbar-hoverBackground);
+}
+
+.icon-button:active {
+  background-color: var(--vscode-toolbar-activeBackground);
+}
+
+/* Claim Body */
+.claim-body {
+  display: none;
+  padding: 12px;
+  border-top: 1px solid var(--vscode-panel-border);
+  background-color: var(--vscode-sideBar-background);
+}
+
+.claim-card.expanded .claim-body {
+  display: block;
+}
+
+.claim-text {
+  font-size: 14px;
+  line-height: 1.5;
+  margin-bottom: 12px;
+  font-weight: 500;
+}
+
+.claim-context {
+  font-size: 12px;
+  color: var(--vscode-descriptionForeground);
+  margin-bottom: 12px;
+  padding: 8px;
+  background-color: var(--vscode-editor-background);
+  border-left: 3px solid var(--vscode-textLink-foreground);
+  border-radius: 2px;
+}
+
+.claim-quote {
+  margin-bottom: 12px;
+}
+
+.claim-quote strong {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 12px;
+}
+
+.claim-quote blockquote {
+  margin: 0;
+  padding: 8px 12px;
+  background-color: var(--vscode-textBlockQuote-background);
+  border-left: 4px solid var(--vscode-textBlockQuote-border);
+  font-style: italic;
+  color: var(--vscode-editor-foreground);
+}
+
+.supporting-quotes {
+  margin-bottom: 12px;
+}
+
+.supporting-quotes strong {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 12px;
+}
+
+.supporting-quotes ul {
+  margin: 0;
+  padding-left: 20px;
+}
+
+.supporting-quotes li {
+  margin-bottom: 6px;
+  font-size: 12px;
+  color: var(--vscode-descriptionForeground);
+}
+
+.sections {
+  font-size: 11px;
+  color: var(--vscode-descriptionForeground);
+  margin-bottom: 8px;
+  padding: 6px 8px;
+  background-color: var(--vscode-editor-background);
+  border-radius: 2px;
+}
+
+.claim-meta {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: var(--vscode-descriptionForeground);
+  padding-top: 8px;
+  border-top: 1px solid var(--vscode-panel-border);
+}
+
+/* Selection Actions */
+.selection-actions {
+  display: none;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background-color: var(--vscode-statusBar-background);
+  border-top: 1px solid var(--vscode-panel-border);
+}
+
+#selection-count {
+  font-weight: 600;
+  color: var(--vscode-statusBar-foreground);
+}
+
+.action-button {
+  padding: 6px 12px;
+  background-color: var(--vscode-button-background);
+  color: var(--vscode-button-foreground);
+  border: none;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  transition: background-color 0.2s;
+}
+
+.action-button:hover {
+  background-color: var(--vscode-button-hoverBackground);
+}
+
+.action-button.secondary {
+  background-color: var(--vscode-button-secondaryBackground);
+  color: var(--vscode-button-secondaryForeground);
+}
+
+.action-button.secondary:hover {
+  background-color: var(--vscode-button-secondaryHoverBackground);
+}
+
+/* Scrollbar styling */
+.claims-list::-webkit-scrollbar {
+  width: 10px;
+}
+
+.claims-list::-webkit-scrollbar-track {
+  background: var(--vscode-scrollbarSlider-background);
+}
+
+.claims-list::-webkit-scrollbar-thumb {
+  background: var(--vscode-scrollbarSlider-activeBackground);
+  border-radius: 5px;
+}
+
+.claims-list::-webkit-scrollbar-thumb:hover {
+  background: var(--vscode-scrollbarSlider-hoverBackground);
+}

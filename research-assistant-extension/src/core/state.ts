@@ -7,6 +7,15 @@ import { EmbeddingService } from './embeddingService';
 import { PaperRanker } from './paperRanker';
 import { CoverageAnalyzer } from './coverageAnalyzer';
 import { ReadingStatusManager } from './readingStatusManager';
+import { ClaimExtractor } from './claimExtractor';
+import { PositionMapper } from './positionMapper';
+import { PDFExtractionService } from './pdfExtractionService';
+import { CitationNetworkAnalyzer } from './citationNetworkAnalyzer';
+import { BatchOperationHandler } from './batchOperationHandler';
+import { ExportService } from './exportService';
+import { ConfigurationManager } from './configurationManager';
+import { UnifiedSearchService } from './unifiedSearchService';
+import { QuoteVerificationService } from './quoteVerificationService';
 
 export interface ExtensionConfig {
   outlinePath: string;
@@ -32,6 +41,15 @@ export class ExtensionState {
   public paperRanker: PaperRanker;
   public coverageAnalyzer: CoverageAnalyzer;
   public readingStatusManager: ReadingStatusManager;
+  public claimExtractor: ClaimExtractor;
+  public positionMapper?: PositionMapper;
+  public pdfExtractionService: PDFExtractionService;
+  public citationNetworkAnalyzer: CitationNetworkAnalyzer;
+  public batchOperationHandler: BatchOperationHandler;
+  public exportService: ExportService;
+  public configurationManager: ConfigurationManager;
+  public unifiedSearchService: UnifiedSearchService;
+  public quoteVerificationService: QuoteVerificationService;
 
   constructor(context: vscode.ExtensionContext) {
     this.context = context;
@@ -54,6 +72,23 @@ export class ExtensionState {
     this.paperRanker = new PaperRanker(this.embeddingService);
     this.coverageAnalyzer = new CoverageAnalyzer();
     this.readingStatusManager = new ReadingStatusManager(context);
+    this.claimExtractor = new ClaimExtractor(this.embeddingService);
+    this.configurationManager = new ConfigurationManager(context);
+    this.quoteVerificationService = new QuoteVerificationService(this.mcpClient, this.claimsManager);
+    this.pdfExtractionService = new PDFExtractionService(this.mcpClient, this.workspaceRoot);
+    this.citationNetworkAnalyzer = new CitationNetworkAnalyzer();
+    this.batchOperationHandler = new BatchOperationHandler(
+      this.claimsManager,
+      this.readingStatusManager,
+      this.quoteVerificationService
+    );
+    this.exportService = new ExportService();
+    this.unifiedSearchService = new UnifiedSearchService(
+      this.mcpClient,
+      this.claimsManager,
+      this.embeddingService,
+      this.workspaceRoot
+    );
   }
 
   async initialize(): Promise<void> {
@@ -63,6 +98,20 @@ export class ExtensionState {
     
     // Set up file watchers
     this.setupFileWatchers();
+  }
+
+  /**
+   * Initialize the position mapper with the claims panel provider.
+   * This should be called after the claims panel provider is created.
+   */
+  initializePositionMapper(claimsPanelProvider: any): void {
+    const draftingPath = this.config.outlinePath.split('/')[0]; // Extract '03_Drafting'
+    this.positionMapper = new PositionMapper(
+      this.outlineParser,
+      claimsPanelProvider,
+      this.claimsManager,
+      draftingPath
+    );
   }
 
   private loadConfiguration(): ExtensionConfig {
@@ -150,5 +199,6 @@ export class ExtensionState {
   dispose(): void {
     // Cleanup resources
     this.mcpClient.dispose();
+    this.positionMapper?.dispose();
   }
 }

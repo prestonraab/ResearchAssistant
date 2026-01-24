@@ -1,0 +1,257 @@
+body {
+  padding: 10px;
+  color: var(--vscode-foreground);
+  font-family: var(--vscode-font-family);
+  font-size: var(--vscode-font-size);
+}
+
+.dashboard {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.dashboard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.dashboard-header h2 {
+  margin: 0;
+  font-size: 1.5em;
+  font-weight: 600;
+}
+
+.icon-button {
+  background: var(--vscode-button-background);
+  color: var(--vscode-button-foreground);
+  border: none;
+  padding: 6px 12px;
+  cursor: pointer;
+  border-radius: 2px;
+  font-size: 1.2em;
+}
+
+.icon-button:hover {
+  background: var(--vscode-button-hoverBackground);
+}
+
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 15px;
+}
+
+.metric-card {
+  background: var(--vscode-editor-background);
+  border: 1px solid var(--vscode-panel-border);
+  border-radius: 4px;
+  padding: 15px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.metric-card.clickable {
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.metric-card.clickable:hover {
+  background: var(--vscode-list-hoverBackground);
+}
+
+.metric-label {
+  font-size: 0.9em;
+  color: var(--vscode-descriptionForeground);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.metric-value {
+  font-size: 2em;
+  font-weight: 700;
+  color: var(--vscode-textLink-foreground);
+}
+
+.metric-breakdown {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.85em;
+}
+
+.metric-detail {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.status-badge {
+  font-size: 1.2em;
+}
+
+.status-badge.read {
+  color: #4caf50;
+}
+
+.status-badge.reading {
+  color: #ff9800;
+}
+
+.status-badge.to-read {
+  color: #9e9e9e;
+}
+
+.status-badge.verified {
+  color: #2196f3;
+}
+
+.progress-bar {
+  width: 100%;
+  height: 8px;
+  background: var(--vscode-progressBar-background);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: var(--vscode-progressBar-background);
+  transition: width 0.3s ease;
+}
+
+.dashboard-section {
+  background: var(--vscode-editor-background);
+  border: 1px solid var(--vscode-panel-border);
+  border-radius: 4px;
+  padding: 15px;
+}
+
+.dashboard-section h3 {
+  margin: 0 0 15px 0;
+  font-size: 1.1em;
+  font-weight: 600;
+}
+
+.chart-container {
+  width: 100%;
+  height: 200px;
+  position: relative;
+}
+
+.chart-container canvas {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.activity-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.activity-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 8px;
+  background: var(--vscode-list-inactiveSelectionBackground);
+  border-radius: 3px;
+}
+
+.activity-icon {
+  font-size: 1.2em;
+  flex-shrink: 0;
+}
+
+.activity-icon.paper {
+  color: #4caf50;
+}
+
+.activity-icon.claim {
+  color: #2196f3;
+}
+
+.activity-icon.verified {
+  color: #ff9800;
+}
+
+.activity-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.activity-description {
+  font-size: 0.9em;
+}
+
+.activity-time {
+  font-size: 0.8em;
+  color: var(--vscode-descriptionForeground);
+}
+
+.dashboard-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.action-button {
+  background: var(--vscode-button-background);
+  color: var(--vscode-button-foreground);
+  border: none;
+  padding: 8px 16px;
+  cursor: pointer;
+  border-radius: 2px;
+  font-size: 0.9em;
+  flex: 1;
+  min-width: 150px;
+}
+
+.action-button:hover {
+  background: var(--vscode-button-hoverBackground);
+}
+
+.loading {
+  text-align: center;
+  padding: 20px;
+  color: var(--vscode-descriptionForeground);
+}
+
+/* Simple chart styles (fallback if no charting library) */
+.simple-chart {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-around;
+  height: 200px;
+  gap: 4px;
+}
+
+.chart-bar {
+  flex: 1;
+  background: var(--vscode-textLink-foreground);
+  border-radius: 2px 2px 0 0;
+  min-height: 2px;
+  position: relative;
+}
+
+.chart-bar:hover {
+  opacity: 0.8;
+}
+
+.chart-bar-label {
+  position: absolute;
+  bottom: -20px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.7em;
+  color: var(--vscode-descriptionForeground);
+  white-space: nowrap;
+}
