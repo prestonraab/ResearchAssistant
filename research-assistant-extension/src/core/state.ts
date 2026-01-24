@@ -33,6 +33,8 @@ export class ExtensionState {
   private context: vscode.ExtensionContext;
   private config: ExtensionConfig;
   private workspaceRoot: string;
+  private fileWatchers: vscode.FileSystemWatcher[] = [];
+  private debounceTimers: Map<string, NodeJS.Timeout> = new Map();
   
   public outlineParser: OutlineParser;
   public claimsManager: ClaimsManager;
@@ -92,12 +94,24 @@ export class ExtensionState {
   }
 
   async initialize(): Promise<void> {
-    // Load initial data
-    await this.outlineParser.parse();
-    await this.claimsManager.loadClaims();
-    
-    // Set up file watchers
+    // DON'T load data on startup - use lazy loading instead
+    // Just set up file watchers
     this.setupFileWatchers();
+    
+    // Log when background loading starts
+    console.log('[ResearchAssistant] Starting background data load...');
+    
+    // Parse outline in background (non-blocking)
+    this.outlineParser.parse()
+      .then(() => console.log('[ResearchAssistant] Outline parsed'))
+      .catch(error => console.error('Failed to parse outline:', error));
+    
+    // Load claims in background (non-blocking) with delay
+    setTimeout(() => {
+      this.claimsManager.loadClaims()
+        .then(() => console.log('[ResearchAssistant] Claims loaded'))
+        .catch(error => console.error('Failed to load claims:', error));
+    }, 2000); // Delay claims loading by 2 seconds
   }
 
   /**
@@ -133,10 +147,6 @@ export class ExtensionState {
   }
 
   private setupFileWatchers(): void {
-    // Debounce timers
-    let outlineDebounceTimer: NodeJS.Timeout | undefined;
-    let claimsDebounceTimer: NodeJS.Timeout | undefined;
-    
     // Watch outline file
     const outlineWatcher = vscode.workspace.createFileSystemWatcher(
       new vscode.RelativePattern(this.workspaceRoot, this.config.outlinePath)
@@ -144,16 +154,20 @@ export class ExtensionState {
     
     outlineWatcher.onDidChange(() => {
       // Clear existing timer
-      if (outlineDebounceTimer) {
-        clearTimeout(outlineDebounceTimer);
+      const existingTimer = this.debounceTimers.get('outline');
+      if (existingTimer) {
+        clearTimeout(existingTimer);
       }
       
       // Set new timer to parse after 500ms of inactivity
-      outlineDebounceTimer = setTimeout(() => {
+      const timer = setTimeout(() => {
         this.outlineParser.parse().catch(error => {
           console.error('Error parsing outline:', error);
         });
+        this.debounceTimers.delete('outline');
       }, 500);
+      
+      this.debounceTimers.set('outline', timer);
     });
 
     // Watch claims database
@@ -163,18 +177,23 @@ export class ExtensionState {
     
     claimsWatcher.onDidChange(() => {
       // Clear existing timer
-      if (claimsDebounceTimer) {
-        clearTimeout(claimsDebounceTimer);
+      const existingTimer = this.debounceTimers.get('claims');
+      if (existingTimer) {
+        clearTimeout(existingTimer);
       }
       
       // Set new timer to reload after 500ms of inactivity
-      claimsDebounceTimer = setTimeout(() => {
+      const timer = setTimeout(() => {
         this.claimsManager.loadClaims().catch(error => {
           console.error('Error loading claims:', error);
         });
+        this.debounceTimers.delete('claims');
       }, 500);
+      
+      this.debounceTimers.set('claims', timer);
     });
 
+    this.fileWatchers.push(outlineWatcher, claimsWatcher);
     this.context.subscriptions.push(outlineWatcher, claimsWatcher);
   }
 
@@ -197,8 +216,21 @@ export class ExtensionState {
   }
 
   dispose(): void {
+    // Clear all debounce timers
+    for (const timer of this.debounceTimers.values()) {
+      clearTimeout(timer);
+    }
+    this.debounceTimers.clear();
+    
+    // Dispose file watchers
+    for (const watcher of this.fileWatchers) {
+      watcher.dispose();
+    }
+    this.fileWatchers = [];
+    
     // Cleanup resources
     this.mcpClient.dispose();
+    this.embeddingService.clearCache();
     this.positionMapper?.dispose();
   }
 }

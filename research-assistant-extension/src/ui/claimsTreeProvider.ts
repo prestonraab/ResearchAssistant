@@ -16,6 +16,13 @@ export class ClaimTreeItem extends vscode.TreeItem {
     this.iconPath = new vscode.ThemeIcon(
       claim.verified ? 'pass' : 'circle-outline'
     );
+    
+    // Make it clickable - show claim details when clicked
+    this.command = {
+      command: 'researchAssistant.showClaimDetails',
+      title: 'Show Claim Details',
+      arguments: [claim.id]
+    };
   }
 }
 
@@ -39,11 +46,16 @@ export class ClaimsTreeProvider implements vscode.TreeDataProvider<ClaimTreeItem
   }
 
   async getChildren(element?: ClaimTreeItem): Promise<ClaimTreeItem[]> {
-    if (element) {
+    try {
+      if (element) {
+        return [];
+      }
+
+      const claims = this.state.claimsManager.getClaims();
+      return claims.map(claim => new ClaimTreeItem(claim));
+    } catch (error) {
+      console.error('Failed to get claims:', error);
       return [];
     }
-
-    const claims = this.state.claimsManager.getClaims();
-    return claims.map(claim => new ClaimTreeItem(claim));
   }
 }

@@ -75,14 +75,19 @@ export class OutlineTreeProvider implements vscode.TreeDataProvider<OutlineTreeI
   }
 
   private async updateCoverage(): Promise<void> {
-    const sections = this.state.outlineParser.getSections();
-    const claims = await this.state.claimsManager.loadClaims();
-    const metrics = this.state.coverageAnalyzer.analyzeCoverage(sections, claims);
-    
-    // Store metrics in a map for quick lookup
-    this.coverageMetrics.clear();
-    for (const metric of metrics) {
-      this.coverageMetrics.set(metric.sectionId, metric);
+    try {
+      const sections = this.state.outlineParser.getSections();
+      const claims = this.state.claimsManager.getClaims(); // Use getClaims() instead of loadClaims()
+      const metrics = this.state.coverageAnalyzer.analyzeCoverage(sections, claims);
+      
+      // Store metrics in a map for quick lookup
+      this.coverageMetrics.clear();
+      for (const metric of metrics) {
+        this.coverageMetrics.set(metric.sectionId, metric);
+      }
+    } catch (error) {
+      console.error('Failed to update coverage:', error);
+      // Continue with empty coverage
     }
   }
 
@@ -100,36 +105,41 @@ export class OutlineTreeProvider implements vscode.TreeDataProvider<OutlineTreeI
   }
 
   async getChildren(element?: OutlineTreeItem): Promise<OutlineTreeItem[]> {
-    if (!element) {
-      // Root level - get top-level sections
-      const sections = this.state.outlineParser.getSections();
-      const rootSections = sections.filter(s => s.parent === null);
-      
-      return rootSections.map(section => {
-        const coverage = this.coverageMetrics.get(section.id);
-        return new OutlineTreeItem(
-          section,
-          section.children.length > 0 
-            ? vscode.TreeItemCollapsibleState.Collapsed 
-            : vscode.TreeItemCollapsibleState.None,
-          coverage
-        );
-      });
-    } else {
-      // Get children of this section
-      const sections = this.state.outlineParser.getSections();
-      const childSections = sections.filter(s => s.parent === element.section.id);
-      
-      return childSections.map(section => {
-        const coverage = this.coverageMetrics.get(section.id);
-        return new OutlineTreeItem(
-          section,
-          section.children.length > 0
-            ? vscode.TreeItemCollapsibleState.Collapsed
-            : vscode.TreeItemCollapsibleState.None,
-          coverage
-        );
-      });
+    try {
+      if (!element) {
+        // Root level - get top-level sections
+        const sections = this.state.outlineParser.getSections();
+        const rootSections = sections.filter(s => s.parent === null);
+        
+        return rootSections.map(section => {
+          const coverage = this.coverageMetrics.get(section.id);
+          return new OutlineTreeItem(
+            section,
+            section.children.length > 0 
+              ? vscode.TreeItemCollapsibleState.Collapsed 
+              : vscode.TreeItemCollapsibleState.None,
+            coverage
+          );
+        });
+      } else {
+        // Get children of this section
+        const sections = this.state.outlineParser.getSections();
+        const childSections = sections.filter(s => s.parent === element.section.id);
+        
+        return childSections.map(section => {
+          const coverage = this.coverageMetrics.get(section.id);
+          return new OutlineTreeItem(
+            section,
+            section.children.length > 0
+              ? vscode.TreeItemCollapsibleState.Collapsed
+              : vscode.TreeItemCollapsibleState.None,
+            coverage
+          );
+        });
+      }
+    } catch (error) {
+      console.error('Failed to get outline children:', error);
+      return [];
     }
   }
 

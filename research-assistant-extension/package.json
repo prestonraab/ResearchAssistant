@@ -95,22 +95,12 @@
     "views": {
       "researchAssistant": [
         {
-          "id": "researchAssistant.dashboard",
-          "type": "webview",
-          "name": "Dashboard"
-        },
-        {
           "id": "researchAssistant.outline",
           "name": "Outline & Coverage"
         },
         {
           "id": "researchAssistant.claims",
           "name": "Claims"
-        },
-        {
-          "id": "researchAssistant.claimsPanel",
-          "type": "webview",
-          "name": "Claims Panel"
         },
         {
           "id": "researchAssistant.papers",
@@ -178,8 +168,18 @@
         },
         "researchAssistant.embeddingCacheSize": {
           "type": "number",
-          "default": 1000,
+          "default": 50,
           "description": "Maximum number of embeddings to cache in memory"
+        },
+        "researchAssistant.mcpCacheTTL": {
+          "type": "number",
+          "default": 300000,
+          "description": "MCP cache time-to-live in milliseconds (default: 5 minutes)"
+        },
+        "researchAssistant.enableMemoryMonitoring": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable memory usage monitoring and automatic cleanup"
         }
       }
     }
@@ -189,9 +189,9 @@
     "build": "npm run compile && npm run bundle",
     "compile": "tsc -p ./",
     "watch": "tsc -watch -p ./",
-    "bundle": "esbuild src/extension.ts --bundle --outfile=dist/extension.js --external:vscode --format=cjs --platform=node --minify",
+    "bundle": "NODE_OPTIONS='--max-old-space-size=4096' esbuild src/extension.ts --bundle --outfile=dist/extension.js --external:vscode --format=cjs --platform=node --minify",
     "bundle:watch": "npm run bundle -- --watch",
-    "test": "jest",
+    "test": "NODE_OPTIONS='--max-old-space-size=4096' jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
     "lint": "eslint src --ext ts",

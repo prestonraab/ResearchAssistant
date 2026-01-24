@@ -162,9 +162,10 @@ export class EmbeddingService {
   cacheEmbedding(text: string, vector: number[]): void {
     const key = this.getCacheKey(text);
     
-    // If cache is full, evict least recently used entry
+    // If cache is full, evict least valuable entries (not just LRU)
     if (this.cache.size >= this.maxCacheSize && !this.cache.has(key)) {
-      this.evictLRU();
+      // Trim to 90% of max size to avoid frequent evictions
+      this.trimCache(Math.floor(this.maxCacheSize * 0.9));
     }
 
     this.cache.set(key, {
@@ -199,6 +200,52 @@ export class EmbeddingService {
    */
   clearCache(): void {
     this.cache.clear();
+    this.cacheHits = 0;
+    this.cacheMisses = 0;
+  }
+
+  /**
+   * Trim cache to a specific size, removing least valuable entries.
+   */
+  trimCache(targetSize: number): void {
+    if (this.cache.size <= targetSize) {
+      return;
+    }
+
+    // Calculate scores for all entries
+    const entries = Array.from(this.cache.entries()).map(([key, entry]) => ({
+      key,
+      entry,
+      score: this.calculateEntryScore(entry)
+    }));
+
+    // Sort by score (ascending - lower scores get evicted first)
+    entries.sort((a, b) => a.score - b.score);
+
+    // Remove entries until we reach target size
+    const toRemove = entries.slice(0, this.cache.size - targetSize);
+    for (const { key } of toRemove) {
+      this.cache.delete(key);
+    }
+  }
+
+  /**
+   * Calculate a score for a cache entry based on recency and frequency.
+   * Higher score = more valuable to keep.
+   */
+  private calculateEntryScore(entry: CacheEntry): number {
+    const now = Date.now();
+    const ageMs = now - entry.timestamp;
+    const ageMinutes = ageMs / (1000 * 60);
+    
+    // Recency score: decays exponentially with age
+    const recencyScore = Math.exp(-ageMinutes / 30); // Half-life of 30 minutes
+    
+    // Frequency score: logarithmic to prevent dominance
+    const frequencyScore = Math.log(entry.accessCount + 1);
+    
+    // Combined score (weighted)
+    return (recencyScore * 0.6) + (frequencyScore * 0.4);
   }
 
   /**

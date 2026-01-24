@@ -87,21 +87,39 @@ export class ClaimsManager {
       const files = await fs.readdir(claimsDir);
       const mdFiles = files.filter(f => f.endsWith('.md'));
       
-      for (const file of mdFiles) {
-        const filePath = path.join(claimsDir, file);
-        try {
-          const content = await fs.readFile(filePath, 'utf-8');
-          const claims = this.parseContent(content);
-          
-          // Track which file each claim came from
-          for (const claim of claims) {
-            this.claimToFileMap[claim.id] = filePath;
-            allClaims.push(claim);
-          }
-        } catch (error) {
-          console.error(`Error reading category file ${file}:`, error);
-          // Continue with other files
+      // Process files in chunks to avoid memory spikes
+      const CHUNK_SIZE = 3;
+      for (let i = 0; i < mdFiles.length; i += CHUNK_SIZE) {
+        const chunk = mdFiles.slice(i, i + CHUNK_SIZE);
+        
+        // Process chunk in parallel
+        const chunkResults = await Promise.all(
+          chunk.map(async (file) => {
+            const filePath = path.join(claimsDir, file);
+            try {
+              const content = await fs.readFile(filePath, 'utf-8');
+              const claims = this.parseContent(content);
+              
+              // Track which file each claim came from
+              for (const claim of claims) {
+                this.claimToFileMap[claim.id] = filePath;
+              }
+              
+              return claims;
+            } catch (error) {
+              console.error(`Error reading category file ${file}:`, error);
+              return [];
+            }
+          })
+        );
+        
+        // Add claims from this chunk
+        for (const claims of chunkResults) {
+          allClaims.push(...claims);
         }
+        
+        // Yield to event loop between chunks
+        await new Promise(resolve => setImmediate(resolve));
       }
     } catch (error) {
       console.error('Error loading category files:', error);
@@ -135,7 +153,7 @@ export class ClaimsManager {
     // Extract claim ID and text from header (format: ## C_XX: Claim text)
     const headerMatch = lines[0].match(/^## (C_\d+):\s*(.+)$/);
     if (!headerMatch) {
-      console.warn('Invalid claim header format:', lines[0]);
+      // Skip non-claim headers (like file headers) silently
       return null;
     }
 
@@ -174,6 +192,16 @@ export class ClaimsManager {
         inSupportingQuotes = false;
       } else if (line.match(/^\*\*Context(\*\*)?:/)) {
         context = line.replace(/^\*\*Context(\*\*)?:\s*/, '').trim();
+        inPrimaryQuote = false;
+        inSupportingQuotes = false;
+      } else if (line.match(/^\*\*Sections(\*\*)?:/)) {
+        // Parse sections field (optional, may not exist in user's current format)
+        const sectionsText = line.replace(/^\*\*Sections(\*\*)?:\s*/, '').trim();
+        // Support formats: [sec1, sec2] or sec1, sec2
+        const cleanedText = sectionsText.replace(/[\[\]]/g, '').trim();
+        if (cleanedText) {
+          sections.push(...cleanedText.split(',').map(s => s.trim()).filter(s => s));
+        }
         inPrimaryQuote = false;
         inSupportingQuotes = false;
       } else if (line.startsWith('**Primary Quote**')) {
@@ -325,6 +353,41 @@ export class ClaimsManager {
     Object.assign(claim, allowedUpdates, { modifiedAt: new Date() });
     await this.persistClaims();
     this.onDidChangeEmitter.fire();
+  }
+
+  /**
+   * Add a section association to a claim
+   */
+  async addSectionToClaim(claimId: string, sectionId: string): Promise<void> {
+    const claim = this.claims.get(claimId);
+    if (!claim) {
+      throw new Error(`Claim ${claimId} not found`);
+    }
+
+    if (!claim.sections.includes(sectionId)) {
+      claim.sections.push(sectionId);
+      claim.modifiedAt = new Date();
+      await this.persistClaims();
+      this.onDidChangeEmitter.fire();
+    }
+  }
+
+  /**
+   * Remove a section association from a claim
+   */
+  async removeSectionFromClaim(claimId: string, sectionId: string): Promise<void> {
+    const claim = this.claims.get(claimId);
+    if (!claim) {
+      throw new Error(`Claim ${claimId} not found`);
+    }
+
+    const index = claim.sections.indexOf(sectionId);
+    if (index > -1) {
+      claim.sections.splice(index, 1);
+      claim.modifiedAt = new Date();
+      await this.persistClaims();
+      this.onDidChangeEmitter.fire();
+    }
   }
 
   async deleteClaim(id: string): Promise<void> {
@@ -490,9 +553,12 @@ export class ClaimsManager {
   }
 
   private getCategoryFileName(category: string): string {
-    // Map category names to file names
+    // Map category names to file names - matches user's existing structure
     const categoryMap: { [key: string]: string } = {
-      'Method': 'methods.md',
+      'Method': 'methods_batch_correction.md', // Default for Method category
+      'Method - Batch Correction': 'methods_batch_correction.md',
+      'Method - Advanced': 'methods_advanced.md',
+      'Method - Classifiers': 'methods_classifiers.md',
       'Result': 'results.md',
       'Challenge': 'challenges.md',
       'Data Source': 'data_sources.md',
@@ -537,6 +603,9 @@ export class ClaimsManager {
 
   private getCategoryNameFromFileName(fileName: string): string {
     const nameMap: { [key: string]: string } = {
+      'methods_batch_correction': 'Method - Batch Correction',
+      'methods_advanced': 'Method - Advanced',
+      'methods_classifiers': 'Method - Classifiers',
       'methods': 'Method',
       'results': 'Result',
       'challenges': 'Challenge',
@@ -561,19 +630,37 @@ export class ClaimsManager {
       content += `**Source**: ${claim.source} (Source ID: ${claim.sourceId})  \n`;
     }
     
+    // Add sections field if claim has section associations
+    if (claim.sections && claim.sections.length > 0) {
+      content += `**Sections**: [${claim.sections.join(', ')}]  \n`;
+    }
+    
     if (claim.context) {
       content += `**Context**: ${claim.context}\n\n`;
     }
     
     if (claim.primaryQuote) {
-      content += `**Primary Quote**:\n`;
-      content += `> "${claim.primaryQuote}"\n\n`;
+      // Detect if quote has a citation prefix (e.g., "(Abstract):")
+      const hasPrefix = claim.primaryQuote.match(/^\([^)]+\):/);
+      if (hasPrefix) {
+        content += `**Primary Quote** ${hasPrefix[0]}\n`;
+        content += `> "${claim.primaryQuote.substring(hasPrefix[0].length).trim()}"\n\n`;
+      } else {
+        content += `**Primary Quote**:\n`;
+        content += `> "${claim.primaryQuote}"\n\n`;
+      }
     }
     
     if (claim.supportingQuotes && claim.supportingQuotes.length > 0) {
       content += `**Supporting Quotes**:\n`;
       for (const quote of claim.supportingQuotes) {
-        content += `- "${quote}"\n`;
+        // Check if quote has citation prefix
+        const prefixMatch = quote.match(/^\(([^)]+)\):\s*(.+)$/);
+        if (prefixMatch) {
+          content += `- (${prefixMatch[1]}): "${prefixMatch[2]}"\n`;
+        } else {
+          content += `- "${quote}"\n`;
+        }
       }
       content += '\n';
     }

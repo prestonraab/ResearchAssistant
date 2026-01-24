@@ -17,6 +17,7 @@ let extensionState: ExtensionState | undefined;
 let writingFeedbackDecorator: WritingFeedbackDecorator | undefined;
 let readingAssistant: ReadingAssistant | undefined;
 let bulkImportService: BulkImportService | undefined;
+let memoryMonitorInterval: NodeJS.Timeout | undefined;
 
 export async function activate(context: vscode.ExtensionContext) {
   // Initialize logging and error handling
@@ -26,25 +27,56 @@ export async function activate(context: vscode.ExtensionContext) {
   logger.info('Research Assistant extension is activating...');
 
   try {
-    // Initialize extension state
+    // Initialize extension state with error handling
     extensionState = new ExtensionState(context);
-    await extensionState.initialize();
     
-    logger.info('Extension state initialized successfully');
+    try {
+      await extensionState.initialize();
+      logger.info('Extension state initialized successfully');
+    } catch (initError) {
+      logger.error('Failed to initialize extension state:', initError instanceof Error ? initError : new Error(String(initError)));
+      vscode.window.showWarningMessage(
+        'Research Assistant: Some features may not work. Check workspace configuration.',
+        'Open Settings'
+      ).then(selection => {
+        if (selection === 'Open Settings') {
+          vscode.commands.executeCommand('workbench.action.openSettings', 'researchAssistant');
+        }
+      });
+      // Continue with partial initialization
+    }
 
     // Register tree providers
     const outlineProvider = new OutlineTreeProvider(extensionState);
     const claimsProvider = new ClaimsTreeProvider(extensionState);
     const papersProvider = new PapersTreeProvider(extensionState);
 
-    // Register claims panel webview provider
-    const claimsPanelProvider = new ClaimsPanelProvider(context.extensionUri, extensionState);
+    // Status bar for dashboard metrics (lightweight alternative to webview)
+    const statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 100);
+    statusBarItem.command = 'researchAssistant.showDashboard';
+    statusBarItem.text = '$(book) Research Assistant';
+    statusBarItem.tooltip = 'Click for dashboard';
+    statusBarItem.show();
+    context.subscriptions.push(statusBarItem);
+    
+    // Update status bar with metrics
+    const updateStatusBar = async () => {
+      if (!extensionState) {
+        return;
+      }
+      const claims = extensionState.claimsManager.getClaims();
+      const verified = claims.filter(c => c.verified).length;
+      statusBarItem.text = `$(book) ${claims.length} claims (${verified} verified)`;
+    };
+    
+    extensionState.claimsManager.onDidChange(updateStatusBar);
+    updateStatusBar();
 
-    // Register dashboard webview provider
-    const dashboardProvider = new DashboardProvider(context.extensionUri, extensionState);
+    // Claims panel webview and dashboard webview are DISABLED due to memory leaks
+    // Using tree views and status bar instead
 
-    // Initialize position mapper for writing support
-    extensionState.initializePositionMapper(claimsPanelProvider);
+    // Initialize position mapper for writing support (DISABLED)
+    // extensionState.initializePositionMapper(claimsPanelProvider);
 
     // Register hover provider for claim references
     const claimHoverProvider = new ClaimHoverProvider(extensionState);
@@ -63,38 +95,80 @@ export async function activate(context: vscode.ExtensionContext) {
       extensionState.getAbsolutePath(extensionState.getConfig().extractedTextPath)
     );
 
-    // Register bulk import service
-    bulkImportService = new BulkImportService(
-      extensionState.mcpClient,
-      extensionState.claimsManager,
-      extensionState.outlineParser,
-      extensionState.pdfExtractionService,
-      extensionState.embeddingService
-    );
+    // Register bulk import service (lazy initialization)
+    const getBulkImportService = () => {
+      if (!bulkImportService && extensionState) {
+        bulkImportService = new BulkImportService(
+          extensionState.mcpClient,
+          extensionState.claimsManager,
+          extensionState.outlineParser,
+          extensionState.pdfExtractionService,
+          extensionState.embeddingService
+        );
+      }
+      return bulkImportService;
+    };
 
     logger.info('All services initialized successfully');
 
+    // Immediate memory check
+    const initialUsage = process.memoryUsage();
+    const initialHeapMB = Math.round(initialUsage.heapUsed / 1024 / 1024);
+    logger.info(`Initial memory usage: ${initialHeapMB} MB`);
+    
+    // Log memory every 5 seconds for first 5 minutes to track any delayed spikes
+    let memoryCheckCount = 0;
+    const earlyMonitor = setInterval(() => {
+      const usage = process.memoryUsage();
+      const heapMB = Math.round(usage.heapUsed / 1024 / 1024);
+      logger.info(`Memory at ${(memoryCheckCount + 1) * 5}s: ${heapMB} MB`);
+      
+      memoryCheckCount++;
+      if (memoryCheckCount >= 60) { // Stop after 5 minutes (300 seconds)
+        clearInterval(earlyMonitor);
+        logger.info('Extended memory monitoring complete');
+      }
+    }, 5000);
+    
+    // If already high, trim caches immediately
+    if (initialHeapMB > 1500) {
+      logger.warn('High initial memory, trimming caches...');
+      extensionState.embeddingService.trimCache(20);
+      if (global.gc) {
+        global.gc();
+      }
+    }
+
+    // Start memory monitoring if enabled
+    const enableMemoryMonitoring = vscode.workspace.getConfiguration('researchAssistant').get<boolean>('enableMemoryMonitoring', true);
+    if (enableMemoryMonitoring) {
+      startMemoryMonitoring(extensionState, logger);
+    }
+
   // Activate decorator for currently active editor
   if (vscode.window.activeTextEditor) {
-    writingFeedbackDecorator.activate(vscode.window.activeTextEditor);
+    // DISABLED: Decorator causes memory issues
+    // writingFeedbackDecorator.activate(vscode.window.activeTextEditor);
   }
 
   // Activate decorator when editor changes
   context.subscriptions.push(
     vscode.window.onDidChangeActiveTextEditor(editor => {
-      if (editor && writingFeedbackDecorator) {
-        writingFeedbackDecorator.activate(editor);
-      }
+      // DISABLED: Decorator causes memory issues
+      // if (editor && writingFeedbackDecorator) {
+      //   writingFeedbackDecorator.activate(editor);
+      // }
     })
   );
 
   // Update decorations when text changes
   context.subscriptions.push(
     vscode.workspace.onDidChangeTextDocument(event => {
-      const editor = vscode.window.activeTextEditor;
-      if (editor && editor.document === event.document && writingFeedbackDecorator) {
-        writingFeedbackDecorator.onDidChangeTextDocument(event, editor);
-      }
+      // DISABLED: Decorator causes memory issues
+      // const editor = vscode.window.activeTextEditor;
+      // if (editor && editor.document === event.document && writingFeedbackDecorator) {
+      //   writingFeedbackDecorator.onDidChangeTextDocument(event, editor);
+      // }
     })
   );
 
@@ -102,8 +176,9 @@ export async function activate(context: vscode.ExtensionContext) {
     vscode.window.registerTreeDataProvider('researchAssistant.outline', outlineProvider),
     vscode.window.registerTreeDataProvider('researchAssistant.claims', claimsProvider),
     vscode.window.registerTreeDataProvider('researchAssistant.papers', papersProvider),
-    vscode.window.registerWebviewViewProvider(ClaimsPanelProvider.viewType, claimsPanelProvider),
-    vscode.window.registerWebviewViewProvider(DashboardProvider.viewType, dashboardProvider),
+    // DISABLED - testing memory leak
+    // vscode.window.registerWebviewViewProvider(ClaimsPanelProvider.viewType, claimsPanelProvider),
+    // vscode.window.registerWebviewViewProvider(DashboardProvider.viewType, dashboardProvider),
     vscode.languages.registerHoverProvider('markdown', claimHoverProvider),
     vscode.languages.registerCompletionItemProvider(
       'markdown',
@@ -117,14 +192,81 @@ export async function activate(context: vscode.ExtensionContext) {
     vscode.commands.registerCommand('researchAssistant.activate', async () => {
       vscode.window.showInformationMessage('Research Assistant activated!');
     }),
+    vscode.commands.registerCommand('researchAssistant.showClaimDetails', async (claimId: string) => {
+      if (!extensionState) {
+        return;
+      }
+      
+      try {
+        const claim = extensionState.claimsManager.getClaim(claimId);
+        
+        if (!claim) {
+          vscode.window.showWarningMessage(`Claim ${claimId} not found`);
+          return;
+        }
+        
+        // Open in new untitled document instead of modal popup
+        const content = [
+          `# ${claim.id}: ${claim.text}`,
+          '',
+          `**Category**: ${claim.category}`,
+          `**Source**: ${claim.source}`,
+          `**Verified**: ${claim.verified ? 'Yes' : 'No'}`,
+          '',
+          claim.context ? `**Context**: ${claim.context}\n` : '',
+          claim.primaryQuote ? `## Primary Quote\n\n> ${claim.primaryQuote}\n` : '',
+          claim.supportingQuotes && claim.supportingQuotes.length > 0 
+            ? `## Supporting Quotes\n\n${claim.supportingQuotes.map((q, i) => `${i + 1}. ${q}`).join('\n\n')}\n`
+            : '',
+          claim.sections && claim.sections.length > 0
+            ? `## Used in Sections\n\n${claim.sections.join(', ')}`
+            : ''
+        ].filter(Boolean).join('\n');
+        
+        const doc = await vscode.workspace.openTextDocument({
+          content,
+          language: 'markdown'
+        });
+        
+        await vscode.window.showTextDocument(doc, { preview: true });
+      } catch (error) {
+        console.error('Failed to show claim details:', error);
+        vscode.window.showErrorMessage('Failed to show claim details');
+      }
+    }),
     vscode.commands.registerCommand('researchAssistant.refreshOutline', () => {
       outlineProvider.refresh();
     }),
     vscode.commands.registerCommand('researchAssistant.refreshClaims', () => {
       claimsProvider.refresh();
     }),
-    vscode.commands.registerCommand('researchAssistant.showClaimsPanel', () => {
-      claimsPanelProvider.showAllClaims();
+    // DISABLED - webview memory leak, replaced with Quick Pick
+    // vscode.commands.registerCommand('researchAssistant.showClaimsPanel', () => {
+    //   claimsPanelProvider.showAllClaims();
+    // }),
+    vscode.commands.registerCommand('researchAssistant.showClaimsPanel', async () => {
+      if (!extensionState) {
+        return;
+      }
+      
+      const claims = extensionState.claimsManager.getClaims();
+      const items = claims.map(claim => ({
+        label: claim.id,
+        description: claim.category,
+        detail: claim.text.substring(0, 100) + (claim.text.length > 100 ? '...' : ''),
+        claim
+      }));
+      
+      const selected = await vscode.window.showQuickPick(items, {
+        placeHolder: `${claims.length} claims`,
+        matchOnDescription: true,
+        matchOnDetail: true
+      });
+      
+      if (selected) {
+        const msg = `**${selected.claim.id}** (${selected.claim.category})\n\n${selected.claim.text}\n\n**Source:** ${selected.claim.source}`;
+        vscode.window.showInformationMessage(msg, { modal: true });
+      }
     }),
     vscode.commands.registerCommand('researchAssistant.analyzeCoverage', async () => {
       if (extensionState) {
@@ -132,9 +274,51 @@ export async function activate(context: vscode.ExtensionContext) {
         vscode.window.showInformationMessage('Coverage analysis complete');
       }
     }),
+    // DISABLED - webview memory leak, replaced with Quick Pick
+    // vscode.commands.registerCommand('researchAssistant.showDashboard', async () => {
+    //   dashboardProvider.refresh();
+    //   vscode.window.showInformationMessage('Dashboard refreshed');
+    // }),
     vscode.commands.registerCommand('researchAssistant.showDashboard', async () => {
-      dashboardProvider.refresh();
-      vscode.window.showInformationMessage('Dashboard refreshed');
+      if (!extensionState) {
+        return;
+      }
+      
+      const claims = extensionState.claimsManager.getClaims();
+      const verified = claims.filter(c => c.verified).length;
+      const sections = extensionState.outlineParser.getSections();
+      
+      const items = [
+        {
+          label: '$(book) Claims',
+          description: `${claims.length} total, ${verified} verified`,
+          action: 'claims'
+        },
+        {
+          label: '$(list-tree) Outline',
+          description: `${sections.length} sections`,
+          action: 'outline'
+        },
+        {
+          label: '$(refresh) Refresh Data',
+          description: 'Reload claims and outline',
+          action: 'refresh'
+        }
+      ];
+      
+      const selected = await vscode.window.showQuickPick(items, {
+        placeHolder: 'Research Assistant Dashboard'
+      });
+      
+      if (selected?.action === 'claims') {
+        vscode.commands.executeCommand('researchAssistant.showClaimsPanel');
+      } else if (selected?.action === 'outline') {
+        vscode.commands.executeCommand('researchAssistant.refreshOutline');
+      } else if (selected?.action === 'refresh') {
+        await extensionState.claimsManager.loadClaims();
+        await extensionState.outlineParser.parse();
+        vscode.window.showInformationMessage('Data refreshed');
+      }
     }),
     
     // Outline context menu commands
@@ -179,8 +363,8 @@ export async function activate(context: vscode.ExtensionContext) {
       
       const section = item.section;
       
-      // Show claims in the panel
-      claimsPanelProvider.showClaimsForSection(section.id);
+      // Show claims in the panel (DISABLED - webview memory leak)
+      // claimsPanelProvider.showClaimsForSection(section.id);
       
       // Also show quick pick for immediate access
       const claims = await extensionState.claimsManager.loadClaims();
@@ -490,7 +674,13 @@ export async function activate(context: vscode.ExtensionContext) {
 
     // Bulk import commands
     vscode.commands.registerCommand('researchAssistant.bulkImport', async () => {
-      if (!extensionState || !bulkImportService) {
+      if (!extensionState) {
+        return;
+      }
+
+      const service = getBulkImportService();
+      if (!service) {
+        vscode.window.showErrorMessage('Bulk import service not available');
         return;
       }
 
@@ -530,7 +720,7 @@ export async function activate(context: vscode.ExtensionContext) {
             cancellable: false
           },
           async (progress) => {
-            bulkImportService!.setProgressCallback((importProgress) => {
+            service.setProgressCallback((importProgress) => {
               progress.report({
                 message: importProgress.message,
                 increment: (importProgress.current / importProgress.total) * 100
@@ -556,7 +746,7 @@ export async function activate(context: vscode.ExtensionContext) {
                   return;
                 }
 
-                result = await bulkImportService!.importFromCollection(selectedCollection.key);
+                result = await service.importFromCollection(selectedCollection.key);
                 break;
 
               case 'recent':
@@ -576,7 +766,7 @@ export async function activate(context: vscode.ExtensionContext) {
                   return;
                 }
 
-                result = await bulkImportService!.importRecentPapers(parseInt(limitStr));
+                result = await service.importRecentPapers(parseInt(limitStr));
                 break;
 
               case 'pdfs':
@@ -591,7 +781,7 @@ export async function activate(context: vscode.ExtensionContext) {
                   return;
                 }
 
-                const extracted = await bulkImportService!.extractAllPDFs(uris[0].fsPath);
+                const extracted = await service.extractAllPDFs(uris[0].fsPath);
                 vscode.window.showInformationMessage(`Extracted ${extracted} PDFs`);
                 return;
             }
@@ -763,13 +953,114 @@ export async function activate(context: vscode.ExtensionContext) {
                 editor.selection = new vscode.Selection(position, position);
                 editor.revealRange(new vscode.Range(position, position), vscode.TextEditorRevealType.InCenter);
               } else if (selected.type === 'claim') {
-                claimsPanelProvider.showClaim(selected.item.id);
+                // DISABLED - webview memory leak
+                // claimsPanelProvider.showClaim(selected.item.id);
+                vscode.window.showInformationMessage(`Claim: ${selected.item.id}`);
               }
             }
           }
         );
       } catch (error) {
         vscode.window.showErrorMessage(`Search failed: ${error}`);
+      }
+    }),
+
+    vscode.commands.registerCommand('researchAssistant.associateClaimsWithSections', async () => {
+      if (!extensionState) {
+        return;
+      }
+
+      try {
+        const result = await vscode.window.showInformationMessage(
+          'This will analyze all claims and associate them with relevant outline sections based on semantic similarity. Continue?',
+          { modal: true },
+          'Yes, Associate Claims',
+          'Cancel'
+        );
+
+        if (result !== 'Yes, Associate Claims') {
+          return;
+        }
+
+        await vscode.window.withProgress(
+          {
+            location: vscode.ProgressLocation.Notification,
+            title: 'Associating Claims with Sections',
+            cancellable: false
+          },
+          async (progress) => {
+            const sections = extensionState!.outlineParser.getSections();
+            const claims = extensionState!.claimsManager.getClaims();
+            
+            let processed = 0;
+            let associated = 0;
+
+            for (const claim of claims) {
+              progress.report({
+                message: `Processing ${claim.id}...`,
+                increment: (1 / claims.length) * 100
+              });
+
+              // Find best matching sections using simple keyword matching
+              const claimWords = new Set(
+                claim.text.toLowerCase()
+                  .split(/\s+/)
+                  .filter(w => w.length > 3) // Only words longer than 3 chars
+              );
+
+              const sectionScores: Array<{ section: any; score: number }> = [];
+
+              for (const section of sections) {
+                // Only consider leaf sections (no children) or sections with few children
+                if (section.children.length > 3) {
+                  continue;
+                }
+
+                const sectionText = `${section.title} ${section.content.join(' ')}`.toLowerCase();
+                const sectionWords = sectionText.split(/\s+/);
+                
+                // Count matching words
+                let matches = 0;
+                for (const word of claimWords) {
+                  if (sectionText.includes(word)) {
+                    matches++;
+                  }
+                }
+
+                const score = matches / claimWords.size;
+                
+                if (score > 0.2) { // At least 20% word overlap
+                  sectionScores.push({ section, score });
+                }
+              }
+
+              // Sort by score and take top matches
+              sectionScores.sort((a, b) => b.score - a.score);
+              const topMatches = sectionScores.slice(0, 3); // Top 3 matches
+
+              // Add section associations
+              for (const match of topMatches) {
+                if (!claim.sections.includes(match.section.id)) {
+                  await extensionState!.claimsManager.addSectionToClaim(claim.id, match.section.id);
+                  associated++;
+                }
+              }
+
+              processed++;
+            }
+
+            vscode.window.showInformationMessage(
+              `Association complete!\n\nProcessed ${processed} claims\nCreated ${associated} section associations`,
+              { modal: true }
+            );
+
+            // Refresh views
+            outlineProvider.refresh();
+            claimsProvider.refresh();
+          }
+        );
+      } catch (error) {
+        vscode.window.showErrorMessage(`Association failed: ${error}`);
       }
     })
   );
@@ -796,12 +1087,57 @@ export async function activate(context: vscode.ExtensionContext) {
   }
 }
 
+function startMemoryMonitoring(state: ExtensionState, logger: any): void {
+  // Monitor memory every 60 seconds (less aggressive)
+  memoryMonitorInterval = setInterval(() => {
+    const usage = process.memoryUsage();
+    const heapUsedMB = Math.round(usage.heapUsed / 1024 / 1024);
+    const heapTotalMB = Math.round(usage.heapTotal / 1024 / 1024);
+    
+    // Log cache stats
+    const embeddingStats = state.embeddingService.getCacheStats();
+    const mcpStats = state.mcpClient.getCacheStats();
+    
+    // Only log if usage is concerning (>50%)
+    if (heapUsedMB > heapTotalMB * 0.5) {
+      logger.info(`Memory: ${heapUsedMB}/${heapTotalMB} MB | Embeddings: ${embeddingStats.size}/${embeddingStats.maxSize} | MCP: ${mcpStats.size}`);
+    }
+    
+    // If heap usage exceeds 70%, trigger aggressive cleanup
+    if (heapUsedMB > heapTotalMB * 0.7) {
+      logger.warn(`High memory usage (${heapUsedMB}MB), triggering cleanup...`);
+      
+      // Aggressive cache trimming
+      state.embeddingService.trimCache(50); // Keep only 50 most valuable
+      state.mcpClient.clearCache();
+      
+      // Force garbage collection if available
+      if (global.gc) {
+        global.gc();
+        logger.info('Garbage collection triggered');
+      }
+      
+      const newUsage = process.memoryUsage();
+      const newHeapUsedMB = Math.round(newUsage.heapUsed / 1024 / 1024);
+      logger.info(`Memory after cleanup: ${newHeapUsedMB} MB (freed ${heapUsedMB - newHeapUsedMB} MB)`);
+    }
+  }, 60000); // Every 60 seconds
+}
+
 export function deactivate() {
   const logger = getLogger();
   logger.info('Research Assistant extension is deactivating...');
   
+  // Stop memory monitoring
+  if (memoryMonitorInterval) {
+    clearInterval(memoryMonitorInterval);
+    memoryMonitorInterval = undefined;
+  }
+  
+  // Dispose all resources
   writingFeedbackDecorator?.dispose();
   readingAssistant?.dispose();
+  bulkImportService = undefined; // Clear reference
   extensionState?.dispose();
   logger.dispose();
   
