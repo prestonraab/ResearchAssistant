@@ -219,11 +219,11 @@ class SourcesTreeProvider {
                                 item.description = '✓ extracted';
                             }
                             else {
-                                // Add command to extract
+                                // Add command to extract - pass path as string
                                 item.command = {
                                     command: 'citationHover.extractPdf',
                                     title: 'Extract Text',
-                                    arguments: [pdfPath]
+                                    arguments: [pdfPath] // Pass the string path, not the item
                                 };
                             }
                             items.push(item);

@@ -44,9 +44,18 @@ The extension will detect `C_03` and show the claim details in a hover tooltip.
 
 ## File Structure
 
-The extension expects:
+The extension supports two formats:
+
+### Single-File Format (Legacy)
 - `01_Knowledge_Base/claims_and_evidence.md` - Contains all claims with evidence
 - Claims formatted as: `## C_XX: Claim title`
+
+### Multi-File Format (Current)
+- `01_Knowledge_Base/claims_and_evidence.md` - Master index with claim ID to category file mapping
+- `01_Knowledge_Base/claims/*.md` - Category files (methods.md, results.md, challenges.md, etc.)
+- Each category file contains claims formatted as: `## C_XX: Claim title`
+
+The extension automatically detects which format is in use and loads claims accordingly.
 
 ## Development
 

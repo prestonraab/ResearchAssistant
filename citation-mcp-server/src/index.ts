@@ -72,21 +72,29 @@ function matchesAuthorYear(filename: string, authorYear: string): boolean {
   const authorPart = authorYear.replace(/\d{4}/, '').trim();
   const normalizedAuthorPart = normalizeForMatching(authorPart);
   
-  // Try various patterns:
-  // 1. "Author - YYYY" or "Author et al. - YYYY"
-  // 2. "Author YYYY" or "Author et al. YYYY"
-  // 3. Just check if both author and year are present
-  
+  // Must have the year
   const hasYear = normalizedFilename.includes(year);
   if (!hasYear) {
     return false;
   }
   
   // Check if author part matches (handling "et al." variations)
-  const authorWords = normalizedAuthorPart.split(/\s+/).filter(w => w.length > 0);
+  const authorWords = normalizedAuthorPart.split(/\s+/).filter(w => w.length > 2);
   
-  for (const word of authorWords) {
-    if (word.length > 2 && normalizedFilename.includes(word)) {
+  // If we have author words, at least one significant word must match
+  if (authorWords.length > 0) {
+    for (const word of authorWords) {
+      if (normalizedFilename.includes(word)) {
+        return true;
+      }
+    }
+  }
+  
+  // Fallback: if the author part is very short (like "Du"), be more lenient
+  // Check if it appears as a word boundary in the filename
+  if (authorPart.length <= 4) {
+    const authorRegex = new RegExp(`\\b${normalizedAuthorPart}\\b`, 'i');
+    if (authorRegex.test(normalizedFilename)) {
       return true;
     }
   }

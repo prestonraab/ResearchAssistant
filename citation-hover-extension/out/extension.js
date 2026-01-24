@@ -195,8 +195,10 @@ let diagnosticCollection;
 let validationCache = new Map();
 // Import tree providers
 const treeProviders_1 = require("./treeProviders");
+const outlineProvider_1 = require("./outlineProvider");
 let claimsTreeProvider;
 let sourcesTreeProvider;
+let outlineTreeProvider;
 function activate(context) {
     console.log('Citation Hover extension is now active');
     // Create diagnostic collection
@@ -205,6 +207,7 @@ function activate(context) {
     // Create tree view providers
     claimsTreeProvider = new treeProviders_1.ClaimsTreeProvider();
     sourcesTreeProvider = new treeProviders_1.SourcesTreeProvider();
+    outlineTreeProvider = new outlineProvider_1.OutlineTreeProvider();
     const claimsTreeView = vscode.window.createTreeView('citationHoverClaims', {
         treeDataProvider: claimsTreeProvider,
         showCollapseAll: true
@@ -212,7 +215,11 @@ function activate(context) {
     const sourcesTreeView = vscode.window.createTreeView('citationHoverSources', {
         treeDataProvider: sourcesTreeProvider
     });
-    context.subscriptions.push(claimsTreeView, sourcesTreeView);
+    const outlineTreeView = vscode.window.createTreeView('citationHoverOutline', {
+        treeDataProvider: outlineTreeProvider,
+        showCollapseAll: true
+    });
+    context.subscriptions.push(claimsTreeView, sourcesTreeView, outlineTreeView);
     // Register hover provider for markdown files
     const hoverProvider = vscode.languages.registerHoverProvider('markdown', {
         async provideHover(document, position, token) {
@@ -237,7 +244,24 @@ function activate(context) {
     const jumpToClaimCommand = vscode.commands.registerCommand('citationHover.jumpToClaim', async (claimId) => {
         await jumpToClaim(claimId);
     });
-    const extractPdfCommand = vscode.commands.registerCommand('citationHover.extractPdf', async (pdfPath) => {
+    const extractPdfCommand = vscode.commands.registerCommand('citationHover.extractPdf', async (itemOrPath) => {
+        // Handle both tree item clicks and direct path calls
+        let pdfPath;
+        if (typeof itemOrPath === 'string') {
+            pdfPath = itemOrPath;
+        }
+        else if (itemOrPath && itemOrPath.resourceUri) {
+            // Tree item with resourceUri
+            pdfPath = itemOrPath.resourceUri.fsPath;
+        }
+        else if (itemOrPath && itemOrPath.tooltip) {
+            // Tree item with tooltip containing path
+            pdfPath = itemOrPath.tooltip;
+        }
+        else {
+            vscode.window.showErrorMessage('Could not determine PDF path');
+            return;
+        }
         await extractPdfText(pdfPath);
     });
     const refreshSourcesCommand = vscode.commands.registerCommand('citationHover.refreshSources', () => {
@@ -251,6 +275,19 @@ function activate(context) {
     });
     const showQuoteDiffCommand = vscode.commands.registerCommand('citationHover.showQuoteDiff', async (claimData) => {
         await showQuoteDiff(claimData);
+    });
+    // Outline commands
+    const refreshOutlineCommand = vscode.commands.registerCommand('citationHover.refreshOutline', () => {
+        outlineTreeProvider.refresh();
+    });
+    const jumpToOutlineSectionCommand = vscode.commands.registerCommand('citationHover.jumpToOutlineSection', async (section) => {
+        await jumpToOutlineSection(section);
+    });
+    const searchForSectionCommand = vscode.commands.registerCommand('citationHover.searchForSection', async (sectionId) => {
+        await searchForSection(sectionId);
+    });
+    const showSectionGapsCommand = vscode.commands.registerCommand('citationHover.showSectionGaps', async () => {
+        await showSectionGaps();
     });
     // Watch for changes to claims file
     setupFileWatcher(context);
@@ -273,7 +310,7 @@ function activate(context) {
             validateDocumentQuotes(doc);
         }
     }));
-    context.subscriptions.push(hoverProvider, validateCommand, clearCacheCommand, searchZoteroCommand, goToClaimCommand, jumpToClaimCommand, extractPdfCommand, refreshSourcesCommand, openExtractedTextCommand, refreshTreeCommand, showQuoteDiffCommand);
+    context.subscriptions.push(hoverProvider, validateCommand, clearCacheCommand, searchZoteroCommand, goToClaimCommand, jumpToClaimCommand, extractPdfCommand, refreshSourcesCommand, openExtractedTextCommand, refreshTreeCommand, showQuoteDiffCommand, refreshOutlineCommand, jumpToOutlineSectionCommand, searchForSectionCommand, showSectionGapsCommand);
 }
 function setupFileWatcher(context) {
     if (claimsFileWatcher) {
@@ -281,6 +318,7 @@ function setupFileWatcher(context) {
     }
     const config = vscode.workspace.getConfiguration('citationHover');
     const searchPattern = config.get('searchPattern', '**/claims_and_evidence.md');
+    // Watch the master index file
     claimsFileWatcher = vscode.workspace.createFileSystemWatcher(searchPattern);
     claimsFileWatcher.onDidChange(() => {
         claimsCache = null;
@@ -289,6 +327,27 @@ function setupFileWatcher(context) {
         console.log('Claims file changed, cache cleared');
     });
     context.subscriptions.push(claimsFileWatcher);
+    // Also watch category files in the claims directory
+    const categoryFilesWatcher = vscode.workspace.createFileSystemWatcher('**/01_Knowledge_Base/claims/*.md');
+    categoryFilesWatcher.onDidChange(() => {
+        claimsCache = null;
+        validationCache.clear();
+        claimsTreeProvider.refresh();
+        console.log('Category file changed, cache cleared');
+    });
+    categoryFilesWatcher.onDidCreate(() => {
+        claimsCache = null;
+        validationCache.clear();
+        claimsTreeProvider.refresh();
+        console.log('Category file created, cache cleared');
+    });
+    categoryFilesWatcher.onDidDelete(() => {
+        claimsCache = null;
+        validationCache.clear();
+        claimsTreeProvider.refresh();
+        console.log('Category file deleted, cache cleared');
+    });
+    context.subscriptions.push(categoryFilesWatcher);
 }
 async function provideClaimHover(document, position) {
     const line = document.lineAt(position.line).text;
@@ -389,7 +448,12 @@ async function loadClaimsData(documentUri) {
         return claims;
     }
     const content = fs.readFileSync(claimsFilePath, 'utf-8');
-    // Parse claims using regex
+    // Check if this is the new master index format (contains "Claim Categories and Files" section)
+    if (content.includes('## Claim Categories and Files') || content.includes('## Quick Reference: Claim ID to File Mapping')) {
+        console.log('Detected new multi-file structure, loading from category files...');
+        return await loadClaimsFromCategoryFiles(workspaceFolder, claimsFilePath);
+    }
+    // Legacy single-file format - parse claims using regex
     const claimRegex = /## (C_\d+): (.+?)\n\n\*\*Category\*\*: (.+?)\s+\n\*\*Source\*\*: (.+?)\s+\n\*\*Context\*\*: (.+?)\n\n\*\*Primary Quote\*\*[^\n]*:\n> (.+?)(?=\n\n(?:\*\*Supporting|---|\n## C_))/gs;
     let match;
     while ((match = claimRegex.exec(content)) !== null) {
@@ -404,6 +468,49 @@ async function loadClaimsData(documentUri) {
         });
     }
     console.log(`Loaded ${claims.size} claims from ${claimsFilePath}`);
+    return claims;
+}
+async function loadClaimsFromCategoryFiles(workspaceFolder, masterIndexPath) {
+    const claims = new Map();
+    // Parse the master index to get claim ID to file mapping
+    const masterContent = fs.readFileSync(masterIndexPath, 'utf-8');
+    const claimToFileMap = new Map();
+    // Extract mapping from the Quick Reference table
+    const mappingRegex = /\| (C_\d+) \| .+? \| \[`(.+?)`\]/g;
+    let match;
+    while ((match = mappingRegex.exec(masterContent)) !== null) {
+        const [, claimId, filename] = match;
+        claimToFileMap.set(claimId, filename);
+    }
+    console.log(`Found ${claimToFileMap.size} claim mappings in master index`);
+    // Get unique category files
+    const categoryFiles = new Set(claimToFileMap.values());
+    const claimsDir = path.join(path.dirname(masterIndexPath), 'claims');
+    // Load claims from each category file
+    for (const categoryFile of categoryFiles) {
+        const categoryFilePath = path.join(claimsDir, categoryFile);
+        if (!fs.existsSync(categoryFilePath)) {
+            console.warn(`Category file not found: ${categoryFilePath}`);
+            continue;
+        }
+        const categoryContent = fs.readFileSync(categoryFilePath, 'utf-8');
+        // Parse claims using the same regex as before
+        const claimRegex = /## (C_\d+): (.+?)\n\n\*\*Category\*\*: (.+?)\s+\n\*\*Source\*\*: (.+?)\s+\n\*\*Context\*\*: (.+?)\n\n\*\*Primary Quote\*\*[^\n]*:\n> (.+?)(?=\n\n(?:\*\*Supporting|---|\n## C_))/gs;
+        let claimMatch;
+        while ((claimMatch = claimRegex.exec(categoryContent)) !== null) {
+            const [, id, title, category, source, context, primaryQuote] = claimMatch;
+            claims.set(id, {
+                id,
+                title: title.trim(),
+                category: category.trim(),
+                source: source.trim(),
+                context: context.trim(),
+                primaryQuote: primaryQuote.trim()
+            });
+        }
+        console.log(`Loaded claims from ${categoryFile}`);
+    }
+    console.log(`Total claims loaded: ${claims.size}`);
     return claims;
 }
 function normalizeText(text) {
@@ -593,7 +700,8 @@ async function validateQuote(claimData, documentUri) {
     validationCache.set(cacheKey, claimData.verified);
 }
 function shouldValidateDocument(document) {
-    return document.fileName.includes('claims_and_evidence.md');
+    return document.fileName.includes('claims_and_evidence.md') ||
+        document.fileName.includes('01_Knowledge_Base/claims/');
 }
 async function validateDocumentQuotes(document) {
     const config = vscode.workspace.getConfiguration('citationHover');
@@ -1235,12 +1343,32 @@ async function goToClaim(claimData) {
     }
     const config = vscode.workspace.getConfiguration('citationHover');
     const claimsPath = config.get('claimsFilePath', '01_Knowledge_Base/claims_and_evidence.md');
-    const fullPath = path.join(workspaceFolders[0].uri.fsPath, claimsPath);
-    if (!fs.existsSync(fullPath)) {
+    const masterIndexPath = path.join(workspaceFolders[0].uri.fsPath, claimsPath);
+    if (!fs.existsSync(masterIndexPath)) {
         vscode.window.showErrorMessage('claims_and_evidence.md not found');
         return;
     }
-    const doc = await vscode.workspace.openTextDocument(fullPath);
+    // Check if this is the new multi-file structure
+    const masterContent = fs.readFileSync(masterIndexPath, 'utf-8');
+    let targetFilePath = masterIndexPath;
+    if (masterContent.includes('## Claim Categories and Files') || masterContent.includes('## Quick Reference: Claim ID to File Mapping')) {
+        // New structure - find the category file for this claim
+        const mappingRegex = new RegExp(`\\| ${claimData.id} \\| .+? \\| \\[\`(.+?)\`\\]`);
+        const match = masterContent.match(mappingRegex);
+        if (match) {
+            const categoryFile = match[1];
+            const claimsDir = path.join(path.dirname(masterIndexPath), 'claims');
+            targetFilePath = path.join(claimsDir, categoryFile);
+            if (!fs.existsSync(targetFilePath)) {
+                vscode.window.showErrorMessage(`Category file not found: ${categoryFile}`);
+                return;
+            }
+        }
+        else {
+            vscode.window.showWarningMessage(`Could not find ${claimData.id} in master index, opening master file`);
+        }
+    }
+    const doc = await vscode.workspace.openTextDocument(targetFilePath);
     const editor = await vscode.window.showTextDocument(doc);
     // Find the claim position
     const text = doc.getText();
@@ -1600,12 +1728,32 @@ async function jumpToClaim(claimId) {
     }
     const config = vscode.workspace.getConfiguration('citationHover');
     const claimsPath = config.get('claimsFilePath', '01_Knowledge_Base/claims_and_evidence.md');
-    const fullPath = path.join(workspaceFolders[0].uri.fsPath, claimsPath);
-    if (!fs.existsSync(fullPath)) {
+    const masterIndexPath = path.join(workspaceFolders[0].uri.fsPath, claimsPath);
+    if (!fs.existsSync(masterIndexPath)) {
         vscode.window.showErrorMessage('claims_and_evidence.md not found');
         return;
     }
-    const doc = await vscode.workspace.openTextDocument(fullPath);
+    // Check if this is the new multi-file structure
+    const masterContent = fs.readFileSync(masterIndexPath, 'utf-8');
+    let targetFilePath = masterIndexPath;
+    if (masterContent.includes('## Claim Categories and Files') || masterContent.includes('## Quick Reference: Claim ID to File Mapping')) {
+        // New structure - find the category file for this claim
+        const mappingRegex = new RegExp(`\\| ${claimId} \\| .+? \\| \\[\`(.+?)\`\\]`);
+        const match = masterContent.match(mappingRegex);
+        if (match) {
+            const categoryFile = match[1];
+            const claimsDir = path.join(path.dirname(masterIndexPath), 'claims');
+            targetFilePath = path.join(claimsDir, categoryFile);
+            if (!fs.existsSync(targetFilePath)) {
+                vscode.window.showErrorMessage(`Category file not found: ${categoryFile}`);
+                return;
+            }
+        }
+        else {
+            vscode.window.showWarningMessage(`Could not find ${claimId} in master index, opening master file`);
+        }
+    }
+    const doc = await vscode.workspace.openTextDocument(targetFilePath);
     const editor = await vscode.window.showTextDocument(doc);
     // Find claim position
     const text = doc.getText();
@@ -1636,13 +1784,14 @@ async function extractPdfText(pdfPath) {
                 vscode.window.showErrorMessage('extract_with_docling.py not found in workspace root');
                 return;
             }
-            // Call extraction script
+            // Call extraction script with --pdf flag
             const { execSync } = require('child_process');
-            execSync(`python3 "${extractScript}" "${pdfPath}"`, {
+            const output = execSync(`python3 "${extractScript}" --pdf "${pdfPath}"`, {
                 cwd: workspaceRoot,
                 timeout: 120000, // 2 minute timeout
                 encoding: 'utf-8'
             });
+            console.log('Extraction output:', output);
             progress.report({ message: 'Extraction complete' });
             // Refresh sources tree
             if (sourcesTreeProvider) {
@@ -1764,5 +1913,538 @@ function deactivate() {
     if (diagnosticCollection) {
         diagnosticCollection.dispose();
     }
+}
+// Outline-related functions
+async function jumpToOutlineSection(section) {
+    const workspaceFolders = vscode.workspace.workspaceFolders;
+    if (!workspaceFolders) {
+        return;
+    }
+    const config = vscode.workspace.getConfiguration('citationHover');
+    const outlinePath = config.get('outlineFilePath', '03_Drafting/outline.md');
+    const fullPath = path.join(workspaceFolders[0].uri.fsPath, outlinePath);
+    if (!fs.existsSync(fullPath)) {
+        vscode.window.showErrorMessage('Outline file not found');
+        return;
+    }
+    const doc = await vscode.workspace.openTextDocument(fullPath);
+    const editor = await vscode.window.showTextDocument(doc);
+    // Jump to line number
+    if (section.lineNumber !== undefined) {
+        const position = new vscode.Position(section.lineNumber, 0);
+        editor.selection = new vscode.Selection(position, position);
+        editor.revealRange(new vscode.Range(position, position), vscode.TextEditorRevealType.InCenter);
+    }
+}
+async function searchForSection(sectionId) {
+    const section = outlineTreeProvider.getSection(sectionId);
+    if (!section) {
+        return;
+    }
+    if (section.suggestedSearches.length === 0) {
+        vscode.window.showInformationMessage('No suggested searches for this section');
+        return;
+    }
+    // Show quick pick of suggested searches
+    const selected = await vscode.window.showQuickPick(section.suggestedSearches, {
+        placeHolder: `Search Zotero for: ${section.title}`
+    });
+    if (!selected) {
+        return;
+    }
+    // Execute search
+    await executeZoteroSearchWithQuery(selected, section);
+}
+async function executeZoteroSearchWithQuery(query, section) {
+    await vscode.window.withProgress({
+        location: vscode.ProgressLocation.Notification,
+        title: `Searching Zotero: "${query}"`,
+        cancellable: false
+    }, async (progress) => {
+        try {
+            const config = vscode.workspace.getConfiguration('citationHover');
+            const resultLimit = config.get('zoteroSearchLimit', 5);
+            progress.report({ message: 'Querying Zotero library...' });
+            const results = await executeZoteroSearch(query, resultLimit);
+            if (!results || results.length === 0) {
+                vscode.window.showInformationMessage(`No papers found for "${query}"`);
+                return;
+            }
+            progress.report({ message: 'Displaying results...' });
+            // Show results with section context
+            await displaySearchResultsWithSection(query, results, section);
+        }
+        catch (error) {
+            const errorMsg = error instanceof Error ? error.message : String(error);
+            vscode.window.showErrorMessage(`Zotero search failed: ${errorMsg}`);
+        }
+    });
+}
+async function displaySearchResultsWithSection(query, results, section) {
+    const panel = vscode.window.createWebviewPanel('zoteroSearchResults', `Zotero Search: ${section.title}`, vscode.ViewColumn.Beside, {
+        enableScripts: true,
+        retainContextWhenHidden: true
+    });
+    panel.webview.html = getSearchResultsHtmlWithSection(query, results, section);
+    panel.webview.onDidReceiveMessage(async (message) => {
+        switch (message.command) {
+            case 'addToClaims':
+                await addResultToClaimsWithSection(message.item, section);
+                break;
+            case 'copyBibTeX':
+                await copyBibTeX(message.itemKey);
+                break;
+            case 'viewFullText':
+                await viewFullText(message.itemKey);
+                break;
+            case 'openInZotero':
+                await openInZotero(message.itemKey);
+                break;
+        }
+    }, undefined, []);
+}
+function getSearchResultsHtmlWithSection(query, results, section) {
+    const sectionInfo = section ? `
+    <div class="section-context">
+      <strong>📖 For outline section:</strong> ${escapeHtml(section.title)}<br>
+      <strong>Coverage:</strong> ${section.linkedClaims?.length || 0} claims currently linked
+    </div>
+  ` : '';
+    const resultsHtml = results.map((item, index) => {
+        const authors = item.creators && item.creators.length > 0
+            ? item.creators.map((c) => c.lastName || c.name).join(', ')
+            : 'Unknown authors';
+        const year = item.date ? extractYear(item.date) : 'n.d.';
+        const relevance = item.similarity ? (item.similarity * 100).toFixed(0) : '?';
+        const abstract = item.abstractNote || 'No abstract available';
+        return `
+      <div class="result-card">
+        <div class="result-header">
+          <div class="result-number">${index + 1}</div>
+          <div class="result-title-section">
+            <h3 class="result-title">${escapeHtml(item.title || 'Untitled')}</h3>
+            <div class="result-meta">
+              <span class="authors">${escapeHtml(authors)}</span>
+              <span class="year">${escapeHtml(year)}</span>
+              <span class="relevance">${relevance}% relevant</span>
+            </div>
+          </div>
+        </div>
+        
+        <div class="result-abstract">
+          <details>
+            <summary>Abstract</summary>
+            <p>${escapeHtml(abstract)}</p>
+          </details>
+        </div>
+        
+        <div class="result-actions">
+          <button class="btn btn-primary" onclick="addToClaims(${index})">
+            ➕ Add to Claims (for this section)
+          </button>
+          <button class="btn btn-secondary" onclick="viewFullText('${escapeHtml(item.key || '')}')">
+            📄 View Full Text
+          </button>
+          <button class="btn btn-secondary" onclick="openInZotero('${escapeHtml(item.key || '')}')">
+            🔗 Open in Zotero
+          </button>
+        </div>
+      </div>
+    `;
+    }).join('');
+    return `
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+      <meta charset="UTF-8">
+      <style>
+        body {
+          font-family: var(--vscode-font-family);
+          color: var(--vscode-foreground);
+          background-color: var(--vscode-editor-background);
+          padding: 20px;
+          line-height: 1.6;
+        }
+        .header {
+          margin-bottom: 20px;
+          padding-bottom: 15px;
+          border-bottom: 2px solid var(--vscode-panel-border);
+        }
+        .section-context {
+          background-color: var(--vscode-textBlockQuote-background);
+          border-left: 4px solid var(--vscode-textBlockQuote-border);
+          padding: 12px;
+          margin-bottom: 20px;
+          border-radius: 4px;
+        }
+        .result-card {
+          background-color: var(--vscode-editor-background);
+          border: 1px solid var(--vscode-panel-border);
+          border-radius: 6px;
+          padding: 20px;
+          margin-bottom: 20px;
+        }
+        .result-header {
+          display: flex;
+          gap: 15px;
+          margin-bottom: 15px;
+        }
+        .result-number {
+          flex-shrink: 0;
+          width: 32px;
+          height: 32px;
+          background-color: var(--vscode-button-background);
+          color: var(--vscode-button-foreground);
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-weight: bold;
+        }
+        .result-title {
+          margin: 0 0 8px 0;
+          font-size: 1.2em;
+        }
+        .result-meta {
+          display: flex;
+          gap: 15px;
+          font-size: 0.9em;
+          color: var(--vscode-descriptionForeground);
+        }
+        .result-abstract details {
+          cursor: pointer;
+        }
+        .result-abstract summary {
+          color: var(--vscode-textLink-foreground);
+          font-weight: 500;
+          padding: 5px 0;
+        }
+        .result-actions {
+          display: flex;
+          gap: 10px;
+          margin-top: 15px;
+          padding-top: 15px;
+          border-top: 1px solid var(--vscode-panel-border);
+        }
+        .btn {
+          padding: 6px 12px;
+          border: none;
+          border-radius: 4px;
+          cursor: pointer;
+          font-size: 0.9em;
+        }
+        .btn-primary {
+          background-color: var(--vscode-button-background);
+          color: var(--vscode-button-foreground);
+          font-weight: 500;
+        }
+        .btn-secondary {
+          background-color: var(--vscode-button-secondaryBackground);
+          color: var(--vscode-button-secondaryForeground);
+        }
+      </style>
+    </head>
+    <body>
+      <div class="header">
+        <h1>🔍 Zotero Search Results</h1>
+        <div class="query">"${escapeHtml(query)}"</div>
+        <div>${results.length} papers found</div>
+      </div>
+      
+      ${sectionInfo}
+      ${resultsHtml}
+      
+      <script>
+        const vscode = acquireVsCodeApi();
+        const results = ${JSON.stringify(results)};
+        
+        function addToClaims(index) {
+          vscode.postMessage({
+            command: 'addToClaims',
+            item: results[index]
+          });
+        }
+        
+        function viewFullText(itemKey) {
+          vscode.postMessage({
+            command: 'viewFullText',
+            itemKey: itemKey
+          });
+        }
+        
+        function openInZotero(itemKey) {
+          vscode.postMessage({
+            command: 'openInZotero',
+            itemKey: itemKey
+          });
+        }
+      </script>
+    </body>
+    </html>
+  `;
+}
+async function addResultToClaimsWithSection(item, section) {
+    const workspaceFolders = vscode.workspace.workspaceFolders;
+    if (!workspaceFolders) {
+        vscode.window.showErrorMessage('No workspace folder open');
+        return;
+    }
+    const config = vscode.workspace.getConfiguration('citationHover');
+    const claimsPath = config.get('claimsFilePath', '01_Knowledge_Base/claims_and_evidence.md');
+    const fullPath = path.join(workspaceFolders[0].uri.fsPath, claimsPath);
+    if (!fs.existsSync(fullPath)) {
+        vscode.window.showErrorMessage('claims_and_evidence.md not found');
+        return;
+    }
+    // Read current claims to get next ID
+    const content = fs.readFileSync(fullPath, 'utf-8');
+    const claimIds = Array.from(content.matchAll(/## (C_\d+):/g)).map(m => m[1]);
+    const nextId = getNextClaimId(claimIds);
+    // Extract info from item
+    const authors = item.creators && item.creators.length > 0
+        ? item.creators.map((c) => c.lastName || c.name).join(', ')
+        : 'Unknown';
+    const year = item.date ? extractYear(item.date) : 'n.d.';
+    const firstAuthor = getFirstAuthor(item);
+    const authorYear = `${firstAuthor}${year}`;
+    const title = item.title || 'Untitled';
+    const abstract = item.abstractNote || '';
+    // Pre-fill claim title with section context
+    const suggestedTitle = section
+        ? `[For: ${section.title}] ${title.substring(0, 60)}`
+        : title.substring(0, 100);
+    const claimTitle = await vscode.window.showInputBox({
+        prompt: 'Enter claim title',
+        placeHolder: 'Brief description of the claim',
+        value: suggestedTitle
+    });
+    if (!claimTitle) {
+        return;
+    }
+    const category = await vscode.window.showQuickPick(['Method', 'Result', 'Challenge', 'Context', 'Application', 'Theory'], { placeHolder: 'Select claim category' });
+    if (!category) {
+        return;
+    }
+    const context = await vscode.window.showInputBox({
+        prompt: 'Enter context/nuance (optional)',
+        placeHolder: 'Additional context about this claim',
+        value: section ? `Related to outline section: ${section.title}` : ''
+    });
+    // Create new claim entry
+    const newClaim = `
+## ${nextId}: ${claimTitle}
+
+**Category**: ${category}  
+**Source**: ${authorYear} (Source ID: TBD)  
+**Context**: ${context || 'TBD'}
+${section ? `**Outline Section**: ${section.id} - ${section.title}` : ''}
+
+**Primary Quote**:
+> [Note: Extract specific quote from paper]
+
+**Supporting Quotes**:
+> [Note: Add supporting quotes if needed]
+
+**Notes**:
+- Title: ${title}
+- Authors: ${authors}
+- Year: ${year}
+${abstract ? `- Abstract: ${abstract.substring(0, 200)}...` : ''}
+- Zotero Key: ${item.key || 'N/A'}
+
+---
+`;
+    fs.appendFileSync(fullPath, newClaim);
+    const doc = await vscode.workspace.openTextDocument(fullPath);
+    const editor = await vscode.window.showTextDocument(doc);
+    const text = doc.getText();
+    const claimPos = text.indexOf(`## ${nextId}:`);
+    if (claimPos !== -1) {
+        const position = doc.positionAt(claimPos);
+        editor.selection = new vscode.Selection(position, position);
+        editor.revealRange(new vscode.Range(position, position), vscode.TextEditorRevealType.InCenter);
+    }
+    vscode.window.showInformationMessage(`Added ${nextId} for section: ${section.title}`);
+    claimsCache = null;
+    outlineTreeProvider.refresh();
+}
+async function showSectionGaps() {
+    const sections = outlineTreeProvider.getAllSections();
+    if (sections.length === 0) {
+        vscode.window.showInformationMessage('No outline sections found');
+        return;
+    }
+    // Analyze gaps
+    const gaps = sections
+        .filter(s => s.coverage === 'none' || s.coverage === 'partial')
+        .sort((a, b) => a.lineNumber - b.lineNumber);
+    if (gaps.length === 0) {
+        vscode.window.showInformationMessage('✅ All sections have good coverage!');
+        return;
+    }
+    // Create gap report
+    const panel = vscode.window.createWebviewPanel('sectionGaps', 'Research Gaps Analysis', vscode.ViewColumn.Beside, {
+        enableScripts: true
+    });
+    panel.webview.html = getGapReportHtml(sections, gaps);
+}
+function getGapReportHtml(allSections, gaps) {
+    const totalSections = allSections.length;
+    const goodCoverage = allSections.filter(s => s.coverage === 'good').length;
+    const partialCoverage = allSections.filter(s => s.coverage === 'partial').length;
+    const noCoverage = allSections.filter(s => s.coverage === 'none').length;
+    const gapsHtml = gaps.map(section => {
+        const icon = section.coverage === 'none' ? '❌' : '⚠️';
+        const status = section.coverage === 'none' ? 'No claims' : 'Needs more claims';
+        return `
+      <div class="gap-card ${section.coverage}">
+        <div class="gap-header">
+          <span class="gap-icon">${icon}</span>
+          <div>
+            <h3>${escapeHtml(section.title)}</h3>
+            <div class="gap-status">${status} (${section.linkedClaims.length} claims, ${section.questions.length} questions)</div>
+          </div>
+        </div>
+        
+        ${section.questions.length > 0 ? `
+          <div class="gap-questions">
+            <strong>Questions to answer:</strong>
+            <ul>
+              ${section.questions.slice(0, 3).map((q) => `<li>${escapeHtml(q)}</li>`).join('')}
+              ${section.questions.length > 3 ? `<li><em>...and ${section.questions.length - 3} more</em></li>` : ''}
+            </ul>
+          </div>
+        ` : ''}
+        
+        ${section.suggestedSearches.length > 0 ? `
+          <div class="gap-searches">
+            <strong>🔍 Suggested searches:</strong>
+            <ul>
+              ${section.suggestedSearches.map((s) => `<li><code>${escapeHtml(s)}</code></li>`).join('')}
+            </ul>
+          </div>
+        ` : ''}
+      </div>
+    `;
+    }).join('');
+    return `
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+      <meta charset="UTF-8">
+      <style>
+        body {
+          font-family: var(--vscode-font-family);
+          color: var(--vscode-foreground);
+          background-color: var(--vscode-editor-background);
+          padding: 20px;
+          line-height: 1.6;
+        }
+        .header {
+          margin-bottom: 30px;
+          padding-bottom: 20px;
+          border-bottom: 2px solid var(--vscode-panel-border);
+        }
+        .stats {
+          display: flex;
+          gap: 20px;
+          margin: 20px 0;
+        }
+        .stat-card {
+          flex: 1;
+          padding: 15px;
+          border-radius: 6px;
+          text-align: center;
+        }
+        .stat-card.good {
+          background-color: rgba(0, 255, 0, 0.1);
+          border: 1px solid rgba(0, 255, 0, 0.3);
+        }
+        .stat-card.partial {
+          background-color: rgba(255, 165, 0, 0.1);
+          border: 1px solid rgba(255, 165, 0, 0.3);
+        }
+        .stat-card.none {
+          background-color: rgba(255, 0, 0, 0.1);
+          border: 1px solid rgba(255, 0, 0, 0.3);
+        }
+        .stat-number {
+          font-size: 2em;
+          font-weight: bold;
+        }
+        .gap-card {
+          background-color: var(--vscode-editor-background);
+          border: 1px solid var(--vscode-panel-border);
+          border-radius: 6px;
+          padding: 20px;
+          margin-bottom: 20px;
+        }
+        .gap-card.none {
+          border-left: 4px solid rgba(255, 0, 0, 0.5);
+        }
+        .gap-card.partial {
+          border-left: 4px solid rgba(255, 165, 0, 0.5);
+        }
+        .gap-header {
+          display: flex;
+          gap: 15px;
+          align-items: start;
+          margin-bottom: 15px;
+        }
+        .gap-icon {
+          font-size: 1.5em;
+        }
+        .gap-header h3 {
+          margin: 0 0 5px 0;
+        }
+        .gap-status {
+          color: var(--vscode-descriptionForeground);
+          font-size: 0.9em;
+        }
+        .gap-questions, .gap-searches {
+          margin-top: 15px;
+          padding-top: 15px;
+          border-top: 1px solid var(--vscode-panel-border);
+        }
+        ul {
+          margin: 10px 0;
+          padding-left: 20px;
+        }
+        code {
+          background-color: var(--vscode-textCodeBlock-background);
+          padding: 2px 6px;
+          border-radius: 3px;
+          font-family: monospace;
+        }
+      </style>
+    </head>
+    <body>
+      <div class="header">
+        <h1>📊 Research Gaps Analysis</h1>
+        <p>Coverage overview for your outline sections</p>
+      </div>
+      
+      <div class="stats">
+        <div class="stat-card good">
+          <div class="stat-number">${goodCoverage}</div>
+          <div>✅ Good Coverage</div>
+        </div>
+        <div class="stat-card partial">
+          <div class="stat-number">${partialCoverage}</div>
+          <div>⚠️ Partial Coverage</div>
+        </div>
+        <div class="stat-card none">
+          <div class="stat-number">${noCoverage}</div>
+          <div>❌ No Coverage</div>
+        </div>
+      </div>
+      
+      <h2>Sections Needing Attention (${gaps.length})</h2>
+      ${gapsHtml}
+      
+      ${gaps.length === 0 ? '<p style="text-align: center; padding: 40px;">🎉 All sections have good coverage!</p>' : ''}
+    </body>
+    </html>
+  `;
 }
 //# sourceMappingURL=extension.js.map

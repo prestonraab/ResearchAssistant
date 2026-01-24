@@ -1,0 +1,150 @@
+{
+  "name": "research-assistant",
+  "displayName": "Research Assistant",
+  "description": "Comprehensive literature review assistant for academic research",
+  "version": "0.1.0",
+  "license": "MIT",
+  "publisher": "research-tools",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/research-assistant"
+  },
+  "engines": {
+    "vscode": "^1.80.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onLanguage:markdown",
+    "onView:researchAssistant.outline",
+    "onCommand:researchAssistant.activate"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "researchAssistant.activate",
+        "title": "Research Assistant: Activate"
+      },
+      {
+        "command": "researchAssistant.refreshOutline",
+        "title": "Refresh Outline",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "researchAssistant.refreshClaims",
+        "title": "Refresh Claims",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "researchAssistant.analyzeCoverage",
+        "title": "Research Assistant: Analyze Coverage"
+      },
+      {
+        "command": "researchAssistant.showDashboard",
+        "title": "Research Assistant: Show Dashboard"
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "researchAssistant",
+          "title": "Research Assistant",
+          "icon": "$(book)"
+        }
+      ]
+    },
+    "views": {
+      "researchAssistant": [
+        {
+          "id": "researchAssistant.outline",
+          "name": "Outline & Coverage"
+        },
+        {
+          "id": "researchAssistant.claims",
+          "name": "Claims"
+        },
+        {
+          "id": "researchAssistant.papers",
+          "name": "Papers"
+        }
+      ]
+    },
+    "menus": {
+      "view/title": [
+        {
+          "command": "researchAssistant.refreshOutline",
+          "when": "view == researchAssistant.outline",
+          "group": "navigation"
+        },
+        {
+          "command": "researchAssistant.refreshClaims",
+          "when": "view == researchAssistant.claims",
+          "group": "navigation"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "Research Assistant",
+      "properties": {
+        "researchAssistant.outlinePath": {
+          "type": "string",
+          "default": "03_Drafting/outline.md",
+          "description": "Relative path to the outline file from workspace root"
+        },
+        "researchAssistant.claimsDatabasePath": {
+          "type": "string",
+          "default": "01_Knowledge_Base/claims_and_evidence.md",
+          "description": "Relative path to the claims database file from workspace root"
+        },
+        "researchAssistant.extractedTextPath": {
+          "type": "string",
+          "default": "literature/ExtractedText",
+          "description": "Relative path to extracted text directory from workspace root"
+        },
+        "researchAssistant.coverageThresholds": {
+          "type": "object",
+          "default": {
+            "low": 3,
+            "moderate": 6,
+            "strong": 7
+          },
+          "description": "Thresholds for coverage levels (none: 0, low: 1-3, moderate: 4-6, strong: 7+)"
+        },
+        "researchAssistant.embeddingCacheSize": {
+          "type": "number",
+          "default": 1000,
+          "description": "Maximum number of embeddings to cache in memory"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run build",
+    "build": "npm run compile && npm run bundle",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "bundle": "esbuild src/extension.ts --bundle --outfile=dist/extension.js --external:vscode --format=cjs --platform=node --minify",
+    "bundle:watch": "npm run bundle -- --watch",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "lint": "eslint src --ext ts",
+    "pretest": "npm run compile"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.0",
+    "@types/node": "^18.0.0",
+    "@types/vscode": "^1.80.0",
+    "@typescript-eslint/eslint-plugin": "^6.0.0",
+    "@typescript-eslint/parser": "^6.0.0",
+    "esbuild": "^0.19.0",
+    "eslint": "^8.0.0",
+    "fast-check": "^3.15.0",
+    "jest": "^29.5.0",
+    "ts-jest": "^29.1.0",
+    "typescript": "^5.3.0"
+  },
+  "dependencies": {}
+}

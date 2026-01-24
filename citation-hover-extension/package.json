@@ -3,6 +3,11 @@
   "displayName": "Citation Hover",
   "description": "Shows evidence quotes when hovering over claim citations",
   "version": "0.1.0",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/citation-hover"
+  },
   "engines": {
     "vscode": "^1.80.0"
   },
@@ -53,6 +58,24 @@
         "command": "citationHover.refreshSources",
         "title": "Refresh Sources",
         "icon": "$(refresh)"
+      },
+      {
+        "command": "citationHover.refreshOutline",
+        "title": "Refresh Outline",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "citationHover.jumpToOutlineSection",
+        "title": "Jump to Section"
+      },
+      {
+        "command": "citationHover.searchForSection",
+        "title": "Search Zotero for Section",
+        "icon": "$(search)"
+      },
+      {
+        "command": "citationHover.showSectionGaps",
+        "title": "Citation Hover: Show Research Gaps"
       }
     ],
     "viewsContainers": {
@@ -67,6 +90,10 @@
     "views": {
       "citation-hover": [
         {
+          "id": "citationHoverOutline",
+          "name": "Outline & Research"
+        },
+        {
           "id": "citationHoverClaims",
           "name": "Claims"
         },
@@ -79,6 +106,11 @@
     "menus": {
       "view/title": [
         {
+          "command": "citationHover.refreshOutline",
+          "when": "view == citationHoverOutline",
+          "group": "navigation"
+        },
+        {
           "command": "citationHover.refreshTree",
           "when": "view == citationHoverClaims",
           "group": "navigation"
@@ -90,6 +122,11 @@
         }
       ],
       "view/item/context": [
+        {
+          "command": "citationHover.searchForSection",
+          "when": "view == citationHoverOutline && viewItem == section",
+          "group": "inline"
+        },
         {
           "command": "citationHover.showQuoteDiff",
           "when": "view == citationHoverClaims && viewItem == claim",
@@ -155,6 +192,11 @@
           "type": "string",
           "default": "~/Zotero/storage",
           "description": "Path to Zotero storage directory containing PDFs"
+        },
+        "citationHover.outlineFilePath": {
+          "type": "string",
+          "default": "03_Drafting/outline.md",
+          "description": "Relative path to the outline file from workspace root"
         }
       }
     }

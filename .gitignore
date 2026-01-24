@@ -34,4 +34,8 @@ wheels/
 literature/ExtractedText
 citation-hover-extension/node_modules
 citation-mcp-server/node_modules
+research-assistant-extension/node_modules
+research-assistant-extension/out
+research-assistant-extension/dist
+research-assistant-extension/*.vsix
 .kiro/settings/mcp.json
