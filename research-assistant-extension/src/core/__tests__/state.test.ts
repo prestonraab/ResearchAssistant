@@ -11,6 +11,14 @@ const MockOutlineParser = OutlineParser as jest.MockedClass<typeof OutlineParser
 jest.mock('../claimsManager');
 const MockClaimsManager = ClaimsManager as jest.MockedClass<typeof ClaimsManager>;
 
+// Setup ClaimsManager mock with onClaimSaved event emitter
+Object.defineProperty(MockClaimsManager.prototype, 'onClaimSaved', {
+  get: jest.fn(() => jest.fn((callback: any) => {
+    return { dispose: jest.fn() };
+  })),
+  configurable: true
+});
+
 // Mock MCPClientManager
 jest.mock('../../mcp/mcpClient', () => ({
   MCPClientManager: jest.fn().mockImplementation(() => ({
@@ -65,25 +73,34 @@ describe('ExtensionState', () => {
       })
     });
 
+    // Mock RelativePattern to return an object with the pattern
+    (vscode.RelativePattern as jest.Mock).mockImplementation((base: any, pattern: string) => {
+      return { base, pattern };
+    });
+
     // Setup mock file watcher with callback tracking
-    let watcherCallCount = 0;
-    (vscode.workspace as any).createFileSystemWatcher = jest.fn().mockImplementation(() => {
-      const isOutlineWatcher = watcherCallCount === 0;
-      watcherCallCount++;
+    (vscode.workspace as any).createFileSystemWatcher = jest.fn().mockImplementation((pattern: any) => {
+      // Extract pattern string from RelativePattern or use directly if string
+      const patternStr = typeof pattern === 'string' ? pattern : (pattern?.pattern || '');
+      const isOutlineWatcher = patternStr.includes('outline.md');
+      const isClaimsWatcher = patternStr.includes('claims_and_evidence.md');
       
-      return {
+      const watcher = {
         onDidChange: jest.fn((callback: () => void) => {
           if (isOutlineWatcher) {
             outlineChangeCallbacks.push(callback);
-          } else {
+          } else if (isClaimsWatcher) {
             claimsChangeCallbacks.push(callback);
           }
+          // Manuscript watcher callbacks are not tracked
           return { dispose: jest.fn() };
         }),
-        onDidCreate: jest.fn(),
-        onDidDelete: jest.fn(),
+        onDidCreate: jest.fn(() => ({ dispose: jest.fn() })),
+        onDidDelete: jest.fn(() => ({ dispose: jest.fn() })),
         dispose: jest.fn()
       };
+      
+      return watcher;
     });
 
     // Setup mock context
@@ -125,8 +142,13 @@ describe('ExtensionState', () => {
       const state = new ExtensionState(mockContext);
       await state.initialize();
 
-      expect(vscode.workspace.createFileSystemWatcher).toHaveBeenCalledTimes(2);
-      expect(mockContext.subscriptions).toHaveLength(2);
+      // Wait for background initialization to complete
+      await jest.runAllTimersAsync();
+
+      // ExtensionState creates 2 watchers (outline + claims)
+      // ManuscriptContextDetector creates 1 watcher (manuscript.md)
+      expect(vscode.workspace.createFileSystemWatcher).toHaveBeenCalledTimes(3);
+      expect(mockContext.subscriptions).toHaveLength(2); // Only outline and claims are in subscriptions
     });
 
     it('should watch the correct outline path', async () => {
@@ -157,21 +179,25 @@ describe('ExtensionState', () => {
       const state = new ExtensionState(mockContext);
       await state.initialize();
 
-      // Clear the initial parse call
-      jest.clearAllMocks();
+      // Wait for background initialization to complete
+      await jest.runAllTimersAsync();
+      
+      // Reset the mock to track new calls
+      (MockOutlineParser.prototype.parse as jest.Mock).mockClear();
 
-      // Simulate multiple rapid file changes
-      outlineChangeCallbacks.forEach(cb => {
+      // Simulate multiple rapid file changes (call the first callback multiple times)
+      if (outlineChangeCallbacks.length > 0) {
+        const cb = outlineChangeCallbacks[0];
         cb();
         cb();
         cb();
-      });
+      }
 
-      // Should not have called parse yet
+      // Should not have called parse yet (debounce timer is still pending)
       expect(MockOutlineParser.prototype.parse).not.toHaveBeenCalled();
 
-      // Fast-forward time by 500ms
-      jest.advanceTimersByTime(500);
+      // Fast-forward time by 500ms to trigger the debounced call
+      await jest.advanceTimersByTimeAsync(500);
 
       // Should have called parse only once
       expect(MockOutlineParser.prototype.parse).toHaveBeenCalledTimes(1);
@@ -181,10 +207,15 @@ describe('ExtensionState', () => {
       const state = new ExtensionState(mockContext);
       await state.initialize();
 
-      jest.clearAllMocks();
+      // Wait for background initialization to complete
+      await jest.runAllTimersAsync();
+      
+      // Reset the mock to track new calls
+      (MockOutlineParser.prototype.parse as jest.Mock).mockClear();
 
-      // Simulate file changes with delays
-      outlineChangeCallbacks.forEach(cb => {
+      // Simulate file changes with delays (call the first callback)
+      if (outlineChangeCallbacks.length > 0) {
+        const cb = outlineChangeCallbacks[0];
         cb();
         jest.advanceTimersByTime(300); // Not enough to trigger
         
@@ -192,8 +223,9 @@ describe('ExtensionState', () => {
         jest.advanceTimersByTime(300); // Still not enough (timer reset)
         
         cb();
-        jest.advanceTimersByTime(500); // Now it should trigger
-      });
+      }
+      
+      await jest.advanceTimersByTimeAsync(500); // Now it should trigger
 
       // Should have called parse only once after the final delay
       expect(MockOutlineParser.prototype.parse).toHaveBeenCalledTimes(1);
@@ -203,21 +235,23 @@ describe('ExtensionState', () => {
       const state = new ExtensionState(mockContext);
       await state.initialize();
 
+      // Wait for background initialization to complete
+      await jest.runAllTimersAsync();
       jest.clearAllMocks();
 
       // First change event
       outlineChangeCallbacks.forEach(cb => cb());
-      jest.advanceTimersByTime(500);
+      await jest.advanceTimersByTimeAsync(500);
       expect(MockOutlineParser.prototype.parse).toHaveBeenCalledTimes(1);
 
       // Second change event after debounce period
       outlineChangeCallbacks.forEach(cb => cb());
-      jest.advanceTimersByTime(500);
+      await jest.advanceTimersByTimeAsync(500);
       expect(MockOutlineParser.prototype.parse).toHaveBeenCalledTimes(2);
 
       // Third change event
       outlineChangeCallbacks.forEach(cb => cb());
-      jest.advanceTimersByTime(500);
+      await jest.advanceTimersByTimeAsync(500);
       expect(MockOutlineParser.prototype.parse).toHaveBeenCalledTimes(3);
     });
 
@@ -225,16 +259,22 @@ describe('ExtensionState', () => {
       const state = new ExtensionState(mockContext);
       await state.initialize();
 
-      jest.clearAllMocks();
+      // Wait for background initialization to complete
+      await jest.runAllTimersAsync();
+      
+      // Reset the mock to track new calls
+      (MockOutlineParser.prototype.parse as jest.Mock).mockClear();
 
-      outlineChangeCallbacks.forEach(cb => cb());
+      if (outlineChangeCallbacks.length > 0) {
+        outlineChangeCallbacks[0]();
+      }
 
       // Should not trigger before 500ms
       jest.advanceTimersByTime(499);
       expect(MockOutlineParser.prototype.parse).not.toHaveBeenCalled();
 
       // Should trigger at 500ms
-      jest.advanceTimersByTime(1);
+      await jest.advanceTimersByTimeAsync(1);
       expect(MockOutlineParser.prototype.parse).toHaveBeenCalledTimes(1);
     });
 
@@ -242,6 +282,8 @@ describe('ExtensionState', () => {
       const state = new ExtensionState(mockContext);
       await state.initialize();
 
+      // Wait for background initialization to complete
+      await jest.runAllTimersAsync();
       jest.clearAllMocks();
 
       // Simulate multiple rapid claims file changes
@@ -255,7 +297,7 @@ describe('ExtensionState', () => {
       expect(MockClaimsManager.prototype.loadClaims).not.toHaveBeenCalled();
 
       // Fast-forward time by 500ms
-      jest.advanceTimersByTime(500);
+      await jest.advanceTimersByTimeAsync(500);
 
       // Should have called loadClaims only once
       expect(MockClaimsManager.prototype.loadClaims).toHaveBeenCalledTimes(1);
@@ -267,13 +309,15 @@ describe('ExtensionState', () => {
       const state = new ExtensionState(mockContext);
       await state.initialize();
 
+      // Wait for background initialization to complete
+      await jest.runAllTimersAsync();
       jest.clearAllMocks();
 
       // Simulate file change
       outlineChangeCallbacks.forEach(cb => cb());
 
       // Fast-forward by 500ms (debounce delay)
-      jest.advanceTimersByTime(500);
+      await jest.advanceTimersByTimeAsync(500);
 
       // Parse should have been called within 2 seconds
       expect(MockOutlineParser.prototype.parse).toHaveBeenCalledTimes(1);
@@ -286,19 +330,26 @@ describe('ExtensionState', () => {
       const state = new ExtensionState(mockContext);
       await state.initialize();
 
-      jest.clearAllMocks();
+      // Wait for background initialization to complete
+      await jest.runAllTimersAsync();
+      
+      // Reset the mock to track new calls
+      (MockOutlineParser.prototype.parse as jest.Mock).mockClear();
 
       // Simulate 10 rapid changes
-      for (let i = 0; i < 10; i++) {
-        outlineChangeCallbacks.forEach(cb => cb());
-        jest.advanceTimersByTime(50); // 50ms between changes
+      if (outlineChangeCallbacks.length > 0) {
+        const cb = outlineChangeCallbacks[0];
+        for (let i = 0; i < 10; i++) {
+          cb();
+          jest.advanceTimersByTime(50); // 50ms between changes
+        }
       }
 
       // Should not have parsed yet (still within debounce window)
       expect(MockOutlineParser.prototype.parse).not.toHaveBeenCalled();
 
       // Wait for debounce to complete
-      jest.advanceTimersByTime(500);
+      await jest.advanceTimersByTimeAsync(500);
 
       // Should have parsed only once despite 10 changes
       expect(MockOutlineParser.prototype.parse).toHaveBeenCalledTimes(1);
@@ -307,21 +358,21 @@ describe('ExtensionState', () => {
 
   describe('Error Handling', () => {
     it('should handle parse errors gracefully', async () => {
-      MockOutlineParser.prototype.parse = jest.fn()
-        .mockResolvedValueOnce([]) // Initial parse succeeds
-        .mockRejectedValueOnce(new Error('Parse error')); // File change parse fails
-
       const state = new ExtensionState(mockContext);
       await state.initialize();
 
-      jest.clearAllMocks();
+      // Wait for initial background parse
+      await jest.runAllTimersAsync();
+      
+      // Now set up the existing mock to fail on the next call
+      (MockOutlineParser.prototype.parse as jest.Mock).mockClear();
+      (MockOutlineParser.prototype.parse as jest.Mock).mockRejectedValueOnce(new Error('Parse error'));
 
       // Simulate file change that will cause parse error
       outlineChangeCallbacks.forEach(cb => cb());
 
       // Advance timers and run all pending promises
-      jest.advanceTimersByTime(500);
-      jest.runAllTimers();
+      await jest.advanceTimersByTimeAsync(500);
 
       // Should have attempted to parse
       expect(MockOutlineParser.prototype.parse).toHaveBeenCalledTimes(1);
@@ -346,21 +397,20 @@ describe('ExtensionState', () => {
       const state = new ExtensionState(mockContext);
       await state.initialize();
 
-      jest.clearAllMocks();
-      parseCallCount = 1; // Reset after initial parse
+      // Wait for initial background parse
+      await jest.runAllTimersAsync();
+      const callCountAfterInit = (MockOutlineParser.prototype.parse as jest.Mock).mock.calls.length;
 
       // First change - will fail
       outlineChangeCallbacks.forEach(cb => cb());
-      jest.advanceTimersByTime(500);
-      jest.runAllTimers();
+      await jest.advanceTimersByTimeAsync(500);
 
       // Second change - should succeed
       outlineChangeCallbacks.forEach(cb => cb());
-      jest.advanceTimersByTime(500);
-      jest.runAllTimers();
+      await jest.advanceTimersByTimeAsync(500);
 
-      // Should have attempted to parse twice
-      expect(MockOutlineParser.prototype.parse).toHaveBeenCalledTimes(2);
+      // Should have attempted to parse twice after init (total 3 calls)
+      expect((MockOutlineParser.prototype.parse as jest.Mock).mock.calls.length).toBe(callCountAfterInit + 2);
     });
   });
 
@@ -417,7 +467,7 @@ describe('ExtensionState', () => {
       const calls = (vscode.workspace.createFileSystemWatcher as jest.Mock).mock.calls;
       
       // Verify that file watchers were created (paths are passed to RelativePattern)
-      expect(calls.length).toBe(2);
+      expect(calls.length).toBeGreaterThanOrEqual(2);
       expect(calls[0][0]).toBeDefined();
       expect(calls[1][0]).toBeDefined();
     });
@@ -434,11 +484,13 @@ describe('ExtensionState', () => {
       const state = new ExtensionState(mockContext);
       await state.initialize();
 
+      // Wait for background initialization
+      await jest.runAllTimersAsync();
       jest.clearAllMocks();
 
       // Simulate file change
       outlineChangeCallbacks.forEach(cb => cb());
-      jest.advanceTimersByTime(500);
+      await jest.advanceTimersByTimeAsync(500);
 
       // Parse should have been called to update in-memory structure
       expect(MockOutlineParser.prototype.parse).toHaveBeenCalledTimes(1);

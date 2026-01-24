@@ -16,6 +16,10 @@ import { ExportService } from './exportService';
 import { ConfigurationManager } from './configurationManager';
 import { UnifiedSearchService } from './unifiedSearchService';
 import { QuoteVerificationService } from './quoteVerificationService';
+import { AutoQuoteVerifier } from './autoQuoteVerifier';
+import { FulltextStatusManager } from './fulltextStatusManager';
+import { ManuscriptContextDetector } from './manuscriptContextDetector';
+import { ClaimSupportValidator } from './claimSupportValidator';
 
 export interface ExtensionConfig {
   outlinePath: string;
@@ -52,6 +56,10 @@ export class ExtensionState {
   public configurationManager: ConfigurationManager;
   public unifiedSearchService: UnifiedSearchService;
   public quoteVerificationService: QuoteVerificationService;
+  public autoQuoteVerifier: AutoQuoteVerifier;
+  public fulltextStatusManager: FulltextStatusManager;
+  public manuscriptContextDetector: ManuscriptContextDetector;
+  public claimSupportValidator: ClaimSupportValidator;
 
   constructor(context: vscode.ExtensionContext) {
     this.context = context;
@@ -72,11 +80,12 @@ export class ExtensionState {
     this.mcpClient = new MCPClientManager();
     this.embeddingService = new EmbeddingService(this.config.embeddingCacheSize);
     this.paperRanker = new PaperRanker(this.embeddingService);
-    this.coverageAnalyzer = new CoverageAnalyzer();
+    this.coverageAnalyzer = new CoverageAnalyzer(this.claimsManager, this.embeddingService);
     this.readingStatusManager = new ReadingStatusManager(context);
     this.claimExtractor = new ClaimExtractor(this.embeddingService);
     this.configurationManager = new ConfigurationManager(context);
     this.quoteVerificationService = new QuoteVerificationService(this.mcpClient, this.claimsManager);
+    this.autoQuoteVerifier = new AutoQuoteVerifier(this.claimsManager, this.mcpClient);
     this.pdfExtractionService = new PDFExtractionService(this.mcpClient, this.workspaceRoot);
     this.citationNetworkAnalyzer = new CitationNetworkAnalyzer();
     this.batchOperationHandler = new BatchOperationHandler(
@@ -91,6 +100,27 @@ export class ExtensionState {
       this.embeddingService,
       this.workspaceRoot
     );
+    this.fulltextStatusManager = new FulltextStatusManager(
+      this.mcpClient,
+      this.pdfExtractionService,
+      this.outlineParser,
+      this.workspaceRoot
+    );
+    this.manuscriptContextDetector = new ManuscriptContextDetector(
+      this.workspaceRoot,
+      this.claimsManager,
+      this.config.coverageThresholds
+    );
+    this.claimSupportValidator = new ClaimSupportValidator(
+      this.embeddingService,
+      this.mcpClient,
+      this.getAbsolutePath(this.config.extractedTextPath)
+    );
+    
+    // Hook up auto-verification to claim save events (Requirement 43.1)
+    this.claimsManager.onClaimSaved((claim) => {
+      this.autoQuoteVerifier.verifyOnSave(claim);
+    });
   }
 
   async initialize(): Promise<void> {
@@ -232,5 +262,6 @@ export class ExtensionState {
     this.mcpClient.dispose();
     this.embeddingService.clearCache();
     this.positionMapper?.dispose();
+    this.manuscriptContextDetector.dispose();
   }
 }

@@ -14,7 +14,25 @@ jest.mock('vscode', () => ({
       key: 'mock-decoration-type',
       dispose: jest.fn(),
     })),
+    createOutputChannel: jest.fn(() => ({
+      append: jest.fn(),
+      appendLine: jest.fn(),
+      clear: jest.fn(),
+      show: jest.fn(),
+      hide: jest.fn(),
+      dispose: jest.fn(),
+    })),
+    createStatusBarItem: jest.fn(() => ({
+      text: '',
+      tooltip: '',
+      show: jest.fn(),
+      hide: jest.fn(),
+      dispose: jest.fn(),
+    })),
     onDidChangeActiveTextEditor: jest.fn(() => ({
+      dispose: jest.fn(),
+    })),
+    onDidChangeTextEditorSelection: jest.fn(() => ({
       dispose: jest.fn(),
     })),
     activeTextEditor: undefined,
@@ -128,5 +146,9 @@ jest.mock('vscode', () => ({
     SourceControl: 1,
     Window: 10,
     Notification: 15,
+  },
+  StatusBarAlignment: {
+    Left: 1,
+    Right: 2,
   },
 }), { virtual: true });

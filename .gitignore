@@ -40,3 +40,4 @@ research-assistant-extension/dist
 research-assistant-extension/*.vsix
 .kiro/settings/mcp.json
 .kiro/specs/
+.kiro/specs

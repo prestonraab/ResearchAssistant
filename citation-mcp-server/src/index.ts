@@ -9,6 +9,10 @@ import {
 } from '@modelcontextprotocol/sdk/types.js';
 import * as fs from 'fs';
 import * as path from 'path';
+import { loadConfig, validateConfig } from './config.js';
+import { EmbeddingService } from './core/EmbeddingService.js';
+import { ClaimsManager } from './core/ClaimsManager.js';
+import { SearchService } from './services/SearchService.js';
 
 // Configuration
 const WORKSPACE_ROOT = process.env.CITATION_WORKSPACE_ROOT || process.cwd();
@@ -16,6 +20,33 @@ const EXTRACTED_TEXT_DIR = path.join(WORKSPACE_ROOT, 'literature', 'ExtractedTex
 const CLAIMS_FILE = path.join(WORKSPACE_ROOT, '01_Knowledge_Base', 'claims_and_evidence.md');
 const CLAIMS_DIR = path.join(WORKSPACE_ROOT, '01_Knowledge_Base', 'claims');
 const SOURCES_FILE = path.join(WORKSPACE_ROOT, '01_Knowledge_Base', 'sources.md');
+
+// Initialize services
+const config = loadConfig();
+const configErrors = validateConfig(config);
+if (configErrors.length > 0) {
+  console.error('Configuration errors:', configErrors);
+}
+
+let embeddingService: EmbeddingService | null = null;
+let claimsManager: ClaimsManager | null = null;
+let searchService: SearchService | null = null;
+
+// Initialize services if API key is available
+if (config.openaiApiKey) {
+  embeddingService = new EmbeddingService(
+    config.openaiApiKey,
+    path.join(config.workspaceRoot, config.embeddingCacheDir),
+    config.maxCacheSize,
+    config.embeddingModel
+  );
+  claimsManager = new ClaimsManager(config.workspaceRoot);
+  searchService = new SearchService(
+    embeddingService,
+    claimsManager,
+    config.similarityThreshold
+  );
+}
 
 interface SearchResult {
   file: string;
@@ -736,6 +767,70 @@ const tools: Tool[] = [
       },
       required: ['author_year']
     }
+  },
+  {
+    name: 'search_by_question',
+    description: 'Search for claims relevant to a research question using semantic similarity. Returns claims ranked by relevance with similarity scores. Use this to find existing evidence before writing new content.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        question: {
+          type: 'string',
+          description: 'The research question or topic to search for'
+        },
+        threshold: {
+          type: 'number',
+          description: 'Optional: Minimum similarity threshold (0-1). Default is 0.3',
+          minimum: 0,
+          maximum: 1
+        }
+      },
+      required: ['question']
+    }
+  },
+  {
+    name: 'search_by_draft',
+    description: 'Search for claims matching draft manuscript text. Analyzes each sentence to find supporting evidence and identifies gaps. Use this after writing a draft to find citations.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        draft_text: {
+          type: 'string',
+          description: 'The draft manuscript text to analyze'
+        },
+        mode: {
+          type: 'string',
+          enum: ['paragraph', 'sentence'],
+          description: 'Analysis mode: "paragraph" treats text as one unit, "sentence" analyzes each sentence independently'
+        },
+        threshold: {
+          type: 'number',
+          description: 'Optional: Minimum similarity threshold (0-1). Default is 0.3',
+          minimum: 0,
+          maximum: 1
+        }
+      },
+      required: ['draft_text', 'mode']
+    }
+  },
+  {
+    name: 'find_multi_source_support',
+    description: 'Find multiple independent sources supporting a statement. Use this for claims with generalization keywords (often, typically, generally, etc.) that require multiple sources.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        statement: {
+          type: 'string',
+          description: 'The statement that needs multiple source support'
+        },
+        min_sources: {
+          type: 'number',
+          description: 'Optional: Minimum number of independent sources required. Default is 2',
+          minimum: 1
+        }
+      },
+      required: ['statement']
+    }
   }
 ];
 
@@ -823,6 +918,210 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           content: [{
             type: 'text',
             text: content
+          }]
+        };
+      }
+
+      case 'search_by_question': {
+        // Validate that search service is available
+        if (!searchService) {
+          return {
+            content: [{
+              type: 'text',
+              text: JSON.stringify({
+                error: 'CONFIGURATION_ERROR',
+                message: 'Search service not available. OPENAI_API_KEY may not be configured.',
+                suggestions: ['Set OPENAI_API_KEY environment variable', 'Check configuration settings']
+              }, null, 2)
+            }],
+            isError: true
+          };
+        }
+
+        // Validate input parameters
+        const question = args.question as string;
+        if (!question || question.trim().length === 0) {
+          return {
+            content: [{
+              type: 'text',
+              text: JSON.stringify({
+                error: 'VALIDATION_ERROR',
+                field: 'question',
+                message: 'Question parameter is required and cannot be empty'
+              }, null, 2)
+            }],
+            isError: true
+          };
+        }
+
+        const threshold = args.threshold !== undefined ? (args.threshold as number) : undefined;
+        
+        // Validate threshold if provided
+        if (threshold !== undefined && (threshold < 0 || threshold > 1)) {
+          return {
+            content: [{
+              type: 'text',
+              text: JSON.stringify({
+                error: 'VALIDATION_ERROR',
+                field: 'threshold',
+                message: 'Threshold must be between 0 and 1'
+              }, null, 2)
+            }],
+            isError: true
+          };
+        }
+
+        // Load claims before searching
+        await claimsManager!.loadClaims();
+
+        // Perform search
+        const results = await searchService.searchByQuestion(question, threshold);
+        
+        return {
+          content: [{
+            type: 'text',
+            text: JSON.stringify(results, null, 2)
+          }]
+        };
+      }
+
+      case 'search_by_draft': {
+        // Validate that search service is available
+        if (!searchService) {
+          return {
+            content: [{
+              type: 'text',
+              text: JSON.stringify({
+                error: 'CONFIGURATION_ERROR',
+                message: 'Search service not available. OPENAI_API_KEY may not be configured.',
+                suggestions: ['Set OPENAI_API_KEY environment variable', 'Check configuration settings']
+              }, null, 2)
+            }],
+            isError: true
+          };
+        }
+
+        // Validate input parameters
+        const draftText = args.draft_text as string;
+        if (!draftText || draftText.trim().length === 0) {
+          return {
+            content: [{
+              type: 'text',
+              text: JSON.stringify({
+                error: 'VALIDATION_ERROR',
+                field: 'draft_text',
+                message: 'Draft text parameter is required and cannot be empty'
+              }, null, 2)
+            }],
+            isError: true
+          };
+        }
+
+        const mode = args.mode as 'paragraph' | 'sentence';
+        if (mode !== 'paragraph' && mode !== 'sentence') {
+          return {
+            content: [{
+              type: 'text',
+              text: JSON.stringify({
+                error: 'VALIDATION_ERROR',
+                field: 'mode',
+                message: 'Mode must be either "paragraph" or "sentence"'
+              }, null, 2)
+            }],
+            isError: true
+          };
+        }
+
+        const draftThreshold = args.threshold !== undefined ? (args.threshold as number) : undefined;
+        
+        // Validate threshold if provided
+        if (draftThreshold !== undefined && (draftThreshold < 0 || draftThreshold > 1)) {
+          return {
+            content: [{
+              type: 'text',
+              text: JSON.stringify({
+                error: 'VALIDATION_ERROR',
+                field: 'threshold',
+                message: 'Threshold must be between 0 and 1'
+              }, null, 2)
+            }],
+            isError: true
+          };
+        }
+
+        // Load claims before searching
+        await claimsManager!.loadClaims();
+
+        // Perform search
+        const results = await searchService.searchByDraft(draftText, mode, draftThreshold);
+        
+        return {
+          content: [{
+            type: 'text',
+            text: JSON.stringify(results, null, 2)
+          }]
+        };
+      }
+
+      case 'find_multi_source_support': {
+        // Validate that search service is available
+        if (!searchService) {
+          return {
+            content: [{
+              type: 'text',
+              text: JSON.stringify({
+                error: 'CONFIGURATION_ERROR',
+                message: 'Search service not available. OPENAI_API_KEY may not be configured.',
+                suggestions: ['Set OPENAI_API_KEY environment variable', 'Check configuration settings']
+              }, null, 2)
+            }],
+            isError: true
+          };
+        }
+
+        // Validate input parameters
+        const statement = args.statement as string;
+        if (!statement || statement.trim().length === 0) {
+          return {
+            content: [{
+              type: 'text',
+              text: JSON.stringify({
+                error: 'VALIDATION_ERROR',
+                field: 'statement',
+                message: 'Statement parameter is required and cannot be empty'
+              }, null, 2)
+            }],
+            isError: true
+          };
+        }
+
+        const minSources = args.min_sources !== undefined ? (args.min_sources as number) : 2;
+        
+        // Validate minSources if provided
+        if (minSources < 1) {
+          return {
+            content: [{
+              type: 'text',
+              text: JSON.stringify({
+                error: 'VALIDATION_ERROR',
+                field: 'min_sources',
+                message: 'Minimum sources must be at least 1'
+              }, null, 2)
+            }],
+            isError: true
+          };
+        }
+
+        // Load claims before searching
+        await claimsManager!.loadClaims();
+
+        // Perform search
+        const results = await searchService.findMultiSourceSupport(statement, minSources);
+        
+        return {
+          content: [{
+            type: 'text',
+            text: JSON.stringify(results, null, 2)
           }]
         };
       }

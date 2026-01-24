@@ -22,6 +22,11 @@ export interface CoverageReport {
 }
 
 export class CoverageAnalyzer {
+  constructor(
+    private claimsManager: any,
+    private embeddingService: any
+  ) {}
+
   /**
    * Analyze coverage for all sections in the outline
    * Maps claims to sections using section IDs in claim metadata
@@ -108,6 +113,15 @@ export class CoverageAnalyzer {
       // If same level, compare by position (lineStart) - earlier is more important
       return sectionA.lineStart - sectionB.lineStart;
     });
+  }
+
+  /**
+   * Generate 2-5 search queries for a section based on title and content
+   * Extracts key terms and creates domain-specific queries
+   * Alias for suggestSearchQueries for consistency with property tests
+   */
+  generateSearchQueries(section: OutlineSection): string[] {
+    return this.suggestSearchQueries(section);
   }
 
   /**
@@ -272,5 +286,47 @@ export class CoverageAnalyzer {
     
     // Return top K paper item keys
     return ranked.slice(0, topK).map((rp: any) => rp.paper.itemKey);
+  }
+
+  /**
+   * Suggest 1-3 outline sections for a claim based on semantic similarity
+   * Returns sections ranked by relevance to the claim text
+   * 
+   * @param claim The claim to find sections for
+   * @param sections Array of outline sections
+   * @returns Array of section suggestions with similarity scores
+   */
+  async suggestSectionsForClaim(
+    claim: Claim,
+    sections: OutlineSection[]
+  ): Promise<Array<{ sectionId: string; similarity: number }>> {
+    if (sections.length === 0) {
+      return [];
+    }
+
+    // Generate embedding for claim text
+    const claimEmbedding = await this.embeddingService.generateEmbedding(claim.text);
+
+    // Calculate similarity with each section
+    const similarities: Array<{ sectionId: string; similarity: number }> = [];
+
+    for (const section of sections) {
+      // Combine section title and content for embedding
+      const sectionText = [section.title, ...section.content].join(' ');
+      const sectionEmbedding = await this.embeddingService.generateEmbedding(sectionText);
+
+      // Calculate cosine similarity
+      const similarity = this.embeddingService.cosineSimilarity(claimEmbedding, sectionEmbedding);
+
+      similarities.push({
+        sectionId: section.id,
+        similarity
+      });
+    }
+
+    // Sort by similarity (descending) and return top 1-3
+    similarities.sort((a, b) => b.similarity - a.similarity);
+
+    return similarities.slice(0, 3);
   }
 }

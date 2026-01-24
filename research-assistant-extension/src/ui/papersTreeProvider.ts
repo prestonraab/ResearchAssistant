@@ -8,13 +8,29 @@ export class PaperTreeItem extends vscode.TreeItem {
     public readonly label: string,
     public readonly filePath?: string,
     public readonly pdfPath?: string,
-    public readonly collapsibleState: vscode.TreeItemCollapsibleState = vscode.TreeItemCollapsibleState.None
+    public readonly needsExtraction?: boolean,
+    public readonly collapsibleState: vscode.TreeItemCollapsibleState = vscode.TreeItemCollapsibleState.None,
+    public readonly children?: PaperTreeItem[]
   ) {
     super(label, collapsibleState);
     
-    this.contextValue = 'paper';
-    
-    if (pdfPath && fs.existsSync(pdfPath)) {
+    if (children) {
+      // This is a group node
+      this.contextValue = 'group';
+      this.iconPath = new vscode.ThemeIcon('folder');
+    } else if (needsExtraction && pdfPath) {
+      // PDF needs extraction
+      this.contextValue = 'pdfNeedsExtraction';
+      this.iconPath = new vscode.ThemeIcon('file-pdf', new vscode.ThemeColor('list.warningForeground'));
+      this.tooltip = `${label}\n\nPDF: ${pdfPath}\n⚠️ Text not extracted yet`;
+      this.command = {
+        command: 'researchAssistant.extractPdf',
+        title: 'Extract PDF Text',
+        arguments: [pdfPath]
+      };
+    } else if (pdfPath && fs.existsSync(pdfPath)) {
+      // PDF exists and extracted
+      this.contextValue = 'pdfExtracted';
       this.iconPath = new vscode.ThemeIcon('file-pdf');
       this.tooltip = `${label}\n\nPDF: ${pdfPath}\nExtracted: ${filePath}`;
       this.command = {
@@ -23,6 +39,8 @@ export class PaperTreeItem extends vscode.TreeItem {
         arguments: [vscode.Uri.file(pdfPath)]
       };
     } else if (filePath) {
+      // Only extracted text exists
+      this.contextValue = 'extractedOnly';
       this.iconPath = new vscode.ThemeIcon('file-text');
       this.tooltip = `${label}\n\nExtracted text: ${filePath}\n(PDF not found)`;
       this.command = {
@@ -31,6 +49,7 @@ export class PaperTreeItem extends vscode.TreeItem {
         arguments: [vscode.Uri.file(filePath)]
       };
     } else {
+      this.contextValue = 'paper';
       this.iconPath = new vscode.ThemeIcon('file');
     }
   }
@@ -51,6 +70,10 @@ export class PapersTreeProvider implements vscode.TreeDataProvider<PaperTreeItem
   }
 
   async getChildren(element?: PaperTreeItem): Promise<PaperTreeItem[]> {
+    if (element?.children) {
+      return element.children;
+    }
+    
     if (element) {
       return [];
     }
@@ -59,37 +82,102 @@ export class PapersTreeProvider implements vscode.TreeDataProvider<PaperTreeItem
       const extractedTextPath = this.state.getAbsolutePath(
         this.state.getConfig().extractedTextPath
       );
-      
-      if (!fs.existsSync(extractedTextPath)) {
-        return [new PaperTreeItem('No papers found')];
-      }
-      
-      const files = fs.readdirSync(extractedTextPath)
-        .filter(f => f.endsWith('.txt') || f.endsWith('.md'))
-        .sort();
-      
-      if (files.length === 0) {
-        return [new PaperTreeItem('No papers found')];
-      }
-      
-      // Try to find corresponding PDFs
       const pdfDir = path.join(this.state.getWorkspaceRoot(), 'literature', 'PDFs');
       
-      return files.map(file => {
-        const basename = path.basename(file, path.extname(file));
-        const extractedPath = path.join(extractedTextPath, file);
-        
-        // Look for PDF with same name
-        let pdfPath: string | undefined;
-        if (fs.existsSync(pdfDir)) {
-          const pdfFile = path.join(pdfDir, `${basename}.pdf`);
-          if (fs.existsSync(pdfFile)) {
-            pdfPath = pdfFile;
+      // Get all extracted text files
+      const extractedFiles = new Set<string>();
+      if (fs.existsSync(extractedTextPath)) {
+        fs.readdirSync(extractedTextPath)
+          .filter(f => f.endsWith('.txt') || f.endsWith('.md'))
+          .forEach(f => extractedFiles.add(path.basename(f, path.extname(f))));
+      }
+      
+      // Get all PDFs
+      const pdfFiles = new Set<string>();
+      if (fs.existsSync(pdfDir)) {
+        fs.readdirSync(pdfDir)
+          .filter(f => f.endsWith('.pdf'))
+          .forEach(f => pdfFiles.add(path.basename(f, '.pdf')));
+      }
+      
+      // Categorize papers
+      const needsExtraction: PaperTreeItem[] = [];
+      const extracted: PaperTreeItem[] = [];
+      const extractedOnly: PaperTreeItem[] = [];
+      
+      // PDFs that need extraction
+      for (const basename of pdfFiles) {
+        if (!extractedFiles.has(basename)) {
+          const pdfPath = path.join(pdfDir, `${basename}.pdf`);
+          needsExtraction.push(new PaperTreeItem(basename, undefined, pdfPath, true));
+        }
+      }
+      
+      // Papers with both PDF and extracted text
+      for (const basename of extractedFiles) {
+        const extractedPath = path.join(extractedTextPath, `${basename}.txt`);
+        if (!fs.existsSync(extractedPath)) {
+          // Try .md extension
+          const mdPath = path.join(extractedTextPath, `${basename}.md`);
+          if (fs.existsSync(mdPath)) {
+            const pdfPath = pdfFiles.has(basename) ? path.join(pdfDir, `${basename}.pdf`) : undefined;
+            if (pdfPath) {
+              extracted.push(new PaperTreeItem(basename, mdPath, pdfPath, false));
+            } else {
+              extractedOnly.push(new PaperTreeItem(basename, mdPath));
+            }
+          }
+        } else {
+          const pdfPath = pdfFiles.has(basename) ? path.join(pdfDir, `${basename}.pdf`) : undefined;
+          if (pdfPath) {
+            extracted.push(new PaperTreeItem(basename, extractedPath, pdfPath, false));
+          } else {
+            extractedOnly.push(new PaperTreeItem(basename, extractedPath));
           }
         }
-        
-        return new PaperTreeItem(basename, extractedPath, pdfPath);
-      });
+      }
+      
+      // Build tree with groups
+      const items: PaperTreeItem[] = [];
+      
+      if (needsExtraction.length > 0) {
+        items.push(new PaperTreeItem(
+          `⚠️ Needs Extraction (${needsExtraction.length})`,
+          undefined,
+          undefined,
+          undefined,
+          vscode.TreeItemCollapsibleState.Expanded,
+          needsExtraction.sort((a, b) => a.label.localeCompare(b.label))
+        ));
+      }
+      
+      if (extracted.length > 0) {
+        items.push(new PaperTreeItem(
+          `✅ Extracted (${extracted.length})`,
+          undefined,
+          undefined,
+          undefined,
+          vscode.TreeItemCollapsibleState.Collapsed,
+          extracted.sort((a, b) => a.label.localeCompare(b.label))
+        ));
+      }
+      
+      if (extractedOnly.length > 0) {
+        items.push(new PaperTreeItem(
+          `📄 Text Only (${extractedOnly.length})`,
+          undefined,
+          undefined,
+          undefined,
+          vscode.TreeItemCollapsibleState.Collapsed,
+          extractedOnly.sort((a, b) => a.label.localeCompare(b.label))
+        ));
+      }
+      
+      if (items.length === 0) {
+        return [new PaperTreeItem('No papers found')];
+      }
+      
+      return items;
     } catch (error) {
       console.error('Failed to load papers:', error);
       return [new PaperTreeItem('Error loading papers')];

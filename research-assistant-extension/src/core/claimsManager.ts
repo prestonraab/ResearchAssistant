@@ -27,6 +27,8 @@ export class ClaimsManager {
   private claimToFileMap: ClaimFileMapping = {}; // Track which file each claim belongs to
   private onDidChangeEmitter = new vscode.EventEmitter<void>();
   public readonly onDidChange = this.onDidChangeEmitter.event;
+  private onClaimSavedEmitter = new vscode.EventEmitter<Claim>();
+  public readonly onClaimSaved = this.onClaimSavedEmitter.event;
 
   constructor(filePath: string) {
     this.filePath = filePath;
@@ -147,6 +149,14 @@ export class ClaimsManager {
     return claims;
   }
 
+  /**
+   * Parse a claim block from markdown format
+   * Public method for testing and external use
+   */
+  parseClaim(block: string): Claim | null {
+    return this.parseClaimBlock(block);
+  }
+
   private parseClaimBlock(block: string): Claim | null {
     const lines = block.split('\n');
     
@@ -183,9 +193,9 @@ export class ClaimsManager {
         inSupportingQuotes = false;
       } else if (line.match(/^\*\*Source(\*\*)?:/)) {
         // Format: **Source**: AuthorYear (Source ID: N) or **Source:** AuthorYear (Source ID: N)
-        const sourceMatch = line.match(/\*\*Source(\*\*)?:\s*(\w+\d+)\s*\(Source ID:\s*(\d+)\)/);
+        const sourceMatch = line.match(/\*\*Source(\*\*)?:\s*(.+?)\s*\(Source ID:\s*(\d+)\)/);
         if (sourceMatch) {
-          source = sourceMatch[2];
+          source = sourceMatch[2].trim(); // Explicitly trim to match serialization
           sourceId = parseInt(sourceMatch[3], 10);
         }
         inPrimaryQuote = false;
@@ -339,6 +349,9 @@ export class ClaimsManager {
     
     await this.persistClaims();
     this.onDidChangeEmitter.fire();
+    
+    // Fire event for auto-verification (Requirement 43.1)
+    this.onClaimSavedEmitter.fire(claim);
   }
 
   async updateClaim(id: string, updates: Partial<Claim>): Promise<void> {
@@ -619,7 +632,11 @@ export class ClaimsManager {
     return nameMap[fileName] || fileName;
   }
 
-  private serializeClaim(claim: Claim): string {
+  /**
+   * Serialize a claim to markdown format
+   * Public method for testing and external use
+   */
+  serializeClaim(claim: Claim): string {
     let content = `## ${claim.id}: ${claim.text}\n\n`;
     
     if (claim.category) {

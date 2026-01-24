@@ -4,9 +4,18 @@ import { Claim } from '../claimsManager';
 
 describe('CoverageAnalyzer', () => {
   let analyzer: CoverageAnalyzer;
+  let mockClaimsManager: any;
+  let mockEmbeddingService: any;
 
   beforeEach(() => {
-    analyzer = new CoverageAnalyzer();
+    // Create mock dependencies
+    mockClaimsManager = {};
+    mockEmbeddingService = {
+      generateEmbedding: jest.fn().mockResolvedValue([0.1, 0.2, 0.3]),
+      cosineSimilarity: jest.fn().mockReturnValue(0.8)
+    };
+    
+    analyzer = new CoverageAnalyzer(mockClaimsManager, mockEmbeddingService);
   });
 
   // Helper function to create test sections

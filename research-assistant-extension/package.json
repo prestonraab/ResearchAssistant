@@ -81,6 +81,51 @@
         "command": "researchAssistant.searchAll",
         "title": "Research Assistant: Search All",
         "icon": "$(search)"
+      },
+      {
+        "command": "researchAssistant.syncPDFsFromZotero",
+        "title": "Research Assistant: Sync PDFs from Zotero",
+        "icon": "$(cloud-download)"
+      },
+      {
+        "command": "researchAssistant.extractPdf",
+        "title": "Extract PDF Text",
+        "icon": "$(file-text)"
+      },
+      {
+        "command": "researchAssistant.findPapersForSelection",
+        "title": "Find Papers for This",
+        "icon": "$(search)"
+      },
+      {
+        "command": "researchAssistant.quickExtractClaim",
+        "title": "Quick Extract Claim",
+        "icon": "$(add)"
+      },
+      {
+        "command": "researchAssistant.verifyClaimQuote",
+        "title": "Verify Quote",
+        "icon": "$(check)"
+      },
+      {
+        "command": "researchAssistant.verifyAllUnverified",
+        "title": "Research Assistant: Verify All Unverified Quotes",
+        "icon": "$(checklist)"
+      },
+      {
+        "command": "researchAssistant.validateClaimSupport",
+        "title": "Validate Support",
+        "icon": "$(symbol-misc)"
+      },
+      {
+        "command": "researchAssistant.validateAllClaims",
+        "title": "Research Assistant: Validate All Claims Support",
+        "icon": "$(checklist)"
+      },
+      {
+        "command": "researchAssistant.flagWeakSupport",
+        "title": "Research Assistant: Flag Claims with Weak Support",
+        "icon": "$(warning)"
       }
     ],
     "viewsContainers": {
@@ -109,6 +154,18 @@
       ]
     },
     "menus": {
+      "editor/context": [
+        {
+          "command": "researchAssistant.findPapersForSelection",
+          "when": "editorHasSelection && resourceFilename == manuscript.md",
+          "group": "researchAssistant@1"
+        },
+        {
+          "command": "researchAssistant.quickExtractClaim",
+          "when": "editorHasSelection && resourcePath =~ /ExtractedText/",
+          "group": "researchAssistant@2"
+        }
+      ],
       "view/title": [
         {
           "command": "researchAssistant.refreshOutline",
@@ -136,6 +193,16 @@
           "command": "researchAssistant.analyzeGapForSection",
           "when": "view == researchAssistant.outline && viewItem == section",
           "group": "1_actions@3"
+        },
+        {
+          "command": "researchAssistant.verifyClaimQuote",
+          "when": "view == researchAssistant.claims && viewItem == claim",
+          "group": "2_verification@1"
+        },
+        {
+          "command": "researchAssistant.validateClaimSupport",
+          "when": "view == researchAssistant.claims && viewItem == claim",
+          "group": "2_verification@2"
         }
       ]
     },
