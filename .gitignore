@@ -38,6 +38,67 @@ research-assistant-extension/node_modules
 research-assistant-extension/out
 research-assistant-extension/dist
 research-assistant-extension/*.vsix
+
+# Monorepo workspace
+node_modules/
+packages/*/node_modules/
+packages/*/dist/
+packages/*/out/
+packages/*/.cache/
+
+# Build outputs
+*.tsbuildinfo
+*.js.map
+*.d.ts.map
+
+# Test coverage
+coverage/
+.nyc_output/
+packages/*/coverage/
+
+# IDE and editor files
+.vscode/settings.json
+.vscode/launch.json
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# Temporary files
+*.tmp
+.cache/
+
+# VS Code extension specific
+*.vsix
+packages/vscode-extension/*.vsix
+packages/vscode-extension/out/
+packages/vscode-extension/dist/
+
+# MCP server specific
+packages/mcp-server/dist/
+
+# Core library specific
+packages/core/dist/
+
+# Legacy directories (to be removed after migration)
+citation-hover-extension/node_modules
+citation-mcp-server/node_modules
+research-assistant-extension/node_modules
+research-assistant-extension/out
+research-assistant-extension/dist
+research-assistant-extension/*.vsix
+
+# Kiro settings (user-specific)
 .kiro/settings/mcp.json
-.kiro/specs/
 .kiro/specs

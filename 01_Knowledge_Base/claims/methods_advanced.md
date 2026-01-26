@@ -1,6 +1,6 @@
-# Claims and Evidence: Method - Advanced Methods
+# Claims and Evidence: Method - Advanced
 
-This file contains **Method** claims related to advanced methods, meta-analysis, and specialized techniques (C_23 through C_59).
+This file contains all **Method - Advanced** claims with their supporting evidence.
 
 ---
 
@@ -10,13 +10,15 @@ This file contains **Method** claims related to advanced methods, meta-analysis,
 **Source**: Babichev2025 (Source ID: 15)  
 **Context**: Hyperparameters optimized using Bayesian optimization.
 
-**Primary Quote** (Abstract):
+**Primary Quote**:
 > "A stacking model was implemented to enhance classification robustness, compensating for potential clustering errors and delivering consistent performance across varying metrics and cluster structures."
 
 **Supporting Quotes**:
-- (Methods): "Random Forest models were used at the base level, while a logistic regression model served as the meta-classifier. Hyperparameters were optimized using Bayesian optimization, ensuring automated fine-tuning."
+- "Random Forest models were used at the base level, while a logistic regression model served as the meta-classifier. Hyperparameters were optimized using Bayesian optimization, ensuring automated fine-tuning."
+
 
 ---
+
 
 ## C_24: The K-Medoids clustering algorithm is suitable for gene expression data analysis
 
@@ -24,10 +26,12 @@ This file contains **Method** claims related to advanced methods, meta-analysis,
 **Source**: Babichev2025 (Source ID: 15)  
 **Context**: Minimizes sum of distances between points and cluster medoids.
 
-**Primary Quote** (Methods):
+**Primary Quote**:
 > "The key advantage of the K-Medoids algorithm is its ability to work with any distance measures, including non-Euclidean metrics such as mutual information-based distance, correlation distance, or Wasserstein distance. This is crucial when working with gene expression profiles, where Euclidean or Manhattan distances may not always be appropriate."
 
+
 ---
+
 
 ## C_26: Meta-analysis in gene expression studies combines results from independent but related datasets to increase statistical power
 
@@ -35,13 +39,15 @@ This file contains **Method** claims related to advanced methods, meta-analysis,
 **Source**: Campain2010 (Source ID: 16)  
 **Context**: Aids in finding effects that exist and important subtle variations.
 
-**Primary Quote** (Background):
+**Primary Quote**:
 > "Meta-analysis refers to an integrative data analysis method that traditionally is defined as a synthesis or at times review of results from datasets that are independent but related. Meta-analysis has ranging benefits. Power can be added to an analysis, obtained by the increase in sample size of the study. This aids the ability of the analysis to find effects that exist"
 
 **Supporting Quotes**:
-- (Background): "Meta-analysis can also be important when studies have conflicting conclusions as they may estimate an average effect or highlight an important subtle variation"
+- "Meta-analysis can also be important when studies have conflicting conclusions as they may estimate an average effect or highlight an important subtle variation"
+
 
 ---
+
 
 ## C_29: Meta-analysis methods can be categorized into 'relative' and 'absolute' approaches
 
@@ -49,10 +55,12 @@ This file contains **Method** claims related to advanced methods, meta-analysis,
 **Source**: Campain2010 (Source ID: 16)  
 **Context**: 'Relative' methods include Fisher's inverse chi-square, GeneMeta, and RankProd; 'absolute' methods are exemplified by the 'simple' meta method.
 
-**Primary Quote** (Background):
+**Primary Quote**:
 > "It is possible to consider meta-analysis at two levels, 'relative' and 'absolute' meta-analysis. 'Relative' metaanalysis looks at how genes or features correlate to a phenotype within a dataset. Multiple datasets are either aggregated or compared to obtain features which are commonly considered important. Meta-methods pertaining to this method include Fisher's inverse chisquare, GeneMeta, RankProd and the 'dataset cross-validation' meta. 'Absolute' meta-analysis seeks to combine the raw or transformed data from multiple experiments. By increasing the number of samples used, the statistical power of a test is increased. Traditional microarray analysis tools are then used on these larger datasets. The 'simple' meta method is an example of 'absolute' metaanalysis approach."
 
+
 ---
+
 
 ## C_30: Fisher's inverse chi-square method combines p-values from independent datasets
 
@@ -60,10 +68,12 @@ This file contains **Method** claims related to advanced methods, meta-analysis,
 **Source**: Campain2010 (Source ID: 16)  
 **Context**: Tests the null hypothesis of no differences in expression means between groups for a given gene.
 
-**Primary Quote** (Existing meta-analysis methods):
+**Primary Quote**:
 > "Fisher, in the 1930s developed a meta-analysis method that combines the p-values from independent datasets. One of a plethora of methods for combining the p-values, is the Fisher summary statistic, which tests the null hypothesis that for gene i, there is no differences in expression means between the two groups."
 
+
 ---
+
 
 ## C_32: GEO generates consistently computed gene expression count matrices for thousands of RNA-seq studies
 
@@ -71,14 +81,16 @@ This file contains **Method** claims related to advanced methods, meta-analysis,
 **Source**: Clough2023 (Source ID: 17)  
 **Context**: Uses HISAT2 and featureCounts pipeline; matrices for over 23,000 studies available.
 
-**Primary Quote** (Generation of RNA-seq count matrices section, Line 141):
+**Primary Quote**:
 > "RNA-seq Counts Pipeline (described at https://www.ncbi.nlm.nih.gov/geo/info/rnaseqcounts.html) is a cloud-based bioinformatic analysis method based on HISAT2 and featureCounts implemented for processing public bulk RNA-seq reads into consistently computed expression counts. GEO has further processed the raw counts generated by SRA and transformed them into raw and normalized study-centric matrix counts files that are interoperable with common differential gene expression analysis tools, thereby expanding data re-use potential."
 
 **Supporting Quotes**:
-- (Line 141): "GEO has further processed the raw counts generated by SRA and transformed them into raw and normalized study-centric matrix counts files that are interoperable with common differential gene expression analysis tools, thereby expanding data re-use potential."
-- (Line 141): "All historical and ongoing GEO human bulk RNA-seq studies have been subjected to the pipeline, such that matrices for over 23 000 studies are available today."
+- "GEO has further processed the raw counts generated by SRA and transformed them into raw and normalized study-centric matrix counts files that are interoperable with common differential gene expression analysis tools, thereby expanding data re-use potential."
+- "All historical and ongoing GEO human bulk RNA-seq studies have been subjected to the pipeline, such that matrices for over 23 000 studies are available today."
+
 
 ---
+
 
 ## C_37: Surrogate Variable Analysis (SVA) is a method to identify, estimate, and utilize components of expression heterogeneity
 
@@ -86,13 +98,15 @@ This file contains **Method** claims related to advanced methods, meta-analysis,
 **Source**: Leek2007 (Source ID: 7)  
 **Context**: Can be applied in conjunction with standard analysis techniques to accurately capture the relationship between expression and any modeled variables of interest.
 
-**Primary Quote** (Abstract):
+**Primary Quote**:
 > "We introduce 'surrogate variable analysis' (SVA) to overcome the problems caused by heterogeneity in expression studies. SVA can be applied in conjunction with standard analysis techniques to accurately capture the relationship between expression and any modeled variables of interest."
 
 **Supporting Quotes**:
-- (Results): "The SVA approach flexibly captures signatures of EH, including highly irregular patterns not following any simple model, by estimating the signatures of EH in the expression data themselves rather than attempting to estimate specific unmodeled factors such as age or gender."
+- "The SVA approach flexibly captures signatures of EH, including highly irregular patterns not following any simple model, by estimating the signatures of EH in the expression data themselves rather than attempting to estimate specific unmodeled factors such as age or gender."
+
 
 ---
+
 
 ## C_40: SVA improves the accuracy and stability of gene ranking for differential expression
 
@@ -100,13 +114,15 @@ This file contains **Method** claims related to advanced methods, meta-analysis,
 **Source**: Leek2007 (Source ID: 7)  
 **Context**: Achieved by adjusting for surrogate variables that capture unmodeled factors, reducing spurious differential expression.
 
-**Primary Quote** (Results, Simulated Examples):
+**Primary Quote**:
 > "Perhaps most importantly, SVA also results in a more powerful and reproducible ranking of genes for differential expression. SVA-adjusted analyses provide gene rankings comparable to the scenario where there is no heterogeneity, whereas an unadjusted analysis allows for incorrect and highly variable gene rankings."
 
 **Supporting Quotes**:
-- (Results): "This is arguably the most important feature of SVA, since an accurate and reproducible gene ranking is key for making biological inference when only a subset of genes will be selected for future study."
+- "This is arguably the most important feature of SVA, since an accurate and reproducible gene ranking is key for making biological inference when only a subset of genes will be selected for future study."
+
 
 ---
+
 
 ## C_45: Domain adaptation (DA), a subfield of transfer learning, addresses the problem of models not generalizing across datasets
 
@@ -114,7 +130,10 @@ This file contains **Method** claims related to advanced methods, meta-analysis,
 **Source**: Orouji2024 (Source ID: 20)  
 **Context**: Alleviates issues caused by technical and biological differences between datasets.
 
-**Primary Quote** (Abstract):
+**Primary Quote**:
 > "Domain adaptation, a type of transfer learning, alleviates this problem by aligning different datasets so that models can be applied across them."
 
+
 ---
+
+

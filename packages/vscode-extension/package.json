@@ -1,0 +1,285 @@
+{
+  "name": "research-assistant",
+  "displayName": "Research Assistant",
+  "description": "Comprehensive literature review assistant for academic research",
+  "version": "0.1.0",
+  "license": "MIT",
+  "publisher": "research-tools",
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/research-assistant"
+  },
+  "engines": {
+    "vscode": "^1.80.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onLanguage:markdown",
+    "onView:researchAssistant.outline",
+    "onCommand:researchAssistant.activate"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "researchAssistant.activate",
+        "title": "Research Assistant: Activate"
+      },
+      {
+        "command": "researchAssistant.refreshOutline",
+        "title": "Refresh Outline",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "researchAssistant.refreshClaims",
+        "title": "Refresh Claims",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "researchAssistant.showClaimsPanel",
+        "title": "Research Assistant: Show Claims Panel"
+      },
+      {
+        "command": "researchAssistant.analyzeCoverage",
+        "title": "Research Assistant: Analyze Coverage"
+      },
+      {
+        "command": "researchAssistant.showDashboard",
+        "title": "Research Assistant: Show Dashboard"
+      },
+      {
+        "command": "researchAssistant.searchPapersForSection",
+        "title": "Search Papers",
+        "icon": "$(search)"
+      },
+      {
+        "command": "researchAssistant.viewClaimsForSection",
+        "title": "View Claims",
+        "icon": "$(list-unordered)"
+      },
+      {
+        "command": "researchAssistant.analyzeGapForSection",
+        "title": "Analyze Gap",
+        "icon": "$(graph)"
+      },
+      {
+        "command": "researchAssistant.bulkImport",
+        "title": "Research Assistant: Bulk Import",
+        "icon": "$(cloud-download)"
+      },
+      {
+        "command": "researchAssistant.batchVerifyQuotes",
+        "title": "Research Assistant: Batch Verify Quotes"
+      },
+      {
+        "command": "researchAssistant.exportCoverage",
+        "title": "Research Assistant: Export Coverage Report"
+      },
+      {
+        "command": "researchAssistant.searchAll",
+        "title": "Research Assistant: Search All",
+        "icon": "$(search)"
+      },
+      {
+        "command": "researchAssistant.syncPDFsFromZotero",
+        "title": "Research Assistant: Sync PDFs from Zotero",
+        "icon": "$(cloud-download)"
+      },
+      {
+        "command": "researchAssistant.extractPdf",
+        "title": "Extract PDF Text",
+        "icon": "$(file-text)"
+      },
+      {
+        "command": "researchAssistant.findPapersForSelection",
+        "title": "Find Papers for This",
+        "icon": "$(search)"
+      },
+      {
+        "command": "researchAssistant.quickExtractClaim",
+        "title": "Quick Extract Claim",
+        "icon": "$(add)"
+      },
+      {
+        "command": "researchAssistant.verifyClaimQuote",
+        "title": "Verify Quote",
+        "icon": "$(check)"
+      },
+      {
+        "command": "researchAssistant.verifyAllUnverified",
+        "title": "Research Assistant: Verify All Unverified Quotes",
+        "icon": "$(checklist)"
+      },
+      {
+        "command": "researchAssistant.validateClaimSupport",
+        "title": "Validate Support",
+        "icon": "$(symbol-misc)"
+      },
+      {
+        "command": "researchAssistant.validateAllClaims",
+        "title": "Research Assistant: Validate All Claims Support",
+        "icon": "$(checklist)"
+      },
+      {
+        "command": "researchAssistant.flagWeakSupport",
+        "title": "Research Assistant: Flag Claims with Weak Support",
+        "icon": "$(warning)"
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "researchAssistant",
+          "title": "Research Assistant",
+          "icon": "$(book)"
+        }
+      ]
+    },
+    "views": {
+      "researchAssistant": [
+        {
+          "id": "researchAssistant.outline",
+          "name": "Outline & Coverage"
+        },
+        {
+          "id": "researchAssistant.claims",
+          "name": "Claims"
+        },
+        {
+          "id": "researchAssistant.papers",
+          "name": "Papers"
+        }
+      ]
+    },
+    "menus": {
+      "editor/context": [
+        {
+          "command": "researchAssistant.findPapersForSelection",
+          "when": "editorHasSelection && resourceFilename == manuscript.md",
+          "group": "researchAssistant@1"
+        },
+        {
+          "command": "researchAssistant.quickExtractClaim",
+          "when": "editorHasSelection && resourcePath =~ /ExtractedText/",
+          "group": "researchAssistant@2"
+        }
+      ],
+      "view/title": [
+        {
+          "command": "researchAssistant.refreshOutline",
+          "when": "view == researchAssistant.outline",
+          "group": "navigation"
+        },
+        {
+          "command": "researchAssistant.refreshClaims",
+          "when": "view == researchAssistant.claims",
+          "group": "navigation"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "researchAssistant.searchPapersForSection",
+          "when": "view == researchAssistant.outline && viewItem == section",
+          "group": "1_actions@1"
+        },
+        {
+          "command": "researchAssistant.viewClaimsForSection",
+          "when": "view == researchAssistant.outline && viewItem == section",
+          "group": "1_actions@2"
+        },
+        {
+          "command": "researchAssistant.analyzeGapForSection",
+          "when": "view == researchAssistant.outline && viewItem == section",
+          "group": "1_actions@3"
+        },
+        {
+          "command": "researchAssistant.verifyClaimQuote",
+          "when": "view == researchAssistant.claims && viewItem == claim",
+          "group": "2_verification@1"
+        },
+        {
+          "command": "researchAssistant.validateClaimSupport",
+          "when": "view == researchAssistant.claims && viewItem == claim",
+          "group": "2_verification@2"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "Research Assistant",
+      "properties": {
+        "researchAssistant.outlinePath": {
+          "type": "string",
+          "default": "03_Drafting/outline.md",
+          "description": "Relative path to the outline file from workspace root"
+        },
+        "researchAssistant.claimsDatabasePath": {
+          "type": "string",
+          "default": "01_Knowledge_Base/claims_and_evidence.md",
+          "description": "Relative path to the claims database file from workspace root"
+        },
+        "researchAssistant.extractedTextPath": {
+          "type": "string",
+          "default": "literature/ExtractedText",
+          "description": "Relative path to extracted text directory from workspace root"
+        },
+        "researchAssistant.coverageThresholds": {
+          "type": "object",
+          "default": {
+            "low": 3,
+            "moderate": 6,
+            "strong": 7
+          },
+          "description": "Thresholds for coverage levels (none: 0, low: 1-3, moderate: 4-6, strong: 7+)"
+        },
+        "researchAssistant.embeddingCacheSize": {
+          "type": "number",
+          "default": 50,
+          "description": "Maximum number of embeddings to cache in memory"
+        },
+        "researchAssistant.mcpCacheTTL": {
+          "type": "number",
+          "default": 300000,
+          "description": "MCP cache time-to-live in milliseconds (default: 5 minutes)"
+        },
+        "researchAssistant.enableMemoryMonitoring": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable memory usage monitoring and automatic cleanup"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run build",
+    "build": "npm run compile && npm run bundle",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "bundle": "NODE_OPTIONS='--max-old-space-size=4096' esbuild src/extension.ts --bundle --outfile=dist/extension.js --external:vscode --format=cjs --platform=node --minify",
+    "bundle:watch": "npm run bundle -- --watch",
+    "test": "NODE_OPTIONS='--max-old-space-size=4096 --experimental-vm-modules' jest",
+    "test:watch": "NODE_OPTIONS='--experimental-vm-modules' jest --watch",
+    "test:coverage": "NODE_OPTIONS='--experimental-vm-modules' jest --coverage",
+    "lint": "eslint src --ext ts",
+    "pretest": "npm run compile",
+    "clean": "rm -rf out dist"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.0",
+    "@types/node": "^18.0.0",
+    "@types/vscode": "^1.80.0",
+    "@typescript-eslint/eslint-plugin": "^6.0.0",
+    "@typescript-eslint/parser": "^6.0.0",
+    "esbuild": "^0.19.0",
+    "eslint": "^8.0.0",
+    "fast-check": "^3.15.0",
+    "jest": "^29.5.0",
+    "ts-jest": "^29.1.0",
+    "typescript": "^5.3.0"
+  },
+  "dependencies": {
+    "@research-assistant/core": "*"
+  }
+}
