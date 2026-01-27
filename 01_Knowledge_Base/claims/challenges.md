@@ -7,6 +7,7 @@ This file contains all **Challenge** claims with their supporting evidence.
 ## C_27: Challenges in microarray meta-analysis include overcoming different study aims, designs, and populations
 
 **Category**: Challenge  
+**Source**: Campain2010 (Source ID: 16)
 **Context**: Differing platforms and probe mapping make comparisons difficult; laboratory effects like experimental procedures and sample preparation also contribute.
 
 **Primary Quote**:
@@ -19,6 +20,7 @@ This file contains all **Challenge** claims with their supporting evidence.
 ## C_46: Most state-of-the-art domain adaptation methods face challenges when applied to biological datasets
 
 **Category**: Challenge  
+**Source**: Orouji2024 (Source ID: 20)
 **Context**: Biological datasets are expensive to collect and have complex feature spaces.
 
 **Primary Quote**:
@@ -31,6 +33,7 @@ This file contains all **Challenge** claims with their supporting evidence.
 ## C_47: Specific challenges for applying domain adaptation to biological data include poor sample-to-feature ratios and complex feature spaces
 
 **Category**: Challenge  
+**Source**: Orouji2024 (Source ID: 20)
 **Context**: These factors can substantially hinder data aggregation and model performance.
 
 **Primary Quote**:
@@ -43,6 +46,7 @@ This file contains all **Challenge** claims with their supporting evidence.
 ## C_96: Mass spectrometry-based proteomics data are inherently biased due to sample handling and instrumentation differences
 
 **Category**: Challenge  
+**Source**: Valikangas2016 (Source ID: 35)
 **Primary Quote**:
 > "To date, mass spectrometry (MS) data remain inherently biased as a result of reasons ranging from sample handling to differences caused by the instrumentation. Normalization is the process that aims to account for the bias and make samples more comparable."
 

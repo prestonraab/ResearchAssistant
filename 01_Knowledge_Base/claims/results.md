@@ -7,6 +7,7 @@ This file contains all **Result** claims with their supporting evidence.
 ## C_21: The proposed hybrid model achieved classification accuracy exceeding 95.9% and a weighted F1-score above 95.8% on the TCGA dataset
 
 **Category**: Result  
+**Source**: Babichev2025 (Source ID: 15)
 **Context**: Dataset included over 6,000 patient samples covering 13 cancer types.
 
 **Primary Quote**:
@@ -19,6 +20,7 @@ This file contains all **Result** claims with their supporting evidence.
 ## C_22: External validation of the hybrid model on Alzheimer's and Type 2 Diabetes datasets confirmed its generalizability
 
 **Category**: Result  
+**Source**: Babichev2025 (Source ID: 15)
 **Context**: Accuracies reached 96.28% and 97.43% respectively.
 
 **Primary Quote**:
@@ -31,6 +33,7 @@ This file contains all **Result** claims with their supporting evidence.
 ## C_25: For gene expression data, Wasserstein distance and correlation metrics consistently outperform mutual information-based metrics
 
 **Category**: Result  
+**Source**: Babichev2025 (Source ID: 15)
 **Context**: Demonstrated across multiple cluster structures (2-10 clusters) and validated on independent Alzheimer's and Type 2 Diabetes datasets.
 
 **Primary Quote**:
@@ -43,6 +46,7 @@ This file contains all **Result** claims with their supporting evidence.
 ## C_38: SVA increases the biological accuracy and reproducibility of analyses in genome-wide expression studies
 
 **Category**: Result  
+**Source**: Leek2007 (Source ID: 7)
 **Context**: Achieves operating characteristics nearly equivalent to what one would obtain with no expression heterogeneity at all.
 
 **Primary Quote**:
@@ -55,6 +59,7 @@ This file contains all **Result** claims with their supporting evidence.
 ## C_42: GMMchi robustly and reliably extracts bimodal patterns from both colorectal cancer cell line-derived microarray and tumor-derived RNA-Seq data
 
 **Category**: Result  
+**Source**: Liu2022 (Source ID: 19)
 **Context**: Confirmed previously reported gene expression correlates of well-characterized CRC phenotypes.
 
 **Primary Quote**:
@@ -67,6 +72,7 @@ This file contains all **Result** claims with their supporting evidence.
 ## C_43: GMMchi achieved 85% accuracy with a sample size of n=90 in simulated data, and exceeds 90% accuracy with a sample size of about 1000
 
 **Category**: Result  
+**Source**: Liu2022 (Source ID: 19)
 **Context**: Demonstrates accuracy in categorizing simulated distributions across varying sample sizes.
 
 **Primary Quote**:
@@ -79,6 +85,7 @@ This file contains all **Result** claims with their supporting evidence.
 ## C_51: CycleMix can flexibly assign cells to any number of states and accurately distinguish cycling from non-cycling cells
 
 **Category**: Result  
+**Source**: Peplinski2025 (Source ID: 21)
 **Context**: Benchmarked on both gold-standard and silver-standard datasets across different single-cell RNA-seq technologies.
 
 **Primary Quote**:
@@ -91,6 +98,7 @@ This file contains all **Result** claims with their supporting evidence.
 ## C_53: Benchmarking on high-throughput droplet-based scRNAseq datasets showed CycleMix accurately assigned over 90% of quiescent cells to a non-cycling phase
 
 **Category**: Result  
+**Source**: Peplinski2025 (Source ID: 21)
 **Context**: This was consistent with Seurat exhibiting much higher false-positive rates for S and G2M cell-type assignments.
 
 **Primary Quote**:
@@ -103,6 +111,7 @@ This file contains all **Result** claims with their supporting evidence.
 ## C_56: PhenoGMM successfully quantifies changes in microbial community structure based on flow cytometry data
 
 **Category**: Result  
+**Source**: Rubbens2021 (Source ID: 22)
 **Context**: Evaluated using data sets from both synthetic and natural ecosystems.
 
 **Primary Quote**:
@@ -115,6 +124,7 @@ This file contains all **Result** claims with their supporting evidence.
 ## C_60: In synthetic microbial communities, PhenoGMM showed moderate to highly correlated alpha-diversity estimations
 
 **Category**: Result  
+**Source**: Rubbens2021 (Source ID: 22)
 **Context**: This indicates that PhenoGMM captures community structure rather than identity.
 
 **Primary Quote**:
@@ -127,6 +137,7 @@ This file contains all **Result** claims with their supporting evidence.
 ## C_61: PhenoGMM successfully quantified the community structure of most natural freshwater microbial communities
 
 **Category**: Result  
+**Source**: Rubbens2021 (Source ID: 22)
 **Context**: Performance varied by ecosystem but was successful for most considered natural communities.
 
 **Primary Quote**:
@@ -139,6 +150,7 @@ This file contains all **Result** claims with their supporting evidence.
 ## C_78: Random forest gene selection yields very small sets of genes while preserving predictive accuracy
 
 **Category**: Result  
+**Source**: DiazUriarte2006 (Source ID: 28)
 **Context**: Demonstrated using simulated and nine microarray datasets.
 
 **Primary Quote**:
@@ -151,6 +163,7 @@ This file contains all **Result** claims with their supporting evidence.
 ## C_87: Neural networks outperform state-of-the-art methods only for very large training set sizes in gene expression classification
 
 **Category**: Result  
+**Source**: Hanczar2022 (Source ID: 33)
 **Context**: For small training sets, transfer learning may strongly improve model performance.
 
 **Primary Quote**:
@@ -163,6 +176,7 @@ This file contains all **Result** claims with their supporting evidence.
 ## C_92: fRMA is comparable to RMA when data are analyzed as a single batch and outperforms RMA when analyzing multiple batches
 
 **Category**: Result  
+**Source**: McCall2010 (Source ID: 40)
 **Context**: Demonstrates that reference-based approaches maintain quality while enabling flexibility.
 
 **Primary Quote**:
@@ -175,6 +189,7 @@ This file contains all **Result** claims with their supporting evidence.
 ## C_98: No single normalization method performs best across all proteomics datasets
 
 **Category**: Result  
+**Source**: Valikangas2016 (Source ID: 35)
 **Context**: Systematic evaluation across multiple datasets (UPS1, CPTAC, SGSD) reveals context-dependent performance, though Vsn performed consistently well overall.
 
 **Primary Quote**:

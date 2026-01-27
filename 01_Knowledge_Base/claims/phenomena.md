@@ -7,6 +7,7 @@ This file contains all **Phenomenon** claims with their supporting evidence.
 ## C_101: Shortcut learning occurs when deep neural networks exploit spurious correlations in training data
 
 **Category**: Phenomenon  
+**Source**: Geirhos2020 (Source ID: 38)
 **Context**: Models learn decision rules based on easy-to-identify features rather than intended causal relationships.
 
 **Primary Quote**:
@@ -19,6 +20,7 @@ This file contains all **Phenomenon** claims with their supporting evidence.
 ## C_102: Batch effects in genomic data can mask or simulate biological signals, leading models to encode technical artifacts
 
 **Category**: Phenomenon  
+**Source**: Soneson2014 (Source ID: 3)
 **Context**: When batch effects are confounded with outcomes of interest, models may select and encode batch-related features rather than true biological signals.
 
 **Primary Quote**:

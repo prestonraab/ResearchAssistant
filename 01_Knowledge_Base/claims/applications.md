@@ -7,7 +7,7 @@ This file contains all **Application** claims with their supporting evidence.
 ## C_35: GEO data are widely reused for identifying novel gene expression patterns, finding disease predictors, and developing computational methods
 
 **Category**: Application  
-**Source**: Clough2023  
+**Source**: Clough2023 (Source ID: 17)
 **Context**: Over 31,000 third-party papers use GEO data to support or complement independent studies.
 
 **Primary Quote**:
@@ -20,7 +20,7 @@ This file contains all **Application** claims with their supporting evidence.
 ## C_107: Multi-gene prognostic signatures are widely used clinically to guide treatment decisions in breast cancer
 
 **Category**: Application  
-**Source**: Buus2021  
+**Source**: Buus2021 (Source ID: 44)
 **Context**: These signatures estimate residual risk of recurrence after surgery to guide patient management.
 
 **Primary Quote**:
@@ -33,6 +33,7 @@ This file contains all **Application** claims with their supporting evidence.
 ## C_108: Batch effects can lead to lack of reproducibility and lower-than-expected classification rates in clinical predictors, potentially putting patients at risk
 
 **Category**: Application  
+**Source**: Leek2010 (Source ID: 18)
 **Context**: Undetected batch effects in predictors developed for clinical outcomes can produce more variable results than expected and adversely affect classification performance.
 
 **Primary Quote**:
@@ -45,6 +46,7 @@ This file contains all **Application** claims with their supporting evidence.
 ## C_109: Single-patient data processing is vital to the translation of molecular assays, as clinical settings typically collect patient samples in small numbers
 
 **Category**: Application  
+**Source**: Talhouk2016 (Source ID: 41)
 **Context**: Multi-sample batch correction methods are impractical in clinical settings where samples are processed individually or in small numbers.
 
 **Primary Quote**:

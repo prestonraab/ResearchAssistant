@@ -7,6 +7,7 @@ This file contains all **Method - Batch Correction** claims with their supportin
 ## C_01: ComBat uses Empirical Bayes to estimate location and scale parameters
 
 **Category**: Method  
+**Source**: Johnson2007 (Source ID: 1)
 **Context**: Assumes Gaussian distribution.
 
 **Primary Quote**:
@@ -19,6 +20,7 @@ This file contains all **Method - Batch Correction** claims with their supportin
 ## C_02: ComBat-Seq preserves integer counts for RNA-Seq data
 
 **Category**: Method  
+**Source**: Zhang2020 (Source ID: 2)
 **Context**: Uses Negative Binomial regression.
 
 **Primary Quote**:
@@ -31,6 +33,7 @@ This file contains all **Method - Batch Correction** claims with their supportin
 ## C_03: Batch effects can substantially degrade classifier performance when applied to new batches
 
 **Category**: Method  
+**Source**: Soneson2014 (Source ID: 3)
 **Context**: Classifiers may learn to distinguish batches rather than biological conditions.
 
 **Primary Quote**:
@@ -43,6 +46,7 @@ This file contains all **Method - Batch Correction** claims with their supportin
 ## C_04: Cross-validation within a single study may give optimistic performance estimates because classifiers can learn batch-specific patterns
 
 **Category**: Method  
+**Source**: Soneson2014 (Source ID: 3)
 **Context**: Batch effects confound performance estimates.
 
 **Primary Quote**:
@@ -55,6 +59,7 @@ This file contains all **Method - Batch Correction** claims with their supportin
 ## C_05: Machine learning classifiers have demonstrated strong performance for gene expression classification tasks
 
 **Category**: Method  
+**Source**: Alharbi2023 (Source ID: 4)
 **Context**: Includes SVM, random forests, logistic regression, and neural networks.
 
 **Primary Quote**:
@@ -67,6 +72,7 @@ This file contains all **Method - Batch Correction** claims with their supportin
 ## C_06: For gene expression data, support vector machines, random forests, logistic regression with regularization, and neural networks show particular utility
 
 **Category**: Method  
+**Source**: Alharbi2023 (Source ID: 4)
 **Context**: Benchmark studies have identified algorithms that perform relatively well on gene expression data.
 
 **Primary Quote**:
@@ -79,6 +85,7 @@ This file contains all **Method - Batch Correction** claims with their supportin
 ## C_07: RNA-seq data are typically skewed and over-dispersed counts, making Gaussian assumptions inappropriate
 
 **Category**: Method  
+**Source**: Zhang2020 (Source ID: 2)
 **Context**: Complicates batch correction methods that assume Gaussian distributions.
 
 **Primary Quote**:
@@ -91,6 +98,7 @@ This file contains all **Method - Batch Correction** claims with their supportin
 ## C_08: ComBat was originally developed for microarray data and has been successfully applied to RNA-seq data after appropriate transformation
 
 **Category**: Method  
+**Source**: Johnson2007 (Source ID: 1)
 **Context**: Requires transformation for count data; has been applied to both single-cell and bulk RNA-seq.
 
 **Primary Quote**:
@@ -103,6 +111,7 @@ This file contains all **Method - Batch Correction** claims with their supportin
 ## C_09: For single-cell RNA sequencing data, methods such as Harmony, LIGER, and Seurat address unique challenges including sparsity and high dimensionality
 
 **Category**: Method  
+**Source**: Tran2020 (Source ID: 5)
 **Context**: Single-cell data has more severe batch effects than bulk RNA-seq due to technical characteristics.
 
 **Primary Quote**:
@@ -115,6 +124,7 @@ This file contains all **Method - Batch Correction** claims with their supportin
 ## C_10: Alternative empirical Bayes models have been developed for adjusting batch effects in genomic studies
 
 **Category**: Method  
+**Source**: Zhang2018 (Source ID: 6)
 **Context**: Includes methods for cases with reference batches.
 
 **Primary Quote**:
@@ -127,6 +137,7 @@ This file contains all **Method - Batch Correction** claims with their supportin
 ## C_11: Surrogate Variable Analysis (SVA) identifies and adjusts for unknown, latent sources of variation in genomics data
 
 **Category**: Method  
+**Source**: Leek2007 (Source ID: 7)
 **Context**: Extracts surrogate variables from high-dimensional data to capture unwanted effects.
 
 **Primary Quote**:
@@ -139,6 +150,7 @@ This file contains all **Method - Batch Correction** claims with their supportin
 ## C_12: Harmony integrates single-cell datasets by removing batch effects while preserving biological structure through iterative batch-centroid correction in PC space
 
 **Category**: Method  
+**Source**: Korsunsky2019 (Source ID: 8)
 **Context**: Fast and scalable, can handle ~1 million cells.
 
 **Primary Quote**:
@@ -151,6 +163,7 @@ This file contains all **Method - Batch Correction** claims with their supportin
 ## C_13: LIGER uses integrative non-negative matrix factorization (iNMF) to separate shared biological factors from dataset-specific technical factors
 
 **Category**: Method  
+**Source**: Welch2019 (Source ID: 9)
 **Context**: Performs well when batches have non-identical cell type compositions.
 
 **Primary Quote**:
@@ -163,6 +176,7 @@ This file contains all **Method - Batch Correction** claims with their supportin
 ## C_14: Seurat v3 uses anchor-based integration with mutual nearest neighbors (MNNs) to correct batch effects while preserving cell-type structure
 
 **Category**: Method  
+**Source**: Stuart2019 (Source ID: 10)
 **Context**: Uses CCA to project datasets into shared space before finding anchors.
 
 **Primary Quote**:
@@ -175,6 +189,7 @@ This file contains all **Method - Batch Correction** claims with their supportin
 ## C_15: BatchQC provides interactive software for evaluating sample and batch effects with PCA, heatmaps, dendrograms, and other diagnostics
 
 **Category**: Method  
+**Source**: Manimaran2016 (Source ID: 11)
 **Context**: Supports multiple batch correction methods including ComBat, ComBat-Seq, limma, and SVA.
 
 **Primary Quote**:
@@ -187,6 +202,7 @@ This file contains all **Method - Batch Correction** claims with their supportin
 ## C_16: Merging (batch correction + pooled analysis) identified more differentially expressed genes than meta-analysis approaches
 
 **Category**: Method  
+**Source**: Taminau2014 (Source ID: 12)
 **Context**: Meta-analysis still found robust DEGs, choice depends on data availability and goals.
 
 **Primary Quote**:
@@ -199,6 +215,7 @@ This file contains all **Method - Batch Correction** claims with their supportin
 ## C_17: Classification performance for gene-expression data depends strongly on algorithm choice and performance metric
 
 **Category**: Method  
+**Source**: Piccolo2022 (Source ID: 13)
 **Context**: Number of samples and genes did not strongly correlate with classification performance.
 
 **Primary Quote**:
@@ -211,6 +228,7 @@ This file contains all **Method - Batch Correction** claims with their supportin
 ## C_18: recount3 provides harmonized RNA-Seq expression summaries across thousands of experiments, enabling large-scale integrative analyses
 
 **Category**: Method  
+**Source**: Wilks2021 (Source ID: 14)
 **Context**: Comprises over 750,000 individual sequencing runs from SRA, GTEx, and TCGA, enables cross-dataset comparisons.
 
 **Primary Quote**:
@@ -223,6 +241,7 @@ This file contains all **Method - Batch Correction** claims with their supportin
 ## C_19: A hybrid model integrating data mining and machine learning methods can evaluate proximity metrics in high-dimensional gene expression data for disease diagnosis
 
 **Category**: Method  
+**Source**: Babichev2025 (Source ID: 15)
 **Context**: Focuses on selecting and evaluating proximity metrics for clustering and classification tasks.
 
 **Primary Quote**:
@@ -235,6 +254,7 @@ This file contains all **Method - Batch Correction** claims with their supportin
 ## C_20: Correlation distance, mutual information-based metrics, and Wasserstein distance are well-suited for gene expression analysis
 
 **Category**: Method  
+**Source**: Babichev2025 (Source ID: 15)
 **Context**: Selected for their theoretical soundness and practical relevance in transcriptomics.
 
 **Primary Quote**:
@@ -247,6 +267,7 @@ This file contains all **Method - Batch Correction** claims with their supportin
 ## C_23: A stacking model, with Random Forest base learners and a logistic regression meta-classifier, can enhance classification robustness
 
 **Category**: Method  
+**Source**: Babichev2025 (Source ID: 15)
 **Context**: Hyperparameters optimized using Bayesian optimization.
 
 **Primary Quote**:
@@ -259,6 +280,7 @@ This file contains all **Method - Batch Correction** claims with their supportin
 ## C_24: The K-Medoids clustering algorithm is suitable for gene expression data analysis
 
 **Category**: Method  
+**Source**: Babichev2025 (Source ID: 15)
 **Context**: Minimizes sum of distances between points and cluster medoids.
 
 **Primary Quote**:
@@ -271,6 +293,7 @@ This file contains all **Method - Batch Correction** claims with their supportin
 ## C_26: Meta-analysis in gene expression studies combines results from independent but related datasets to increase statistical power
 
 **Category**: Method  
+**Source**: Campain2010 (Source ID: 16)
 **Context**: Aids in finding effects that exist and important subtle variations.
 
 **Primary Quote**:
@@ -283,6 +306,7 @@ This file contains all **Method - Batch Correction** claims with their supportin
 ## C_29: Meta-analysis methods can be categorized into 'relative' and 'absolute' approaches
 
 **Category**: Method  
+**Source**: Campain2010 (Source ID: 16)
 **Context**: 'Relative' methods include Fisher's inverse chi-square, GeneMeta, and RankProd; 'absolute' methods are exemplified by the 'simple' meta method.
 
 **Primary Quote**:
@@ -295,6 +319,7 @@ This file contains all **Method - Batch Correction** claims with their supportin
 ## C_30: Fisher's inverse chi-square method combines p-values from independent datasets
 
 **Category**: Method  
+**Source**: Campain2010 (Source ID: 16)
 **Context**: Tests the null hypothesis of no differences in expression means between groups for a given gene.
 
 **Primary Quote**:
@@ -307,6 +332,7 @@ This file contains all **Method - Batch Correction** claims with their supportin
 ## C_32: GEO generates consistently computed gene expression count matrices for thousands of RNA-seq studies
 
 **Category**: Method  
+**Source**: Clough2023 (Source ID: 17)
 **Context**: Uses HISAT2 and featureCounts pipeline; matrices for over 23,000 studies available.
 
 **Primary Quote**:
@@ -319,6 +345,7 @@ This file contains all **Method - Batch Correction** claims with their supportin
 ## C_37: Surrogate Variable Analysis (SVA) is a method to identify, estimate, and utilize components of expression heterogeneity
 
 **Category**: Method  
+**Source**: Leek2007 (Source ID: 7)
 **Context**: Can be applied in conjunction with standard analysis techniques to accurately capture the relationship between expression and any modeled variables of interest.
 
 **Primary Quote**:
@@ -331,6 +358,7 @@ This file contains all **Method - Batch Correction** claims with their supportin
 ## C_40: SVA improves the accuracy and stability of gene ranking for differential expression
 
 **Category**: Method  
+**Source**: Leek2007 (Source ID: 7)
 **Context**: Achieved by adjusting for surrogate variables that capture unmodeled factors, reducing spurious differential expression.
 
 **Primary Quote**:
@@ -343,6 +371,7 @@ This file contains all **Method - Batch Correction** claims with their supportin
 ## C_45: Domain adaptation (DA), a subfield of transfer learning, addresses the problem of models not generalizing across datasets
 
 **Category**: Method  
+**Source**: Orouji2024 (Source ID: 20)
 **Context**: Alleviates issues caused by technical and biological differences between datasets.
 
 **Primary Quote**:
@@ -355,6 +384,7 @@ This file contains all **Method - Batch Correction** claims with their supportin
 ## C_75: Random forests provide feature importance measures that can identify key predictive genes in gene expression classification tasks
 
 **Category**: Method  
+**Source**: DiazUriarte2006 (Source ID: 28)
 **Context**: Variable importance measures have been suggested as screening tools for gene expression studies.
 
 **Primary Quote**:
@@ -367,6 +397,7 @@ This file contains all **Method - Batch Correction** claims with their supportin
 ## C_76: Logistic regression with L1 regularization (lasso) performs automatic feature selection
 
 **Category**: Method  
+**Source**: Zou2005 (Source ID: 29)
 **Context**: L1 penalty enables sparse solutions suitable for high-dimensional gene expression data.
 
 **Primary Quote**:
@@ -379,6 +410,7 @@ This file contains all **Method - Batch Correction** claims with their supportin
 ## C_77: Support vector machines can identify support vectors that define decision boundaries
 
 **Category**: Method  
+**Source**: DiazUriarte2006 (Source ID: 28)
 **Context**: SVMs are well-suited for high-dimensional problems where the number of features exceeds the number of samples.
 
 **Primary Quote**:
@@ -391,6 +423,7 @@ This file contains all **Method - Batch Correction** claims with their supportin
 ## C_79: Elastic net combines L1 (lasso) and L2 (ridge) regularization penalties to perform both variable selection and regularization
 
 **Category**: Method  
+**Source**: Zou2005 (Source ID: 29)
 **Context**: Particularly useful when the number of predictors (p) is much larger than the number of observations (n).
 
 **Primary Quote**:
@@ -403,6 +436,7 @@ This file contains all **Method - Batch Correction** claims with their supportin
 ## C_80: Elastic net encourages a grouping effect, where strongly correlated predictors tend to be in or out of the model together
 
 **Category**: Method  
+**Source**: Zou2005 (Source ID: 29)
 **Context**: Addresses limitations of lasso in the p >> n case.
 
 **Primary Quote**:
@@ -415,6 +449,7 @@ This file contains all **Method - Batch Correction** claims with their supportin
 ## C_81: XGBoost is a scalable end-to-end tree boosting system that uses a novel sparsity-aware algorithm for sparse data
 
 **Category**: Method  
+**Source**: Chen2016 (Source ID: 30)
 **Context**: Widely used by data scientists to achieve state-of-the-art results on machine learning challenges.
 
 **Primary Quote**:
@@ -427,6 +462,7 @@ This file contains all **Method - Batch Correction** claims with their supportin
 ## C_82: XGBoost provides insights on cache access patterns, data compression, and sharding to build scalable tree boosting systems
 
 **Category**: Method  
+**Source**: Chen2016 (Source ID: 30)
 **Context**: Enables efficient handling of large-scale datasets.
 
 **Primary Quote**:
@@ -439,6 +475,7 @@ This file contains all **Method - Batch Correction** claims with their supportin
 ## C_83: Random forests are a combination of tree predictors where each tree depends on values of a random vector sampled independently
 
 **Category**: Method  
+**Source**: Breiman2001 (Source ID: 31)
 **Context**: The generalization error converges as the number of trees increases.
 
 **Primary Quote**:
@@ -451,6 +488,7 @@ This file contains all **Method - Batch Correction** claims with their supportin
 ## C_84: Random forests provide robustness to noise and can handle high-dimensional data where the number of features exceeds the number of samples
 
 **Category**: Method  
+**Source**: Breiman2001 (Source ID: 31)
 **Context**: Ensemble approach aggregates predictions across multiple trees.
 
 **Primary Quote**:
@@ -463,6 +501,7 @@ This file contains all **Method - Batch Correction** claims with their supportin
 ## C_85: Support vector machines with recursive feature elimination (SVM-RFE) can perform gene selection for cancer classification
 
 **Category**: Method  
+**Source**: Guyon2002 (Source ID: 32)
 **Context**: Genes selected by SVM-RFE yield better classification performance and are biologically relevant to cancer.
 
 **Primary Quote**:
@@ -475,6 +514,7 @@ This file contains all **Method - Batch Correction** claims with their supportin
 ## C_86: SVMs are particularly effective for high-dimensional gene expression data where the number of features often exceeds the number of samples
 
 **Category**: Method  
+**Source**: Guyon2002 (Source ID: 32)
 **Context**: The kernel trick allows SVMs to capture non-linear relationships.
 
 **Primary Quote**:
@@ -487,6 +527,7 @@ This file contains all **Method - Batch Correction** claims with their supportin
 ## C_88: Deep learning requires sufficient data to achieve superior performance on gene expression classification tasks
 
 **Category**: Method  
+**Source**: Hanczar2022 (Source ID: 33)
 **Context**: The n << p property (few samples, many features) has historically prevented effective use of deep learning for gene expression data.
 
 **Primary Quote**:
@@ -499,6 +540,7 @@ This file contains all **Method - Batch Correction** claims with their supportin
 ## C_89: Frozen RMA (fRMA) allows microarrays to be analyzed individually or in small batches
 
 **Category**: Method  
+**Source**: McCall2010 (Source ID: 40)
 **Context**: Addresses the clinical need to process samples individually without requiring a batch.
 
 **Primary Quote**:
@@ -511,6 +553,7 @@ This file contains all **Method - Batch Correction** claims with their supportin
 ## C_91: Reference-based normalization adjusts a single sample against a pre-computed reference distribution from training data
 
 **Category**: Method  
+**Source**: McCall2010 (Source ID: 40)
 **Context**: Critical for clinical deployment where each patient sample may constitute its own "batch."
 
 **Primary Quote**:
@@ -523,6 +566,7 @@ This file contains all **Method - Batch Correction** claims with their supportin
 ## C_93: Beta values for DNA methylation are bounded between 0 and 1 but violate Gaussian distribution assumptions
 
 **Category**: Method  
+**Source**: Du2010 (Source ID: 34)
 **Context**: This necessitates transformation to M-values before applying standard batch correction.
 
 **Primary Quote**:
@@ -535,6 +579,7 @@ This file contains all **Method - Batch Correction** claims with their supportin
 ## C_94: M-values (log2 ratio of methylated to unmethylated intensities) have better statistical properties for differential methylation analysis
 
 **Category**: Method  
+**Source**: Du2010 (Source ID: 34)
 **Context**: M-values are more statistically valid than Beta-values for parametric tests.
 
 **Primary Quote**:
@@ -547,6 +592,7 @@ This file contains all **Method - Batch Correction** claims with their supportin
 ## C_95: For DNA methylation analysis, M-values should be used for statistical testing while beta-values should be reported for biological interpretation
 
 **Category**: Method  
+**Source**: Du2010 (Source ID: 34)
 **Context**: This recommendation balances statistical validity with interpretability in methylation studies.
 
 **Primary Quote**:
@@ -559,6 +605,7 @@ This file contains all **Method - Batch Correction** claims with their supportin
 ## C_97: Quantile normalization, median normalization, and variance stabilization normalization (VSN) are commonly used for proteomics data
 
 **Category**: Method  
+**Source**: Valikangas2016 (Source ID: 35)
 **Context**: Many normalization methods commonly used in proteomics have been adapted from DNA microarray techniques. The choice of normalization method significantly impacts downstream analysis results.
 
 **Primary Quote**:
