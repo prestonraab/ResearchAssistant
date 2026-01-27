@@ -3,8 +3,18 @@ import * as fs from 'fs';
 import * as path from 'path';
 import type { Claim, OutlineSection } from '@research-assistant/core';
 import { CoverageMetrics } from './coverageAnalyzer';
+import { SentenceClaimQuoteLinkManager } from './sentenceClaimQuoteLinkManager';
+import { ClaimsManager } from './claimsManagerWrapper';
 
 export type ExportFormat = 'markdown' | 'csv' | 'json';
+
+export interface ManuscriptExportOptions {
+  outputPath: string;
+  includeFootnotes?: boolean;
+  includeBibliography?: boolean;
+  footnoteStyle?: 'pandoc' | 'native'; // pandoc for markdown, native for Word
+  footnoteScope?: 'document' | 'section'; // continuous or per-section numbering
+}
 
 export interface ExportOptions {
   format: ExportFormat;
@@ -15,7 +25,277 @@ export interface ExportOptions {
   filterByCategory?: string;
 }
 
+export interface CitedQuote {
+  quoteText: string;
+  source: string;
+  year?: string;
+  claimId: string;
+  sentenceId: string;
+  quoteIndex: number;
+}
+
 export class ExportService {
+  constructor(
+    private sentenceClaimQuoteLinkManager?: SentenceClaimQuoteLinkManager,
+    private claimsManager?: ClaimsManager
+  ) {}
+
+  /**
+   * Export manuscript with marked citations as Markdown with Pandoc-style footnotes
+   */
+  public async exportManuscriptMarkdown(
+    manuscriptText: string,
+    options: ManuscriptExportOptions
+  ): Promise<void> {
+    const content = await this.generateMarkdownWithFootnotes(manuscriptText, options);
+    await this.writeToFile(options.outputPath, content);
+  }
+
+  /**
+   * Export manuscript with marked citations as Word (.docx) with native footnotes
+   */
+  public async exportManuscriptWord(
+    manuscriptText: string,
+    options: ManuscriptExportOptions
+  ): Promise<void> {
+    // Word export requires docx library - will be implemented with proper dependency
+    // For now, throw informative error
+    throw new Error('Word export requires docx library installation. Use markdown export for now.');
+  }
+
+  /**
+   * Collect all marked citations for a sentence
+   */
+  private async collectCitationsForSentence(sentenceId: string): Promise<CitedQuote[]> {
+    if (!this.sentenceClaimQuoteLinkManager || !this.claimsManager) {
+      return [];
+    }
+
+    const citations = this.sentenceClaimQuoteLinkManager.getCitationsForSentence(sentenceId);
+    const citedQuotes: CitedQuote[] = [];
+
+    for (const citation of citations) {
+      const claim = this.claimsManager.getClaim(citation.claimId);
+      if (!claim) {
+        continue;
+      }
+
+      // Get the quote text based on quote index
+      let quoteText = '';
+      if (citation.quoteIndex === 0) {
+        quoteText = claim.primaryQuote;
+      } else if (citation.quoteIndex - 1 < claim.supportingQuotes.length) {
+        quoteText = claim.supportingQuotes[citation.quoteIndex - 1];
+      }
+
+      if (quoteText) {
+        citedQuotes.push({
+          quoteText,
+          source: claim.source,
+          year: this.extractYear(claim.source),
+          claimId: claim.id,
+          sentenceId,
+          quoteIndex: citation.quoteIndex
+        });
+      }
+    }
+
+    return citedQuotes;
+  }
+
+  /**
+   * Extract year from source string (e.g., "Smith2020" -> "2020")
+   */
+  private extractYear(source: string): string | undefined {
+    const match = source.match(/(\d{4})/);
+    return match ? match[1] : undefined;
+  }
+
+  /**
+   * Generate unique footnote ID
+   */
+  private generateFootnoteId(index: number): string {
+    return `^${index}`;
+  }
+
+  /**
+   * Build bibliography from all cited sources
+   */
+  private async buildBibliography(allCitations: CitedQuote[]): Promise<string[]> {
+    const sources = new Map<string, CitedQuote>();
+
+    // Collect unique sources
+    for (const citation of allCitations) {
+      const key = `${citation.source}`;
+      if (!sources.has(key)) {
+        sources.set(key, citation);
+      }
+    }
+
+    // Sort by source
+    const sortedSources = Array.from(sources.values()).sort((a, b) =>
+      a.source.localeCompare(b.source)
+    );
+
+    // Format bibliography entries
+    return sortedSources.map(citation => {
+      const year = citation.year ? ` (${citation.year})` : '';
+      return `- ${citation.source}${year}`;
+    });
+  }
+
+  /**
+   * Generate markdown with Pandoc-style footnotes
+   */
+  private async generateMarkdownWithFootnotes(
+    manuscriptText: string,
+    options: ManuscriptExportOptions
+  ): Promise<string> {
+    const lines: string[] = [];
+    const footnotes: Map<number, string> = new Map();
+    const allCitations: CitedQuote[] = [];
+    let footnoteIndex = 1;
+
+    // Parse manuscript into sections
+    const sections = this.parseManuscriptSections(manuscriptText);
+
+    for (const section of sections) {
+      lines.push(section.heading);
+      lines.push('');
+
+      // Process each paragraph
+      for (const paragraph of section.paragraphs) {
+        let processedParagraph = paragraph;
+
+        // Parse sentences in paragraph
+        const sentences = this.parseSentences(paragraph);
+
+        for (const sentence of sentences) {
+          // Get citations for this sentence
+          const citations = await this.collectCitationsForSentence(sentence.id);
+
+          if (citations.length > 0) {
+            allCitations.push(...citations);
+
+            // Add footnote references to sentence
+            let sentenceWithFootnotes = sentence.text;
+
+            for (const citation of citations) {
+              const footnoteId = this.generateFootnoteId(footnoteIndex);
+              const footnoteText = `${citation.quoteText} (${citation.source}${citation.year ? ', ' + citation.year : ''})`;
+
+              footnotes.set(footnoteIndex, footnoteText);
+              sentenceWithFootnotes += ` ${footnoteId}`;
+              footnoteIndex++;
+            }
+
+            processedParagraph = processedParagraph.replace(sentence.text, sentenceWithFootnotes);
+          }
+        }
+
+        lines.push(processedParagraph);
+        lines.push('');
+      }
+
+      // Add footnotes for this section if document-scoped
+      if (options.footnoteScope === 'section') {
+        for (const [index, text] of footnotes.entries()) {
+          lines.push(`${this.generateFootnoteId(index)}: ${text}`);
+        }
+        lines.push('');
+        footnotes.clear();
+        footnoteIndex = 1;
+      }
+    }
+
+    // Add bibliography if requested
+    if (options.includeBibliography !== false) {
+      lines.push('## Bibliography');
+      lines.push('');
+
+      const bibliography = await this.buildBibliography(allCitations);
+      for (const entry of bibliography) {
+        lines.push(entry);
+      }
+      lines.push('');
+    }
+
+    // Add document-scoped footnotes if applicable
+    if (options.footnoteScope !== 'section' && footnotes.size > 0) {
+      lines.push('## Footnotes');
+      lines.push('');
+
+      for (const [index, text] of footnotes.entries()) {
+        lines.push(`${this.generateFootnoteId(index)}: ${text}`);
+      }
+      lines.push('');
+    }
+
+    return lines.join('\n');
+  }
+
+  /**
+   * Parse manuscript into sections (headings + paragraphs)
+   */
+  private parseManuscriptSections(text: string): Array<{ heading: string; paragraphs: string[] }> {
+    const sections: Array<{ heading: string; paragraphs: string[] }> = [];
+    const lines = text.split('\n');
+
+    let currentSection = { heading: '', paragraphs: [] as string[] };
+    let currentParagraph = '';
+
+    for (const line of lines) {
+      if (line.startsWith('#')) {
+        // Save previous section
+        if (currentSection.heading || currentParagraph) {
+          if (currentParagraph.trim()) {
+            currentSection.paragraphs.push(currentParagraph.trim());
+          }
+          if (currentSection.heading) {
+            sections.push(currentSection);
+          }
+        }
+
+        // Start new section
+        currentSection = { heading: line, paragraphs: [] };
+        currentParagraph = '';
+      } else if (line.trim() === '') {
+        // End of paragraph
+        if (currentParagraph.trim()) {
+          currentSection.paragraphs.push(currentParagraph.trim());
+          currentParagraph = '';
+        }
+      } else {
+        // Add to current paragraph
+        currentParagraph += (currentParagraph ? ' ' : '') + line.trim();
+      }
+    }
+
+    // Save final section
+    if (currentParagraph.trim()) {
+      currentSection.paragraphs.push(currentParagraph.trim());
+    }
+    if (currentSection.heading) {
+      sections.push(currentSection);
+    }
+
+    return sections;
+  }
+
+  /**
+   * Parse paragraph into sentences
+   */
+  private parseSentences(paragraph: string): Array<{ id: string; text: string }> {
+    // Simple sentence parsing - split by period, exclamation, question mark
+    const sentenceRegex = /[^.!?]+[.!?]+/g;
+    const matches = paragraph.match(sentenceRegex) || [];
+
+    return matches.map((text, index) => ({
+      id: `sentence_${index}`,
+      text: text.trim()
+    }));
+  }
+
   /**
    * Export coverage analysis report
    */

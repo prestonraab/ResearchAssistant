@@ -97,6 +97,13 @@ function setupKeyboardShortcuts() {
         }
         break;
 
+      case '*':
+        if (!e.shiftKey && !e.ctrlKey && !e.metaKey) {
+          e.preventDefault();
+          toggleCurrentQuoteCitation();
+        }
+        break;
+
       case 'f':
         if (!e.shiftKey && !e.ctrlKey && !e.metaKey) {
           e.preventDefault();
@@ -257,6 +264,10 @@ function displayQuotes() {
 function displayQuoteContainer(container, quote, result, type) {
   const statusIcon = getStatusIcon(result);
   const verificationText = getVerificationText(result);
+  const citationStatus = result?.citedForFinal ? '★' : '☆'; // Filled or empty star
+  const citationTitle = result?.citedForFinal 
+    ? 'Quote marked for citation (click to unmark)' 
+    : 'Quote not marked for citation (click to mark)';
 
   container.innerHTML = `
     <div class="quote-header">
@@ -266,6 +277,9 @@ function displayQuoteContainer(container, quote, result, type) {
     <div class="quote-text">${escapeHtml(quote)}</div>
     <div class="verification-info ${getStatusClass(result)}">${verificationText}</div>
     <div class="quote-actions">
+      <button class="btn btn-citation" onclick="toggleQuoteCitation('${escapeHtml(quote)}')" title="${citationTitle}">
+        ${citationStatus}
+      </button>
       <button class="btn btn-primary" onclick="acceptQuote('${escapeHtml(quote)}')">Accept</button>
       <button class="btn btn-danger" onclick="deleteQuote('${escapeHtml(quote)}')">Delete</button>
       <button class="btn btn-secondary" onclick="findNewQuotes()">Find New</button>
@@ -403,6 +417,14 @@ function acceptCurrentQuote() {
 }
 
 /**
+ * Toggle current quote citation
+ */
+function toggleCurrentQuoteCitation() {
+  if (!currentClaim || !currentClaim.primaryQuote) return;
+  toggleQuoteCitation(currentClaim.primaryQuote);
+}
+
+/**
  * Accept quote
  */
 function acceptQuote(quote) {
@@ -415,6 +437,19 @@ function acceptQuote(quote) {
       newQuote: newQuote
     });
   }
+}
+
+/**
+ * Toggle citation status for a quote
+ */
+function toggleQuoteCitation(quote) {
+  if (!currentClaim) return;
+  
+  vscode.postMessage({
+    type: 'toggleQuoteCitation',
+    claimId: currentClaim.id,
+    quote: quote
+  });
 }
 
 /**

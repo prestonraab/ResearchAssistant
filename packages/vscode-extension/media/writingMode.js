@@ -18,6 +18,8 @@ const manuscriptEditor = document.getElementById('manuscriptEditor');
 const helpOverlay = document.getElementById('helpOverlay');
 const helpBtn = document.getElementById('helpBtn');
 const editBtn = document.getElementById('editBtn');
+const exportMarkdownBtn = document.getElementById('exportMarkdownBtn');
+const exportWordBtn = document.getElementById('exportWordBtn');
 const saveStatus = document.getElementById('saveStatus');
 
 // Initialize
@@ -52,6 +54,19 @@ function setupEventListeners() {
   editBtn.addEventListener('click', () => {
     vscode.postMessage({ type: 'switchToEditingMode' });
   });
+
+  // Export buttons
+  if (exportMarkdownBtn) {
+    exportMarkdownBtn.addEventListener('click', () => {
+      vscode.postMessage({ type: 'exportMarkdown' });
+    });
+  }
+
+  if (exportWordBtn) {
+    exportWordBtn.addEventListener('click', () => {
+      vscode.postMessage({ type: 'exportWord' });
+    });
+  }
 
   // Help overlay
   helpOverlay.addEventListener('click', (e) => {

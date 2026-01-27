@@ -7,6 +7,7 @@ import { generateHelpOverlayHtml, getHelpOverlayCss, getHelpOverlayJs } from './
 import { generateBreadcrumb, getBreadcrumbCss, getModeSwitchingJs, modeStateManager } from './modeSwitching';
 import { getWebviewDisposalManager } from './webviewDisposalManager';
 import { SentenceParsingCache } from '../services/cachingService';
+import { getBenchmark } from '../core/performanceBenchmark';
 
 /**
  * WritingModeProvider - Webview provider for writing mode
@@ -20,6 +21,7 @@ export class WritingModeProvider implements vscode.WebviewViewProvider {
   private disposables: vscode.Disposable[] = [];
   private sentenceParsingCache: SentenceParsingCache;
   private disposalManager = getWebviewDisposalManager();
+  private benchmark = getBenchmark();
 
   constructor(
     private extensionState: ExtensionState,
@@ -33,6 +35,17 @@ export class WritingModeProvider implements vscode.WebviewViewProvider {
    * Resolve webview view
    */
   async resolveWebviewView(
+    webviewView: vscode.WebviewView,
+    context: vscode.WebviewViewResolveContext,
+    token: vscode.CancellationToken
+  ): Promise<void> {
+    // Benchmark mode loading
+    await this.benchmark.benchmarkModeLoad('writing', async () => {
+      await this._resolveWebviewViewInternal(webviewView, context, token);
+    });
+  }
+
+  private async _resolveWebviewViewInternal(
     webviewView: vscode.WebviewView,
     context: vscode.WebviewViewResolveContext,
     token: vscode.CancellationToken
@@ -204,6 +217,14 @@ export class WritingModeProvider implements vscode.WebviewViewProvider {
         await vscode.commands.executeCommand('researchAssistant.openClaimReview');
         break;
 
+      case 'exportMarkdown':
+        await vscode.commands.executeCommand('researchAssistant.exportManuscriptMarkdown');
+        break;
+
+      case 'exportWord':
+        await vscode.commands.executeCommand('researchAssistant.exportManuscriptWord');
+        break;
+
       case 'showHelp':
         this.showHelpOverlay();
         break;
@@ -289,6 +310,8 @@ export class WritingModeProvider implements vscode.WebviewViewProvider {
     <div class="header">
       <div class="title">Research Assistant | Writing Mode</div>
       <div class="controls">
+        <button id="exportMarkdownBtn" class="icon-btn" title="Export as Markdown">📄</button>
+        <button id="exportWordBtn" class="icon-btn" title="Export as Word">📋</button>
         <button id="helpBtn" class="icon-btn" title="Help (?)">?</button>
         <button id="editBtn" class="icon-btn" title="Edit Mode (Shift+E)">✎</button>
       </div>

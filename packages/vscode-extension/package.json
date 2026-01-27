@@ -48,6 +48,16 @@
         "title": "Research Assistant: Show Dashboard"
       },
       {
+        "command": "researchAssistant.runPerformanceBenchmarks",
+        "title": "Research Assistant: Run Performance Benchmarks",
+        "icon": "$(dashboard)"
+      },
+      {
+        "command": "researchAssistant.exportPerformanceBenchmarks",
+        "title": "Research Assistant: Export Performance Benchmarks",
+        "icon": "$(export)"
+      },
+      {
         "command": "researchAssistant.searchPapersForSection",
         "title": "Search Papers",
         "icon": "$(search)"
@@ -150,6 +160,16 @@
         "command": "researchAssistant.openClaimMatching",
         "title": "Research Assistant: Open Claim Matching",
         "icon": "$(search)"
+      },
+      {
+        "command": "researchAssistant.exportManuscriptMarkdown",
+        "title": "Research Assistant: Export Manuscript as Markdown",
+        "icon": "$(file-code)"
+      },
+      {
+        "command": "researchAssistant.exportManuscriptWord",
+        "title": "Research Assistant: Export Manuscript as Word",
+        "icon": "$(file-word)"
       }
     ],
     "viewsContainers": {

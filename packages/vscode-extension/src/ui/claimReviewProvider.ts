@@ -19,6 +19,7 @@ export class ClaimReviewProvider implements vscode.WebviewViewProvider {
   private disposables: vscode.Disposable[] = [];
   private claimDetailsCache: CachingService<any>;
   private disposalManager = getWebviewDisposalManager();
+  private quoteCitationStatus: Map<string, boolean> = new Map(); // Track citation status for quotes
 
   constructor(
     private extensionState: ExtensionState,
@@ -276,6 +277,10 @@ export class ClaimReviewProvider implements vscode.WebviewViewProvider {
         await this.handleDeleteQuote(message.claimId, message.quote);
         break;
 
+      case 'toggleQuoteCitation':
+        await this.handleToggleQuoteCitation(message.claimId, message.quote);
+        break;
+
       case 'findNewQuotes':
         await this.handleFindNewQuotes(message.claimId, message.query);
         break;
@@ -390,6 +395,37 @@ export class ClaimReviewProvider implements vscode.WebviewViewProvider {
       vscode.window.showInformationMessage('Quote deleted successfully');
     } catch (error) {
       vscode.window.showErrorMessage(`Failed to delete quote: ${error}`);
+    }
+  }
+
+  /**
+   * Handle toggle quote citation message
+   */
+  private async handleToggleQuoteCitation(claimId: string, quote: string): Promise<void> {
+    try {
+      // For now, we'll store citation status in memory
+      // In the future, this will use SentenceClaimQuoteLinkManager
+      const key = `${claimId}:${quote}`;
+      
+      if (!this.quoteCitationStatus) {
+        this.quoteCitationStatus = new Map();
+      }
+
+      const currentStatus = this.quoteCitationStatus.get(key) || false;
+      const newStatus = !currentStatus;
+      this.quoteCitationStatus.set(key, newStatus);
+
+      // Reload claim display to show updated citation status
+      await this.loadAndDisplayClaim(claimId);
+
+      // Show feedback
+      vscode.window.showInformationMessage(
+        newStatus 
+          ? 'Quote marked for citation' 
+          : 'Quote unmarked for citation'
+      );
+    } catch (error) {
+      vscode.window.showErrorMessage(`Failed to toggle citation: ${error}`);
     }
   }
 

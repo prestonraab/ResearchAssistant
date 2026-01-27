@@ -21,6 +21,7 @@ export type {
   Claim,
   ClaimType,
   PotentialClaim,
+  SentenceClaimQuoteLink,
 } from './types/index.js';
 
 /**

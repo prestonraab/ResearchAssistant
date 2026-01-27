@@ -188,6 +188,10 @@ function renderClaimsContainer(sentence) {
  */
 function renderClaimBox(sentenceId, claim) {
   const statusIcon = getClaimStatusIcon(claim);
+  const citationStatus = claim.citedForFinal ? '★' : '☆'; // Filled or empty star
+  const citationTitle = claim.citedForFinal 
+    ? 'Quote marked for citation (click to unmark)' 
+    : 'Quote not marked for citation (click to mark)';
   
   return `
     <div class="claim-box" data-claim-id="${claim.id}" data-sentence-id="${sentenceId}">
@@ -201,6 +205,9 @@ function renderClaimBox(sentenceId, claim) {
         </div>
       </div>
       <div class="claim-actions">
+        <button class="claim-action-btn citation-btn" data-action="toggleCitation" data-claim-id="${claim.id}" data-sentence-id="${sentenceId}" title="${citationTitle}">
+          ${citationStatus}
+        </button>
         <button class="claim-action-btn" data-action="edit" data-claim-id="${claim.id}" title="Edit">✎</button>
         <button class="claim-action-btn delete" data-action="delete" data-claim-id="${claim.id}" data-sentence-id="${sentenceId}" title="Delete (x)">✕</button>
       </div>
@@ -302,6 +309,9 @@ function attachSentenceListeners() {
       const sentenceId = e.target.dataset.sentenceId;
       
       switch (action) {
+        case 'toggleCitation':
+          vscode.postMessage({ type: 'toggleCitation', sentenceId, claimId });
+          break;
         case 'edit':
           vscode.postMessage({ type: 'openClaim', claimId });
           break;
@@ -466,6 +476,11 @@ document.addEventListener('keydown', (e) => {
     if (currentSentenceId && currentClaimId) {
       vscode.postMessage({ type: 'deleteClaim', sentenceId: currentSentenceId, claimId: currentClaimId });
     }
+  } else if (e.key === '*' && !editingSentenceId && !editingClaimId) {
+    // Toggle citation for selected quote
+    if (currentSentenceId && currentClaimId) {
+      vscode.postMessage({ type: 'toggleCitation', sentenceId: currentSentenceId, claimId: currentClaimId });
+    }
   } else if (e.key === 'Enter' && !editingSentenceId && !editingClaimId) {
     // Open claim in review mode
     if (currentClaimId) {
@@ -578,6 +593,18 @@ window.addEventListener('message', (event) => {
       if (sentenceForDelete) {
         sentenceForDelete.claims = sentenceForDelete.claims.filter(c => c.id !== message.claimId);
         renderSentences();
+      }
+      break;
+
+    case 'citationToggled':
+      // Update citation status for the claim
+      const sentenceForCitation = sentences.find(s => s.id === message.sentenceId);
+      if (sentenceForCitation) {
+        const claimForCitation = sentenceForCitation.claims.find(c => c.id === message.claimId);
+        if (claimForCitation) {
+          claimForCitation.citedForFinal = message.citedForFinal;
+          renderSentences();
+        }
       }
       break;
 

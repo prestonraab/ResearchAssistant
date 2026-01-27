@@ -6,6 +6,7 @@ import { PapersTreeProvider } from '../ui/papersTreeProvider';
 import { WritingModeProvider } from '../ui/writingModeProvider';
 import { EditingModeProvider } from '../ui/editingModeProvider';
 import { ClaimMatchingProvider } from '../ui/claimMatchingProvider';
+import { ManuscriptExportOptions } from '../core/exportService';
 
 export function registerManuscriptCommands(
   context: vscode.ExtensionContext,
@@ -482,6 +483,227 @@ export function registerManuscriptCommands(
         );
       } catch (error) {
         vscode.window.showErrorMessage(`Search failed: ${error}`);
+      }
+    }),
+
+    vscode.commands.registerCommand('researchAssistant.exportManuscriptMarkdown', async () => {
+      if (!extensionState) {
+        vscode.window.showErrorMessage('Extension state not initialized');
+        return;
+      }
+
+      try {
+        // Load manuscript
+        const manuscriptPath = extensionState.getAbsolutePath('03_Drafting/manuscript.md');
+        if (!fs.existsSync(manuscriptPath)) {
+          vscode.window.showErrorMessage('Manuscript file not found at 03_Drafting/manuscript.md');
+          return;
+        }
+
+        const manuscriptText = fs.readFileSync(manuscriptPath, 'utf-8');
+
+        // Prompt for export location
+        const uri = await vscode.window.showSaveDialog({
+          defaultUri: vscode.Uri.file('manuscript-export.md'),
+          filters: {
+            'Markdown': ['md']
+          }
+        });
+
+        if (!uri) {
+          return;
+        }
+
+        // Ask for footnote scope
+        const footnoteScope = await vscode.window.showQuickPick(
+          [
+            { label: 'Continuous (throughout document)', value: 'document' },
+            { label: 'Per-section (reset per section)', value: 'section' }
+          ],
+          { placeHolder: 'Select footnote numbering scope' }
+        );
+
+        if (!footnoteScope) {
+          return;
+        }
+
+        await vscode.window.withProgress(
+          {
+            location: vscode.ProgressLocation.Notification,
+            title: 'Exporting manuscript to Markdown',
+            cancellable: false
+          },
+          async () => {
+            const options: ManuscriptExportOptions = {
+              outputPath: uri.fsPath,
+              includeFootnotes: true,
+              includeBibliography: true,
+              footnoteStyle: 'pandoc',
+              footnoteScope: footnoteScope.value as 'document' | 'section'
+            };
+
+            await extensionState!.exportService.exportManuscriptMarkdown(manuscriptText, options);
+
+            vscode.window.showInformationMessage(
+              `Manuscript exported successfully to ${uri.fsPath}`,
+              'Open File'
+            ).then(action => {
+              if (action === 'Open File') {
+                vscode.workspace.openTextDocument(uri).then(doc => {
+                  vscode.window.showTextDocument(doc);
+                });
+              }
+            });
+          }
+        );
+      } catch (error) {
+        vscode.window.showErrorMessage(`Export failed: ${error}`);
+        logger?.error('Markdown export error:', error);
+      }
+    }),
+
+    vscode.commands.registerCommand('researchAssistant.exportManuscriptWord', async () => {
+      if (!extensionState) {
+        vscode.window.showErrorMessage('Extension state not initialized');
+        return;
+      }
+
+      try {
+        // Load manuscript
+        const manuscriptPath = extensionState.getAbsolutePath('03_Drafting/manuscript.md');
+        if (!fs.existsSync(manuscriptPath)) {
+          vscode.window.showErrorMessage('Manuscript file not found at 03_Drafting/manuscript.md');
+          return;
+        }
+
+        const manuscriptText = fs.readFileSync(manuscriptPath, 'utf-8');
+
+        // Prompt for export location
+        const uri = await vscode.window.showSaveDialog({
+          defaultUri: vscode.Uri.file('manuscript-export.docx'),
+          filters: {
+            'Word Document': ['docx']
+          }
+        });
+
+        if (!uri) {
+          return;
+        }
+
+        await vscode.window.withProgress(
+          {
+            location: vscode.ProgressLocation.Notification,
+            title: 'Exporting manuscript to Word',
+            cancellable: false
+          },
+          async () => {
+            const options: ManuscriptExportOptions = {
+              outputPath: uri.fsPath,
+              includeFootnotes: true,
+              includeBibliography: true,
+              footnoteStyle: 'native',
+              footnoteScope: 'document'
+            };
+
+            await extensionState!.exportService.exportManuscriptWord(manuscriptText, options);
+
+            vscode.window.showInformationMessage(
+              `Manuscript exported successfully to ${uri.fsPath}`,
+              'Open File'
+            ).then(action => {
+              if (action === 'Open File') {
+                vscode.commands.executeCommand('vscode.open', uri);
+              }
+            });
+          }
+        );
+      } catch (error) {
+        vscode.window.showErrorMessage(`Export failed: ${error}`);
+        logger?.error('Word export error:', error);
+      }
+    }),
+
+    // Performance benchmark commands
+    vscode.commands.registerCommand('researchAssistant.runPerformanceBenchmarks', async () => {
+      try {
+        await vscode.window.withProgress(
+          {
+            location: vscode.ProgressLocation.Notification,
+            title: 'Running Performance Benchmarks',
+            cancellable: false
+          },
+          async (progress) => {
+            const { getBenchmark } = await import('../core/performanceBenchmark');
+            const benchmark = getBenchmark();
+
+            progress.report({ message: 'Benchmarking writing mode...', increment: 20 });
+            await benchmark.benchmarkModeLoad('writing', async () => {
+              await new Promise(resolve => setTimeout(resolve, 100));
+            });
+
+            progress.report({ message: 'Benchmarking editing mode...', increment: 20 });
+            await benchmark.benchmarkModeLoad('editing', async () => {
+              await new Promise(resolve => setTimeout(resolve, 100));
+            });
+
+            progress.report({ message: 'Benchmarking claim matching...', increment: 20 });
+            const claims = await extensionState.claimsManager.loadClaims();
+            await benchmark.benchmarkClaimMatching(claims.length, async () => {
+              await new Promise(resolve => setTimeout(resolve, 50));
+            });
+
+            progress.report({ message: 'Benchmarking claim review...', increment: 20 });
+            await benchmark.benchmarkModeLoad('review', async () => {
+              await new Promise(resolve => setTimeout(resolve, 100));
+            });
+
+            progress.report({ message: 'Complete!', increment: 20 });
+          }
+        );
+
+        const action = await vscode.window.showInformationMessage(
+          'Performance benchmarks completed!',
+          'View Dashboard',
+          'Export Results'
+        );
+
+        if (action === 'View Dashboard') {
+          await vscode.commands.executeCommand('researchAssistant.dashboard.focus');
+        } else if (action === 'Export Results') {
+          await vscode.commands.executeCommand('researchAssistant.exportPerformanceBenchmarks');
+        }
+      } catch (error) {
+        vscode.window.showErrorMessage(`Benchmark failed: ${error}`);
+        logger?.error('Benchmark error:', error);
+      }
+    }),
+
+    vscode.commands.registerCommand('researchAssistant.exportPerformanceBenchmarks', async () => {
+      try {
+        const { getBenchmark } = await import('../core/performanceBenchmark');
+        const benchmark = getBenchmark();
+        const exportData = benchmark.exportResults();
+
+        const workspaceRoot = vscode.Uri.file(extensionState.getWorkspaceRoot());
+        const exportPath = vscode.Uri.joinPath(workspaceRoot, 'performance-benchmark.json');
+
+        await vscode.workspace.fs.writeFile(
+          exportPath,
+          Buffer.from(exportData, 'utf8')
+        );
+
+        const action = await vscode.window.showInformationMessage(
+          'Benchmark results exported to performance-benchmark.json',
+          'Open File'
+        );
+
+        if (action === 'Open File') {
+          const doc = await vscode.workspace.openTextDocument(exportPath);
+          await vscode.window.showTextDocument(doc);
+        }
+      } catch (error) {
+        vscode.window.showErrorMessage(`Export failed: ${error}`);
+        logger?.error('Export error:', error);
       }
     })
   );

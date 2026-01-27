@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import { ExtensionState } from '../core/state';
+import { getBenchmark, BenchmarkResult } from '../core/performanceBenchmark';
 
 export interface DashboardMetrics {
   papersTotal: number;
@@ -12,6 +13,21 @@ export interface DashboardMetrics {
   gapsCount: number;
   recentActivity: ActivityItem[];
   coverageTrend: CoverageTrendItem[];
+  performance?: PerformanceMetrics;
+}
+
+export interface PerformanceMetrics {
+  results: BenchmarkResult[];
+  summary: {
+    total: number;
+    passed: number;
+    failed: number;
+    passRate: number;
+    avgDuration: number;
+    avgMemoryDelta: number;
+  };
+  currentMemory: number;
+  timestamp: string;
 }
 
 export interface ActivityItem {
@@ -73,6 +89,15 @@ export class DashboardProvider implements vscode.WebviewViewProvider {
           break;
         case 'viewClaims':
           await this._viewClaims();
+          break;
+        case 'runBenchmarks':
+          await this._runBenchmarks();
+          break;
+        case 'exportBenchmarks':
+          await this._exportBenchmarks();
+          break;
+        case 'clearBenchmarks':
+          await this._clearBenchmarks();
           break;
       }
     });
@@ -141,6 +166,9 @@ export class DashboardProvider implements vscode.WebviewViewProvider {
     // Get coverage trend
     const coverageTrend = this._getCoverageTrend(claims, readingStatuses);
 
+    // Get performance metrics
+    const performance = this._getPerformanceMetrics();
+
     return {
       papersTotal,
       papersRead,
@@ -151,8 +179,91 @@ export class DashboardProvider implements vscode.WebviewViewProvider {
       coveragePercentage,
       gapsCount,
       recentActivity,
-      coverageTrend
+      coverageTrend,
+      performance
     };
+  }
+
+  private _getPerformanceMetrics(): PerformanceMetrics {
+    const benchmark = getBenchmark();
+    const results = benchmark.getResults();
+    const summary = benchmark.getSummary();
+    const currentMemory = Math.round(process.memoryUsage().heapUsed / 1024 / 1024);
+
+    return {
+      results,
+      summary,
+      currentMemory,
+      timestamp: new Date().toISOString()
+    };
+  }
+
+  private async _runBenchmarks() {
+    try {
+      vscode.window.showInformationMessage('Running performance benchmarks...');
+      
+      // Run benchmarks for each mode
+      const benchmark = getBenchmark();
+      
+      // Benchmark writing mode
+      await benchmark.benchmarkModeLoad('writing', async () => {
+        // Simulate loading writing mode
+        await new Promise(resolve => setTimeout(resolve, 100));
+      });
+
+      // Benchmark editing mode
+      await benchmark.benchmarkModeLoad('editing', async () => {
+        // Simulate loading editing mode
+        await new Promise(resolve => setTimeout(resolve, 100));
+      });
+
+      // Benchmark claim matching
+      const claims = await this._extensionState.claimsManager.loadClaims();
+      await benchmark.benchmarkClaimMatching(claims.length, async () => {
+        // Simulate claim matching
+        await new Promise(resolve => setTimeout(resolve, 50));
+      });
+
+      vscode.window.showInformationMessage('Benchmarks completed!');
+      await this._updateView();
+    } catch (error) {
+      vscode.window.showErrorMessage(`Benchmark failed: ${error}`);
+    }
+  }
+
+  private async _exportBenchmarks() {
+    try {
+      const benchmark = getBenchmark();
+      const exportData = benchmark.exportResults();
+      
+      // Save to workspace
+      const workspaceRoot = vscode.Uri.file(this._extensionState.getWorkspaceRoot());
+      const exportPath = vscode.Uri.joinPath(workspaceRoot, 'performance-benchmark.json');
+      
+      await vscode.workspace.fs.writeFile(
+        exportPath,
+        Buffer.from(exportData, 'utf8')
+      );
+
+      const action = await vscode.window.showInformationMessage(
+        'Benchmark results exported to performance-benchmark.json',
+        'Open File'
+      );
+
+      if (action === 'Open File') {
+        const doc = await vscode.workspace.openTextDocument(exportPath);
+        await vscode.window.showTextDocument(doc);
+      }
+    } catch (error) {
+      vscode.window.showErrorMessage(`Export failed: ${error}`);
+    }
+  }
+
+  private async _clearBenchmarks() {
+    const benchmark = getBenchmark();
+    benchmark.clear();
+    vscode.window.showInformationMessage('Benchmark results cleared');
+    await this._updateView();
   }
 
   private _getRecentActivity(claims: any[], readingStatuses: any[]): ActivityItem[] {
@@ -330,6 +441,31 @@ export class DashboardProvider implements vscode.WebviewViewProvider {
         <h3>Recent Activity</h3>
         <div class="activity-list" id="activity-list">
           <div class="loading">Loading activity...</div>
+        </div>
+      </div>
+      
+      <div class="dashboard-section">
+        <h3>Performance Metrics</h3>
+        <div class="performance-header">
+          <div class="performance-summary">
+            <span class="metric-detail">
+              Memory: <strong id="current-memory">-</strong> MB
+            </span>
+            <span class="metric-detail">
+              Tests: <strong id="tests-passed">-</strong>/<strong id="tests-total">-</strong>
+            </span>
+            <span class="metric-detail">
+              Pass Rate: <strong id="pass-rate">-</strong>%
+            </span>
+          </div>
+          <div class="performance-actions">
+            <button id="run-benchmarks-btn" class="action-button-sm">Run Benchmarks</button>
+            <button id="export-benchmarks-btn" class="action-button-sm">Export</button>
+            <button id="clear-benchmarks-btn" class="action-button-sm">Clear</button>
+          </div>
+        </div>
+        <div class="benchmark-results" id="benchmark-results">
+          <div class="loading">No benchmark data yet. Click "Run Benchmarks" to start.</div>
         </div>
       </div>
       

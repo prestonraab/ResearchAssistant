@@ -37,6 +37,18 @@
     document.getElementById('view-gaps-btn')?.addEventListener('click', () => {
       vscode.postMessage({ type: 'viewGaps' });
     });
+
+    document.getElementById('run-benchmarks-btn')?.addEventListener('click', () => {
+      vscode.postMessage({ type: 'runBenchmarks' });
+    });
+
+    document.getElementById('export-benchmarks-btn')?.addEventListener('click', () => {
+      vscode.postMessage({ type: 'exportBenchmarks' });
+    });
+
+    document.getElementById('clear-benchmarks-btn')?.addEventListener('click', () => {
+      vscode.postMessage({ type: 'clearBenchmarks' });
+    });
   });
 
   function updateDashboard(metrics) {
@@ -62,6 +74,11 @@
 
     // Update trend chart
     updateTrendChart(metrics.coverageTrend);
+
+    // Update performance metrics
+    if (metrics.performance) {
+      updatePerformanceMetrics(metrics.performance);
+    }
   }
 
   function updateActivityList(activities) {
@@ -182,5 +199,69 @@
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
+  }
+
+  function updatePerformanceMetrics(performance) {
+    // Update summary
+    document.getElementById('current-memory').textContent = performance.currentMemory;
+    document.getElementById('tests-passed').textContent = performance.summary.passed;
+    document.getElementById('tests-total').textContent = performance.summary.total;
+    document.getElementById('pass-rate').textContent = performance.summary.passRate.toFixed(1);
+
+    // Update benchmark results
+    const resultsContainer = document.getElementById('benchmark-results');
+    
+    if (!performance.results || performance.results.length === 0) {
+      resultsContainer.innerHTML = '<div class="loading">No benchmark data yet. Click "Run Benchmarks" to start.</div>';
+      return;
+    }
+
+    resultsContainer.innerHTML = `
+      <div class="benchmark-table">
+        <div class="benchmark-header">
+          <div class="benchmark-col-name">Test</div>
+          <div class="benchmark-col-duration">Duration</div>
+          <div class="benchmark-col-memory">Memory Δ</div>
+          <div class="benchmark-col-status">Status</div>
+        </div>
+        ${performance.results.map(result => {
+          const statusIcon = result.passed ? '✓' : '✗';
+          const statusClass = result.passed ? 'passed' : 'failed';
+          const durationClass = result.duration > result.threshold ? 'warning' : '';
+          
+          return `
+            <div class="benchmark-row">
+              <div class="benchmark-col-name" title="${escapeHtml(result.name)}">
+                ${escapeHtml(result.name)}
+              </div>
+              <div class="benchmark-col-duration ${durationClass}">
+                ${result.duration.toFixed(2)}ms
+                <span class="threshold">(${result.threshold.toFixed(0)}ms)</span>
+              </div>
+              <div class="benchmark-col-memory">
+                ${result.memoryDelta > 0 ? '+' : ''}${result.memoryDelta}MB
+              </div>
+              <div class="benchmark-col-status ${statusClass}">
+                ${statusIcon}
+              </div>
+            </div>
+          `;
+        }).join('')}
+      </div>
+      <div class="benchmark-summary">
+        <div class="summary-item">
+          <span class="summary-label">Avg Duration:</span>
+          <span class="summary-value">${performance.summary.avgDuration.toFixed(2)}ms</span>
+        </div>
+        <div class="summary-item">
+          <span class="summary-label">Avg Memory Δ:</span>
+          <span class="summary-value">${performance.summary.avgMemoryDelta.toFixed(1)}MB</span>
+        </div>
+        <div class="summary-item">
+          <span class="summary-label">Last Updated:</span>
+          <span class="summary-value">${formatTime(performance.timestamp)}</span>
+        </div>
+      </div>
+    `;
   }
 })();
