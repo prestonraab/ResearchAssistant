@@ -3,9 +3,6 @@ import { ClaimHoverProvider } from '../ui/claimHoverProvider';
 import { ExtensionState } from '../core/state';
 import type { Claim } from '@research-assistant/core';
 
-// Mock vscode
-jest.mock('vscode');
-
 describe('ClaimHoverProvider', () => {
   let hoverProvider: ClaimHoverProvider;
   let mockExtensionState: any;

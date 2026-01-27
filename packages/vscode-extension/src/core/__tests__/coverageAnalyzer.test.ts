@@ -1,3 +1,5 @@
+import { describe, test, expect, beforeEach } from '@jest/globals';
+import { jest } from '@jest/globals';
 import { CoverageAnalyzer } from '../coverageAnalyzer';
 import type { OutlineSection, Claim } from '@research-assistant/core';
 

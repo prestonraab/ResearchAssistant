@@ -5,7 +5,6 @@ import * as vscode from 'vscode';
 import * as fs from 'fs';
 
 // Mock modules
-jest.mock('vscode');
 jest.mock('fs');
 jest.mock('../mcp/mcpClient');
 jest.mock('../core/manuscriptContextDetector');

@@ -3,22 +3,6 @@ import type { Claim, EmbeddingService } from '@research-assistant/core';
 import { MCPClientManager } from '../mcp/mcpClient';
 import * as fs from 'fs/promises';
 
-// Mock VS Code API
-jest.mock('vscode', () => ({
-  EventEmitter: jest.fn().mockImplementation(() => ({
-    event: jest.fn(),
-    fire: jest.fn(),
-    dispose: jest.fn()
-  })),
-  window: {
-    showWarningMessage: jest.fn(),
-    showInformationMessage: jest.fn()
-  }
-}));
-
-// Mock fs/promises
-jest.mock('fs/promises');
-
 describe('ClaimSupportValidator', () => {
   let validator: ClaimSupportValidator;
   let mockEmbeddingService: jest.Mocked<EmbeddingService>;

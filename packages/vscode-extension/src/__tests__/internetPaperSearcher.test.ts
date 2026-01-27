@@ -2,28 +2,6 @@ import { InternetPaperSearcher, ExternalPaper } from '../core/internetPaperSearc
 import { MCPClientManager } from '../mcp/mcpClient';
 import * as vscode from 'vscode';
 
-// Mock vscode
-jest.mock('vscode', () => ({
-  window: {
-    showInformationMessage: jest.fn(),
-    showWarningMessage: jest.fn(),
-    showErrorMessage: jest.fn(),
-    showQuickPick: jest.fn(),
-    withProgress: jest.fn((options, task) => task({ report: jest.fn() })),
-  },
-  ProgressLocation: {
-    Notification: 15,
-  },
-  env: {
-    clipboard: {
-      writeText: jest.fn(),
-    },
-  },
-  commands: {
-    executeCommand: jest.fn(),
-  },
-}));
-
 describe('InternetPaperSearcher', () => {
   let searcher: InternetPaperSearcher;
   let mockMcpClient: jest.Mocked<MCPClientManager>;

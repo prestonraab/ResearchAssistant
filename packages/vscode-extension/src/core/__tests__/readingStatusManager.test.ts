@@ -1,10 +1,7 @@
+import { describe, test, expect, beforeEach } from '@jest/globals';
+import { jest } from '@jest/globals';
 import * as vscode from 'vscode';
 import { ReadingStatusManager, ReadingStatus, ReadingProgress } from '../readingStatusManager';
-
-// Mock jest functions
-const mockJest = {
-  fn: (implementation?: any) => implementation || (() => {})
-};
 
 describe('ReadingStatusManager', () => {
   let mockContext: vscode.ExtensionContext;
@@ -17,14 +14,14 @@ describe('ReadingStatusManager', () => {
     mockContext = {
       subscriptions: [],
       workspaceState: {
-        get: mockJest.fn((key: string, defaultValue?: any) => {
+        get: jest.fn((key: string, defaultValue?: any) => {
           return workspaceState.get(key) ?? defaultValue;
         }),
-        update: mockJest.fn((key: string, value: any) => {
+        update: jest.fn((key: string, value: any) => {
           workspaceState.set(key, value);
           return Promise.resolve();
         }),
-        keys: mockJest.fn(() => Array.from(workspaceState.keys()))
+        keys: jest.fn(() => Array.from(workspaceState.keys()))
       } as any,
       globalState: {} as any,
       extensionPath: '/test/extension',

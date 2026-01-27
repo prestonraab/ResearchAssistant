@@ -6,20 +6,25 @@ import { generateHelpOverlayHtml, getHelpOverlayCss, getHelpOverlayJs } from './
 import { generateBreadcrumb, getBreadcrumbCss, getModeSwitchingJs, modeStateManager } from './modeSwitching';
 import { getWebviewDisposalManager } from './webviewDisposalManager';
 import { CachingService } from '../services/cachingService';
+import { getBenchmark } from '../core/performanceBenchmark';
+import { getImmersiveModeManager } from './immersiveModeManager';
 
 /**
- * ClaimReviewProvider - Webview provider for claim review mode
- * Displays claim details with verification, validation, and manuscript usage
+ * ClaimReviewProvider - Webview panel provider for claim review mode
+ * Displays claim details with verification, validation, and manuscript usage in main editor area
  * Includes memory management and caching for performance
  */
-export class ClaimReviewProvider implements vscode.WebviewViewProvider {
+export class ClaimReviewProvider {
   public static readonly viewType = 'researchAssistant.claimReview';
-  private view?: vscode.WebviewView;
+  private panel?: vscode.WebviewPanel;
+  private panelDisposed: boolean = false;
   private currentClaimId?: string;
   private disposables: vscode.Disposable[] = [];
   private claimDetailsCache: CachingService<any>;
   private disposalManager = getWebviewDisposalManager();
   private quoteCitationStatus: Map<string, boolean> = new Map(); // Track citation status for quotes
+  private benchmark = getBenchmark();
+  private immersiveModeManager = getImmersiveModeManager();
 
   constructor(
     private extensionState: ExtensionState,
@@ -29,32 +34,59 @@ export class ClaimReviewProvider implements vscode.WebviewViewProvider {
   }
 
   /**
-   * Resolve webview view
+   * Create and show claim review panel
    */
-  async resolveWebviewView(
-    webviewView: vscode.WebviewView,
-    context: vscode.WebviewViewResolveContext,
-    token: vscode.CancellationToken
-  ): Promise<void> {
-    this.view = webviewView;
+  async show(claimId?: string): Promise<void> {
+    this.currentClaimId = claimId;
+
+    // Benchmark mode loading
+    await this.benchmark.benchmarkModeLoad('review', async () => {
+      await this._showInternal();
+    });
+  }
+
+  private async _showInternal(): Promise<void> {
+    // If panel already exists and is not disposed, reveal it
+    if (this.panel && !this.panelDisposed) {
+      this.panel.reveal(vscode.ViewColumn.One);
+      if (this.currentClaimId) {
+        await this.loadAndDisplayClaim(this.currentClaimId);
+      }
+      return;
+    }
+
+    // Clear stale reference if panel was disposed
+    if (this.panelDisposed) {
+      this.panel = undefined;
+      this.panelDisposed = false;
+    }
+
+    // Create new panel
+    this.panel = vscode.window.createWebviewPanel(
+      ClaimReviewProvider.viewType,
+      'Claim Review',
+      vscode.ViewColumn.One,
+      {
+        enableScripts: true,
+        localResourceRoots: [this.context.extensionUri],
+        retainContextWhenHidden: true
+      }
+    );
+
+    // Register with immersive mode manager (closes other immersive panels)
+    this.immersiveModeManager.registerPanel(this.panel, ClaimReviewProvider.viewType);
 
     // Register with disposal manager
-    this.disposalManager.registerWebview(ClaimReviewProvider.viewType, webviewView.webview);
+    this.disposalManager.registerWebview(ClaimReviewProvider.viewType, this.panel.webview);
     this.disposalManager.startMemoryMonitoring(ClaimReviewProvider.viewType, () => {
       this.handleHighMemory();
     });
 
-    // Configure webview
-    webviewView.webview.options = {
-      enableScripts: true,
-      localResourceRoots: [this.context.extensionUri]
-    };
-
     // Load HTML content
-    webviewView.webview.html = await this.getHtmlContent(webviewView.webview);
+    this.panel.webview.html = await this.getHtmlContent(this.panel.webview);
 
     // Handle messages from webview
-    const messageListener = webviewView.webview.onDidReceiveMessage(
+    const messageListener = this.panel.webview.onDidReceiveMessage(
       (message) => this.handleMessage(message),
       undefined,
       this.disposables
@@ -63,33 +95,31 @@ export class ClaimReviewProvider implements vscode.WebviewViewProvider {
     this.disposalManager.registerDisposable(ClaimReviewProvider.viewType, messageListener);
 
     // Handle webview disposal
-    const disposalListener = webviewView.onDidDispose(() => {
+    const disposalListener = this.panel.onDidDispose(() => {
+      this.panelDisposed = true;
       this.dispose();
     });
 
     this.disposables.push(disposalListener);
+
+    // If we have a current claim ID, load it
+    if (this.currentClaimId) {
+      await this.loadAndDisplayClaim(this.currentClaimId);
+    }
   }
 
   /**
-   * Open a claim in review mode
+   * Open a claim in review mode (alias for show)
    */
   async openClaim(claimId: string): Promise<void> {
-    this.currentClaimId = claimId;
-
-    if (!this.view) {
-      // If view doesn't exist, open it first
-      await vscode.commands.executeCommand('researchAssistant.claimReview.focus');
-    }
-
-    // Load and display claim
-    await this.loadAndDisplayClaim(claimId);
+    await this.show(claimId);
   }
 
   /**
    * Load and display a claim
    */
   private async loadAndDisplayClaim(claimId: string): Promise<void> {
-    if (!this.view) {
+    if (!this.panel) {
       return;
     }
 
@@ -97,7 +127,7 @@ export class ClaimReviewProvider implements vscode.WebviewViewProvider {
       const claim = this.extensionState.claimsManager.getClaim(claimId);
 
       if (!claim) {
-        this.view.webview.postMessage({
+        this.panel.webview.postMessage({
           type: 'error',
           message: `Claim ${claimId} not found`
         });
@@ -114,7 +144,7 @@ export class ClaimReviewProvider implements vscode.WebviewViewProvider {
       const usageLocations = await this.getManuscriptUsageLocations(claimId);
 
       // Send claim data to webview
-      this.view.webview.postMessage({
+      this.panel.webview.postMessage({
         type: 'loadClaim',
         claim: {
           id: claim.id,
@@ -321,8 +351,8 @@ export class ClaimReviewProvider implements vscode.WebviewViewProvider {
     try {
       const result = await this.extensionState.quoteVerificationService.verifyQuote(quote, source);
 
-      if (this.view) {
-        this.view.webview.postMessage({
+      if (this.panel) {
+        this.panel.webview.postMessage({
           type: 'quoteVerified',
           quote,
           verified: result.verified,
@@ -445,8 +475,8 @@ export class ClaimReviewProvider implements vscode.WebviewViewProvider {
       try {
         const searchResults = await this.extensionState.mcpClient.zotero.semanticSearch(query, 5);
         
-        if (this.view) {
-          this.view.webview.postMessage({
+        if (this.panel) {
+          this.panel.webview.postMessage({
             type: 'newQuotesFound',
             quotes: searchResults.map((result: any) => ({
               text: result.abstract || result.title || '',
@@ -457,8 +487,8 @@ export class ClaimReviewProvider implements vscode.WebviewViewProvider {
         }
       } catch (searchError) {
         console.error('Search failed:', searchError);
-        if (this.view) {
-          this.view.webview.postMessage({
+        if (this.panel) {
+          this.panel.webview.postMessage({
             type: 'newQuotesFound',
             quotes: []
           });
@@ -480,8 +510,8 @@ export class ClaimReviewProvider implements vscode.WebviewViewProvider {
       try {
         const searchResults = await this.extensionState.mcpClient.zotero.semanticSearch(query, 5);
         
-        if (this.view) {
-          this.view.webview.postMessage({
+        if (this.panel) {
+          this.panel.webview.postMessage({
             type: 'internetSearchResults',
             results: searchResults.map((result: any) => ({
               title: result.title || '',
@@ -492,8 +522,8 @@ export class ClaimReviewProvider implements vscode.WebviewViewProvider {
         }
       } catch (searchError) {
         console.error('Search failed:', searchError);
-        if (this.view) {
-          this.view.webview.postMessage({
+        if (this.panel) {
+          this.panel.webview.postMessage({
             type: 'internetSearchResults',
             results: []
           });
@@ -520,8 +550,8 @@ export class ClaimReviewProvider implements vscode.WebviewViewProvider {
 
       const validation = await this.extensionState.claimSupportValidator.validateSupport(claim);
 
-      if (this.view) {
-        this.view.webview.postMessage({
+      if (this.panel) {
+        this.panel.webview.postMessage({
           type: 'supportValidated',
           supported: validation.supported,
           similarity: validation.similarity,
@@ -563,8 +593,8 @@ export class ClaimReviewProvider implements vscode.WebviewViewProvider {
    * Show help overlay
    */
   private showHelpOverlay(): void {
-    if (this.view) {
-      this.view.webview.postMessage({
+    if (this.panel) {
+      this.panel.webview.postMessage({
         type: 'showHelp'
       });
     }
@@ -720,8 +750,8 @@ export class ClaimReviewProvider implements vscode.WebviewViewProvider {
     this.claimDetailsCache.trim(50);
 
     // Notify webview to clear non-essential data
-    if (this.view) {
-      this.view.webview.postMessage({
+    if (this.panel) {
+      this.panel.webview.postMessage({
         type: 'memoryWarning',
         message: 'Memory usage is high. Clearing cache...'
       });
@@ -755,7 +785,7 @@ export class ClaimReviewProvider implements vscode.WebviewViewProvider {
     this.currentClaimId = undefined;
 
     // Clear view reference
-    this.view = undefined;
+    this.panel = undefined;
 
     console.log('Claim review mode disposed');
   }

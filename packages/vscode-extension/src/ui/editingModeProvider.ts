@@ -9,15 +9,18 @@ import { generateHelpOverlayHtml, getHelpOverlayCss, getHelpOverlayJs } from './
 import { generateBreadcrumb, getBreadcrumbCss, getModeSwitchingJs, modeStateManager } from './modeSwitching';
 import { getWebviewDisposalManager } from './webviewDisposalManager';
 import { SentenceParsingCache } from '../services/cachingService';
+import { getBenchmark } from '../core/performanceBenchmark';
+import { getImmersiveModeManager } from './immersiveModeManager';
 
 /**
- * EditingModeProvider - Webview provider for editing mode
- * Displays sentences as editable boxes with nested claims
+ * EditingModeProvider - Webview panel provider for editing mode
+ * Displays sentences as editable boxes with nested claims in main editor area
  * Includes virtual scrolling and lazy loading for memory efficiency
  */
-export class EditingModeProvider implements vscode.WebviewViewProvider {
+export class EditingModeProvider {
   public static readonly viewType = 'researchAssistant.editingMode';
-  private view?: vscode.WebviewView;
+  private panel?: vscode.WebviewPanel;
+  private panelDisposed: boolean = false;
   private editingModeManager: EditingModeManager;
   private sentenceParser: SentenceParser;
   private sentenceClaimMapper: SentenceClaimMapper;
@@ -26,6 +29,8 @@ export class EditingModeProvider implements vscode.WebviewViewProvider {
   private sentenceParsingCache: SentenceParsingCache;
   private disposalManager = getWebviewDisposalManager();
   private citationStatus: Map<string, boolean> = new Map(); // Track citation status for sentence-claim pairs
+  private benchmark = getBenchmark();
+  private immersiveModeManager = getImmersiveModeManager();
 
   constructor(
     private extensionState: ExtensionState,
@@ -38,32 +43,54 @@ export class EditingModeProvider implements vscode.WebviewViewProvider {
   }
 
   /**
-   * Resolve webview view
+   * Create and show editing mode panel
    */
-  async resolveWebviewView(
-    webviewView: vscode.WebviewView,
-    context: vscode.WebviewViewResolveContext,
-    token: vscode.CancellationToken
-  ): Promise<void> {
-    this.view = webviewView;
+  async show(): Promise<void> {
+    // Benchmark mode loading
+    await this.benchmark.benchmarkModeLoad('editing', async () => {
+      await this._showInternal();
+    });
+  }
+
+  private async _showInternal(): Promise<void> {
+    // If panel already exists and is not disposed, reveal it
+    if (this.panel && !this.panelDisposed) {
+      this.panel.reveal(vscode.ViewColumn.One);
+      return;
+    }
+
+    // Clear stale reference if panel was disposed
+    if (this.panelDisposed) {
+      this.panel = undefined;
+      this.panelDisposed = false;
+    }
+
+    // Create new panel
+    this.panel = vscode.window.createWebviewPanel(
+      EditingModeProvider.viewType,
+      'Editing Mode',
+      vscode.ViewColumn.One,
+      {
+        enableScripts: true,
+        localResourceRoots: [this.context.extensionUri],
+        retainContextWhenHidden: true
+      }
+    );
+
+    // Register with immersive mode manager (closes other immersive panels)
+    this.immersiveModeManager.registerPanel(this.panel, EditingModeProvider.viewType);
 
     // Register with disposal manager
-    this.disposalManager.registerWebview(EditingModeProvider.viewType, webviewView.webview);
+    this.disposalManager.registerWebview(EditingModeProvider.viewType, this.panel.webview);
     this.disposalManager.startMemoryMonitoring(EditingModeProvider.viewType, () => {
       this.handleHighMemory();
     });
 
-    // Configure webview
-    webviewView.webview.options = {
-      enableScripts: true,
-      localResourceRoots: [this.context.extensionUri]
-    };
-
     // Load HTML content
-    webviewView.webview.html = await this.getHtmlContent(webviewView.webview);
+    this.panel.webview.html = await this.getHtmlContent(this.panel.webview);
 
     // Handle messages from webview
-    const messageListener = webviewView.webview.onDidReceiveMessage(
+    const messageListener = this.panel.webview.onDidReceiveMessage(
       (message) => this.handleMessage(message),
       undefined,
       this.disposables
@@ -71,8 +98,9 @@ export class EditingModeProvider implements vscode.WebviewViewProvider {
 
     this.disposalManager.registerDisposable(EditingModeProvider.viewType, messageListener);
 
-    // Handle webview disposal
-    const disposalListener = webviewView.onDidDispose(() => {
+    // Handle panel disposal
+    const disposalListener = this.panel.onDidDispose(() => {
+      this.panelDisposed = true;
       this.dispose();
     });
 
@@ -86,7 +114,7 @@ export class EditingModeProvider implements vscode.WebviewViewProvider {
    * Initialize editing mode with sentences and claims
    */
   private async initializeEditingMode(): Promise<void> {
-    if (!this.view) {
+    if (!this.panel) {
       return;
     }
 
@@ -114,7 +142,7 @@ export class EditingModeProvider implements vscode.WebviewViewProvider {
       const sentencesWithClaims = await this.loadClaimsForSentences();
 
       // Send initial data to webview with virtual scrolling enabled
-      this.view.webview.postMessage({
+      this.panel.webview.postMessage({
         type: 'initialize',
         sentences: sentencesWithClaims,
         scrollPosition: this.editingModeManager.getScrollPosition(),
@@ -283,8 +311,8 @@ export class EditingModeProvider implements vscode.WebviewViewProvider {
       await this.saveManuscript();
 
       // Notify webview
-      if (this.view) {
-        this.view.webview.postMessage({
+      if (this.panel) {
+        this.panel.webview.postMessage({
           type: 'sentenceUpdated',
           sentenceId,
           text: newText
@@ -320,8 +348,8 @@ export class EditingModeProvider implements vscode.WebviewViewProvider {
       await this.saveManuscript();
 
       // Notify webview
-      if (this.view) {
-        this.view.webview.postMessage({
+      if (this.panel) {
+        this.panel.webview.postMessage({
           type: 'sentenceDeleted',
           sentenceId
         });
@@ -384,8 +412,8 @@ export class EditingModeProvider implements vscode.WebviewViewProvider {
 
       // Reload and notify
       const sentencesWithClaims = await this.loadClaimsForSentences();
-      if (this.view) {
-        this.view.webview.postMessage({
+      if (this.panel) {
+        this.panel.webview.postMessage({
           type: 'claimCreated',
           sentenceId,
           claim: {
@@ -419,8 +447,8 @@ export class EditingModeProvider implements vscode.WebviewViewProvider {
       this.extensionState.claimsManager.updateClaim(claimId, claim);
 
       // Notify webview
-      if (this.view) {
-        this.view.webview.postMessage({
+      if (this.panel) {
+        this.panel.webview.postMessage({
           type: 'claimUpdated',
           claimId,
           text: newText
@@ -450,8 +478,8 @@ export class EditingModeProvider implements vscode.WebviewViewProvider {
       await this.sentenceClaimMapper.unlinkSentenceFromClaim(sentenceId, claimId);
 
       // Notify webview
-      if (this.view) {
-        this.view.webview.postMessage({
+      if (this.panel) {
+        this.panel.webview.postMessage({
           type: 'claimDeleted',
           sentenceId,
           claimId
@@ -480,8 +508,8 @@ export class EditingModeProvider implements vscode.WebviewViewProvider {
       this.citationStatus.set(key, newStatus);
 
       // Notify webview of the new status
-      if (this.view) {
-        this.view.webview.postMessage({
+      if (this.panel) {
+        this.panel.webview.postMessage({
           type: 'citationToggled',
           sentenceId,
           claimId,
@@ -520,8 +548,8 @@ export class EditingModeProvider implements vscode.WebviewViewProvider {
       fs.writeFileSync(manuscriptPath, content, 'utf-8');
 
       // Notify webview
-      if (this.view) {
-        this.view.webview.postMessage({
+      if (this.panel) {
+        this.panel.webview.postMessage({
           type: 'saved',
           timestamp: new Date().toISOString()
         });
@@ -535,8 +563,8 @@ export class EditingModeProvider implements vscode.WebviewViewProvider {
    * Show help overlay
    */
   private showHelpOverlay(): void {
-    if (this.view) {
-      this.view.webview.postMessage({
+    if (this.panel) {
+      this.panel.webview.postMessage({
         type: 'showHelp'
       });
     }
@@ -553,8 +581,8 @@ export class EditingModeProvider implements vscode.WebviewViewProvider {
     this.sentenceParsingCache.clear();
 
     // Notify webview to clear non-essential data
-    if (this.view) {
-      this.view.webview.postMessage({
+    if (this.panel) {
+      this.panel.webview.postMessage({
         type: 'memoryWarning',
         message: 'Memory usage is high. Clearing cache...'
       });
@@ -660,7 +688,7 @@ export class EditingModeProvider implements vscode.WebviewViewProvider {
     this.sentences = [];
 
     // Clear view reference
-    this.view = undefined;
+    this.panel = undefined;
 
     console.log('Editing mode disposed');
   }

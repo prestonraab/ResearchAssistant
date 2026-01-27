@@ -3,21 +3,7 @@ import { ClaimsManager } from '../core/claimsManagerWrapper';
 import type { Claim } from '@research-assistant/core';
 import { MCPClientManager, VerificationResult } from '../mcp/mcpClient';
 
-// Mock VS Code API
-jest.mock('vscode', () => ({
-  EventEmitter: jest.fn().mockImplementation(() => ({
-    event: jest.fn(),
-    fire: jest.fn(),
-    dispose: jest.fn()
-  })),
-  window: {
-    showWarningMessage: jest.fn().mockResolvedValue(undefined),
-    showInformationMessage: jest.fn().mockResolvedValue(undefined),
-    showErrorMessage: jest.fn().mockResolvedValue(undefined),
-    withProgress: jest.fn(),
-    createOutputChannel: jest.fn(() => ({
-      appendLine: jest.fn(),
-      dispose: jest.fn()
+describe('AutoQuoteVerifier', () => {
     }))
   },
   commands: {

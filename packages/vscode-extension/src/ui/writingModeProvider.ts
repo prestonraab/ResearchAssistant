@@ -8,20 +8,23 @@ import { generateBreadcrumb, getBreadcrumbCss, getModeSwitchingJs, modeStateMana
 import { getWebviewDisposalManager } from './webviewDisposalManager';
 import { SentenceParsingCache } from '../services/cachingService';
 import { getBenchmark } from '../core/performanceBenchmark';
+import { getImmersiveModeManager } from './immersiveModeManager';
 
 /**
- * WritingModeProvider - Webview provider for writing mode
- * Displays split-screen outline + manuscript editor
+ * WritingModeProvider - Webview panel provider for writing mode
+ * Displays split-screen outline + manuscript editor in main editor area
  * Includes memory management and caching for performance
  */
-export class WritingModeProvider implements vscode.WebviewViewProvider {
+export class WritingModeProvider {
   public static readonly viewType = 'researchAssistant.writingMode';
-  private view?: vscode.WebviewView;
+  private panel?: vscode.WebviewPanel;
+  private panelDisposed: boolean = false;
   private writingModeManager: WritingModeManager;
   private disposables: vscode.Disposable[] = [];
   private sentenceParsingCache: SentenceParsingCache;
   private disposalManager = getWebviewDisposalManager();
   private benchmark = getBenchmark();
+  private immersiveModeManager = getImmersiveModeManager();
 
   constructor(
     private extensionState: ExtensionState,
@@ -32,43 +35,54 @@ export class WritingModeProvider implements vscode.WebviewViewProvider {
   }
 
   /**
-   * Resolve webview view
+   * Create and show writing mode panel
    */
-  async resolveWebviewView(
-    webviewView: vscode.WebviewView,
-    context: vscode.WebviewViewResolveContext,
-    token: vscode.CancellationToken
-  ): Promise<void> {
+  async show(): Promise<void> {
     // Benchmark mode loading
     await this.benchmark.benchmarkModeLoad('writing', async () => {
-      await this._resolveWebviewViewInternal(webviewView, context, token);
+      await this._showInternal();
     });
   }
 
-  private async _resolveWebviewViewInternal(
-    webviewView: vscode.WebviewView,
-    context: vscode.WebviewViewResolveContext,
-    token: vscode.CancellationToken
-  ): Promise<void> {
-    this.view = webviewView;
+  private async _showInternal(): Promise<void> {
+    // If panel already exists and is not disposed, reveal it
+    if (this.panel && !this.panelDisposed) {
+      this.panel.reveal(vscode.ViewColumn.One);
+      return;
+    }
+
+    // Clear stale reference if panel was disposed
+    if (this.panelDisposed) {
+      this.panel = undefined;
+      this.panelDisposed = false;
+    }
+
+    // Create new panel
+    this.panel = vscode.window.createWebviewPanel(
+      WritingModeProvider.viewType,
+      'Writing Mode',
+      vscode.ViewColumn.One,
+      {
+        enableScripts: true,
+        localResourceRoots: [this.context.extensionUri],
+        retainContextWhenHidden: true
+      }
+    );
+
+    // Register with immersive mode manager (closes other immersive panels)
+    this.immersiveModeManager.registerPanel(this.panel, WritingModeProvider.viewType);
 
     // Register with disposal manager
-    this.disposalManager.registerWebview(WritingModeProvider.viewType, webviewView.webview);
+    this.disposalManager.registerWebview(WritingModeProvider.viewType, this.panel.webview);
     this.disposalManager.startMemoryMonitoring(WritingModeProvider.viewType, () => {
       this.handleHighMemory();
     });
 
-    // Configure webview
-    webviewView.webview.options = {
-      enableScripts: true,
-      localResourceRoots: [this.context.extensionUri]
-    };
-
     // Load HTML content
-    webviewView.webview.html = await this.getHtmlContent(webviewView.webview);
+    this.panel.webview.html = await this.getHtmlContent(this.panel.webview);
 
     // Handle messages from webview
-    const messageListener = webviewView.webview.onDidReceiveMessage(
+    const messageListener = this.panel.webview.onDidReceiveMessage(
       (message) => this.handleMessage(message),
       undefined,
       this.disposables
@@ -76,8 +90,9 @@ export class WritingModeProvider implements vscode.WebviewViewProvider {
 
     this.disposalManager.registerDisposable(WritingModeProvider.viewType, messageListener);
 
-    // Handle webview disposal
-    const disposalListener = webviewView.onDidDispose(() => {
+    // Handle panel disposal
+    const disposalListener = this.panel.onDidDispose(() => {
+      this.panelDisposed = true;
       this.dispose();
     });
 
@@ -91,7 +106,7 @@ export class WritingModeProvider implements vscode.WebviewViewProvider {
    * Initialize writing mode with outline and manuscript
    */
   private async initializeWritingMode(): Promise<void> {
-    if (!this.view) {
+    if (!this.panel) {
       return;
     }
 
@@ -109,7 +124,7 @@ export class WritingModeProvider implements vscode.WebviewViewProvider {
       const manuscript = await this.loadManuscript();
 
       // Send initial data to webview
-      this.view.webview.postMessage({
+      this.panel.webview.postMessage({
         type: 'initialize',
         outline,
         manuscript,
@@ -251,8 +266,8 @@ export class WritingModeProvider implements vscode.WebviewViewProvider {
       fs.writeFileSync(manuscriptPath, content, 'utf-8');
 
       // Show confirmation
-      if (this.view) {
-        this.view.webview.postMessage({
+      if (this.panel) {
+        this.panel.webview.postMessage({
           type: 'saved',
           timestamp: new Date().toISOString()
         });
@@ -266,8 +281,8 @@ export class WritingModeProvider implements vscode.WebviewViewProvider {
    * Show help overlay
    */
   private showHelpOverlay(): void {
-    if (this.view) {
-      this.view.webview.postMessage({
+    if (this.panel) {
+      this.panel.webview.postMessage({
         type: 'showHelp'
       });
     }
@@ -373,8 +388,8 @@ export class WritingModeProvider implements vscode.WebviewViewProvider {
     this.sentenceParsingCache.clear();
 
     // Notify webview to clear non-essential data
-    if (this.view) {
-      this.view.webview.postMessage({
+    if (this.panel) {
+      this.panel.webview.postMessage({
         type: 'memoryWarning',
         message: 'Memory usage is high. Clearing cache...'
       });
@@ -405,7 +420,7 @@ export class WritingModeProvider implements vscode.WebviewViewProvider {
     this.sentenceParsingCache.dispose();
 
     // Clear view reference
-    this.view = undefined;
+    this.panel = undefined;
 
     console.log('Writing mode disposed');
   }

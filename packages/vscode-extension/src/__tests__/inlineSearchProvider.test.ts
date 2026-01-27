@@ -3,51 +3,6 @@ import { InlineSearchProvider } from '../ui/inlineSearchProvider';
 import { MCPClientManager, ZoteroItem } from '../mcp/mcpClient';
 import { ManuscriptContextDetector } from '../core/manuscriptContextDetector';
 
-// Mock vscode module
-jest.mock('vscode', () => ({
-  window: {
-    showInformationMessage: jest.fn(),
-    showErrorMessage: jest.fn(),
-    showWarningMessage: jest.fn(),
-    activeTextEditor: undefined,
-  },
-  workspace: {
-    openTextDocument: jest.fn(),
-  },
-  commands: {
-    executeCommand: jest.fn(),
-    registerCommand: jest.fn(() => ({ dispose: jest.fn() })),
-  },
-  Uri: {
-    file: jest.fn((path) => ({ fsPath: path })),
-  },
-  CompletionItem: jest.fn().mockImplementation((label, kind) => ({
-    label,
-    kind,
-    insertText: '',
-    detail: '',
-    documentation: undefined,
-    sortText: '',
-    command: undefined,
-  })),
-  CompletionItemKind: {
-    Reference: 1,
-    Text: 2,
-  },
-  CompletionList: jest.fn().mockImplementation((items, isIncomplete) => ({
-    items,
-    isIncomplete,
-  })),
-  MarkdownString: jest.fn().mockImplementation(() => ({
-    appendMarkdown: jest.fn(),
-  })),
-  Position: jest.fn().mockImplementation((line, character) => ({ line, character })),
-  Range: jest.fn(),
-  TextDocument: jest.fn(),
-  CancellationToken: jest.fn(),
-  CompletionContext: jest.fn(),
-}));
-
 describe('InlineSearchProvider', () => {
   let provider: InlineSearchProvider;
   let mockMcpClient: jest.Mocked<MCPClientManager>;

@@ -2,9 +2,6 @@ import * as vscode from 'vscode';
 import { WritingFeedbackDecorator } from '../ui/writingFeedbackDecorator';
 import { ExtensionState } from '../core/state';
 
-// Mock VS Code API
-jest.mock('vscode');
-
 describe('WritingFeedbackDecorator', () => {
   let decorator: WritingFeedbackDecorator;
   let mockExtensionState: jest.Mocked<ExtensionState>;

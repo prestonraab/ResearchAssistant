@@ -14,43 +14,15 @@ export function registerManuscriptCommands(
   papersProvider: PapersTreeProvider,
   logger: any
 ): void {
-  // Register writing mode provider
+  // Create provider instances (but don't register as view providers)
   const writingModeProvider = new WritingModeProvider(extensionState, context);
-  context.subscriptions.push(
-    vscode.window.registerWebviewViewProvider(
-      WritingModeProvider.viewType,
-      writingModeProvider
-    )
-  );
-
-  // Register editing mode provider
   const editingModeProvider = new EditingModeProvider(extensionState, context);
-  context.subscriptions.push(
-    vscode.window.registerWebviewViewProvider(
-      EditingModeProvider.viewType,
-      editingModeProvider
-    )
-  );
-
-  // Register claim matching provider
   const claimMatchingProvider = new ClaimMatchingProvider(extensionState, context);
-  context.subscriptions.push(
-    vscode.window.registerWebviewViewProvider(
-      ClaimMatchingProvider.viewType,
-      claimMatchingProvider
-    )
-  );
 
   context.subscriptions.push(
     vscode.commands.registerCommand('researchAssistant.openWritingMode', async () => {
       try {
-        // Show the writing mode view
-        await vscode.commands.executeCommand(
-          'workbench.view.extension.researchAssistant-sidebar'
-        );
-        await vscode.commands.executeCommand(
-          `${WritingModeProvider.viewType}.focus`
-        );
+        await writingModeProvider.show();
       } catch (error) {
         vscode.window.showErrorMessage(`Failed to open writing mode: ${error}`);
       }
@@ -58,13 +30,7 @@ export function registerManuscriptCommands(
 
     vscode.commands.registerCommand('researchAssistant.openEditingMode', async () => {
       try {
-        // Show the editing mode view
-        await vscode.commands.executeCommand(
-          'workbench.view.extension.researchAssistant-sidebar'
-        );
-        await vscode.commands.executeCommand(
-          `${EditingModeProvider.viewType}.focus`
-        );
+        await editingModeProvider.show();
       } catch (error) {
         vscode.window.showErrorMessage(`Failed to open editing mode: ${error}`);
       }
@@ -72,18 +38,7 @@ export function registerManuscriptCommands(
 
     vscode.commands.registerCommand('researchAssistant.openClaimMatching', async (sentenceId?: string, sentenceText?: string) => {
       try {
-        // Show the claim matching view
-        await vscode.commands.executeCommand(
-          'workbench.view.extension.researchAssistant-sidebar'
-        );
-        await vscode.commands.executeCommand(
-          `${ClaimMatchingProvider.viewType}.focus`
-        );
-
-        // If sentence provided, open for that sentence
-        if (sentenceId && sentenceText) {
-          await claimMatchingProvider.openForSentence(sentenceId, sentenceText);
-        }
+        await claimMatchingProvider.show(sentenceId, sentenceText);
       } catch (error) {
         vscode.window.showErrorMessage(`Failed to open claim matching: ${error}`);
       }

@@ -39,7 +39,7 @@ describe('Property-Based Tests', () => {
     
     outlineParser = new OutlineParser(outlinePath);
     claimsManager = new ClaimsManager(claimsPath);
-    embeddingService = new EmbeddingService(50);
+    embeddingService = new EmbeddingService(path.join(tempDir, '.cache'));
     coverageAnalyzer = new CoverageAnalyzer(claimsManager, embeddingService);
   });
 

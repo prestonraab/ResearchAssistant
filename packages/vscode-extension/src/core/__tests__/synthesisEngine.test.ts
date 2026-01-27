@@ -1,14 +1,23 @@
 import { SynthesisEngine } from '../synthesisEngine';
-import { EmbeddingService } from '@research-assistant/core';
 import type { Claim } from '@research-assistant/core';
+
+// Create a mock embedding service
+const mockEmbeddingService = {
+  generateEmbedding: jest.fn().mockResolvedValue(new Array(1536).fill(0).map(() => Math.random()) as number[]),
+  generateBatch: jest.fn().mockImplementation((texts: string[]) => 
+    Promise.resolve(texts.map(() => new Array(1536).fill(0).map(() => Math.random())) as number[][])
+  ),
+  cosineSimilarity: jest.fn((a: number[], b: number[]) => {
+    return 0.5 + Math.random() * 0.3;
+  })
+} as any;
 
 describe('SynthesisEngine', () => {
   let synthesisEngine: SynthesisEngine;
-  let embeddingService: EmbeddingService;
 
   beforeEach(() => {
-    embeddingService = new EmbeddingService('test-api-key');
-    synthesisEngine = new SynthesisEngine(embeddingService);
+    jest.clearAllMocks();
+    synthesisEngine = new SynthesisEngine(mockEmbeddingService);
   });
 
   // Helper function to create test claims

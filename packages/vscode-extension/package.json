@@ -194,26 +194,6 @@
         {
           "id": "researchAssistant.papers",
           "name": "Papers"
-        },
-        {
-          "id": "researchAssistant.writingMode",
-          "name": "Writing Mode",
-          "type": "webview"
-        },
-        {
-          "id": "researchAssistant.editingMode",
-          "name": "Editing Mode",
-          "type": "webview"
-        },
-        {
-          "id": "researchAssistant.claimReview",
-          "name": "Claim Review",
-          "type": "webview"
-        },
-        {
-          "id": "researchAssistant.claimMatching",
-          "name": "Claim Matching",
-          "type": "webview"
         }
       ]
     },
@@ -237,9 +217,19 @@
           "group": "navigation@1"
         },
         {
-          "command": "researchAssistant.refreshOutline",
+          "command": "researchAssistant.openWritingMode",
           "when": "view == researchAssistant.outline",
           "group": "navigation@2"
+        },
+        {
+          "command": "researchAssistant.openEditingMode",
+          "when": "view == researchAssistant.outline",
+          "group": "navigation@3"
+        },
+        {
+          "command": "researchAssistant.refreshOutline",
+          "when": "view == researchAssistant.outline",
+          "group": "navigation@4"
         },
         {
           "command": "researchAssistant.refreshClaims",
@@ -279,6 +269,11 @@
           "group": "1_actions@3"
         },
         {
+          "command": "researchAssistant.openClaimReview",
+          "when": "view == researchAssistant.claims && viewItem == claim",
+          "group": "1_open@1"
+        },
+        {
           "command": "researchAssistant.verifyClaimQuote",
           "when": "view == researchAssistant.claims && viewItem == claim",
           "group": "2_verification@1"
@@ -298,18 +293,18 @@
     "keybindings": [
       {
         "command": "researchAssistant.openWritingMode",
-        "key": "shift+w",
-        "when": "editorTextFocus"
+        "key": "ctrl+alt+w",
+        "mac": "cmd+alt+w"
       },
       {
         "command": "researchAssistant.openEditingMode",
-        "key": "shift+e",
-        "when": "editorTextFocus"
+        "key": "ctrl+alt+e",
+        "mac": "cmd+alt+e"
       },
       {
         "command": "researchAssistant.openClaimReview",
-        "key": "shift+c",
-        "when": "editorTextFocus"
+        "key": "ctrl+alt+r",
+        "mac": "cmd+alt+r"
       }
     ],
     "configuration": {

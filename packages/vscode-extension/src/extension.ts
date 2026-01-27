@@ -201,15 +201,8 @@ export async function activate(context: vscode.ExtensionContext) {
       )
     );
 
-    // Register claim review webview provider
+    // Create claim review provider (no longer registered as webview view provider)
     claimReviewProvider = new ClaimReviewProvider(extensionState, context);
-    context.subscriptions.push(
-      vscode.window.registerWebviewViewProvider(
-        ClaimReviewProvider.viewType,
-        claimReviewProvider,
-        { webviewOptions: { retainContextWhenHidden: true } }
-      )
-    );
 
     // Register all commands
     registerAllCommands(

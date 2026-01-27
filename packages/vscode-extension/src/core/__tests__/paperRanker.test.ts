@@ -1,6 +1,7 @@
+import { describe, test, expect, beforeEach, it } from '@jest/globals';
 import { PaperRanker } from '../paperRanker';
 import { EmbeddingService, OutlineParser } from '@research-assistant/core';
-import type { OutlineSection } from '@research-assistant/core';
+import type { OutlineSection, PaperMetadata } from '@research-assistant/core';
 
 describe('PaperRanker', () => {
   let embeddingService: EmbeddingService;
@@ -9,7 +10,7 @@ describe('PaperRanker', () => {
 
   beforeEach(() => {
     embeddingService = new EmbeddingService('test-api-key');
-    outlineParser = new OutlineParser('test-file.md');
+    outlineParser = new OutlineParser();
     paperRanker = new PaperRanker(embeddingService, outlineParser);
   });
 
@@ -29,8 +30,7 @@ describe('PaperRanker', () => {
     abstract,
     citationCount,
     pageCount,
-    wordCount,
-    tags: []
+    wordCount
   });
   // Helper function to create test section
   const createSection = (

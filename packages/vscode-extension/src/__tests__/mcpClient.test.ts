@@ -2,8 +2,7 @@ import { MCPClientManager, ZoteroItem, VerificationResult } from '../mcp/mcpClie
 import * as vscode from 'vscode';
 import * as fs from 'fs/promises';
 
-// Mock vscode and fs modules
-jest.mock('vscode');
+// Mock fs modules
 jest.mock('fs/promises');
 
 describe('MCPClientManager', () => {

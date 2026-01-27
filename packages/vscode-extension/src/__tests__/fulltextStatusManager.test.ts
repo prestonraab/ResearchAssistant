@@ -5,12 +5,6 @@ import { OutlineParser } from '../core/outlineParserWrapper';
 import * as fs from 'fs';
 import * as path from 'path';
 
-// Mock dependencies
-jest.mock('fs');
-jest.mock('../mcp/mcpClient');
-jest.mock('../core/pdfExtractionService');
-jest.mock('../core/outlineParserWrapper');
-
 describe('FulltextStatusManager', () => {
   let manager: FulltextStatusManager;
   let mockMcpClient: jest.Mocked<MCPClientManager>;

@@ -5,38 +5,6 @@ import { ClaimsManager } from '../core/claimsManagerWrapper';
 import type { Claim, OutlineSection } from '@research-assistant/core';
 import { OutlineParser } from '../core/outlineParserWrapper';
 
-// Mock VS Code API
-jest.mock('vscode', () => ({
-  CompletionItem: jest.fn().mockImplementation((label, kind) => ({
-    label,
-    kind,
-    insertText: '',
-    detail: '',
-    documentation: undefined,
-    sortText: '',
-    command: undefined
-  })),
-  CompletionItemKind: {
-    Reference: 17
-  },
-  CompletionList: jest.fn().mockImplementation((items, isIncomplete) => ({
-    items,
-    isIncomplete
-  })),
-  MarkdownString: jest.fn().mockImplementation((value) => ({ value })),
-  Position: jest.fn().mockImplementation((line, character) => ({ line, character })),
-  workspace: {
-    workspaceFolders: [{ uri: { fsPath: '/test/workspace' } }],
-    getConfiguration: jest.fn().mockReturnValue({
-      get: jest.fn((key, defaultValue) => defaultValue)
-    })
-  },
-  EventEmitter: jest.fn().mockImplementation(() => ({
-    event: jest.fn(),
-    fire: jest.fn()
-  }))
-}));
-
 describe('ClaimCompletionProvider', () => {
   let provider: ClaimCompletionProvider;
   let mockState: jest.Mocked<ExtensionState>;

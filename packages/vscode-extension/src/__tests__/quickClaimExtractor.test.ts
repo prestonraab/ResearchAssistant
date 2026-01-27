@@ -5,28 +5,6 @@ import { OutlineParser } from '../core/outlineParserWrapper';
 import { EmbeddingService } from '@research-assistant/core';
 import * as vscode from 'vscode';
 
-// Mock vscode
-jest.mock('vscode', () => ({
-  window: {
-    showInputBox: jest.fn(),
-    showQuickPick: jest.fn(),
-    showInformationMessage: jest.fn(),
-    showWarningMessage: jest.fn(),
-    showErrorMessage: jest.fn(),
-    activeTextEditor: undefined
-  },
-  commands: {
-    registerCommand: jest.fn(),
-    executeCommand: jest.fn()
-  },
-  Uri: {
-    file: jest.fn((path) => ({ fsPath: path }))
-  },
-  Range: jest.fn(),
-  Position: jest.fn(),
-  Selection: jest.fn()
-}));
-
 describe('QuickClaimExtractor', () => {
   let quickClaimExtractor: QuickClaimExtractor;
   let mockClaimsManager: jest.Mocked<ClaimsManager>;

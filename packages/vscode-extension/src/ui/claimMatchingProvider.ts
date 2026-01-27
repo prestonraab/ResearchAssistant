@@ -9,15 +9,18 @@ import { generateHelpOverlayHtml, getHelpOverlayCss, getHelpOverlayJs } from './
 import { generateBreadcrumb, getBreadcrumbCss, getModeSwitchingJs, modeStateManager } from './modeSwitching';
 import { getWebviewDisposalManager } from './webviewDisposalManager';
 import { ClaimSimilarityCache } from '../services/cachingService';
+import { getBenchmark } from '../core/performanceBenchmark';
+import { getImmersiveModeManager } from './immersiveModeManager';
 
 /**
- * ClaimMatchingProvider - Webview provider for claim matching mode
- * Displays similar claims for a sentence in a tiled grid layout
+ * ClaimMatchingProvider - Webview panel provider for claim matching mode
+ * Displays similar claims for a sentence in a tiled grid layout in main editor area
  * Includes lazy loading for memory efficiency
  */
-export class ClaimMatchingProvider implements vscode.WebviewViewProvider {
+export class ClaimMatchingProvider {
   public static readonly viewType = 'researchAssistant.claimMatching';
-  private view?: vscode.WebviewView;
+  private panel?: vscode.WebviewPanel;
+  private panelDisposed: boolean = false;
   private claimMatchingService: ClaimMatchingService;
   private sentenceClaimMapper: SentenceClaimMapper;
   private sentenceParser: SentenceParser;
@@ -26,6 +29,8 @@ export class ClaimMatchingProvider implements vscode.WebviewViewProvider {
   private currentSentenceText?: string;
   private claimSimilarityCache: ClaimSimilarityCache;
   private disposalManager = getWebviewDisposalManager();
+  private benchmark = getBenchmark();
+  private immersiveModeManager = getImmersiveModeManager();
 
   constructor(
     private extensionState: ExtensionState,
@@ -41,33 +46,67 @@ export class ClaimMatchingProvider implements vscode.WebviewViewProvider {
   }
 
   /**
-   * Resolve webview view
+   * Create and show claim matching panel
    */
-  async resolveWebviewView(
-    webviewView: vscode.WebviewView,
-    context: vscode.WebviewViewResolveContext,
-    token: vscode.CancellationToken
-  ): Promise<void> {
-    this.view = webviewView;
+  async show(sentenceId?: string, sentenceText?: string): Promise<void> {
+    this.currentSentenceId = sentenceId;
+    this.currentSentenceText = sentenceText;
+
+    // Benchmark mode loading
+    await this.benchmark.benchmarkModeLoad('matching', async () => {
+      await this._showInternal();
+    });
+  }
+
+  private async _showInternal(): Promise<void> {
+    // If panel already exists and is not disposed, reveal it
+    if (this.panel && !this.panelDisposed) {
+      this.panel.reveal(vscode.ViewColumn.One);
+      if (this.currentSentenceId && this.currentSentenceText) {
+        await this.openForSentence(this.currentSentenceId, this.currentSentenceText);
+      }
+      return;
+    }
+
+    // Clear stale reference if panel was disposed
+    if (this.panelDisposed) {
+      this.panel = undefined;
+      this.panelDisposed = false;
+    }
+
+    // Create new panel
+    this.panel = vscode.window.createWebviewPanel(
+      ClaimMatchingProvider.viewType,
+      'Claim Matching',
+      vscode.ViewColumn.One,
+      {
+        enableScripts: true,
+        localResourceRoots: [this.context.extensionUri],
+        retainContextWhenHidden: true
+      }
+    );
+
+    // Register with immersive mode manager (closes other immersive panels)
+    this.immersiveModeManager.registerPanel(this.panel, ClaimMatchingProvider.viewType);
 
     // Register with disposal manager
-    this.disposalManager.registerWebview(ClaimMatchingProvider.viewType, webviewView.webview);
+    this.disposalManager.registerWebview(ClaimMatchingProvider.viewType, this.panel.webview);
     this.disposalManager.startMemoryMonitoring(ClaimMatchingProvider.viewType, () => {
       this.handleHighMemory();
     });
 
     // Configure webview
-    webviewView.webview.options = {
+    this.panel.webview.options = {
       enableScripts: true,
       localResourceRoots: [this.context.extensionUri]
     };
 
     // Load HTML content
-    webviewView.webview.html = await this.getHtmlContent(webviewView.webview);
+    this.panel.webview.html = await this.getHtmlContent(this.panel.webview);
 
     // Handle messages from webview
-    const messageListener = webviewView.webview.onDidReceiveMessage(
-      (message) => this.handleMessage(message),
+    const messageListener = this.panel.webview.onDidReceiveMessage(
+      (message: any) => this.handleMessage(message),
       undefined,
       this.disposables
     );
@@ -75,7 +114,8 @@ export class ClaimMatchingProvider implements vscode.WebviewViewProvider {
     this.disposalManager.registerDisposable(ClaimMatchingProvider.viewType, messageListener);
 
     // Handle webview disposal
-    const disposalListener = webviewView.onDidDispose(() => {
+    const disposalListener = this.panel.onDidDispose(() => {
+      this.panelDisposed = true;
       this.dispose();
     });
 
@@ -89,13 +129,13 @@ export class ClaimMatchingProvider implements vscode.WebviewViewProvider {
     this.currentSentenceId = sentenceId;
     this.currentSentenceText = sentenceText;
 
-    if (!this.view) {
+    if (!this.panel) {
       return;
     }
 
     try {
       // Show loading state
-      this.view.webview.postMessage({
+      this.panel.webview.postMessage({
         type: 'loading',
         message: 'Finding similar claims...'
       });
@@ -104,7 +144,7 @@ export class ClaimMatchingProvider implements vscode.WebviewViewProvider {
       const similarClaims = await this.claimMatchingService.findSimilarClaims(sentenceText);
 
       // Send data to webview
-      this.view.webview.postMessage({
+      this.panel.webview.postMessage({
         type: 'initialize',
         sentenceId,
         sentenceText,
@@ -121,7 +161,7 @@ export class ClaimMatchingProvider implements vscode.WebviewViewProvider {
       await vscode.commands.executeCommand('researchAssistant.claimMatching.focus');
     } catch (error) {
       vscode.window.showErrorMessage(`Failed to find similar claims: ${error}`);
-      this.view.webview.postMessage({
+      this.panel.webview.postMessage({
         type: 'error',
         message: `Failed to find similar claims: ${error}`
       });
@@ -170,8 +210,8 @@ export class ClaimMatchingProvider implements vscode.WebviewViewProvider {
       const claim = this.extensionState.claimsManager.getClaim(claimId);
 
       // Notify webview
-      if (this.view) {
-        this.view.webview.postMessage({
+      if (this.panel) {
+        this.panel.webview.postMessage({
           type: 'claimLinked',
           claimId,
           claimText: claim?.text || ''
@@ -239,8 +279,8 @@ export class ClaimMatchingProvider implements vscode.WebviewViewProvider {
       }
 
       // Notify webview
-      if (this.view) {
-        this.view.webview.postMessage({
+      if (this.panel) {
+        this.panel.webview.postMessage({
           type: 'claimCreated',
           claimId,
           claimText: claim.text
@@ -265,8 +305,8 @@ export class ClaimMatchingProvider implements vscode.WebviewViewProvider {
    * Show help overlay
    */
   private showHelpOverlay(): void {
-    if (this.view) {
-      this.view.webview.postMessage({
+    if (this.panel) {
+      this.panel.webview.postMessage({
         type: 'showHelp'
       });
     }
@@ -283,8 +323,8 @@ export class ClaimMatchingProvider implements vscode.WebviewViewProvider {
     this.claimSimilarityCache.clear();
 
     // Notify webview to clear non-essential data
-    if (this.view) {
-      this.view.webview.postMessage({
+    if (this.panel) {
+      this.panel.webview.postMessage({
         type: 'memoryWarning',
         message: 'Memory usage is high. Clearing cache...'
       });
@@ -406,7 +446,7 @@ export class ClaimMatchingProvider implements vscode.WebviewViewProvider {
     this.currentSentenceText = undefined;
 
     // Clear view reference
-    this.view = undefined;
+    this.panel = undefined;
 
     console.log('Claim matching mode disposed');
   }

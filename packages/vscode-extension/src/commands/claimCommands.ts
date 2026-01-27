@@ -27,7 +27,7 @@ export function registerClaimCommands(
 
         // Use new claim review provider if available
         if (claimReviewProvider) {
-          await claimReviewProvider.openClaim(claimId);
+          await claimReviewProvider.show(claimId);
         } else {
           await claimDocumentProvider.openClaim(claimId);
         }
@@ -68,7 +68,7 @@ export function registerClaimCommands(
 
         // Open claim review
         if (claimReviewProvider) {
-          await claimReviewProvider.openClaim(claimId);
+          await claimReviewProvider.show(claimId);
         } else {
           vscode.window.showErrorMessage('Claim review provider not available');
         }
