@@ -5,7 +5,6 @@
   "version": "0.1.0",
   "license": "MIT",
   "publisher": "research-tools",
-  "type": "module",
   "repository": {
     "type": "git",
     "url": "https://github.com/yourusername/research-assistant"
@@ -17,9 +16,7 @@
     "Other"
   ],
   "activationEvents": [
-    "onLanguage:markdown",
-    "onView:researchAssistant.outline",
-    "onCommand:researchAssistant.activate"
+    "onLanguage:markdown"
   ],
   "main": "./dist/extension.js",
   "contributes": {
@@ -210,6 +207,22 @@
     "configuration": {
       "title": "Research Assistant",
       "properties": {
+        "researchAssistant.openaiApiKey": {
+          "type": "string",
+          "default": "",
+          "description": "OpenAI API key for embeddings. Get one at https://platform.openai.com/api-keys",
+          "markdownDescription": "OpenAI API key for embeddings. [Get one here](https://platform.openai.com/api-keys)"
+        },
+        "researchAssistant.embeddingModel": {
+          "type": "string",
+          "default": "text-embedding-3-small",
+          "enum": [
+            "text-embedding-3-small",
+            "text-embedding-3-large",
+            "text-embedding-ada-002"
+          ],
+          "description": "OpenAI embedding model to use"
+        },
         "researchAssistant.outlinePath": {
           "type": "string",
           "default": "03_Drafting/outline.md",
@@ -236,7 +249,7 @@
         },
         "researchAssistant.embeddingCacheSize": {
           "type": "number",
-          "default": 50,
+          "default": 1000,
           "description": "Maximum number of embeddings to cache in memory"
         },
         "researchAssistant.mcpCacheTTL": {

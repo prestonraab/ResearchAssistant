@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
-import { Claim, ClaimsManager } from './claimsManager';
+import type { Claim } from '@research-assistant/core';
+import { ClaimsManager } from './claimsManagerWrapper';
 import { MCPClientManager, VerificationResult } from '../mcp/mcpClient';
 import { getLogger } from './loggingService';
 

@@ -1,8 +1,9 @@
 import * as vscode from 'vscode';
 import { ClaimCompletionProvider } from '../ui/claimCompletionProvider';
 import { ExtensionState } from '../core/state';
-import { ClaimsManager, Claim } from '../core/claimsManager';
-import { OutlineParser, OutlineSection } from '../core/outlineParser';
+import { ClaimsManager } from '../core/claimsManagerWrapper';
+import type { Claim, OutlineSection } from '@research-assistant/core';
+import { OutlineParser } from '../core/outlineParser';
 
 // Mock VS Code API
 jest.mock('vscode', () => ({

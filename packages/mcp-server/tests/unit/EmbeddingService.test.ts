@@ -4,7 +4,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach } from '@jest/globals';
-import { EmbeddingService } from '../../src/core/EmbeddingService.js';
+import { EmbeddingService } from '@research-assistant/core';
 import * as fs from 'fs';
 import * as path from 'path';
 

@@ -1,5 +1,6 @@
 import { MCPClientManager, VerificationResult, VerificationReport } from '../mcp/mcpClient';
-import { ClaimsManager, Claim } from './claimsManager';
+import { ClaimsManager } from './claimsManagerWrapper';
+import type { Claim } from '@research-assistant/core';
 
 export interface QuoteVerificationResult {
   claimId: string;

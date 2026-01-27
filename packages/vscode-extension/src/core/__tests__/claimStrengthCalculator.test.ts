@@ -1,6 +1,6 @@
 import { ClaimStrengthCalculator, ClaimStrengthResult } from '../claimStrengthCalculator';
-import { EmbeddingService } from '../embeddingService';
-import { Claim } from '../claimsManager';
+import { EmbeddingService } from '@research-assistant/core';
+import type { Claim } from '@research-assistant/core';
 
 describe('ClaimStrengthCalculator', () => {
   let embeddingService: EmbeddingService;

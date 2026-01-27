@@ -2,8 +2,8 @@ import * as vscode from 'vscode';
 import { ReadingAssistant } from '../core/readingAssistant';
 import { ClaimExtractor } from '../core/claimExtractor';
 import { ReadingStatusManager } from '../core/readingStatusManager';
-import { ClaimsManager } from '../core/claimsManager';
-import { EmbeddingService } from '../core/embeddingService';
+import { ClaimsManager } from '../core/claimsManagerWrapper';
+import { EmbeddingService } from '@research-assistant/core';
 
 /**
  * Integration tests for ReadingAssistant class.

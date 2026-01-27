@@ -1,6 +1,5 @@
 import { CoverageAnalyzer } from '../coverageAnalyzer';
-import { OutlineSection } from '../outlineParser';
-import { Claim } from '../claimsManager';
+import type { OutlineSection, Claim } from '@research-assistant/core';
 
 describe('CoverageAnalyzer', () => {
   let analyzer: CoverageAnalyzer;

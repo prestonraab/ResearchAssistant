@@ -1,4 +1,4 @@
-import { OutlineParser } from '../../src/core/OutlineParser';
+import { OutlineParser } from '@research-assistant/core';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import * as os from 'os';

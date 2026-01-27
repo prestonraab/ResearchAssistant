@@ -8,7 +8,7 @@ import * as fc from 'fast-check';
 import { OutlineParser } from '../outlineParser';
 import { ClaimsManager } from '../claimsManager';
 import { CoverageAnalyzer } from '../coverageAnalyzer';
-import { EmbeddingService } from '../embeddingService';
+import { EmbeddingService } from '@research-assistant/core';
 import {
   outlineArbitrary,
   claimArbitrary,

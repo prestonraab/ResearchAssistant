@@ -1,8 +1,9 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
-import { ClaimExtractor, PotentialClaim } from './claimExtractor';
+import { ClaimExtractor } from './claimExtractor';
 import { ReadingStatusManager } from './readingStatusManager';
-import { ClaimsManager } from './claimsManager';
+import { ClaimsManager } from './claimsManagerWrapper';
+import type { PotentialClaim } from '@research-assistant/core';
 
 /**
  * ReadingAssistant provides assistance during active reading of papers.

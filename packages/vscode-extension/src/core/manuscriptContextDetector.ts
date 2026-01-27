@@ -1,8 +1,15 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
-import type { OutlineSection, Claim, ManuscriptContext } from '@research-assistant/core';
-import { OutlineParser } from './outlineParser';
-import { ClaimsManager } from './claimsManager';
+import type { OutlineSection, Claim } from '@research-assistant/core';
+import { OutlineParser } from './outlineParserWrapper';
+import { ClaimsManager } from './claimsManagerWrapper';
+
+export interface ManuscriptContext {
+  currentSection: OutlineSection | null;
+  sectionText: string;
+  coverageLevel: 'none' | 'low' | 'moderate' | 'strong';
+  relevantClaims: Claim[];
+}
 
 /**
  * ManuscriptContextDetector understands what the user is currently writing about.

@@ -1,10 +1,9 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
-import { OutlineParser } from './outlineParser';
-import { ClaimsManager } from './claimsManager';
+import { OutlineParser } from './outlineParserWrapper';
+import { ClaimsManager } from './claimsManagerWrapper';
 import { MCPClientManager } from '../mcp/mcpClient';
-import { EmbeddingService } from './embeddingService';
-import { PaperRanker } from './paperRanker';
+import { EmbeddingService, PaperRanker } from '@research-assistant/core';
 import { CoverageAnalyzer } from './coverageAnalyzer';
 import { ReadingStatusManager } from './readingStatusManager';
 import { ClaimExtractor } from './claimExtractor';
@@ -78,8 +77,36 @@ export class ExtensionState {
     this.outlineParser = new OutlineParser(this.getAbsolutePath(this.config.outlinePath));
     this.claimsManager = new ClaimsManager(this.getAbsolutePath(this.config.claimsDatabasePath));
     this.mcpClient = new MCPClientManager();
-    this.embeddingService = new EmbeddingService(this.config.embeddingCacheSize);
-    this.paperRanker = new PaperRanker(this.embeddingService);
+    
+    // Initialize EmbeddingService with OpenAI API key from settings
+    const config = vscode.workspace.getConfiguration('researchAssistant');
+    const apiKey = config.get<string>('openaiApiKey');
+    
+    if (!apiKey) {
+      vscode.window.showErrorMessage(
+        'OpenAI API key not configured. Please set researchAssistant.openaiApiKey in settings.',
+        'Open Settings'
+      ).then(action => {
+        if (action === 'Open Settings') {
+          vscode.commands.executeCommand(
+            'workbench.action.openSettings',
+            'researchAssistant.openaiApiKey'
+          );
+        }
+      });
+    }
+    
+    const cacheDir = path.join(this.workspaceRoot, '.cache', 'embeddings');
+    const embeddingModel = config.get<string>('embeddingModel') || 'text-embedding-3-small';
+    const maxCacheSize = config.get<number>('embeddingCacheSize') || 1000;
+    
+    this.embeddingService = new EmbeddingService(
+      apiKey || '',
+      cacheDir,
+      maxCacheSize,
+      embeddingModel
+    );
+    this.paperRanker = new PaperRanker(this.embeddingService, this.outlineParser.getCoreParser());
     this.coverageAnalyzer = new CoverageAnalyzer(this.claimsManager, this.embeddingService);
     this.readingStatusManager = new ReadingStatusManager(context);
     this.claimExtractor = new ClaimExtractor(this.embeddingService);

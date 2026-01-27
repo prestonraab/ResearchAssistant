@@ -1,6 +1,6 @@
 import { SynthesisEngine } from '../synthesisEngine';
-import { EmbeddingService } from '../embeddingService';
-import { Claim } from '../claimsManager';
+import { EmbeddingService } from '@research-assistant/core';
+import type { Claim } from '@research-assistant/core';
 
 describe('SynthesisEngine', () => {
   let synthesisEngine: SynthesisEngine;

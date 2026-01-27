@@ -1,8 +1,4 @@
-import { CoverageAnalyzer } from '../../src/services/CoverageAnalyzer';
-import { OutlineParser } from '../../src/core/OutlineParser';
-import { SearchService } from '../../src/services/SearchService';
-import { EmbeddingService } from '../../src/core/EmbeddingService';
-import { ClaimsManager } from '../../src/core/ClaimsManager';
+import { CoverageAnalyzer, OutlineParser, SearchService, EmbeddingService, ClaimsManager } from '@research-assistant/core';
 import { SentenceType } from '../../src/types';
 import * as fs from 'fs/promises';
 import * as path from 'path';

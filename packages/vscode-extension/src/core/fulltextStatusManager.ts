@@ -3,7 +3,7 @@ import * as path from 'path';
 import * as fs from 'fs';
 import { MCPClientManager, ZoteroItem } from '../mcp/mcpClient';
 import { PDFExtractionService } from './pdfExtractionService';
-import { OutlineParser } from './outlineParser';
+import { OutlineParser } from './outlineParserWrapper';
 
 /**
  * Status of fulltext availability for a Zotero item

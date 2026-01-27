@@ -4,8 +4,7 @@
  */
 
 import * as fc from 'fast-check';
-import { OutlineSection } from '../outlineParser';
-import { Claim } from '../claimsManager';
+import type { OutlineSection, Claim } from '@research-assistant/core';
 
 /**
  * Generate random markdown header levels (2, 3, or 4)

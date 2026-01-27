@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { ClaimsManager } from './claimsManager';
+import { ClaimsManager } from './claimsManagerWrapper';
 import { ReadingStatusManager } from './readingStatusManager';
 import { QuoteVerificationService } from './quoteVerificationService';
 

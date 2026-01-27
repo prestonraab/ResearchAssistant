@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import { ClaimHoverProvider } from '../ui/claimHoverProvider';
 import { ExtensionState } from '../core/state';
-import { Claim } from '../core/claimsManager';
+import type { Claim } from '@research-assistant/core';
 
 // Mock vscode
 jest.mock('vscode');

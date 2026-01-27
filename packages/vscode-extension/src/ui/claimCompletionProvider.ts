@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import { ExtensionState } from '../core/state';
-import { Claim } from '../core/claimsManager';
-import { OutlineSection } from '../core/outlineParser';
+import type { Claim } from '@research-assistant/core';
+import type { OutlineSection } from '@research-assistant/core';
 
 export class ClaimCompletionProvider implements vscode.CompletionItemProvider {
   constructor(private state: ExtensionState) {}

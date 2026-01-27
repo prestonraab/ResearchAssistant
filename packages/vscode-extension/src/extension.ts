@@ -256,7 +256,25 @@ export async function activate(context: vscode.ExtensionContext) {
   // Register commands
   context.subscriptions.push(
     vscode.commands.registerCommand('researchAssistant.activate', async () => {
-      vscode.window.showInformationMessage('Research Assistant activated!');
+      if (!extensionState) {
+        vscode.window.showErrorMessage('Extension state not initialized!');
+        return;
+      }
+      
+      // Show diagnostic information
+      const diagnostics = [
+        `Workspace: ${extensionState.getWorkspaceRoot()}`,
+        `Outline: ${extensionState.getConfig().outlinePath}`,
+        `Claims: ${extensionState.getConfig().claimsDatabasePath}`,
+        `Sections: ${extensionState.outlineParser.getSections().length}`,
+        `Claims: ${extensionState.claimsManager.getClaims().length}`,
+        `API Key: ${extensionState.embeddingService ? 'configured' : 'missing'}`
+      ].join('\n');
+      
+      vscode.window.showInformationMessage(
+        `Research Assistant Status:\n\n${diagnostics}`,
+        { modal: true }
+      );
     }),
     vscode.commands.registerCommand('researchAssistant.showClaimDetails', async (claimId: string) => {
       if (!extensionState) {
@@ -1516,7 +1534,7 @@ export async function activate(context: vscode.ExtensionContext) {
             cancellable: false
           },
           async (progress) => {
-            const sections = extensionState!.outlineParser.getSections();
+            const sections = extensionState!.outlineParser.getHierarchy();
             const claims = extensionState!.claimsManager.getClaims();
             
             let processed = 0;
@@ -1827,12 +1845,12 @@ function startMemoryMonitoring(state: ExtensionState, logger: any): void {
     const heapTotalMB = Math.round(usage.heapTotal / 1024 / 1024);
     
     // Log cache stats
-    const embeddingStats = state.embeddingService.getCacheStats();
+    const embeddingCacheSize = state.embeddingService.getCacheSize();
     const mcpStats = state.mcpClient.getCacheStats();
     
     // Only log if usage is concerning (>50%)
     if (heapUsedMB > heapTotalMB * 0.5) {
-      logger.info(`Memory: ${heapUsedMB}/${heapTotalMB} MB | Embeddings: ${embeddingStats.size}/${embeddingStats.maxSize} | MCP: ${mcpStats.size}`);
+      logger.info(`Memory: ${heapUsedMB}/${heapTotalMB} MB | Embeddings: ${embeddingCacheSize}/${state.embeddingService['maxCacheSize']} | MCP: ${mcpStats.size}`);
     }
     
     // If heap usage exceeds 70%, trigger aggressive cleanup

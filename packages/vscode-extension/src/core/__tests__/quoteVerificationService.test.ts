@@ -1,6 +1,7 @@
 import { QuoteVerificationService, QuoteVerificationResult, BatchVerificationResult } from '../quoteVerificationService';
 import { MCPClientManager, VerificationResult } from '../../mcp/mcpClient';
-import { ClaimsManager, Claim } from '../claimsManager';
+import { ClaimsManager } from '../claimsManager';
+import type { Claim } from '@research-assistant/core';
 
 // Mock the dependencies
 jest.mock('../../mcp/mcpClient');

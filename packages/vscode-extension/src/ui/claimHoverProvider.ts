@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { ExtensionState } from '../core/state';
-import { Claim } from '../core/claimsManager';
+import type { Claim } from '@research-assistant/core';
 
 /**
  * HoverProvider for claim references in markdown files

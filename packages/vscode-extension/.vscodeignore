@@ -7,6 +7,13 @@ src/**
 **/*.ts
 !dist/**/*.js
 node_modules/**
-out/test/**
+out/**
+tests/**
 jest.config.js
 tsconfig.json
+.npmrc
+.eslintignore
+**/.DS_Store
+# Exclude workspace packages - they're bundled in dist/extension.js
+../../**
+!../../packages/vscode-extension/**

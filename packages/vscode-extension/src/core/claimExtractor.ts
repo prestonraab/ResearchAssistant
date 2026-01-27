@@ -1,5 +1,5 @@
-import { EmbeddingService } from './embeddingService';
-import { OutlineSection } from './outlineParser';
+import { EmbeddingService } from '@research-assistant/core';
+import type { OutlineSection } from '@research-assistant/core';
 
 export interface PotentialClaim {
   text: string;

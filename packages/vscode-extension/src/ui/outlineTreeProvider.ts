@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { ExtensionState } from '../core/state';
-import { OutlineSection } from '../core/outlineParser';
+import type { OutlineSection } from '@research-assistant/core';
 import { CoverageMetrics } from '../core/coverageAnalyzer';
 
 export class OutlineTreeItem extends vscode.TreeItem {
@@ -108,7 +108,7 @@ export class OutlineTreeProvider implements vscode.TreeDataProvider<OutlineTreeI
     try {
       if (!element) {
         // Root level - get top-level sections
-        const sections = this.state.outlineParser.getSections();
+        const sections = this.state.outlineParser.getHierarchy();
         const rootSections = sections.filter(s => s.parent === null);
         
         return rootSections.map(section => {
@@ -123,7 +123,7 @@ export class OutlineTreeProvider implements vscode.TreeDataProvider<OutlineTreeI
         });
       } else {
         // Get children of this section
-        const sections = this.state.outlineParser.getSections();
+        const sections = this.state.outlineParser.getHierarchy();
         const childSections = sections.filter(s => s.parent === element.section.id);
         
         return childSections.map(section => {

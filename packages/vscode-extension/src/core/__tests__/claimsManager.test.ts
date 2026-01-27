@@ -1,4 +1,5 @@
-import { ClaimsManager, Claim } from '../claimsManager';
+import { ClaimsManager } from '../claimsManager';
+import type { Claim } from '@research-assistant/core';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import * as os from 'os';

@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { ExtensionState } from '../core/state';
-import { Claim } from '../core/claimsManager';
+import type { Claim } from '@research-assistant/core';
 
 export class ClaimTreeItem extends vscode.TreeItem {
   constructor(

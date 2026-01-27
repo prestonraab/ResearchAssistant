@@ -1,6 +1,5 @@
 import { ClaimSupportValidator } from '../core/claimSupportValidator';
-import { Claim } from '../core/claimsManager';
-import { EmbeddingService } from '../core/embeddingService';
+import type { Claim, EmbeddingService } from '@research-assistant/core';
 import { MCPClientManager } from '../mcp/mcpClient';
 import * as fs from 'fs/promises';
 

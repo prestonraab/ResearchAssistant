@@ -1,5 +1,5 @@
 import { ClaimExtractor, PotentialClaim } from '../claimExtractor';
-import { EmbeddingService } from '../embeddingService';
+import { EmbeddingService } from '@research-assistant/core';
 import { OutlineSection } from '../outlineParser';
 
 describe('ClaimExtractor', () => {

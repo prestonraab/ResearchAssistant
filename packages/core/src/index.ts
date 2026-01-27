@@ -240,17 +240,95 @@ export type {
 } from './types/index.js';
 
 // ============================================================================
-// Future Exports (Managers, Services, Parsers, Utils)
+// Manager Exports
+// ============================================================================
+
+/**
+ * Claims Manager
+ * 
+ * Handles loading and querying claims from the workspace.
+ */
+export { ClaimsManager } from './managers/ClaimsManager.js';
+
+// ============================================================================
+// Service Exports
+// ============================================================================
+
+/**
+ * Embedding Service
+ * 
+ * Generates and caches text embeddings using OpenAI API.
+ */
+export { EmbeddingService } from './services/EmbeddingService.js';
+
+/**
+ * Search Service
+ * 
+ * Performs semantic search across claims database.
+ */
+export { SearchService } from './services/SearchService.js';
+
+/**
+ * Coverage Analyzer
+ * 
+ * Analyzes literature coverage at the sentence level.
+ */
+export { CoverageAnalyzer } from './services/CoverageAnalyzer.js';
+
+/**
+ * Claim Strength Calculator
+ * 
+ * Calculates how well claims are supported across sources.
+ */
+export { ClaimStrengthCalculator } from './services/ClaimStrengthCalculator.js';
+
+/**
+ * Paper Ranker
+ * 
+ * Ranks papers by relevance to sections or queries.
+ */
+export { PaperRanker } from './services/PaperRanker.js';
+
+/**
+ * Claim Extractor
+ * 
+ * Extracts potential claims from paper text and suggests relevant sections.
+ */
+export { ClaimExtractor } from './services/ClaimExtractor.js';
+
+/**
+ * Synthesis Engine
+ * 
+ * Generates coherent prose from multiple related claims.
+ */
+export { SynthesisEngine } from './services/SynthesisEngine.js';
+
+/**
+ * Search Query Generator
+ * 
+ * Generates targeted search queries for outline sections.
+ */
+export { SearchQueryGenerator } from './services/SearchQueryGenerator.js';
+
+// ============================================================================
+// Parser Exports
+// ============================================================================
+
+/**
+ * Outline Parser
+ * 
+ * Parses markdown outline files and extracts hierarchical sections.
+ */
+export { OutlineParser } from './parsers/OutlineParser.js';
+
+// ============================================================================
+// Future Exports (Services, Utils)
 // ============================================================================
 
 // Note: The following exports will be added as we migrate code from
 // the MCP server and extension to the core library:
 //
-// Managers:
-// - export { ClaimsManager } from './managers/ClaimsManager.js';
-//
 // Services:
-// - export { EmbeddingService } from './services/EmbeddingService.js';
 // - export { SearchService } from './services/SearchService.js';
 // - export { CoverageAnalyzer } from './services/CoverageAnalyzer.js';
 // - export { ClaimStrengthCalculator } from './services/ClaimStrengthCalculator.js';
@@ -258,9 +336,6 @@ export type {
 // - export { ClaimExtractor } from './services/ClaimExtractor.js';
 // - export { SynthesisEngine } from './services/SynthesisEngine.js';
 // - export { SearchQueryGenerator } from './services/SearchQueryGenerator.js';
-//
-// Parsers:
-// - export { OutlineParser } from './parsers/OutlineParser.js';
 //
 // Utils:
 // - export { normalizeText, cleanQuote } from './utils/text.js';

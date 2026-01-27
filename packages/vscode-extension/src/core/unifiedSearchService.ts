@@ -2,8 +2,9 @@ import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
 import { MCPClientManager } from '../mcp/mcpClient';
-import { ClaimsManager, Claim } from './claimsManager';
-import { EmbeddingService } from './embeddingService';
+import { ClaimsManager } from './claimsManagerWrapper';
+import { EmbeddingService } from '@research-assistant/core';
+import type { Claim } from '@research-assistant/core';
 
 export type SearchResultType = 'paper' | 'claim' | 'draft' | 'extracted_text';
 

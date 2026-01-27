@@ -1,8 +1,8 @@
 import { QuickClaimExtractor } from '../core/quickClaimExtractor';
-import { ClaimsManager } from '../core/claimsManager';
+import { ClaimsManager } from '../core/claimsManagerWrapper';
 import { ClaimExtractor } from '../core/claimExtractor';
 import { OutlineParser } from '../core/outlineParser';
-import { EmbeddingService } from '../core/embeddingService';
+import { EmbeddingService } from '@research-assistant/core';
 import * as vscode from 'vscode';
 
 // Mock vscode

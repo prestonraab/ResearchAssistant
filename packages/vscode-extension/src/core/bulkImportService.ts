@@ -1,9 +1,9 @@
 import * as vscode from 'vscode';
 import { MCPClientManager } from '../mcp/mcpClient';
-import { ClaimsManager } from './claimsManager';
-import { OutlineParser } from './outlineParser';
+import { ClaimsManager } from './claimsManagerWrapper';
+import { OutlineParser } from './outlineParserWrapper';
 import { PDFExtractionService } from './pdfExtractionService';
-import { EmbeddingService } from './embeddingService';
+import { EmbeddingService } from '@research-assistant/core';
 
 export interface ImportProgress {
   stage: 'papers' | 'extraction' | 'analysis' | 'parsing' | 'complete';

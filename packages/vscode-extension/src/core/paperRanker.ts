@@ -1,31 +1,44 @@
-import type { OutlineSection, PaperMetadata, RankedPaper, RankingConfig } from '@research-assistant/core';
-import { EmbeddingService } from './embeddingService';
+import { PaperRanker as CorePaperRanker, EmbeddingService, OutlineParser } from '@research-assistant/core';
+import type { PaperMetadata, RankedPaper, OutlineSection } from '@research-assistant/core';
+
+export interface RankingConfig {
+  citationBoostFactor: number;
+  citationThreshold: number;
+  wordsPerMinute: number;
+  defaultPageWordCount: number;
+}
 
 /**
- * PaperRanker ranks papers by relevance to section content.
- * 
- * Ranking algorithm:
- * 1. Calculate semantic similarity between paper abstract and section content
- * 2. Boost ranking for highly-cited papers (foundation papers)
- * 3. Calculate estimated reading time from paper length
+ * PaperRanker wrapper for VS Code extension.
+ * Wraps the core PaperRanker to provide convenience methods
+ * for working with outline sections and additional filtering.
  * 
  * Validates Requirements 4.1, 4.2, 4.3, 4.4
  */
 export class PaperRanker {
-  private embeddingService: EmbeddingService;
+  private coreRanker: CorePaperRanker;
   private config: RankingConfig;
 
   constructor(
     embeddingService: EmbeddingService,
+    outlineParser: OutlineParser,
     config: Partial<RankingConfig> = {}
   ) {
-    this.embeddingService = embeddingService;
     this.config = {
       citationBoostFactor: config.citationBoostFactor ?? 0.1,
       citationThreshold: config.citationThreshold ?? 50,
       wordsPerMinute: config.wordsPerMinute ?? 200,
       defaultPageWordCount: config.defaultPageWordCount ?? 500
     };
+
+    this.coreRanker = new CorePaperRanker(
+      embeddingService,
+      outlineParser,
+      this.config.citationThreshold,
+      this.config.citationBoostFactor,
+      this.config.wordsPerMinute,
+      this.config.defaultPageWordCount
+    );
   }
 
   /**
@@ -43,87 +56,8 @@ export class PaperRanker {
     section: OutlineSection,
     citedByPapers?: Map<string, Set<string>>
   ): Promise<RankedPaper[]> {
-    // Generate embedding for section content
-    const sectionText = this.getSectionText(section);
-    const sectionEmbedding = await this.embeddingService.generateEmbedding(sectionText);
-
-    // Generate embeddings for all paper abstracts in batch
-    const paperAbstracts = papers.map(p => p.abstract || p.title);
-    const paperEmbeddings = await this.embeddingService.generateBatch(paperAbstracts);
-
-    // Calculate rankings
-    const rankedPapers: RankedPaper[] = [];
-
-    for (let i = 0; i < papers.length; i++) {
-      const paper = papers[i];
-      const paperEmbedding = paperEmbeddings[i];
-
-      // Calculate semantic similarity
-      const semanticSimilarity = this.embeddingService.cosineSimilarity(
-        sectionEmbedding,
-        paperEmbedding
-      );
-
-      // Calculate citation boost
-      const citationBoost = this.calculateCitationBoost(
-        paper,
-        citedByPapers?.get(paper.itemKey)
-      );
-
-      // Calculate final relevance score
-      const relevanceScore = semanticSimilarity + citationBoost;
-
-      // Calculate estimated reading time
-      const estimatedReadingTime = this.calculateReadingTime(paper);
-
-      rankedPapers.push({
-        paper,
-        relevanceScore,
-        semanticSimilarity,
-        citationBoost,
-        estimatedReadingTime
-      });
-    }
-
-    // Sort by relevance score (descending)
-    rankedPapers.sort((a, b) => b.relevanceScore - a.relevanceScore);
-
-    return rankedPapers;
-  }
-
-  /**
-   * Calculate citation boost for a paper.
-   * Papers cited by multiple papers in the reading queue get a boost.
-   * 
-   * @param paper The paper to calculate boost for
-   * @param citedBySet Set of paper IDs that cite this paper
-   * @returns Citation boost value (0 to ~0.5)
-   * 
-   * Validates: Requirement 4.3
-   */
-  private calculateCitationBoost(
-    paper: PaperMetadata,
-    citedBySet?: Set<string>
-  ): number {
-    let boost = 0;
-
-    // Boost based on citation count (if available)
-    if (paper.citationCount !== undefined && paper.citationCount > 0) {
-      // Normalize citation count with logarithmic scaling
-      // Papers with 50+ citations get significant boost
-      const normalizedCitations = Math.log10(paper.citationCount + 1) / Math.log10(this.config.citationThreshold + 1);
-      boost += normalizedCitations * this.config.citationBoostFactor;
-    }
-
-    // Additional boost for papers cited by multiple papers in the collection
-    if (citedBySet && citedBySet.size > 0) {
-      // Each citing paper adds a small boost
-      // Papers cited by 3+ papers in collection get significant boost
-      const collectionCitationBoost = Math.min(citedBySet.size * 0.05, 0.3);
-      boost += collectionCitationBoost;
-    }
-
-    return boost;
+    // Use core ranker to rank papers for section
+    return this.coreRanker.rankPapersForSection(section.id, papers);
   }
 
   /**
@@ -135,46 +69,7 @@ export class PaperRanker {
    * Validates: Requirement 4.4
    */
   calculateReadingTime(paper: PaperMetadata): number {
-    let wordCount = paper.wordCount;
-
-    // If word count not available, estimate from page count
-    if (!wordCount && paper.pageCount) {
-      wordCount = paper.pageCount * this.config.defaultPageWordCount;
-    }
-
-    // If neither available, estimate from abstract and title length
-    if (!wordCount) {
-      const abstractWords = (paper.abstract || '').split(/\s+/).length;
-      const titleWords = paper.title.split(/\s+/).length;
-      // Rough estimate: abstract is ~3% of paper, title is ~0.5%
-      wordCount = Math.max(
-        (abstractWords / 0.03),
-        (titleWords / 0.005),
-        3000 // Minimum estimate for a short paper
-      );
-    }
-
-    // Calculate reading time
-    const readingTime = Math.ceil(wordCount / this.config.wordsPerMinute);
-
-    return readingTime;
-  }
-
-  /**
-   * Get combined text from section for embedding.
-   * Combines title and content into a single string.
-   * 
-   * @param section The outline section
-   * @returns Combined text for embedding
-   */
-  private getSectionText(section: OutlineSection): string {
-    const parts: string[] = [section.title];
-    
-    if (section.content && section.content.length > 0) {
-      parts.push(...section.content);
-    }
-
-    return parts.join(' ');
+    return this.coreRanker.calculateReadingTime(paper);
   }
 
   /**

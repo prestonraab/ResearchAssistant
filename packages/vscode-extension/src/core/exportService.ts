@@ -1,7 +1,19 @@
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
-import type { Claim, CoverageMetrics, OutlineSection, ExportFormat, ExportOptions } from '@research-assistant/core';
+import type { Claim, OutlineSection } from '@research-assistant/core';
+import { CoverageMetrics } from './coverageAnalyzer';
+
+export type ExportFormat = 'markdown' | 'csv' | 'json';
+
+export interface ExportOptions {
+  format: ExportFormat;
+  outputPath: string;
+  includeMetadata?: boolean;
+  filterBySection?: string;
+  filterBySource?: string;
+  filterByCategory?: string;
+}
 
 export class ExportService {
   /**

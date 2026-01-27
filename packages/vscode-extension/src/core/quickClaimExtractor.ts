@@ -1,21 +1,18 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
-import { ClaimsManager, Claim } from './claimsManager';
+import { ClaimsManager } from './claimsManagerWrapper';
 import { ClaimExtractor } from './claimExtractor';
-import { OutlineParser } from './outlineParser';
-import { EmbeddingService } from './embeddingService';
+import { OutlineParser } from './outlineParserWrapper';
+import { EmbeddingService } from '@research-assistant/core';
+import type { Claim } from '@research-assistant/core';
 
-/**
- * QuickClaimForm represents the streamlined form for one-click claim extraction.
- * Most fields are auto-populated to minimize user input.
- */
 export interface QuickClaimForm {
-  claimText: string;        // Pre-filled from selection
-  category: string;         // Auto-detected
-  suggestedSections: string[]; // Top 3 by similarity
-  sections?: string[];      // Optional: can be modified by user
-  source: string;           // Auto-detected from filename
-  quote: string;            // From selection
+  claimText: string;
+  category: string;
+  suggestedSections: string[];
+  sections?: string[];
+  source: string;
+  quote: string;
 }
 
 /**

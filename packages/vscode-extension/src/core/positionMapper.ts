@@ -1,7 +1,8 @@
 import * as vscode from 'vscode';
-import { OutlineParser, OutlineSection } from './outlineParser';
+import { OutlineParser } from './outlineParserWrapper';
+import type { OutlineSection } from '@research-assistant/core';
 import { ClaimsPanelProvider } from '../ui/claimsPanelProvider';
-import { ClaimsManager } from './claimsManager';
+import { ClaimsManager } from './claimsManagerWrapper';
 
 /**
  * PositionMapper detects the current section based on cursor position

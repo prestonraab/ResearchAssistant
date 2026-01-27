@@ -1,5 +1,5 @@
 import { PaperRanker, PaperMetadata, RankedPaper } from '../paperRanker';
-import { EmbeddingService } from '../embeddingService';
+import { EmbeddingService } from '@research-assistant/core';
 import { OutlineSection } from '../outlineParser';
 
 describe('PaperRanker', () => {

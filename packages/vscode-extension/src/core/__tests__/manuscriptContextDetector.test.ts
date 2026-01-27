@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import { ManuscriptContextDetector } from '../manuscriptContextDetector';
-import { ClaimsManager, Claim } from '../claimsManager';
-import { OutlineSection } from '../outlineParser';
+import { ClaimsManager } from '../claimsManager';
+import type { Claim, OutlineSection } from '@research-assistant/core';
 
 // Mock vscode
 jest.mock('vscode', () => ({

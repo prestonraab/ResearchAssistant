@@ -1,4 +1,24 @@
-import type { OutlineSection, Claim, CoverageMetrics, CoverageReport } from '@research-assistant/core';
+import type { OutlineSection, Claim } from '@research-assistant/core';
+
+export interface CoverageMetrics {
+  sectionId: string;
+  claimCount: number;
+  coverageLevel: 'none' | 'low' | 'moderate' | 'strong';
+  lastUpdated: Date;
+  suggestedQueries: string[];
+  relevantPapers: string[];
+}
+
+export interface CoverageReport {
+  totalSections: number;
+  sectionsWithNoCoverage: number;
+  sectionsWithLowCoverage: number;
+  sectionsWithModerateCoverage: number;
+  sectionsWithStrongCoverage: number;
+  overallCoveragePercentage: number;
+  gaps: CoverageMetrics[];
+  timestamp: Date;
+}
 
 export class CoverageAnalyzer {
   constructor(

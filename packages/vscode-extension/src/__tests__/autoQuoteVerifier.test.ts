@@ -1,5 +1,6 @@
 import { AutoQuoteVerifier } from '../core/autoQuoteVerifier';
-import { ClaimsManager, Claim } from '../core/claimsManager';
+import { ClaimsManager } from '../core/claimsManagerWrapper';
+import type { Claim } from '@research-assistant/core';
 import { MCPClientManager, VerificationResult } from '../mcp/mcpClient';
 
 // Mock VS Code API

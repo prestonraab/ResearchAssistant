@@ -18,6 +18,73 @@ export interface VerificationResult {
 }
 
 /**
+ * Normalize text for matching (handles Unicode characters)
+ */
+function normalizeForMatching(text: string): string {
+  return text
+    .toLowerCase()
+    .normalize('NFD') // Decompose accented characters
+    .replace(/[\u0300-\u036f]/g, '') // Remove diacritics
+    .replace(/[^\w\s\d]/g, ' ') // Replace special chars with spaces
+    .replace(/\s+/g, ' ') // Normalize whitespace
+    .trim();
+}
+
+/**
+ * Flexible author-year matching for filenames
+ * Handles formats like "Buus et al. - 2021 - Title.txt" matching "Buus2021"
+ */
+function matchesAuthorYear(filename: string, authorYear: string): boolean {
+  const normalizedFilename = normalizeForMatching(filename);
+  const normalizedAuthorYear = normalizeForMatching(authorYear);
+  
+  // Direct match
+  if (normalizedFilename.includes(normalizedAuthorYear)) {
+    return true;
+  }
+  
+  // Extract year from authorYear (last 4 digits)
+  const yearMatch = authorYear.match(/(\d{4})/);
+  if (!yearMatch) {
+    return false;
+  }
+  const year = yearMatch[1];
+  
+  // Extract author part (everything before the year)
+  const authorPart = authorYear.replace(/\d{4}/, '').trim();
+  const normalizedAuthorPart = normalizeForMatching(authorPart);
+  
+  // Must have the year
+  const hasYear = normalizedFilename.includes(year);
+  if (!hasYear) {
+    return false;
+  }
+  
+  // Check if author part matches (handling "et al." variations)
+  const authorWords = normalizedAuthorPart.split(/\s+/).filter(w => w.length > 2);
+  
+  // If we have author words, at least one significant word must match
+  if (authorWords.length > 0) {
+    for (const word of authorWords) {
+      if (normalizedFilename.includes(word)) {
+        return true;
+      }
+    }
+  }
+  
+  // Fallback: if the author part is very short (like "Du"), be more lenient
+  // Check if it appears as a word boundary in the filename
+  if (authorPart.length <= 4) {
+    const authorRegex = new RegExp(`\\b${normalizedAuthorPart}\\b`, 'i');
+    if (authorRegex.test(normalizedFilename)) {
+      return true;
+    }
+  }
+  
+  return false;
+}
+
+/**
  * Calculate string similarity using Dice coefficient
  */
 function stringSimilarity(str1: string, str2: string): number {
@@ -60,12 +127,9 @@ export function verifyQuote(
     };
   }
 
-  // Find source file
+  // Find source file using flexible matching
   const files = fs.readdirSync(extractedTextDir);
-  const sourceFile = files.find(f => {
-    const baseName = path.basename(f, path.extname(f));
-    return baseName.includes(authorYear) || f.includes(authorYear);
-  });
+  const sourceFile = files.find(f => matchesAuthorYear(f, authorYear));
 
   if (!sourceFile) {
     return {

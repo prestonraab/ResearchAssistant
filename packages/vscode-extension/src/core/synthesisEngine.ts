@@ -1,5 +1,4 @@
-import type { Claim, ClaimCluster, SynthesisOptions } from '@research-assistant/core';
-import { EmbeddingService } from './embeddingService';
+import type { Claim, ClaimCluster, SynthesisOptions, EmbeddingService } from '@research-assistant/core';
 
 /**
  * SynthesisEngine groups related claims by theme and generates prose from claim groups.
