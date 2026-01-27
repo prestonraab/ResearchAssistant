@@ -1,4 +1,4 @@
-import { ClaimsManager } from '../claimsManager';
+import { ClaimsManager } from '../claimsManagerWrapper';
 import type { Claim } from '@research-assistant/core';
 import * as fs from 'fs/promises';
 import * as path from 'path';
@@ -152,8 +152,8 @@ describe('ClaimsManager', () => {
       const claims = await manager.loadClaims();
 
       expect(claims).toHaveLength(2);
-      expect(claims.find(c => c.id === 'C_01')).toBeDefined();
-      expect(claims.find(c => c.id === 'C_02')).toBeDefined();
+      expect(claims.find((c: any) => c.id === 'C_01')).toBeDefined();
+      expect(claims.find((c: any) => c.id === 'C_02')).toBeDefined();
     });
 
     it('should handle errors in individual category files gracefully', async () => {
@@ -175,7 +175,7 @@ describe('ClaimsManager', () => {
 
       // Should still load the valid claim
       expect(claims.length).toBeGreaterThanOrEqual(1);
-      expect(claims.find(c => c.id === 'C_01')).toBeDefined();
+      expect(claims.find((c: any) => c.id === 'C_01')).toBeDefined();
     });
   });
 
@@ -403,8 +403,8 @@ describe('ClaimsManager', () => {
 
       const results = manager.findClaimsBySource('Johnson2007');
       expect(results).toHaveLength(2);
-      expect(results.map(c => c.id)).toContain('C_01');
-      expect(results.map(c => c.id)).toContain('C_03');
+      expect(results.map((c: any) => c.id)).toContain('C_01');
+      expect(results.map((c: any) => c.id)).toContain('C_03');
     });
   });
 
@@ -603,8 +603,8 @@ describe('ClaimsManager', () => {
       const claims = await newManager.loadClaims();
 
       expect(claims).toHaveLength(2);
-      expect(claims.find(c => c.id === 'C_01')?.context).toBe('New context');
-      expect(claims.find(c => c.id === 'C_02')).toBeDefined();
+      expect(claims.find((c: any) => c.id === 'C_01')?.context).toBe('New context');
+      expect(claims.find((c: any) => c.id === 'C_02')).toBeDefined();
     });
   });
 

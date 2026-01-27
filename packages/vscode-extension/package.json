@@ -69,7 +69,8 @@
       },
       {
         "command": "researchAssistant.batchVerifyQuotes",
-        "title": "Research Assistant: Batch Verify Quotes"
+        "title": "Research Assistant: Batch Verify Quotes",
+        "icon": "$(quote)"
       },
       {
         "command": "researchAssistant.exportCoverage",
@@ -111,6 +112,11 @@
         "icon": "$(checklist)"
       },
       {
+        "command": "researchAssistant.verifyAllClaims",
+        "title": "Research Assistant: Verify All Claims",
+        "icon": "$(checklist)"
+      },
+      {
         "command": "researchAssistant.validateClaimSupport",
         "title": "Validate Support",
         "icon": "$(symbol-misc)"
@@ -118,12 +124,32 @@
       {
         "command": "researchAssistant.validateAllClaims",
         "title": "Research Assistant: Validate All Claims Support",
-        "icon": "$(checklist)"
+        "icon": "$(rock)"
       },
       {
         "command": "researchAssistant.flagWeakSupport",
         "title": "Research Assistant: Flag Claims with Weak Support",
         "icon": "$(warning)"
+      },
+      {
+        "command": "researchAssistant.openWritingMode",
+        "title": "Research Assistant: Open Writing Mode",
+        "icon": "$(edit)"
+      },
+      {
+        "command": "researchAssistant.openEditingMode",
+        "title": "Research Assistant: Open Editing Mode",
+        "icon": "$(pencil)"
+      },
+      {
+        "command": "researchAssistant.openClaimReview",
+        "title": "Research Assistant: Open Claim Review",
+        "icon": "$(checklist)"
+      },
+      {
+        "command": "researchAssistant.openClaimMatching",
+        "title": "Research Assistant: Open Claim Matching",
+        "icon": "$(search)"
       }
     ],
     "viewsContainers": {
@@ -148,6 +174,26 @@
         {
           "id": "researchAssistant.papers",
           "name": "Papers"
+        },
+        {
+          "id": "researchAssistant.writingMode",
+          "name": "Writing Mode",
+          "type": "webview"
+        },
+        {
+          "id": "researchAssistant.editingMode",
+          "name": "Editing Mode",
+          "type": "webview"
+        },
+        {
+          "id": "researchAssistant.claimReview",
+          "name": "Claim Review",
+          "type": "webview"
+        },
+        {
+          "id": "researchAssistant.claimMatching",
+          "name": "Claim Matching",
+          "type": "webview"
         }
       ]
     },
@@ -166,14 +212,34 @@
       ],
       "view/title": [
         {
+          "command": "researchAssistant.activate",
+          "when": "view == researchAssistant.outline",
+          "group": "navigation@1"
+        },
+        {
           "command": "researchAssistant.refreshOutline",
           "when": "view == researchAssistant.outline",
-          "group": "navigation"
+          "group": "navigation@2"
         },
         {
           "command": "researchAssistant.refreshClaims",
           "when": "view == researchAssistant.claims",
-          "group": "navigation"
+          "group": "navigation@1"
+        },
+        {
+          "command": "researchAssistant.batchVerifyQuotes",
+          "when": "view == researchAssistant.claims",
+          "group": "navigation@2"
+        },
+        {
+          "command": "researchAssistant.validateAllClaims",
+          "when": "view == researchAssistant.claims",
+          "group": "navigation@3"
+        },
+        {
+          "command": "researchAssistant.syncPDFsFromZotero",
+          "when": "view == researchAssistant.papers",
+          "group": "navigation@1"
         }
       ],
       "view/item/context": [
@@ -201,9 +267,31 @@
           "command": "researchAssistant.validateClaimSupport",
           "when": "view == researchAssistant.claims && viewItem == claim",
           "group": "2_verification@2"
+        },
+        {
+          "command": "researchAssistant.extractPdf",
+          "when": "view == researchAssistant.papers && viewItem == pdfNeedsExtraction",
+          "group": "1_extraction@1"
         }
       ]
     },
+    "keybindings": [
+      {
+        "command": "researchAssistant.openWritingMode",
+        "key": "shift+w",
+        "when": "editorTextFocus"
+      },
+      {
+        "command": "researchAssistant.openEditingMode",
+        "key": "shift+e",
+        "when": "editorTextFocus"
+      },
+      {
+        "command": "researchAssistant.openClaimReview",
+        "key": "shift+c",
+        "when": "editorTextFocus"
+      }
+    ],
     "configuration": {
       "title": "Research Assistant",
       "properties": {
@@ -261,6 +349,28 @@
           "type": "boolean",
           "default": true,
           "description": "Enable memory usage monitoring and automatic cleanup"
+        },
+        "researchAssistant.defaultMode": {
+          "type": "string",
+          "default": "writing",
+          "enum": ["writing", "editing", "review"],
+          "description": "Default mode to open when activating Research Assistant"
+        },
+        "researchAssistant.autoSaveInterval": {
+          "type": "number",
+          "default": 2000,
+          "description": "Auto-save interval in milliseconds"
+        },
+        "researchAssistant.sentenceParsingStrategy": {
+          "type": "string",
+          "default": "default",
+          "enum": ["default", "aggressive", "conservative"],
+          "description": "Strategy for parsing sentences from manuscript"
+        },
+        "researchAssistant.claimMatchingThreshold": {
+          "type": "number",
+          "default": 0.7,
+          "description": "Minimum similarity threshold for claim matching (0-1)"
         }
       }
     }

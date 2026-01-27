@@ -1,14 +1,14 @@
 import * as vscode from 'vscode';
 import { ExtensionState } from '../state';
-import { OutlineParser } from '../outlineParser';
-import { ClaimsManager } from '../claimsManager';
+import { OutlineParser } from '../outlineParserWrapper';
+import { ClaimsManager } from '../claimsManagerWrapper';
 
 // Mock OutlineParser
-jest.mock('../outlineParser');
+jest.mock('../outlineParserWrapper');
 const MockOutlineParser = OutlineParser as jest.MockedClass<typeof OutlineParser>;
 
 // Mock ClaimsManager
-jest.mock('../claimsManager');
+jest.mock('../claimsManagerWrapper');
 const MockClaimsManager = ClaimsManager as jest.MockedClass<typeof ClaimsManager>;
 
 // Setup ClaimsManager mock with onClaimSaved event emitter

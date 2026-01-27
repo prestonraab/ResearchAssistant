@@ -1,0 +1,522 @@
+/* Editing Mode Styles */
+
+:root {
+  --color-green: #4CAF50;
+  --color-orange: #FF9800;
+  --color-blue: #2196F3;
+  --color-red: #F44336;
+  --color-grey: #9E9E9E;
+  --color-bg: #FFFFFF;
+  --color-text: #212121;
+  --color-border: #BDBDBD;
+  --color-hover: #F5F5F5;
+  --color-accent: #2196F3;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  font-size: 13px;
+  color: var(--color-text);
+  background-color: var(--color-bg);
+}
+
+.editing-mode-container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  width: 100%;
+}
+
+/* Header */
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--color-border);
+  background-color: var(--color-hover);
+  flex-shrink: 0;
+}
+
+.header .title {
+  font-size: 14px;
+  font-weight: bold;
+  color: var(--color-text);
+}
+
+.header .controls {
+  display: flex;
+  gap: 8px;
+}
+
+.icon-btn {
+  background: none;
+  border: none;
+  padding: 4px 8px;
+  cursor: pointer;
+  font-size: 14px;
+  color: var(--color-text);
+  border-radius: 4px;
+  transition: background-color 0.2s;
+}
+
+.icon-btn:hover {
+  background-color: var(--color-border);
+}
+
+/* Content */
+.content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px;
+}
+
+/* Sentences List */
+.sentences-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Sentence Box */
+.sentence-box {
+  border: 1px solid var(--color-border);
+  border-left: 4px solid var(--color-grey);
+  padding: 12px;
+  border-radius: 4px;
+  background-color: var(--color-bg);
+  transition: background-color 0.2s;
+}
+
+.sentence-box:hover {
+  background-color: var(--color-hover);
+}
+
+.sentence-box.status-green {
+  border-left-color: var(--color-green);
+}
+
+.sentence-box.status-orange {
+  border-left-color: var(--color-orange);
+}
+
+.sentence-box.status-blue {
+  border-left-color: var(--color-blue);
+}
+
+.sentence-box.status-red {
+  border-left-color: var(--color-red);
+}
+
+.sentence-box.status-grey {
+  border-left-color: var(--color-grey);
+}
+
+/* Sentence Header */
+.sentence-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 8px;
+}
+
+.sentence-text {
+  flex: 1;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--color-text);
+  word-wrap: break-word;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 2px;
+  transition: background-color 0.2s;
+}
+
+.sentence-text:hover {
+  background-color: rgba(33, 150, 243, 0.1);
+}
+
+.sentence-text.editing {
+  background-color: rgba(33, 150, 243, 0.2);
+}
+
+.sentence-text-input {
+  width: 100%;
+  padding: 8px;
+  font-size: 13px;
+  border: 1px solid var(--color-accent);
+  border-radius: 2px;
+  font-family: inherit;
+  resize: vertical;
+  min-height: 40px;
+}
+
+.sentence-text-input:focus {
+  outline: none;
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 2px rgba(33, 150, 243, 0.2);
+}
+
+/* Sentence Actions */
+.sentence-actions {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.action-btn {
+  padding: 4px 8px;
+  font-size: 11px;
+  border: 1px solid var(--color-border);
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  border-radius: 2px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.action-btn:hover {
+  background-color: var(--color-accent);
+  color: white;
+  border-color: var(--color-accent);
+}
+
+.action-btn.primary {
+  background-color: var(--color-accent);
+  color: white;
+  border-color: var(--color-accent);
+}
+
+.action-btn.danger {
+  background-color: var(--color-red);
+  color: white;
+  border-color: var(--color-red);
+}
+
+/* Claims Container */
+.claims-container {
+  margin-top: 8px;
+  padding-left: 16px;
+  border-left: 2px solid var(--color-border);
+}
+
+.claims-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  font-size: 11px;
+  color: var(--color-grey);
+  font-weight: bold;
+}
+
+.claims-toggle {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  color: var(--color-grey);
+  font-size: 12px;
+}
+
+.claims-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.claims-list.collapsed {
+  display: none;
+}
+
+/* Claim Box */
+.claim-box {
+  border: 1px solid #E0E0E0;
+  padding: 8px 12px;
+  border-radius: 2px;
+  background-color: #FAFAFA;
+  transition: background-color 0.2s;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.claim-box:hover {
+  background-color: #F5F5F5;
+}
+
+.claim-content {
+  flex: 1;
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.claim-status-icon {
+  font-size: 12px;
+  min-width: 16px;
+  text-align: center;
+  margin-top: 2px;
+}
+
+.claim-status-icon.verified {
+  color: var(--color-green);
+}
+
+.claim-status-icon.unverified {
+  color: var(--color-orange);
+}
+
+.claim-status-icon.not-checked {
+  color: var(--color-grey);
+}
+
+.claim-status-icon.invalid {
+  color: var(--color-red);
+}
+
+.claim-text-wrapper {
+  flex: 1;
+}
+
+.claim-id {
+  font-size: 11px;
+  font-weight: bold;
+  color: var(--color-accent);
+}
+
+.claim-text {
+  font-size: 12px;
+  color: #424242;
+  line-height: 1.4;
+  word-wrap: break-word;
+  cursor: pointer;
+  padding: 2px;
+  border-radius: 2px;
+  transition: background-color 0.2s;
+}
+
+.claim-text:hover {
+  background-color: rgba(33, 150, 243, 0.1);
+}
+
+.claim-text.editing {
+  background-color: rgba(33, 150, 243, 0.2);
+}
+
+.claim-text-input {
+  width: 100%;
+  padding: 6px;
+  font-size: 12px;
+  border: 1px solid var(--color-accent);
+  border-radius: 2px;
+  font-family: inherit;
+  resize: vertical;
+  min-height: 30px;
+}
+
+.claim-text-input:focus {
+  outline: none;
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 2px rgba(33, 150, 243, 0.2);
+}
+
+.claim-actions {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.claim-action-btn {
+  padding: 2px 6px;
+  font-size: 10px;
+  border: 1px solid var(--color-border);
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  border-radius: 2px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.claim-action-btn:hover {
+  background-color: var(--color-accent);
+  color: white;
+  border-color: var(--color-accent);
+}
+
+.claim-action-btn.delete {
+  color: var(--color-red);
+}
+
+.claim-action-btn.delete:hover {
+  background-color: var(--color-red);
+  color: white;
+  border-color: var(--color-red);
+}
+
+/* Empty State */
+.empty-state {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--color-grey);
+}
+
+.empty-state-icon {
+  font-size: 48px;
+  margin-bottom: 12px;
+}
+
+.empty-state-text {
+  font-size: 14px;
+  margin-bottom: 8px;
+}
+
+.empty-state-hint {
+  font-size: 12px;
+  color: #999;
+}
+
+/* Help Overlay */
+.help-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.help-overlay.hidden {
+  display: none;
+}
+
+.help-content {
+  background-color: white;
+  border-radius: 4px;
+  padding: 24px;
+  max-width: 500px;
+  max-height: 80vh;
+  overflow-y: auto;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+}
+
+.help-content h2 {
+  margin: 0 0 16px 0;
+  font-size: 16px;
+  color: var(--color-text);
+}
+
+.help-section {
+  margin-bottom: 16px;
+}
+
+.help-section h3 {
+  margin: 0 0 8px 0;
+  font-size: 13px;
+  font-weight: bold;
+  color: var(--color-accent);
+}
+
+.shortcut {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 6px;
+  font-size: 12px;
+}
+
+.shortcut .key {
+  font-family: 'Courier New', monospace;
+  background-color: #f0f0f0;
+  padding: 2px 6px;
+  border-radius: 2px;
+  min-width: 80px;
+  font-weight: bold;
+}
+
+.shortcut .description {
+  color: #666;
+  flex: 1;
+}
+
+.help-footer {
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid var(--color-border);
+  font-size: 11px;
+  color: var(--color-grey);
+  text-align: center;
+}
+
+/* Tooltip */
+.tooltip {
+  position: relative;
+  display: inline-block;
+}
+
+.tooltip .tooltiptext {
+  visibility: hidden;
+  background-color: #333;
+  color: #fff;
+  text-align: center;
+  border-radius: 2px;
+  padding: 6px 8px;
+  position: absolute;
+  z-index: 1;
+  bottom: 125%;
+  left: 50%;
+  margin-left: -50px;
+  opacity: 0;
+  transition: opacity 0.3s;
+  font-size: 11px;
+  white-space: nowrap;
+  max-width: 200px;
+}
+
+.tooltip:hover .tooltiptext {
+  visibility: visible;
+  opacity: 1;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #ccc;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #999;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .sentence-actions {
+    flex-direction: column;
+  }
+
+  .action-btn {
+    width: 100%;
+  }
+
+  .help-content {
+    max-width: 90vw;
+  }
+}

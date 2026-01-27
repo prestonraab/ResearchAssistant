@@ -300,8 +300,6 @@ describe('InlineSearchProvider', () => {
           title: 'Neural Networks',
           level: 2,
           content: [],
-          parent: null,
-          children: [],
           lineStart: 1,
           lineEnd: 10,
         },

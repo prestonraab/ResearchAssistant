@@ -28,6 +28,19 @@ export interface Claim {
 }
 
 /**
+ * Tracks sentence-claim-quote relationships and citation status
+ * Used to mark specific quotes from claims as "to be cited" for particular sentences
+ */
+export interface SentenceClaimQuoteLink {
+  sentenceId: string;            // Sentence identifier
+  claimId: string;               // Claim identifier
+  quoteIndex: number;            // Index of quote in claim (0 = primary, 1+ = supporting)
+  citedForFinal: boolean;        // Whether this quote should be cited in final version
+  createdAt: Date;               // Creation timestamp
+  updatedAt: Date;               // Last modification timestamp
+}
+
+/**
  * Types of claims that can be extracted
  */
 export type ClaimType = 

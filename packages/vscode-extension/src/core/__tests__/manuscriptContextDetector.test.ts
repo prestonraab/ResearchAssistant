@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { ManuscriptContextDetector } from '../manuscriptContextDetector';
-import { ClaimsManager } from '../claimsManager';
+import { ClaimsManager } from '../claimsManagerWrapper';
 import type { Claim, OutlineSection } from '@research-assistant/core';
 
 // Mock vscode

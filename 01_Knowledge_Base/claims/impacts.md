@@ -7,7 +7,6 @@ This file contains all **Impact** claims with their supporting evidence.
 ## C_36: Unmeasured or unmodeled factors can introduce widespread and detrimental effects on gene expression studies
 
 **Category**: Impact  
-**Source**: Leek2010 (Source ID: 18)
 **Context**: This phenomenon is true even for well-designed, randomized studies.
 
 **Primary Quote**:
@@ -20,7 +19,6 @@ This file contains all **Impact** claims with their supporting evidence.
 ## C_39: Expression heterogeneity can lead to extra variability in expression levels, spurious signals due to confounding, and long-range dependence in noise
 
 **Category**: Impact  
-**Source**: Leek2007 (Source ID: 7)
 **Context**: Occurs even if measured factors like age act on distinct sets of genes or interact with unobserved factors.
 
 **Primary Quote**:
@@ -33,7 +31,6 @@ This file contains all **Impact** claims with their supporting evidence.
 ## C_49: Failure of adaptability between source and target domains in domain adaptation can lead to negative transfer
 
 **Category**: Impact  
-**Source**: Orouji2024 (Source ID: 20)
 **Context**: Highlights a critical theoretical limitation of DA.
 
 **Primary Quote**:
@@ -46,7 +43,6 @@ This file contains all **Impact** claims with their supporting evidence.
 ## C_99: The Precision Medicine Initiative aims to enable prevention and treatment strategies that account for individual variability
 
 **Category**: Impact  
-**Source**: Collins2015 (Source ID: 36)
 **Context**: Launched in 2015 to accelerate biomedical discoveries and provide clinicians with new tools.
 
 **Primary Quote**:
@@ -59,7 +55,6 @@ This file contains all **Impact** claims with their supporting evidence.
 ## C_100: Precision medicine requires integration of large-scale genomic data with clinical information
 
 **Category**: Impact  
-**Source**: Ginsburg2018 (Source ID: 37)
 **Context**: Data integration is fundamental to realizing the promise of precision medicine.
 
 **Primary Quote**:

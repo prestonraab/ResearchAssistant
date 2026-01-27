@@ -5,8 +5,8 @@
  */
 
 import * as fc from 'fast-check';
-import { OutlineParser } from '../outlineParser';
-import { ClaimsManager } from '../claimsManager';
+import { OutlineParser } from '../outlineParserWrapper';
+import { ClaimsManager } from '../claimsManagerWrapper';
 import { CoverageAnalyzer } from '../coverageAnalyzer';
 import { EmbeddingService } from '@research-assistant/core';
 import {

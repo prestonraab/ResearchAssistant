@@ -56,7 +56,7 @@ describe('ReadingAssistant', () => {
     } as unknown as vscode.ExtensionContext;
 
     // Initialize services
-    embeddingService = new EmbeddingService();
+    embeddingService = new EmbeddingService('mock-api-key');
     claimExtractor = new ClaimExtractor(embeddingService);
     readingStatusManager = new ReadingStatusManager(mockContext);
     claimsManager = new ClaimsManager('/mock/claims.md');

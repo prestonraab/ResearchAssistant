@@ -23,8 +23,6 @@ describe('CoverageAnalyzer', () => {
     level,
     title,
     content,
-    parent: null,
-    children: [],
     lineStart,
     lineEnd: lineStart + 10
   });

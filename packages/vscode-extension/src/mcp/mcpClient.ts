@@ -125,6 +125,10 @@ export class MCPClientManager {
     exportToMarkdown: (documentKey: string, maxSize?: number) => this.exportToMarkdown(documentKey, maxSize),
   };
 
+  public readonly research = {
+    verifyAllClaims: (includeSupporting?: boolean, threshold?: number) => this.verifyAllClaims(includeSupporting, threshold),
+  };
+
   constructor() {
     this.loadConfig();
   }
@@ -651,6 +655,39 @@ export class MCPClientManager {
     } catch (error) {
       console.error('Export to markdown failed:', error);
       return cached || '';
+    }
+  }
+
+  // Research Assistant MCP methods
+  async verifyAllClaims(includeSupporting: boolean = false, threshold: number = 0.8): Promise<any> {
+    const cacheKey = this.getCacheKey('research:verify-all', includeSupporting, threshold);
+    const cached = this.getFromCache<any>(cacheKey);
+    
+    if (cached) {
+      return cached;
+    }
+
+    try {
+      const result = await this.withRetry(async () => {
+        // Import the verification function from our own extension
+        const { verifyAllClaims: verifyAllClaimsFn } = await import('../core/quoteVerifier');
+        
+        // Get workspace root and extracted text directory
+        const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || '';
+        const extractedTextDir = path.join(workspaceRoot, 'literature', 'ExtractedText');
+        const claimsPath = path.join(workspaceRoot, '01_Knowledge_Base');
+        
+        // Call the function directly
+        const report = await verifyAllClaimsFn(claimsPath, extractedTextDir, includeSupporting, threshold);
+        
+        return report;
+      }, { maxRetries: 1 }); // Fewer retries for expensive batch operations
+      
+      this.setCache(cacheKey, result);
+      return result;
+    } catch (error) {
+      console.error('Verify all claims failed:', error);
+      throw error;
     }
   }
 

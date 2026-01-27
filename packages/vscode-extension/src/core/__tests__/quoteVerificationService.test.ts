@@ -1,11 +1,11 @@
 import { QuoteVerificationService, QuoteVerificationResult, BatchVerificationResult } from '../quoteVerificationService';
 import { MCPClientManager, VerificationResult } from '../../mcp/mcpClient';
-import { ClaimsManager } from '../claimsManager';
+import { ClaimsManager } from '../claimsManagerWrapper';
 import type { Claim } from '@research-assistant/core';
 
 // Mock the dependencies
 jest.mock('../../mcp/mcpClient');
-jest.mock('../claimsManager');
+jest.mock('../claimsManagerWrapper');
 
 describe('QuoteVerificationService', () => {
   let service: QuoteVerificationService;

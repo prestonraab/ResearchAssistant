@@ -7,24 +7,10 @@ This file contains all **Application** claims with their supporting evidence.
 ## C_35: GEO data are widely reused for identifying novel gene expression patterns, finding disease predictors, and developing computational methods
 
 **Category**: Application  
-**Source**: Clough2023 (Source ID: 17)
 **Context**: Over 31,000 third-party papers use GEO data to support or complement independent studies.
 
 **Primary Quote**:
-> "The community re-uses GEO data in diverse ways, including finding evidence of novel gene expression patterns, identifying disease predictors, and generally aggregating and analyzing data in ways not anticipated by the original data generators."
-
-
----
-
-
-## C_107: Multi-gene prognostic signatures are widely used clinically to guide treatment decisions in breast cancer
-
-**Category**: Application  
-**Source**: Buus2021 (Source ID: 44)
-**Context**: These signatures estimate residual risk of recurrence after surgery to guide patient management.
-
-**Primary Quote**:
-> "Multi-parameter gene-expression-based prognostic signatures are often used to estimate the residual risk of recurrence after surgery to guide patient management. Amongst the most widely used prognostic signatures in ER+ breast cancer are the Oncotype DX Recurrence Score (RS), EndoPredict (EP/EPclin) and Prosigna® Risk Of Recurrence score (ROR). Each of these have been endorsed for prognostic use in authoritative guidelines."
+> "GEO is a widely used international public repository for high-throughput gene expression and epigenomic data and continues to grow at an increasing rate. The database has become an essential resource for researchers across a wide range of disciplines, including genomics, molecular biology, biomedicine and bioinformatics."
 
 
 ---
@@ -33,7 +19,6 @@ This file contains all **Application** claims with their supporting evidence.
 ## C_108: Batch effects can lead to lack of reproducibility and lower-than-expected classification rates in clinical predictors, potentially putting patients at risk
 
 **Category**: Application  
-**Source**: Leek2010 (Source ID: 18)
 **Context**: Undetected batch effects in predictors developed for clinical outcomes can produce more variable results than expected and adversely affect classification performance.
 
 **Primary Quote**:
@@ -46,7 +31,6 @@ This file contains all **Application** claims with their supporting evidence.
 ## C_109: Single-patient data processing is vital to the translation of molecular assays, as clinical settings typically collect patient samples in small numbers
 
 **Category**: Application  
-**Source**: Talhouk2016 (Source ID: 41)
 **Context**: Multi-sample batch correction methods are impractical in clinical settings where samples are processed individually or in small numbers.
 
 **Primary Quote**:

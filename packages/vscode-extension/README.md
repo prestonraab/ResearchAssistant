@@ -13,6 +13,98 @@ Comprehensive literature review assistant for academic research, powered by AI e
 
 ---
 
+## Immersive Review Modes
+
+The Research Assistant includes four immersive modes for different research workflows:
+
+### Writing Mode
+**Purpose:** Write and organize your manuscript while viewing the outline structure
+
+- **Split-screen layout**: Outline on left (30%), manuscript on right (70%)
+- **Two-column table**: Shows alignment between outline sections and manuscript text
+- **Navigation**: Click outline sections to jump to manuscript, or click manuscript to highlight in outline
+- **Auto-save**: All changes automatically saved
+- **Keyboard shortcuts:**
+  - `Shift+E` - Switch to editing mode
+  - `Shift+C` - Switch to claim review mode
+  - `?` - Show help overlay
+  - `Esc` - Close mode
+
+### Editing Mode
+**Purpose:** Extract and manage claims at the sentence level
+
+- **Sentence boxes**: Each sentence displayed as an editable horizontal box
+- **Claim nesting**: Claims shown nested below sentences (indented)
+- **Color coding:**
+  - 🟢 Green: Has verified claims
+  - 🟠 Orange: Has unverified claims
+  - 🔴 Red: No claims
+  - 🔵 Blue: Has verified but unvalidated claims
+- **Actions:**
+  - Create claims from sentences
+  - Edit sentence text (claims stay attached)
+  - Delete sentences (claims preserved)
+  - Remove claims from sentences
+  - Match sentences to existing claims
+- **Keyboard shortcuts:**
+  - `c` - Create claim from sentence
+  - `x` - Delete claim from sentence
+  - `Enter` - Open claim in review mode
+  - `n`/`p` - Next/previous sentence
+  - `j`/`k` - Scroll down/up
+  - `f` - Find/search
+  - `Shift+W` - Switch to writing mode
+  - `Shift+C` - Switch to claim review mode
+  - `?` - Show help overlay
+  - `Esc` - Close mode
+
+### Claim Matching Mode
+**Purpose:** Find and link existing claims to sentences
+
+- **Sentence display**: Current sentence shown at top (read-only)
+- **Claim cards**: Similar claims displayed in tiled grid (3-4 columns)
+- **Similarity scoring**: Each card shows semantic similarity percentage
+- **Actions:**
+  - Click claim to link to sentence
+  - Create new claim if no matches are good
+  - Link multiple claims to one sentence
+- **Keyboard shortcuts:**
+  - `Enter` - Link selected claim
+  - `c` - Create new claim
+  - `Esc` - Return to editing mode
+  - `?` - Show help overlay
+
+### Claim Review Mode
+**Purpose:** Deep dive into individual claims with verification and validation
+
+- **Claim details**: Text, category, source, and all supporting quotes
+- **Auto-verification**: Quotes automatically verified on load
+- **Verification status**: Visual indicators for each quote
+- **Nearest match**: Shows closest match if quote not found
+- **Validation section**: Displays support strength gauge
+- **Manuscript sidebar**: Shows where claim is used in manuscript
+- **Actions:**
+  - Accept & replace quotes
+  - Delete quotes
+  - Find new quotes (search literature)
+  - Search internet for quotes
+  - Validate claim support
+- **Keyboard shortcuts:**
+  - `v` - Verify quote
+  - `a` - Accept & replace quote
+  - `d` - Delete quote
+  - `f` - Find new quotes
+  - `i` - Search internet
+  - `Shift+V` - Verify all quotes
+  - `Shift+M` - Toggle manuscript sidebar
+  - `n`/`p` - Next/previous claim
+  - `Shift+W` - Switch to writing mode
+  - `Shift+E` - Switch to editing mode
+  - `?` - Show help overlay
+  - `Esc` - Close mode
+
+---
+
 ## Features
 
 ### Core Capabilities
@@ -192,6 +284,140 @@ your-workspace/
 
 ---
 
+## User Guide: Immersive Review Modes
+
+### Getting Started with Immersive Modes
+
+The immersive modes provide focused workflows for different research tasks. Each mode is optimized for a specific activity:
+
+**Writing Mode** - Best for: Creating and organizing your manuscript
+- Use when you want to write while seeing your outline structure
+- Helps maintain alignment between outline and manuscript
+- Keyboard shortcut: `Shift+W`
+
+**Editing Mode** - Best for: Extracting and managing claims
+- Use when you want to work with sentences and claims
+- Helps link evidence to your writing
+- Keyboard shortcut: `Shift+E`
+
+**Claim Matching Mode** - Best for: Finding existing claims to reuse
+- Use when you want to avoid duplicating claims
+- Shows similar claims ranked by relevance
+- Accessed from editing mode
+
+**Claim Review Mode** - Best for: Verifying and validating claims
+- Use when you want to check quote accuracy and support strength
+- Shows where claims are used in your manuscript
+- Keyboard shortcut: `Shift+C`
+
+### Typical Workflows
+
+**Workflow 1: Write and Extract Claims**
+1. Open Writing Mode (`Shift+W`)
+2. Write your manuscript while viewing outline
+3. Switch to Editing Mode (`Shift+E`)
+4. Create claims from sentences
+5. Switch back to Writing Mode to continue writing
+
+**Workflow 2: Organize Existing Claims**
+1. Open Editing Mode (`Shift+E`)
+2. Review sentences and their claims
+3. For each sentence, click "Match" to find similar claims
+4. Link existing claims to avoid duplicates
+5. Create new claims only when needed
+
+**Workflow 3: Verify and Validate**
+1. Open Claim Review Mode (`Shift+C`)
+2. Review claim details and quotes
+3. Verify quotes against sources
+4. Check validation status
+5. View where claim is used in manuscript
+
+### Tips and Best Practices
+
+**Writing Mode Tips:**
+- Use outline sections to organize your thoughts
+- Click outline items to jump to that section
+- Outline and manuscript stay synchronized
+- Changes auto-save automatically
+
+**Editing Mode Tips:**
+- Color-coded sentences show claim status at a glance
+- Click sentence text to edit inline
+- Use "Match" button to find similar claims before creating new ones
+- Keyboard shortcuts speed up workflow:
+  - `c` - Create claim
+  - `x` - Delete claim
+  - `Enter` - Open claim details
+  - `n`/`p` - Navigate sentences
+
+**Claim Matching Tips:**
+- Similarity percentage shows how close the match is
+- Higher percentage = better match
+- Link multiple claims to one sentence if relevant
+- Create new claim if no good matches found
+
+**Claim Review Tips:**
+- Quotes auto-verify on load
+- Green checkmark = verified quote
+- Red X = quote not found in source
+- Yellow warning = partial match
+- Use "Find New Quotes" to search literature
+- Validation gauge shows support strength
+
+### Keyboard Shortcuts Reference
+
+**Global Shortcuts (All Modes):**
+- `?` - Show/hide help overlay
+- `Shift+W` - Switch to writing mode
+- `Shift+E` - Switch to editing mode
+- `Shift+C` - Switch to claim review mode
+- `Esc` - Close current mode
+
+**Editing Mode Shortcuts:**
+- `c` - Create claim from sentence
+- `x` - Delete claim from sentence
+- `Enter` - Open claim in review mode
+- `n` - Next sentence
+- `p` - Previous sentence
+- `j` - Scroll down
+- `k` - Scroll up
+- `f` - Find/search
+
+**Claim Review Mode Shortcuts:**
+- `v` - Verify quote
+- `a` - Accept & replace quote
+- `d` - Delete quote
+- `f` - Find new quotes
+- `i` - Search internet
+- `Shift+V` - Verify all quotes
+- `Shift+M` - Toggle manuscript sidebar
+- `n`/`p` - Next/previous claim
+
+### Troubleshooting Common Issues
+
+**"I can't see my claims in editing mode"**
+- Make sure your claims file is at the configured path
+- Run `Research Assistant: Refresh Claims` command
+- Check that claims are properly formatted
+
+**"Mode switching is slow"**
+- First load parses your manuscript (one-time cost)
+- Subsequent switches are faster
+- For large manuscripts, consider splitting into smaller files
+
+**"Keyboard shortcuts aren't working"**
+- Click in the mode panel to ensure focus
+- Check for conflicting keybindings in VS Code settings
+- Press `?` to see available shortcuts for current mode
+
+**"My changes aren't saving"**
+- Auto-save is enabled by default
+- Check file permissions on manuscript and claims files
+- Try manual save with `Cmd+S` or `Ctrl+S`
+
+---
+
 ## Usage
 
 ### Search for Claims
@@ -310,6 +536,59 @@ your-workspace/
 ---
 
 ## Troubleshooting
+
+### Immersive Modes
+
+#### "Mode not opening"
+
+**Cause:** Webview provider not initialized or extension not fully loaded.
+
+**Solution:**
+1. Ensure extension is activated: Run `Research Assistant: Activate` command
+2. Reload window: `Cmd+Shift+P` → "Developer: Reload Window"
+3. Check Output panel for errors: `View` → `Output` → "Research Assistant"
+
+#### "Keyboard shortcuts not working"
+
+**Cause:** Focus not in webview or conflicting keybindings.
+
+**Solution:**
+1. Click in the mode panel to ensure focus
+2. Check for conflicting keybindings: Settings → Keyboard Shortcuts
+3. Search for "researchAssistant" to see all shortcuts
+4. Modify conflicting shortcuts as needed
+
+#### "Changes not saving"
+
+**Cause:** Auto-save disabled or file permissions issue.
+
+**Solution:**
+1. Check file permissions on manuscript and claims files
+2. Verify auto-save is enabled in settings
+3. Try manual save: `Cmd+S` or `Ctrl+S`
+4. Check Output panel for save errors
+
+#### "Slow mode switching"
+
+**Cause:** Large manuscript or many claims causing parsing delay.
+
+**Solution:**
+1. This is normal for first load; subsequent switches are faster
+2. Reduce number of claims or split manuscript into smaller files
+3. Check memory usage: `View` → `Output` → "Research Assistant"
+4. Increase available system memory if possible
+
+#### "Claims not appearing in editing mode"
+
+**Cause:** Sentence-claim mapping not loaded or claims file not found.
+
+**Solution:**
+1. Verify claims file exists at configured path
+2. Run `Research Assistant: Refresh Claims` command
+3. Check that claims are properly formatted in database
+4. Reload window if issue persists
+
+---
 
 ### "OpenAI API key not configured"
 
@@ -575,6 +854,98 @@ Typical performance on a modern laptop (M1 Mac, 16GB RAM):
 2. **Use Environment Variables**: For shared projects, use environment variables
 3. **Rotate Keys**: Periodically regenerate your OpenAI API key
 4. **Monitor Usage**: Check OpenAI dashboard for unexpected usage
+
+---
+
+## Performance Optimization
+
+### Performance Targets
+
+The immersive modes are optimized to meet these performance targets:
+
+**Load Times:**
+- Writing Mode: < 1 second
+- Editing Mode: < 2 seconds
+- Claim Matching: < 2 seconds
+- Claim Review: < 2 seconds
+
+**Processing:**
+- Sentence parsing: < 500ms for 10,000 words
+- Claim matching: < 1 second for 1,000 claims
+- Similarity calculation: < 100ms per claim
+
+**Memory Usage:**
+- Initial load: < 200 MB
+- Per-mode overhead: < 50 MB
+- Cache size: < 100 MB
+
+### Optimization Strategies
+
+**Virtual Scrolling**
+- Editing mode uses virtual scrolling for large sentence lists
+- Only renders visible items + buffer
+- Dramatically reduces memory usage for large manuscripts
+
+**Lazy Loading**
+- Claim cards load on-demand as they enter viewport
+- Reduces initial rendering time
+- Improves responsiveness
+
+**Caching**
+- Embeddings cached in memory and on disk
+- Sentence parsing results cached
+- Claim similarity scores cached
+
+**Memory Management**
+- Automatic cache trimming at 70% memory usage
+- Configurable cache size limits
+- Garbage collection triggered on high memory
+
+### Monitoring Performance
+
+**Enable Performance Logging:**
+1. Open VS Code Output panel: `View` → `Output`
+2. Select "Research Assistant" from dropdown
+3. Performance metrics logged automatically
+
+**Check Memory Usage:**
+- Status bar shows current memory usage
+- Output panel shows detailed memory breakdown
+- Memory monitoring runs every 60 seconds
+
+**Performance Benchmarks:**
+- Run `Research Assistant: Benchmark Performance` command
+- Generates performance report
+- Compares against targets
+- Exports results as JSON
+
+### Optimizing Your Setup
+
+**For Large Manuscripts (10,000+ words):**
+1. Split into smaller files if possible
+2. Increase available system memory
+3. Reduce embedding cache size if memory is limited
+4. Use virtual scrolling (enabled by default)
+
+**For Large Claims Database (1,000+ claims):**
+1. Reduce embedding cache size: `researchAssistant.embeddingCacheSize`
+2. Use smaller embedding model: `text-embedding-3-small`
+3. Enable memory monitoring: `researchAssistant.enableMemoryMonitoring`
+4. Clear cache periodically: Delete `.cache/embeddings/` directory
+
+**For Slow Searches:**
+1. First search generates embeddings (one-time cost)
+2. Subsequent searches use cached embeddings (fast)
+3. Increase cache size if you have memory available
+4. Use `text-embedding-3-large` for better accuracy (slower)
+
+### Performance Tips
+
+1. **First load is slower** - Embeddings are generated and cached
+2. **Subsequent operations are faster** - Cached data is reused
+3. **Large files take longer** - Split into smaller files if needed
+4. **Memory usage grows** - Automatic cleanup at 70% threshold
+5. **Disable unused features** - Reduces memory footprint
 
 ---
 

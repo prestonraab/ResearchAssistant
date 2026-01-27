@@ -411,5 +411,24 @@ export const tools: Tool[] = [
       },
       required: ['collection_key']
     }
+  },
+  {
+    name: 'verify_all_claims',
+    description: 'Verify all claims in the knowledge base by searching for their primary quotes in the extracted literature files. Returns a report with verification status, similarity scores, and any problematic claims that need manual review.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        include_supporting_quotes: {
+          type: 'boolean',
+          description: 'Whether to also verify supporting quotes (optional, default: false)'
+        },
+        similarity_threshold: {
+          type: 'number',
+          description: 'Minimum similarity threshold for verification (0-1, default: 0.8)',
+          minimum: 0,
+          maximum: 1
+        }
+      }
+    }
   }
 ];

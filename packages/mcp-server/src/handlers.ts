@@ -85,6 +85,14 @@ const toolHandlers: Record<string, (args: any, services: Services) => Promise<an
     if (!s.doclingService) throw new Error('Docling service not configured');
     return s.doclingService.extractPDFViaScript(args.pdf_path, args.output_path);
   },
+
+  // Verification tools
+  verify_all_claims: async (args, s) => {
+    return s.searchService.verifyAllClaims(
+      args.include_supporting_quotes || false,
+      args.similarity_threshold || 0.8
+    );
+  },
 };
 
 /**

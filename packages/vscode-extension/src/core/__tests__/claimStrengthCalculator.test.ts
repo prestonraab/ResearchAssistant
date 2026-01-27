@@ -1,14 +1,17 @@
-import { ClaimStrengthCalculator, ClaimStrengthResult } from '../claimStrengthCalculator';
+import { ClaimStrengthCalculator } from '../claimStrengthCalculator';
 import { EmbeddingService } from '@research-assistant/core';
-import type { Claim } from '@research-assistant/core';
+import { ClaimsManager } from '../claimsManagerWrapper';
+import type { Claim, ClaimStrengthResult } from '@research-assistant/core';
 
 describe('ClaimStrengthCalculator', () => {
   let embeddingService: EmbeddingService;
+  let claimsManager: ClaimsManager;
   let calculator: ClaimStrengthCalculator;
 
   beforeEach(() => {
-    embeddingService = new EmbeddingService(100);
-    calculator = new ClaimStrengthCalculator(embeddingService);
+    embeddingService = new EmbeddingService('mock-api-key');
+    claimsManager = new ClaimsManager('/mock/claims.md');
+    calculator = new ClaimStrengthCalculator(embeddingService, claimsManager);
   });
 
   // Helper function to create test claims
@@ -451,7 +454,7 @@ describe('ClaimStrengthCalculator', () => {
 
     describe('custom thresholds', () => {
       it('should respect custom similarity threshold', async () => {
-        const strictCalculator = new ClaimStrengthCalculator(embeddingService, 0.95, 0.90);
+        const strictCalculator = new ClaimStrengthCalculator(embeddingService, claimsManager, 0.95);
         
         const claim1 = createClaim('C_01', 'Machine learning improves accuracy', 'Smith2020', 1);
         const claim2 = createClaim('C_02', 'Deep learning enhances performance', 'Jones2021', 2);
@@ -464,7 +467,7 @@ describe('ClaimStrengthCalculator', () => {
       });
 
       it('should respect custom contradiction threshold', async () => {
-        const lenientCalculator = new ClaimStrengthCalculator(embeddingService, 0.75, 0.90);
+        const lenientCalculator = new ClaimStrengthCalculator(embeddingService, claimsManager, 0.75);
         
         const claim1 = createClaim('C_01', 'Method improves results', 'Smith2020', 1);
         const claim2 = createClaim('C_02', 'Method does not improve results', 'Jones2021', 2);

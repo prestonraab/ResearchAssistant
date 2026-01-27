@@ -1,13 +1,13 @@
 import { ClaimExtractor, PotentialClaim } from '../claimExtractor';
 import { EmbeddingService } from '@research-assistant/core';
-import { OutlineSection } from '../outlineParser';
+import type { OutlineSection } from '@research-assistant/core';
 
 describe('ClaimExtractor', () => {
   let extractor: ClaimExtractor;
   let embeddingService: EmbeddingService;
 
   beforeEach(() => {
-    embeddingService = new EmbeddingService();
+    embeddingService = new EmbeddingService('mock-api-key');
     extractor = new ClaimExtractor(embeddingService);
   });
 
@@ -387,8 +387,6 @@ describe('ClaimExtractor', () => {
           level: 2,
           title: 'Methods and Approaches',
           content: ['How do we process data?', 'What algorithms are used?'],
-          parent: null,
-          children: [],
           lineStart: 1,
           lineEnd: 5,
         },
@@ -397,8 +395,6 @@ describe('ClaimExtractor', () => {
           level: 2,
           title: 'Results and Findings',
           content: ['What are the outcomes?', 'Performance metrics'],
-          parent: null,
-          children: [],
           lineStart: 6,
           lineEnd: 10,
         },
@@ -407,8 +403,6 @@ describe('ClaimExtractor', () => {
           level: 2,
           title: 'Discussion',
           content: ['Implications of findings', 'Future work'],
-          parent: null,
-          children: [],
           lineStart: 11,
           lineEnd: 15,
         },

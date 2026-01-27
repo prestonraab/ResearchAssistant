@@ -1,14 +1,16 @@
-import { PaperRanker, PaperMetadata, RankedPaper } from '../paperRanker';
-import { EmbeddingService } from '@research-assistant/core';
-import { OutlineSection } from '../outlineParser';
+import { PaperRanker } from '../paperRanker';
+import { EmbeddingService, OutlineParser } from '@research-assistant/core';
+import type { OutlineSection } from '@research-assistant/core';
 
 describe('PaperRanker', () => {
   let embeddingService: EmbeddingService;
+  let outlineParser: OutlineParser;
   let paperRanker: PaperRanker;
 
   beforeEach(() => {
-    embeddingService = new EmbeddingService(100);
-    paperRanker = new PaperRanker(embeddingService);
+    embeddingService = new EmbeddingService('test-api-key');
+    outlineParser = new OutlineParser('test-file.md');
+    paperRanker = new PaperRanker(embeddingService, outlineParser);
   });
 
   // Helper function to create test papers
@@ -30,7 +32,6 @@ describe('PaperRanker', () => {
     wordCount,
     tags: []
   });
-
   // Helper function to create test section
   const createSection = (
     title: string,
@@ -40,8 +41,6 @@ describe('PaperRanker', () => {
     level: 2,
     title,
     content,
-    parent: null,
-    children: [],
     lineStart: 1,
     lineEnd: 10
   });
@@ -327,7 +326,7 @@ describe('PaperRanker', () => {
     });
 
     it('should allow custom configuration', () => {
-      const customRanker = new PaperRanker(embeddingService, {
+      const customRanker = new PaperRanker(embeddingService, outlineParser, {
         citationBoostFactor: 0.2,
         wordsPerMinute: 250
       });

@@ -1,4 +1,4 @@
-import { ClaimsManager } from '../claimsManager';
+import { ClaimsManager } from '../claimsManagerWrapper';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import * as os from 'os';

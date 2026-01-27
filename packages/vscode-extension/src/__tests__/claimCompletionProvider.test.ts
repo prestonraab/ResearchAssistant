@@ -3,7 +3,7 @@ import { ClaimCompletionProvider } from '../ui/claimCompletionProvider';
 import { ExtensionState } from '../core/state';
 import { ClaimsManager } from '../core/claimsManagerWrapper';
 import type { Claim, OutlineSection } from '@research-assistant/core';
-import { OutlineParser } from '../core/outlineParser';
+import { OutlineParser } from '../core/outlineParserWrapper';
 
 // Mock VS Code API
 jest.mock('vscode', () => ({
@@ -96,8 +96,6 @@ describe('ClaimCompletionProvider', () => {
       level: 2,
       title: 'Machine Learning Methods',
       content: ['How do ML algorithms work?', 'What are the benefits?'],
-      parent: null,
-      children: [],
       lineStart: 1,
       lineEnd: 10
     },
@@ -106,8 +104,6 @@ describe('ClaimCompletionProvider', () => {
       level: 2,
       title: 'Data Preparation',
       content: ['What preprocessing steps are needed?'],
-      parent: null,
-      children: [],
       lineStart: 11,
       lineEnd: 20
     }

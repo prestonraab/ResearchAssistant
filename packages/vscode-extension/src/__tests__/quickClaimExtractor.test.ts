@@ -1,7 +1,7 @@
 import { QuickClaimExtractor } from '../core/quickClaimExtractor';
 import { ClaimsManager } from '../core/claimsManagerWrapper';
 import { ClaimExtractor } from '../core/claimExtractor';
-import { OutlineParser } from '../core/outlineParser';
+import { OutlineParser } from '../core/outlineParserWrapper';
 import { EmbeddingService } from '@research-assistant/core';
 import * as vscode from 'vscode';
 

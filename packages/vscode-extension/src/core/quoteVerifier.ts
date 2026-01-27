@@ -232,3 +232,97 @@ export function verifyQuote(
     searchedDirectory: extractedTextDir
   };
 }
+
+
+/**
+ * Verify all claims in the knowledge base
+ */
+export async function verifyAllClaims(
+  claimsPath: string,
+  extractedTextDir: string,
+  includeSupporting: boolean = false,
+  threshold: number = 0.8
+): Promise<any> {
+  const results = {
+    total_count: 0,
+    verified_count: 0,
+    failed_count: 0,
+    problematic_claims: [] as any[]
+  };
+
+  try {
+    // Read all claims files
+    const claimsDir = path.join(claimsPath, 'claims');
+    if (!fs.existsSync(claimsDir)) {
+      return { ...results, error: 'Claims directory not found' };
+    }
+
+    const claimFiles = fs.readdirSync(claimsDir).filter(f => f.endsWith('.md'));
+
+    for (const file of claimFiles) {
+      const filePath = path.join(claimsDir, file);
+      const content = fs.readFileSync(filePath, 'utf-8');
+
+      // Parse claims from markdown
+      const claimMatches = content.matchAll(/## (C_\d+):[^\n]+\n\n\*\*Category\*\*:[^\n]+\n\*\*Source\*\*:\s*([^\n]+)/g);
+
+      for (const match of claimMatches) {
+        const claimId = match[1];
+        const sourceInfo = match[2];
+
+        // Extract source ID
+        const sourceMatch = sourceInfo.match(/\(Source ID:\s*(\d+)\)/);
+        if (!sourceMatch) {
+          results.problematic_claims.push({
+            id: claimId,
+            issue: 'No source ID found'
+          });
+          continue;
+        }
+
+        // Find primary quote
+        const quoteMatch = content.match(
+          new RegExp(`## ${claimId}:[^]*?\\*\\*Primary Quote\\*\\*:\\s*>\\s*"([^"]+)"`, 's')
+        );
+
+        if (!quoteMatch) {
+          results.problematic_claims.push({
+            id: claimId,
+            issue: 'No primary quote found'
+          });
+          continue;
+        }
+
+        const quote = quoteMatch[1];
+        const sourceId = sourceMatch[1];
+
+        // Map source ID to author-year (simplified - would need full mapping)
+        const authorYear = sourceInfo.split('(')[0].trim();
+
+        results.total_count++;
+
+        // Verify the quote
+        const verification = verifyQuote(quote, authorYear, extractedTextDir);
+
+        if (verification.verified && verification.similarity >= threshold) {
+          results.verified_count++;
+        } else {
+          results.failed_count++;
+          results.problematic_claims.push({
+            id: claimId,
+            issue: `Quote verification failed (similarity: ${(verification.similarity * 100).toFixed(1)}%)`,
+            similarity: verification.similarity,
+            sourceFile: verification.sourceFile
+          });
+        }
+      }
+    }
+
+    return results;
+  } catch (error) {
+    return {
+      ...results,
+      error: `Verification failed: ${error instanceof Error ? error.message : String(error)}`
+    };
+  }
+}

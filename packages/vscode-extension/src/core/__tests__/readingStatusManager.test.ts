@@ -1,6 +1,11 @@
 import * as vscode from 'vscode';
 import { ReadingStatusManager, ReadingStatus, ReadingProgress } from '../readingStatusManager';
 
+// Mock jest functions
+const mockJest = {
+  fn: (implementation?: any) => implementation || (() => {})
+};
+
 describe('ReadingStatusManager', () => {
   let mockContext: vscode.ExtensionContext;
   let workspaceState: Map<string, any>;
@@ -12,14 +17,14 @@ describe('ReadingStatusManager', () => {
     mockContext = {
       subscriptions: [],
       workspaceState: {
-        get: jest.fn((key: string, defaultValue?: any) => {
+        get: mockJest.fn((key: string, defaultValue?: any) => {
           return workspaceState.get(key) ?? defaultValue;
         }),
-        update: jest.fn((key: string, value: any) => {
+        update: mockJest.fn((key: string, value: any) => {
           workspaceState.set(key, value);
           return Promise.resolve();
         }),
-        keys: jest.fn(() => Array.from(workspaceState.keys()))
+        keys: mockJest.fn(() => Array.from(workspaceState.keys()))
       } as any,
       globalState: {} as any,
       extensionPath: '/test/extension',

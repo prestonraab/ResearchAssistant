@@ -1,8 +1,8 @@
-import baseConfig from '../../jest.config.base.js';
-
 export default {
-  ...baseConfig,
   displayName: 'vscode-extension',
+  preset: 'ts-jest',
+  testEnvironment: 'node',
+  extensionsToTreatAsEsm: ['.ts'],
   testMatch: ['<rootDir>/src/**/__tests__/**/*.test.ts', '<rootDir>/src/**/*.test.ts'],
   setupFilesAfterEnv: ['<rootDir>/src/__tests__/setup.ts'],
   collectCoverageFrom: [
@@ -11,7 +11,18 @@ export default {
     '!src/**/__tests__/**',
     '!src/**/*.d.ts'
   ],
-  // VS Code extension specific settings
-  testEnvironment: 'node',
-  roots: ['<rootDir>/src']
+  roots: ['<rootDir>/src'],
+  moduleFileExtensions: ['ts', 'js', 'json'],
+  moduleNameMapper: {
+    '^@research-assistant/core$': '<rootDir>/../../packages/core/dist/index.js'
+  },
+  transform: {
+    '^.+\\.tsx?$': ['ts-jest', {
+      useESM: true,
+      tsconfig: {
+        module: 'ES2020',
+        target: 'ES2020'
+      }
+    }]
+  }
 };

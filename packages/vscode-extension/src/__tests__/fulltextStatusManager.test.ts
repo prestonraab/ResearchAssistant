@@ -1,7 +1,7 @@
 import { FulltextStatusManager, FulltextStatus } from '../core/fulltextStatusManager';
 import { MCPClientManager, ZoteroItem } from '../mcp/mcpClient';
 import { PDFExtractionService } from '../core/pdfExtractionService';
-import { OutlineParser } from '../core/outlineParser';
+import { OutlineParser } from '../core/outlineParserWrapper';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -9,7 +9,7 @@ import * as path from 'path';
 jest.mock('fs');
 jest.mock('../mcp/mcpClient');
 jest.mock('../core/pdfExtractionService');
-jest.mock('../core/outlineParser');
+jest.mock('../core/outlineParserWrapper');
 
 describe('FulltextStatusManager', () => {
   let manager: FulltextStatusManager;

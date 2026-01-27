@@ -7,7 +7,7 @@ describe('SynthesisEngine', () => {
   let embeddingService: EmbeddingService;
 
   beforeEach(() => {
-    embeddingService = new EmbeddingService();
+    embeddingService = new EmbeddingService('test-api-key');
     synthesisEngine = new SynthesisEngine(embeddingService);
   });
 
