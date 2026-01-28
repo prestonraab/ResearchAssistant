@@ -20,7 +20,7 @@ This file contains all **Application** claims with their supporting evidence.
 ## C_108: Batch effects can lead to lack of reproducibility and lower-than-expected classification rates in clinical predictors, potentially putting patients at risk
 
 **Category**: Application  
-**Source**: Alharbi2023  
+**Source**: Leek2010  
 **Context**: Undetected batch effects in predictors developed for clinical outcomes can produce more variable results than expected and adversely affect classification performance.
 
 **Primary Quote**:
@@ -33,7 +33,7 @@ This file contains all **Application** claims with their supporting evidence.
 ## C_109: Single-patient data processing is vital to the translation of molecular assays, as clinical settings typically collect patient samples in small numbers
 
 **Category**: Application  
-**Source**: Alharbi2023  
+**Source**: Talhouk2016  
 **Context**: Multi-sample batch correction methods are impractical in clinical settings where samples are processed individually or in small numbers.
 
 **Primary Quote**:

@@ -7,7 +7,7 @@ This file contains all **Method - Batch Correction** claims with their supportin
 ## C_01: ComBat uses Empirical Bayes to estimate location and scale parameters
 
 **Category**: Method  
-**Source**: Alharbi2023  
+**Source**: Yu2024  
 **Context**: Assumes Gaussian distribution.
 
 **Primary Quote**:
@@ -33,7 +33,7 @@ This file contains all **Method - Batch Correction** claims with their supportin
 ## C_03: Batch effects can substantially degrade classifier performance when applied to new batches
 
 **Category**: Method  
-**Source**: Alharbi2023  
+**Source**: Soneson2014  
 **Context**: Classifiers may learn to distinguish batches rather than biological conditions.
 
 **Primary Quote**:
@@ -46,7 +46,7 @@ This file contains all **Method - Batch Correction** claims with their supportin
 ## C_04: Cross-validation within a single study may give optimistic performance estimates because classifiers can learn batch-specific patterns
 
 **Category**: Method  
-**Source**: Alharbi2023  
+**Source**: Soneson2014  
 **Context**: Batch effects confound performance estimates.
 
 **Primary Quote**:
@@ -72,7 +72,7 @@ This file contains all **Method - Batch Correction** claims with their supportin
 ## C_06: For gene expression data, support vector machines, random forests, logistic regression with regularization, and neural networks show particular utility
 
 **Category**: Method  
-**Source**: Alharbi2023  
+**Source**: Piccolo2022  
 **Context**: Benchmark studies have identified algorithms that perform relatively well on gene expression data.
 
 **Primary Quote**:
@@ -85,7 +85,7 @@ This file contains all **Method - Batch Correction** claims with their supportin
 ## C_07: RNA-seq data are typically skewed and over-dispersed counts, making Gaussian assumptions inappropriate
 
 **Category**: Method  
-**Source**: Alharbi2023  
+**Source**: Zhang2020  
 **Context**: Complicates batch correction methods that assume Gaussian distributions.
 
 **Primary Quote**:
@@ -98,7 +98,7 @@ This file contains all **Method - Batch Correction** claims with their supportin
 ## C_08: ComBat was originally developed for microarray data and has been successfully applied to RNA-seq data after appropriate transformation
 
 **Category**: Method  
-**Source**: Alharbi2023  
+**Source**: Tran2020  
 **Context**: Requires transformation for count data; has been applied to both single-cell and bulk RNA-seq.
 
 **Primary Quote**:
@@ -111,7 +111,7 @@ This file contains all **Method - Batch Correction** claims with their supportin
 ## C_09: For single-cell RNA sequencing data, methods such as Harmony, LIGER, and Seurat address unique challenges including sparsity and high dimensionality
 
 **Category**: Method  
-**Source**: Alharbi2023  
+**Source**: Yu2024  
 **Context**: Single-cell data has more severe batch effects than bulk RNA-seq due to technical characteristics.
 
 **Primary Quote**:
@@ -124,7 +124,7 @@ This file contains all **Method - Batch Correction** claims with their supportin
 ## C_10: Alternative empirical Bayes models have been developed for adjusting batch effects in genomic studies
 
 **Category**: Method  
-**Source**: Alharbi2023  
+**Source**: Zhang2018  
 **Context**: Includes methods for cases with reference batches.
 
 **Primary Quote**:
@@ -137,7 +137,7 @@ This file contains all **Method - Batch Correction** claims with their supportin
 ## C_11: Surrogate Variable Analysis (SVA) identifies and adjusts for unknown, latent sources of variation in genomics data
 
 **Category**: Method  
-**Source**: Alharbi2023  
+**Source**: Leek2007  
 **Context**: Extracts surrogate variables from high-dimensional data to capture unwanted effects.
 
 **Primary Quote**:
@@ -150,7 +150,7 @@ This file contains all **Method - Batch Correction** claims with their supportin
 ## C_12: Harmony integrates single-cell datasets by removing batch effects while preserving biological structure through iterative batch-centroid correction in PC space
 
 **Category**: Method  
-**Source**: Haghverdi2018  
+**Source**: Korsunsky2019  
 **Context**: Fast and scalable, can handle ~1 million cells.
 
 **Primary Quote**:
@@ -163,7 +163,7 @@ This file contains all **Method - Batch Correction** claims with their supportin
 ## C_13: LIGER uses integrative non-negative matrix factorization (iNMF) to separate shared biological factors from dataset-specific technical factors
 
 **Category**: Method  
-**Source**: Alharbi2023  
+**Source**: Welch2019  
 **Context**: Performs well when batches have non-identical cell type compositions.
 
 **Primary Quote**:
@@ -176,7 +176,7 @@ This file contains all **Method - Batch Correction** claims with their supportin
 ## C_14: Seurat v3 uses anchor-based integration with mutual nearest neighbors (MNNs) to correct batch effects while preserving cell-type structure
 
 **Category**: Method  
-**Source**: Alharbi2023  
+**Source**: Stuart2019  
 **Context**: Uses CCA to project datasets into shared space before finding anchors.
 
 **Primary Quote**:
@@ -189,7 +189,7 @@ This file contains all **Method - Batch Correction** claims with their supportin
 ## C_15: BatchQC provides interactive software for evaluating sample and batch effects with PCA, heatmaps, dendrograms, and other diagnostics
 
 **Category**: Method  
-**Source**: Alharbi2023  
+**Source**: Manimaran2016  
 **Context**: Supports multiple batch correction methods including ComBat, ComBat-Seq, limma, and SVA.
 
 **Primary Quote**:
@@ -202,7 +202,7 @@ This file contains all **Method - Batch Correction** claims with their supportin
 ## C_16: Merging (batch correction + pooled analysis) identified more differentially expressed genes than meta-analysis approaches
 
 **Category**: Method  
-**Source**: Alharbi2023  
+**Source**: Taminau2014  
 **Context**: Meta-analysis still found robust DEGs, choice depends on data availability and goals.
 
 **Primary Quote**:
@@ -215,7 +215,7 @@ This file contains all **Method - Batch Correction** claims with their supportin
 ## C_17: Classification performance for gene-expression data depends strongly on algorithm choice and performance metric
 
 **Category**: Method  
-**Source**: Alharbi2023  
+**Source**: Piccolo2022  
 **Context**: Number of samples and genes did not strongly correlate with classification performance.
 
 **Primary Quote**:
@@ -228,7 +228,7 @@ This file contains all **Method - Batch Correction** claims with their supportin
 ## C_18: recount3 provides harmonized RNA-Seq expression summaries across thousands of experiments, enabling large-scale integrative analyses
 
 **Category**: Method  
-**Source**: Alharbi2023  
+**Source**: Wilks2021  
 **Context**: Comprises over 750,000 individual sequencing runs from SRA, GTEx, and TCGA, enables cross-dataset comparisons.
 
 **Primary Quote**:
@@ -241,7 +241,7 @@ This file contains all **Method - Batch Correction** claims with their supportin
 ## C_19: A hybrid model integrating data mining and machine learning methods can evaluate proximity metrics in high-dimensional gene expression data for disease diagnosis
 
 **Category**: Method  
-**Source**: Alharbi2023  
+**Source**: Babichev2025  
 **Context**: Focuses on selecting and evaluating proximity metrics for clustering and classification tasks.
 
 **Primary Quote**:
@@ -254,7 +254,7 @@ This file contains all **Method - Batch Correction** claims with their supportin
 ## C_20: Correlation distance, mutual information-based metrics, and Wasserstein distance are well-suited for gene expression analysis
 
 **Category**: Method  
-**Source**: Alharbi2023  
+**Source**: Babichev2025  
 **Context**: Selected for their theoretical soundness and practical relevance in transcriptomics.
 
 **Primary Quote**:
@@ -267,7 +267,7 @@ This file contains all **Method - Batch Correction** claims with their supportin
 ## C_23: A stacking model, with Random Forest base learners and a logistic regression meta-classifier, can enhance classification robustness
 
 **Category**: Method  
-**Source**: Alharbi2023  
+**Source**: Babichev2025  
 **Context**: Hyperparameters optimized using Bayesian optimization.
 
 **Primary Quote**:
@@ -280,7 +280,7 @@ This file contains all **Method - Batch Correction** claims with their supportin
 ## C_24: The K-Medoids clustering algorithm is suitable for gene expression data analysis
 
 **Category**: Method  
-**Source**: Alharbi2023  
+**Source**: Babichev2025  
 **Context**: Minimizes sum of distances between points and cluster medoids.
 
 **Primary Quote**:
@@ -293,7 +293,7 @@ This file contains all **Method - Batch Correction** claims with their supportin
 ## C_26: Meta-analysis in gene expression studies combines results from independent but related datasets to increase statistical power
 
 **Category**: Method  
-**Source**: Alharbi2023  
+**Source**: Campain2010  
 **Context**: Aids in finding effects that exist and important subtle variations.
 
 **Primary Quote**:
@@ -306,7 +306,7 @@ This file contains all **Method - Batch Correction** claims with their supportin
 ## C_28: The meta differential expression via distance synthesis (mDEDS) method is a meta-analysis approach
 
 **Category**: Method  
-**Source**: Alharbi2023  
+**Source**: Campain2010  
 **Context**: Designed to be resilient to varying complexity levels in meta-analysis and robust against measure-specific and platform-specific bias.
 
 **Primary Quote**:
@@ -332,7 +332,7 @@ This file contains all **Method - Batch Correction** claims with their supportin
 ## C_30: Fisher's inverse chi-square method combines p-values from independent datasets
 
 **Category**: Method  
-**Source**: Alharbi2023  
+**Source**: Campain2010  
 **Context**: Tests the null hypothesis of no differences in expression means between groups for a given gene.
 
 **Primary Quote**:
@@ -345,11 +345,11 @@ This file contains all **Method - Batch Correction** claims with their supportin
 ## C_32: GEO generates consistently computed gene expression count matrices for thousands of RNA-seq studies
 
 **Category**: Method  
-**Source**: Alharbi2023  
+**Source**: Clough2023  
 **Context**: Uses HISAT2 and featureCounts pipeline; matrices for over 23,000 studies available.
 
 **Primary Quote**:
-> "RNA-seq Counts Pipeline (described at https://www.ncbi.nlm.nih.gov/geo/info/rnaseqcounts.html) is a cloud-based bioinformatic analysis method based on HISAT2 and featureCounts implemented for processing public bulk RNA-seq reads into consistently computed expression counts. GEO has further processed the raw counts generated by SRA and transformed them into raw and normalized study-centric matrix counts files that are interoperable with common differential gene expression analysis tools, thereby expanding data re-use potential."
+> "RNA-seq Counts Pipeline (described at https://www.ncbi.nlm.nih.gov/geo/info/rnaseqcounts.html) is a cloud-based bioinformatic analysis method based on HISAT2 and featureCounts implemented for processing public bulk RNA-seq reads into consistently computed expression counts."
 
 
 ---
@@ -358,7 +358,7 @@ This file contains all **Method - Batch Correction** claims with their supportin
 ## C_37: Surrogate Variable Analysis (SVA) is a method to identify, estimate, and utilize components of expression heterogeneity
 
 **Category**: Method  
-**Source**: Alharbi2023  
+**Source**: Leek2007  
 **Context**: Can be applied in conjunction with standard analysis techniques to accurately capture the relationship between expression and any modeled variables of interest.
 
 **Primary Quote**:
@@ -371,7 +371,7 @@ This file contains all **Method - Batch Correction** claims with their supportin
 ## C_40: SVA improves the accuracy and stability of gene ranking for differential expression
 
 **Category**: Method  
-**Source**: Alharbi2023  
+**Source**: Leek2007  
 **Context**: Achieved by adjusting for surrogate variables that capture unmodeled factors, reducing spurious differential expression.
 
 **Primary Quote**:
@@ -384,7 +384,7 @@ This file contains all **Method - Batch Correction** claims with their supportin
 ## C_41: GMMchi is a Python package leveraging Gaussian Mixture Modeling to detect and characterize bimodal gene expression patterns
 
 **Category**: Method  
-**Source**: Babichev2025  
+**Source**: Liu2022  
 **Context**: Designed to analyze correlations between dichotomous gene expression shifts and driver mutations.
 
 **Primary Quote**:
@@ -397,7 +397,7 @@ This file contains all **Method - Batch Correction** claims with their supportin
 ## C_45: Domain adaptation (DA), a subfield of transfer learning, addresses the problem of models not generalizing across datasets
 
 **Category**: Method  
-**Source**: Alharbi2023  
+**Source**: Orouji2024  
 **Context**: Alleviates issues caused by technical and biological differences between datasets.
 
 **Primary Quote**:
@@ -410,7 +410,7 @@ This file contains all **Method - Batch Correction** claims with their supportin
 ## C_48: Effective domain adaptation for biological datasets requires methods that work with limited data in individual cohorts
 
 **Category**: Method  
-**Source**: Alharbi2023  
+**Source**: Orouji2024  
 **Context**: Emphasizes the need for DA research to focus on data-scarce regimes.
 
 **Primary Quote**:
@@ -423,7 +423,7 @@ This file contains all **Method - Batch Correction** claims with their supportin
 ## C_50: CycleMix is a novel scalable cell-cycle classification algorithm based on Gaussian Mixture Modeling
 
 **Category**: Method  
-**Source**: Alharbi2023  
+**Source**: Peplinski2025  
 **Context**: Addresses heterogeneity of the cell cycle in single-cell RNAseq and spatial transcriptomics.
 
 **Primary Quote**:
@@ -436,7 +436,7 @@ This file contains all **Method - Batch Correction** claims with their supportin
 ## C_52: CycleMix uses a weighted average of log-normalized expression from positive and negative marker genes
 
 **Category**: Method  
-**Source**: Alharbi2023  
+**Source**: Peplinski2025  
 **Context**: Marker gene lists from multiple sources are available within CycleMix, including those used by Seurat and Tirosh et al. (2016).
 
 **Primary Quote**:
@@ -449,7 +449,7 @@ This file contains all **Method - Batch Correction** claims with their supportin
 ## C_54: CycleMix can regress out cell-cycle phase differences using discrete classifications
 
 **Category**: Method  
-**Source**: Alharbi2023  
+**Source**: Peplinski2025  
 **Context**: This partial regression model helps to distinguish problematic cell-cycle variability from biologically relevant cell-type variability.
 
 **Primary Quote**:
@@ -462,7 +462,7 @@ This file contains all **Method - Batch Correction** claims with their supportin
 ## C_55: PhenoGMM is an automated model-based fingerprinting approach based on Gaussian mixture models
 
 **Category**: Method  
-**Source**: Alharbi2023  
+**Source**: Rubbens2021  
 **Context**: It processes large amounts of quantitative single-cell data generated by cytometry.
 
 **Primary Quote**:
@@ -475,7 +475,7 @@ This file contains all **Method - Batch Correction** claims with their supportin
 ## C_58: Traditional cytometric fingerprinting approaches for bacterial communities have drawbacks including being laborious and operator-dependent
 
 **Category**: Method  
-**Source**: Alharbi2023  
+**Source**: Rubbens2021  
 **Context**: PhenoGMM addresses these shortcomings by modeling the full multivariate parameter space at once.
 
 **Primary Quote**:
@@ -488,7 +488,7 @@ This file contains all **Method - Batch Correction** claims with their supportin
 ## C_59: PhenoGMM models the full parameter space of multivariate flow cytometry data
 
 **Category**: Method  
-**Source**: Alharbi2023  
+**Source**: Rubbens2021  
 **Context**: This allows for the description of potentially many overlapping cell populations.
 
 **Primary Quote**:
@@ -670,7 +670,7 @@ This file contains all **Method - Batch Correction** claims with their supportin
 ## C_91: Reference-based normalization adjusts a single sample against a pre-computed reference distribution from training data
 
 **Category**: Method  
-**Source**: Breiman2001  
+**Source**: McCall2010  
 **Context**: Critical for clinical deployment where each patient sample may constitute its own "batch."
 
 **Primary Quote**:

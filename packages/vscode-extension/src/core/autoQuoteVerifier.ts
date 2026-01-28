@@ -3,6 +3,9 @@ import type { Claim } from '@research-assistant/core';
 import { ClaimsManager } from './claimsManagerWrapper';
 import { MCPClientManager, VerificationResult } from '../mcp/mcpClient';
 import { getLogger } from './loggingService';
+import { HybridQuoteSearch } from '../services/hybridQuoteSearch';
+import { LiteratureIndexer } from '../services/literatureIndexer';
+import { FuzzyQuoteMatcher } from '../services/fuzzyQuoteMatcher';
 
 interface VerificationQueueItem {
   claim: Claim;
@@ -23,12 +26,19 @@ export class AutoQuoteVerifier {
   private logger = getLogger();
   private onDidVerifyEmitter = new vscode.EventEmitter<{ claimId: string; verified: boolean }>();
   public readonly onDidVerify = this.onDidVerifyEmitter.event;
+  private hybridQuoteSearch: HybridQuoteSearch;
 
   constructor(
     private claimsManager: ClaimsManager,
     private mcpClient: MCPClientManager
   ) {
     this.logger.info('AutoQuoteVerifier initialized');
+    
+    // Initialize hybrid search service
+    const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || '';
+    const literatureIndexer = new LiteratureIndexer(workspaceRoot);
+    const fuzzyQuoteMatcher = new FuzzyQuoteMatcher(workspaceRoot);
+    this.hybridQuoteSearch = new HybridQuoteSearch(literatureIndexer, fuzzyQuoteMatcher);
   }
 
   /**
@@ -139,7 +149,7 @@ export class AutoQuoteVerifier {
   }
 
   /**
-   * Verify a single claim's quote
+   * Verify a single claim's quote using hybrid search strategy
    */
   private async verifyClaimQuote(item: VerificationQueueItem): Promise<void> {
     const { claim } = item;
@@ -147,11 +157,47 @@ export class AutoQuoteVerifier {
     this.logger.debug(`Verifying quote for ${claim.id}`);
 
     try {
-      // Call Citation MCP to verify quote
-      const result = await this.mcpClient.citation.verifyQuote(
-        claim.primaryQuote.text,
-        claim.primaryQuote.source
-      );
+      const quoteText = claim.primaryQuote.text;
+      
+      // Use hybrid search to find best match
+      const results = await this.hybridQuoteSearch.search(quoteText, 5);
+      
+      // Auto-update metadata and source if we found a match
+      const existingMetadata = claim.primaryQuote.metadata;
+      if (results.length > 0) {
+        const topMatch = results[0];
+        const needsUpdate = !existingMetadata || 
+                            existingMetadata.sourceFile !== topMatch.sourceFile ||
+                            existingMetadata.startLine !== topMatch.startLine ||
+                            existingMetadata.endLine !== topMatch.endLine;
+        
+        if (needsUpdate) {
+          claim.primaryQuote.metadata = {
+            sourceFile: topMatch.sourceFile,
+            startLine: topMatch.startLine!,
+            endLine: topMatch.endLine!
+          };
+          
+          // Update source to match actual file
+          const sourceFileName = topMatch.sourceFile.replace(/\.txt$/, '');
+          const authorYearMatch = sourceFileName.match(/^([^-]+)\s*-\s*(\d{4})/);
+          if (authorYearMatch) {
+            const authorYear = `${authorYearMatch[1].trim().split(' ')[0]}${authorYearMatch[2]}`;
+            claim.primaryQuote.source = authorYear;
+          }
+          
+          await this.claimsManager.updateClaim(claim.id, claim);
+          this.logger.info(`Auto-updated source for ${claim.id} to ${claim.primaryQuote.source}`);
+        }
+      }
+      
+      // Create verification result
+      const verified = results.length > 0 && results[0].similarity >= 0.9;
+      const result: VerificationResult = {
+        verified,
+        similarity: results.length > 0 ? results[0].similarity : 0,
+        closestMatch: results.length > 0 ? results[0].matchedText : undefined
+      };
 
       // Update verification status
       await this.updateVerificationStatus(claim.id, result);
@@ -304,10 +350,11 @@ export class AutoQuoteVerifier {
 
   /**
    * Batch verify all unverified claims
+   * Also automatically finds and updates sources for quotes without metadata
    */
   async verifyAllUnverified(): Promise<void> {
     const claims = this.claimsManager.getClaims();
-    const unverified = claims.filter(c => !c.verified && c.primaryQuote && c.primaryQuote.source);
+    const unverified = claims.filter(c => !c.verified && c.primaryQuote && c.primaryQuote.text);
 
     if (unverified.length === 0) {
       vscode.window.showInformationMessage('All claims with quotes are already verified');
@@ -315,7 +362,7 @@ export class AutoQuoteVerifier {
     }
 
     const proceed = await vscode.window.showInformationMessage(
-      `Verify ${unverified.length} unverified claim${unverified.length !== 1 ? 's' : ''}?`,
+      `Verify ${unverified.length} unverified claim${unverified.length !== 1 ? 's' : ''}? This will also find and update sources automatically.`,
       'Yes',
       'No'
     );
@@ -335,7 +382,7 @@ export class AutoQuoteVerifier {
     vscode.window.withProgress(
       {
         location: vscode.ProgressLocation.Notification,
-        title: 'Verifying quotes',
+        title: 'Verifying quotes and finding sources',
         cancellable: false
       },
       async (progress) => {

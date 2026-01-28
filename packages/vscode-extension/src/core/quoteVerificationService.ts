@@ -2,6 +2,9 @@ import { MCPClientManager, VerificationResult, VerificationReport } from '../mcp
 import { ClaimsManager } from './claimsManagerWrapper';
 import { QuoteVerificationCache } from '@research-assistant/core';
 import type { Claim } from '@research-assistant/core';
+import { HybridQuoteSearch } from '../services/hybridQuoteSearch';
+import { LiteratureIndexer } from '../services/literatureIndexer';
+import { FuzzyQuoteMatcher } from '../services/fuzzyQuoteMatcher';
 
 export interface QuoteVerificationResult {
   claimId: string;
@@ -31,6 +34,7 @@ export interface BatchVerificationResult {
 export class QuoteVerificationService {
   private cache: QuoteVerificationCache | null = null;
   private cacheReady: Promise<void>;
+  private hybridQuoteSearch: HybridQuoteSearch;
 
   constructor(
     private mcpClient: MCPClientManager,
@@ -46,6 +50,12 @@ export class QuoteVerificationService {
     } else {
       this.cacheReady = Promise.resolve();
     }
+    
+    // Initialize hybrid search service
+    const root = workspaceRoot || '';
+    const literatureIndexer = new LiteratureIndexer(root);
+    const fuzzyQuoteMatcher = new FuzzyQuoteMatcher(root);
+    this.hybridQuoteSearch = new HybridQuoteSearch(literatureIndexer, fuzzyQuoteMatcher);
   }
 
   /**
@@ -57,7 +67,7 @@ export class QuoteVerificationService {
 
   /**
    * Verify a single quote against its source text
-   * Uses cache if available, otherwise performs verification via MCP
+   * Uses hybrid search strategy: embedding + fuzzy matching
    * @param quote The quote text to verify
    * @param authorYear The source identifier (e.g., "Johnson2007")
    * @returns Verification result with similarity score and closest match if failed
@@ -78,19 +88,32 @@ export class QuoteVerificationService {
         return {
           verified: cached.verified,
           similarity: cached.similarity,
-          closestMatch: cached.closestMatch, // Now included from cache
+          closestMatch: cached.closestMatch,
           context: undefined
         };
       }
     }
 
     try {
-      const result = await this.mcpClient.verifyQuote(quote, authorYear);
+      // Use hybrid search to find best match
+      const bestMatch = await this.hybridQuoteSearch.findBestMatch(quote);
       
-      // Store in cache with closestMatch
+      // Determine if verified (similarity >= 0.9)
+      const verified = bestMatch ? bestMatch.similarity >= 0.9 : false;
+      const similarity = bestMatch ? bestMatch.similarity : 0;
+      const closestMatch = bestMatch ? bestMatch.matchedText : undefined;
+      
+      const result: VerificationResult = {
+        verified,
+        similarity,
+        closestMatch,
+        context: undefined
+      };
+      
+      // Store in cache
       if (this.cache) {
-        this.cache.set(quote, authorYear, result.verified, result.similarity, result.closestMatch);
-        console.log(`[QuoteVerificationService] Cached verification result for ${authorYear} (similarity: ${result.similarity.toFixed(2)})`);
+        this.cache.set(quote, authorYear, verified, similarity, closestMatch);
+        console.log(`[QuoteVerificationService] Cached verification result for ${authorYear} (similarity: ${similarity.toFixed(2)})`);
       }
       
       return result;

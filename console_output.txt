@@ -1,71 +1,34 @@
 
-workbench.desktop.main.js:523 [Extension Host] Verifying quote directly: {quote: 'ComBat is one of the most widely used BECAs in transcriptomics [118, 119] proteomics [120], and meta', authorYear: 'Alharbi2023'}
-workbench.desktop.main.js:523 [Extension Host] Verification result: {verified: false, similarity: 0.6567164179104478, sourceFile: 'Alharbi and Vakanski - 2023 - Machine Learning Met…ification Using Gene Expression Data A Review.txt', nearestMatch: 'used in other related works to find associated gen…model to identify the transcriptional target fact', contextBefore: '## 4.2.2. Recurrent Neural Networks (RNN)\n', …}
-workbench.desktop.main.js:523 [Extension Host] Mapped verification result: {verified: false, similarity: 0.6567164179104478, closestMatch: 'used in other related works to find associated gen…model to identify the transcriptional target fact', context: '## 4.2.2. Recurrent Neural Networks (RNN)\n'}
-workbench.desktop.main.js:523 [Extension Host] [QuoteVerificationService] Cached verification result for Alharbi2023 (similarity: 0.66)
-workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Primary quote verification result: {verified: false, similarity: 0.6567164179104478}
-workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Checking existing source: Yu et al. - 2024 - Assessing and mitigating batch effects in large-scale omics studies.txt
-workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Updated line numbers: {old: '0-0', new: '329-331'}
-workbench.desktop.main.js:523 [Extension Host] [VerificationFeedbackLoop] Cache hit for validation of claim C_01
-workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Stored context: {claimId: 'C_01'}
-claimReview.js:158 [ClaimReview] Displaying claim: {id: 'C_01', text: 'ComBat uses Empirical Bayes to estimate location and scale parameters', category: 'Method', source: 'Alharbi2023', primaryQuote: {…}, …}
-workbench.desktop.main.js:523 [Extension Host] [QuoteVerificationCache] Saved 125 entries to /Users/phr23/Writing/Chapter/.cache/quote-verification.json
-workbench.desktop.main.js:523 [Extension Host] High memory usage in claim review mode: 450MB / 495MB
-ub
-workbench.desktop.main.js:523 [Extension Host] Claim review mode disposed
-workbench.desktop.main.js:523 [Extension Host] [EditingMode] Loading manuscript from: /Users/phr23/Writing/Chapter/03_Drafting/manuscript.md
-workbench.desktop.main.js:523 [Extension Host] [EditingMode] File exists: true
-workbench.desktop.main.js:523 [Extension Host] [EditingMode] Loaded 92157 characters
-workbench.desktop.main.js:523 [Extension Host] [EditingMode] Manuscript length: 92157 characters
-workbench.desktop.main.js:523 [Extension Host] [EditingMode] Parsed 143 question-answer pairs
-workbench.desktop.main.js:523 [Extension Host] [EditingMode] Extracted 510 sentences from answers
-workbench.desktop.main.js:523 [Extension Host] [EditingMode] Sending 510 sentences to webview
-workbench.desktop.main.js:523 [Extension Host] [EditingMode] Context check: {claimReviewContext: {…}, writingContext: {…}}
-workbench.desktop.main.js:523 [Extension Host] [EditingMode] Final centerItemId: undefined
-editingMode.js:28 [EditingMode WebView] Received initialize message: {sentenceCount: 510, centerItemId: undefined, virtualScrollingEnabled: true}
-editingMode.js:37 [EditingMode WebView] Sentences array: 510
-editingMode.js:41 [EditingMode WebView] Using virtual scrolling
-workbench.desktop.main.js:523 [Extension Host] Editing mode disposed
-workbench.desktop.main.js:523 [Extension Host] [QuoteVerificationService] Cache hit for quote from Alharbi2023
-workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Primary quote verification result: {verified: false, similarity: 0.7032967032967034}
-workbench.desktop.main.js:523 [Extension Host] [LiteratureIndexer] searchSnippetsWithSimilarity called with query: We developed a batch correction method, ComBat-seq
+workbench.desktop.main.js:523 [Extension Host] [QuoteVerificationService] Cache hit for quote from Soneson2014
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Primary quote verification result: {verified: false, similarity: 0.7306666666666667}
+workbench.desktop.main.js:523 [Extension Host] [LiteratureIndexer] searchSnippetsWithSimilarity called with query: The Gene Expression Omnibus (GEO) is an internatio
 workbench.desktop.main.js:523 [Extension Host] [LiteratureIndexer] Query embedding generated, searching store
 workbench.desktop.main.js:523 [Extension Host] [EmbeddingStore] searchByEmbeddingWithSimilarity called with 9117 total snippets
 workbench.desktop.main.js:523 [Extension Host] [EmbeddingStore] Returning 5 results with similarity scores
 workbench.desktop.main.js:523 [Extension Host] [LiteratureIndexer] Search returned 5 results with similarity scores
-workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Auto-updated primary quote metadata and source: {metadata: {…}, source: 'Zhang2020'}
-workbench.desktop.main.js:523 [Extension Host] [VerificationFeedbackLoop] Cached validation result for claim C_02
-workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Stored context: {claimId: 'C_02'}
-claimReview.js:158 [ClaimReview] Displaying claim: {id: 'C_02', text: 'ComBat-Seq preserves integer counts for RNA-Seq data', category: 'Method', source: 'Zhang2020', primaryQuote: {…}, …}
-workbench.desktop.main.js:523 [Extension Host] [QuoteVerificationCache] Saved 125 entries to /Users/phr23/Writing/Chapter/.cache/quote-verification.json
-workbench.desktop.main.js:523 [Extension Host] [PersistenceUtils] ✓ write applications.md (3ms)
-workbench.desktop.main.js:523 [Extension Host] Persisted 167 claims across 9 file(s)
-workbench.desktop.main.js:523 [Extension Host] Verifying quote directly: {quote: 'We developed a batch correction method, ComBat-seq, using a negative binomial regression model that ', authorYear: 'Zhang2020'}
-workbench.desktop.main.js:523 [Extension Host] Verification result: {verified: true, similarity: 1, sourceFile: 'Zhang et al. - 2020 - ComBat-seq batch effect adjustment for RNA-seq count data.txt', matchedText: 'The benefit of integrating batches of genomic data…s and recovers the biological signal in the data.', contextBefore: '## ABSTRACT\n', …}
-workbench.desktop.main.js:523 [Extension Host] Mapped verification result: {verified: true, similarity: 1, closestMatch: 'The benefit of integrating batches of genomic data…s and recovers the biological signal in the data.', context: '## ABSTRACT\n'}
-workbench.desktop.main.js:523 [Extension Host] [QuoteVerificationService] Cached verification result for Zhang2020 (similarity: 1.00)
-workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Primary quote verification result: {verified: true, similarity: 1}
-workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Checking existing source: Zhang et al. - 2020 - ComBat-seq batch effect adjustment for RNA-seq count data.txt
-workbench.desktop.main.js:523 [Extension Host] [PersistenceUtils] ✓ write applications.md (3ms)
+workbench.desktop.main.js:523 [Extension Host] [PersistenceUtils] ✓ write applications.md (2ms)
+workbench.desktop.main.js:523 [Extension Host] [PersistenceUtils] ✓ write challenges.md (1ms)
+workbench.desktop.main.js:523 [Extension Host] [PersistenceUtils] ✓ write methods_batch_correction.md (2ms)
+workbench.desktop.main.js:523 [Extension Host] [PersistenceUtils] ✓ write results.md (1ms)
+workbench.desktop.main.js:523 [Extension Host] [PersistenceUtils] ✓ write data_sources.md (1ms)
+workbench.desktop.main.js:523 [Extension Host] [PersistenceUtils] ✓ write data_trends.md (1ms)
+workbench.desktop.main.js:523 [Extension Host] [PersistenceUtils] ✓ write impacts.md (1ms)
+workbench.desktop.main.js:523 [Extension Host] [PersistenceUtils] ✓ write phenomena.md (1ms)
 workbench.desktop.main.js:523 [Extension Host] [PersistenceUtils] ✓ write uncategorized.md (1ms)
 workbench.desktop.main.js:523 [Extension Host] Persisted 167 claims across 9 file(s)
-workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Updated line numbers: {old: '14-14', new: '15-15'}
-workbench.desktop.main.js:523 [Extension Host] [VerificationFeedbackLoop] Cache hit for validation of claim C_02
-workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Stored context: {claimId: 'C_02'}
-claimReview.js:158 [ClaimReview] Displaying claim: {id: 'C_02', text: 'ComBat-Seq preserves integer counts for RNA-Seq data', category: 'Method', source: 'Zhang2020', primaryQuote: {…}, …}
-wo
-workbench.desktop.main.js:523 [Extension Host] [QuoteVerificationCache] Saved 126 entries to /Users/phr23/Writing/Chapter/.cache/quote-verification.json
-workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Switching to editing mode: {currentClaimId: 'C_02', sentencesForClaim: Array(0)}
-workbench.desktop.main.js:523 [Extension Host] [ClaimReview] No sentences found for claim: C_02
-
-workbench.desktop.main.js:523 [Extension Host] Claim review mode disposed
-workbench.desktop.main.js:523 [Extension Host] [EditingMode] Loading manuscript from: /Users/phr23/Writing/Chapter/03_Drafting/manuscript.md
-workbench.desktop.main.js:523 [Extension Host] [EditingMode] File exists: true
-workbench.desktop.main.js:523 [Extension Host] [EditingMode] Loaded 92157 characters
-workbench.desktop.main.js:523 [Extension Host] [EditingMode] Manuscript length: 92157 characters
-workbench.desktop.main.js:523 [Extension Host] [EditingMode] Parsed 143 question-answer pairs
-workbench.desktop.main.js:523 [Extension Host] [EditingMode] Extracted 510 sentences from answers
-workbench.desktop.main.js:523 [Extension Host] [EditingMode] Sending 510 sentences to webview
-workbench.desktop.main.js:523 [Extension Host] [EditingMode] Context check: {claimReviewContext: {…}, writingContext: {…}}
-workbench.desktop.main.js:523 [Extension Host] [EditingMode] Final centerItemId: undefined
-
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Auto-updated primary quote metadata and source: {metadata: {…}, source: 'Soneson2014'}
+workbench.desktop.main.js:523 [Extension Host] [VerificationFeedbackLoop] Cache hit for validation of claim C_31
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Stored context: {claimId: 'C_31'}
+claimReview.js:158 [ClaimReview] Displaying claim: {id: 'C_31', text: 'The Gene Expression Omnibus (GEO) is an internatio…ry archiving gene expression and epigenomics data', category: 'Data Source', source: 'Soneson2014', primaryQuote: {…}, …}
+workbench.desktop.main.js:523 [Extension Host] [QuoteVerificationCache] Saved 128 entries to /Users/phr23/Writing/Chapter/.cache/quote-verification.json
+workbench.desktop.main.js:523 [Extension Host] [ZoteroDirectService] Zotero API response: {isArray: true, count: 0, type: 'object'}
+workbench.desktop.main.js:523 [Extension Host] [ZoteroDirectService] Parsed results: 0 items
+workbench.desktop.main.js:523 [Extension Host] [ZoteroDirectService] Searching Zotero with URL: https://api.zotero.org/users/***/items/top?q=Chen%20et%20al.%20-%202024%20-%20Population-Level%20Cell%20Trajectory%20Inference%20Based%20on%20Gaussian%20Distributions&limit=1&format=json
+workbench.desktop.main.js:523 [Extension Host] [ZoteroDirectService] Zotero API response: {isArray: true, count: 0, type: 'object'}
+workbench.desktop.main.js:523 [Extension Host] [ZoteroDirectService] Parsed results: 0 items
+workbench.desktop.main.js:523 [Extension Host] [ZoteroDirectService] Searching Zotero with URL: https://api.zotero.org/users/***/items/top?q=Clough%20et%20al.%20-%202023%20-%20NCBI%20GEO%20archive%20for%20gene%20expression%20and%20epigenomics%20data%20sets%2023-year%20update&limit=1&format=json
+workbench.desktop.main.js:523 [Extension Host] [ZoteroDirectService] Zotero API response: {isArray: true, count: 0, type: 'object'}
+workbench.desktop.main.js:523 [Extension Host] [ZoteroDirectService] Parsed results: 0 items
+workbench.desktop.main.js:523 [Extension Host] [ZoteroDirectService] Searching Zotero with URL: https://api.zotero.org/users/***/items/top?q=Collins%20and%20Varmus%20-%202015%20-%20A%20New%20Initiative%20on%20Precision%20Medicine&limit=1&format=json
+workbench.desktop.main.js:523 [Extension Host] [ZoteroDirectService] Zotero API response: {isArray: true, count: 0, type: 'object'}
+workbench.desktop.main.js:523 [Extension Host] [ZoteroDirectService] Parsed results: 0 items

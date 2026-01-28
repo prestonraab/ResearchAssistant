@@ -366,8 +366,8 @@ export class ClaimMatchingProvider {
     // Trim caches
     this.claimSimilarityCache.clear();
 
-    // Notify webview to clear non-essential data
-    if (this.panel) {
+    // Only notify user if memory is very high (over 1GB)
+    if (this.panel && stats.heapUsedMB > 1024) {
       this.panel.webview.postMessage({
         type: 'memoryWarning',
         message: 'Memory usage is high. Clearing cache...'

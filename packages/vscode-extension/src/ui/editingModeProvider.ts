@@ -66,6 +66,9 @@ export class EditingModeProvider {
     if (this.panel && !this.panelDisposed) {
       this.panel.reveal(vscode.ViewColumn.One);
       
+      // Refresh sentences display to pick up any claim changes (e.g., verification status)
+      await this.refreshSentencesDisplay();
+      
       // Check if we need to navigate to a specific sentence (e.g., returning from claim review)
       const claimReviewContext = getModeContextManager().getClaimReviewContext();
       if (claimReviewContext?.returnToSentenceId) {
@@ -716,8 +719,8 @@ export class EditingModeProvider {
     // Trim caches
     this.sentenceParsingCache.clear();
 
-    // Notify webview to clear non-essential data
-    if (this.panel) {
+    // Only notify user if memory is very high (over 1GB)
+    if (this.panel && stats.heapUsedMB > 1024) {
       this.panel.webview.postMessage({
         type: 'memoryWarning',
         message: 'Memory usage is high. Clearing cache...'

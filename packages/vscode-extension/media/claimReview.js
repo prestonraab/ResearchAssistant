@@ -163,12 +163,10 @@ function displayClaim(message) {
     const idEl = header.querySelector('.claim-id');
     const textEl = header.querySelector('.claim-text');
     const categoryEl = header.querySelector('.category');
-    const sourceEl = header.querySelector('.source');
     
     if (idEl) idEl.textContent = currentClaim.id || '';
     if (textEl) textEl.textContent = currentClaim.text || '';
     if (categoryEl) categoryEl.textContent = currentClaim.category || 'Uncategorized';
-    if (sourceEl) sourceEl.textContent = currentClaim.source ? `Source: ${currentClaim.source}` : 'Source: (none)';
   }
 
   // Display quotes

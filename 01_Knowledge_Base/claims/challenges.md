@@ -94,7 +94,7 @@ This file contains all **Challenge** claims with their supporting evidence.
 ## C_96: Mass spectrometry-based proteomics data are inherently biased due to sample handling and instrumentation differences
 
 **Category**: Challenge  
-**Source**: Valikangas2018  
+**Source**: Välikangas2016  
 **Context**: Batch effects in proteomics manifest as systematic shifts in ionization efficiency and instrument sensitivity.
 
 **Primary Quote**:
@@ -107,7 +107,7 @@ This file contains all **Challenge** claims with their supporting evidence.
 ## C_107: Gene expression classifiers must maintain accuracy when applied to samples processed in different hospitals using different equipment
 
 **Category**: Challenge  
-**Source**: Buus2021  
+**Source**: Talhouk2016  
 **Context**: This portability requirement is fundamental for clinical translation.
 
 **Primary Quote**:

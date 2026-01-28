@@ -331,7 +331,7 @@ This file contains all **uncategorized** claims with their supporting evidence.
 ## C_1769572898215: Classification is the task of assigning observations to predefined categories based on their features.
 
 **Category**: Uncategorized  
-**Source**: Soneson et al. - 2014 - Batch Effect Confounding Leads to Strong Bias in Performance Estimates Obtained by Cross-Validation.txt  
+**Source**: Soneson2014  
 **Context**: Classification is the task of assigning observations to predefined categories based on their features.
 
 **Primary Quote**:
@@ -344,7 +344,7 @@ This file contains all **uncategorized** claims with their supporting evidence.
 ## C_1769573184748: Classification is the task of assigning observations to predefined categories based on their features.
 
 **Category**: Uncategorized  
-**Source**: Soneson et al. - 2014 - Batch Effect Confounding Leads to Strong Bias in Performance Estimates Obtained by Cross-Validation.txt  
+**Source**: Soneson2014  
 **Context**: Classification is the task of assigning observations to predefined categories based on their features.
 
 **Primary Quote**:
@@ -366,7 +366,7 @@ This file contains all **uncategorized** claims with their supporting evidence.
 ## C_1769573721099: Classification is the task of assigning observations to predefined categories based on their features.
 
 **Category**: Uncategorized  
-**Source**: Soneson et al. - 2014 - Batch Effect Confounding Leads to Strong Bias in Performance Estimates Obtained by Cross-Validation.txt  
+**Source**: Soneson2014  
 **Context**: Classification is the task of assigning observations to predefined categories based on their features.
 
 **Primary Quote**:
@@ -379,7 +379,7 @@ This file contains all **uncategorized** claims with their supporting evidence.
 ## C_1769573792939: Classification—the task of assigning observations to predefined categories based on their features—has become essential for biomedical research and clinical practice.
 
 **Category**: Uncategorized  
-**Source**: Piccolo et al. - 2022 - The ability to classify patients based on gene-expression data varies by algorithm and performance m.txt  
+**Source**: Piccolo2022  
 **Context**: Classification—the task of assigning observations to predefined categories based on their features—has become essential for biomedical research and clinical practice.
 
 **Primary Quote**:
@@ -392,7 +392,7 @@ This file contains all **uncategorized** claims with their supporting evidence.
 ## C_1769574088265: Classification is the task of assigning observations to predefined categories based on their features.
 
 **Category**: Uncategorized  
-**Source**: Soneson et al. - 2014 - Batch Effect Confounding Leads to Strong Bias in Performance Estimates Obtained by Cross-Validation.txt  
+**Source**: Soneson2014  
 **Context**: Classification is the task of assigning observations to predefined categories based on their features.
 
 **Primary Quote**:
@@ -405,7 +405,7 @@ This file contains all **uncategorized** claims with their supporting evidence.
 ## C_1769574518895: Classification is the task of assigning observations to predefined categories based on their features.
 
 **Category**: Uncategorized  
-**Source**: Soneson et al. - 2014 - Batch Effect Confounding Leads to Strong Bias in Performance Estimates Obtained by Cross-Validation.txt  
+**Source**: Soneson2014  
 **Context**: Classification is the task of assigning observations to predefined categories based on their features.
 
 **Primary Quote**:

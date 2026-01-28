@@ -7,7 +7,7 @@ This file contains all **Impact** claims with their supporting evidence.
 ## C_36: Unmeasured or unmodeled factors can introduce widespread and detrimental effects on gene expression studies
 
 **Category**: Impact  
-**Source**: Alharbi2023  
+**Source**: Leek2007  
 **Context**: This phenomenon is true even for well-designed, randomized studies.
 
 **Primary Quote**:
@@ -20,7 +20,7 @@ This file contains all **Impact** claims with their supporting evidence.
 ## C_39: Expression heterogeneity can lead to extra variability in expression levels, spurious signals due to confounding, and long-range dependence in noise
 
 **Category**: Impact  
-**Source**: Alharbi2023  
+**Source**: Leek2007  
 **Context**: Occurs even if measured factors like age act on distinct sets of genes or interact with unobserved factors.
 
 **Primary Quote**:
@@ -33,7 +33,7 @@ This file contains all **Impact** claims with their supporting evidence.
 ## C_49: Failure of adaptability between source and target domains in domain adaptation can lead to negative transfer
 
 **Category**: Impact  
-**Source**: Alharbi2023  
+**Source**: Orouji2024  
 **Context**: Highlights a critical theoretical limitation of DA.
 
 **Primary Quote**:
@@ -72,7 +72,7 @@ This file contains all **Impact** claims with their supporting evidence.
 ## C_110: Integrating batches of genomic data increases statistical power for discovering relevant biology
 
 **Category**: Impact  
-**Source**: Alharbi2023  
+**Source**: Zhang2020  
 **Context**: Fundamental motivation for combining datasets despite batch effect challenges.
 
 **Primary Quote**:
@@ -85,7 +85,7 @@ This file contains all **Impact** claims with their supporting evidence.
 ## C_111: Combining datasets increases sample size, statistical power, and enables more general and reliable conclusions
 
 **Category**: Impact  
-**Source**: Alharbi2023  
+**Source**: Taminau2014  
 **Context**: Core benefit of integrative analysis in gene expression studies.
 
 **Primary Quote**:
@@ -98,7 +98,7 @@ This file contains all **Impact** claims with their supporting evidence.
 ## C_112: Gene signatures often fail to generalize to independent cohorts
 
 **Category**: Impact  
-**Source**: Alharbi2023  
+**Source**: Warsinske2019  
 **Context**: Critical challenge for translating gene expression classifiers across studies.
 
 **Primary Quote**:
@@ -111,7 +111,7 @@ This file contains all **Impact** claims with their supporting evidence.
 ## C_113: Integrating individual datasets increases training samples, providing larger and more diverse datasets that prevent overfitting
 
 **Category**: Impact  
-**Source**: Alharbi2023  
+**Source**: Orouji2024  
 **Context**: Domain adaptation benefit for mitigating poor sample-to-feature ratios.
 
 **Primary Quote**:

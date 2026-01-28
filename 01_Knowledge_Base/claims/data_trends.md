@@ -7,7 +7,7 @@ This file contains all **Data Trend** claims with their supporting evidence.
 ## C_33: Over the last decade, next-generation sequencing (NGS) data has grown to make up the bulk (85%) of GEO submissions
 
 **Category**: Data Trend  
-**Source**: Babichev2025  
+**Source**: Clough2023  
 **Context**: GEO consisted almost entirely of microarray data for the first 10 years of its existence.
 
 **Primary Quote**:
@@ -20,7 +20,7 @@ This file contains all **Data Trend** claims with their supporting evidence.
 ## C_34: Single-cell RNA-seq studies have significantly increased in GEO, comprising 21% of all RNA-seq studies released in 2022
 
 **Category**: Data Trend  
-**Source**: Alharbi2023  
+**Source**: Clough2023  
 **Context**: Reflects the growing focus on single-cell transcriptomes.
 
 **Primary Quote**:

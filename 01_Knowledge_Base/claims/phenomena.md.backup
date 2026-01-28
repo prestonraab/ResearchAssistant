@@ -7,7 +7,7 @@ This file contains all **Phenomenon** claims with their supporting evidence.
 ## C_101: Shortcut learning occurs when deep neural networks exploit spurious correlations in training data
 
 **Category**: Phenomenon  
-**Source**: Alharbi2023  
+**Source**: Geirhos2020  
 **Context**: Models learn decision rules based on easy-to-identify features rather than intended causal relationships.
 
 **Primary Quote**:
@@ -20,7 +20,7 @@ This file contains all **Phenomenon** claims with their supporting evidence.
 ## C_102: Batch effects in genomic data can mask or simulate biological signals, leading models to encode technical artifacts
 
 **Category**: Phenomenon  
-**Source**: Alharbi2023  
+**Source**: Soneson2014  
 **Context**: When batch effects are confounded with outcomes of interest, models may select and encode batch-related features rather than true biological signals.
 
 **Primary Quote**:
@@ -33,7 +33,7 @@ This file contains all **Phenomenon** claims with their supporting evidence.
 ## C_103: Models trained on genomic data may encode batch identity as a primary feature when batch effects explain substantial variance
 
 **Category**: Phenomenon  
-**Source**: Alharbi2023  
+**Source**: Soneson2014  
 **Context**: When batch effects are confounded with biological outcomes, classifiers may learn to discriminate based on batch identity, achieving high internal performance while failing to generalize to external data.
 
 **Primary Quote**:
@@ -46,7 +46,7 @@ This file contains all **Phenomenon** claims with their supporting evidence.
 ## C_104: Batch effects arise from technical sources including laboratory conditions, reagent lots, and personnel differences
 
 **Category**: Phenomenon  
-**Source**: Kaforou2013  
+**Source**: Leek2010  
 **Context**: High-throughput technologies are affected by systematic technical variations that occur during sample processing and measurement.
 
 **Primary Quote**:
@@ -59,7 +59,7 @@ This file contains all **Phenomenon** claims with their supporting evidence.
 ## C_105: Batch effects are systematic technical variations introduced when handling samples in batches
 
 **Category**: Phenomenon  
-**Source**: Alharbi2023  
+**Source**: Talhouk2016  
 **Context**: Batch effects represent systematic and technical variations that arise during sample collection and processing, distinct from biological variation.
 
 **Primary Quote**:
@@ -72,7 +72,7 @@ This file contains all **Phenomenon** claims with their supporting evidence.
 ## C_106: Equipment variations and calibration differences introduce systematic biases that manifest as batch effects
 
 **Category**: Phenomenon  
-**Source**: Alharbi2023  
+**Source**: Yu2024  
 **Context**: Different equipment or variations in equipment performance over time create systematic technical biases in omics data.
 
 **Primary Quote**:
