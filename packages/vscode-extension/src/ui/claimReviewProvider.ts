@@ -260,77 +260,120 @@ export class ClaimReviewProvider {
 
           console.log('[ClaimReview] Primary quote verification result:', {
             verified: primaryResult.verified,
-            similarity: primaryResult.similarity,
-            willSearch: !primaryResult.verified
+            similarity: primaryResult.similarity
           });
 
-          // If quote not verified in claimed source, search across all literature using LiteratureIndexer
+          // Search to get/update metadata - optimize by checking existing source first
           let alternativeSources: any[] = [];
-          let searchStatus: 'not_searched' | 'searching' | 'found' | 'not_found' = 'not_searched';
+          let searchStatus: 'not_searched' | 'searching' | 'found' | 'not_found' = 'searching';
           
-          if (!primaryResult.verified) {
-            console.log('[ClaimReview] Quote not found in claimed source, searching all literature...');
-            searchStatus = 'searching';
+          try {
+            // If we already have metadata with a source file, search that file first
+            const existingMetadata = claim.primaryQuote.metadata;
+            let foundInExistingSource = false;
             
-            try {
+            if (existingMetadata?.sourceFile) {
+              console.log('[ClaimReview] Checking existing source:', existingMetadata.sourceFile);
+              
+              // Search just this file using fuzzy matcher (faster for single file)
+              const fuzzyResults = await this.fuzzyQuoteMatcher.searchQuoteInFile(
+                quoteText,
+                existingMetadata.sourceFile
+              );
+              
+              if (fuzzyResults.length > 0 && fuzzyResults[0].similarity >= 0.7) {
+                const result = fuzzyResults[0];
+                alternativeSources = [{
+                  source: result.fileName.replace(/\.txt$/, '').replace(/ - /g, ' '),
+                  similarity: result.similarity,
+                  matchedText: result.matchedText,
+                  context: `Lines ${result.startLine}-${result.endLine}`,
+                  metadata: {
+                    sourceFile: result.fileName,
+                    startLine: result.startLine,
+                    endLine: result.endLine
+                  }
+                }];
+                foundInExistingSource = true;
+                
+                // Update metadata if line numbers changed
+                if (result.startLine !== existingMetadata.startLine || 
+                    result.endLine !== existingMetadata.endLine) {
+                  claim.primaryQuote.metadata = alternativeSources[0].metadata;
+                  await this.extensionState.claimsManager.updateClaim(claim.id, claim);
+                  console.log('[ClaimReview] Updated line numbers:', {
+                    old: `${existingMetadata.startLine}-${existingMetadata.endLine}`,
+                    new: `${result.startLine}-${result.endLine}`
+                  });
+                }
+              }
+            }
+            
+            // Only do full search if not found in existing source
+            if (!foundInExistingSource) {
               // Try embedding search first
               const snippets = await this.literatureIndexer.searchSnippetsWithSimilarity(quoteText, 5);
               
-              console.log('[ClaimReview] Embedding search completed, found', snippets?.length || 0, 'snippets');
-              
               if (snippets && snippets.length > 0) {
-                // Log top results for debugging
-                snippets.slice(0, 3).forEach((s, i) => {
-                  console.log(`[ClaimReview] Embedding result ${i + 1}:`, {
-                    fileName: s.fileName,
-                    similarity: s.similarity,
-                    textPreview: s.text.substring(0, 100)
-                  });
-                });
-                
                 alternativeSources = snippets
                   .filter(snippet => snippet.similarity >= 0.7)
                   .map(snippet => ({
                     source: snippet.fileName.replace(/\.txt$/, '').replace(/ - /g, ' '),
                     similarity: snippet.similarity,
                     matchedText: snippet.text,
-                    context: `Lines ${snippet.startLine}-${snippet.endLine}`
+                    context: `Lines ${snippet.startLine}-${snippet.endLine}`,
+                    metadata: {
+                      sourceFile: snippet.fileName,
+                      startLine: snippet.startLine,
+                      endLine: snippet.endLine
+                    }
                   }));
-                
-                console.log('[ClaimReview] Filtered to', alternativeSources.length, 'sources above 0.7 threshold');
               }
               
               // If embedding search didn't find good matches, try fuzzy matching
               if (alternativeSources.length === 0) {
-                console.log('[ClaimReview] Embedding search found no good matches, trying fuzzy matching...');
                 const fuzzyResults = await this.fuzzyQuoteMatcher.searchQuote(quoteText, 5);
                 
-                console.log('[ClaimReview] Fuzzy search completed, found', fuzzyResults.length, 'matches');
-                
                 if (fuzzyResults.length > 0) {
-                  // Log top results
-                  fuzzyResults.slice(0, 3).forEach((r, i) => {
-                    console.log(`[ClaimReview] Fuzzy result ${i + 1}:`, {
-                      fileName: r.fileName,
-                      similarity: r.similarity,
-                      textPreview: r.matchedText.substring(0, 100)
-                    });
-                  });
-                  
                   alternativeSources = fuzzyResults.map(result => ({
                     source: result.fileName.replace(/\.txt$/, '').replace(/ - /g, ' '),
                     similarity: result.similarity,
                     matchedText: result.matchedText,
-                    context: `Lines ${result.startLine}-${result.endLine}`
+                    context: `Lines ${result.startLine}-${result.endLine}`,
+                    metadata: {
+                      sourceFile: result.fileName,
+                      startLine: result.startLine,
+                      endLine: result.endLine
+                    }
                   }));
                 }
               }
               
-              searchStatus = alternativeSources.length > 0 ? 'found' : 'not_found';
-            } catch (error) {
-              console.error('[ClaimReview] Failed to search for quote anywhere:', error);
-              searchStatus = 'not_found';
+              // Auto-update metadata if we found a match and don't have metadata yet
+              if (alternativeSources.length > 0 && !existingMetadata) {
+                const topMatch = alternativeSources[0];
+                claim.primaryQuote.metadata = topMatch.metadata;
+                
+                // Also update the quote's source to match the actual source file
+                const sourceFileName = topMatch.metadata.sourceFile.replace(/\.txt$/, '');
+                const authorYearMatch = sourceFileName.match(/^([^-]+)\s*-\s*(\d{4})/);
+                if (authorYearMatch) {
+                  const authorYear = `${authorYearMatch[1].trim().split(' ')[0]}${authorYearMatch[2]}`;
+                  claim.primaryQuote.source = authorYear;
+                }
+                
+                await this.extensionState.claimsManager.updateClaim(claim.id, claim);
+                console.log('[ClaimReview] Auto-updated primary quote metadata and source:', {
+                  metadata: topMatch.metadata,
+                  source: claim.primaryQuote.source
+                });
+              }
             }
+            
+            searchStatus = alternativeSources.length > 0 ? 'found' : 'not_found';
+          } catch (error) {
+            console.error('[ClaimReview] Failed to search for quote:', error);
+            searchStatus = 'not_found';
           }
 
           results.push({
@@ -348,7 +391,8 @@ export class ClaimReviewProvider {
 
       // Verify supporting quotes
       if (claim.supportingQuotes && Array.isArray(claim.supportingQuotes)) {
-        for (const quoteObj of claim.supportingQuotes) {
+        for (let i = 0; i < claim.supportingQuotes.length; i++) {
+          const quoteObj = claim.supportingQuotes[i];
           // Handle both string and object formats
           const quoteText = typeof quoteObj === 'string' ? quoteObj : (quoteObj.text || '');
           const quoteSource = typeof quoteObj === 'string' ? '' : (quoteObj.source || '');
@@ -360,73 +404,117 @@ export class ClaimReviewProvider {
             quoteSource
           );
 
-          // If quote not verified in claimed source, search across all literature using LiteratureIndexer
+          // Search to get/update metadata - optimize by checking existing source first
           let alternativeSources: any[] = [];
-          let searchStatus: 'not_searched' | 'searching' | 'found' | 'not_found' = 'not_searched';
+          let searchStatus: 'not_searched' | 'searching' | 'found' | 'not_found' = 'searching';
           
-          if (!result.verified) {
-            console.log('[ClaimReview] Supporting quote not found in claimed source, searching all literature...');
-            searchStatus = 'searching';
+          try {
+            // If we already have metadata with a source file, search that file first
+            const existingMetadata = quoteObj.metadata;
+            let foundInExistingSource = false;
             
-            try {
+            if (existingMetadata?.sourceFile) {
+              console.log('[ClaimReview] Checking existing source:', existingMetadata.sourceFile);
+              
+              // Search just this file using fuzzy matcher (faster for single file)
+              const fuzzyResults = await this.fuzzyQuoteMatcher.searchQuoteInFile(
+                quoteText,
+                existingMetadata.sourceFile
+              );
+              
+              if (fuzzyResults.length > 0 && fuzzyResults[0].similarity >= 0.7) {
+                const matchResult = fuzzyResults[0];
+                alternativeSources = [{
+                  source: matchResult.fileName.replace(/\.txt$/, '').replace(/ - /g, ' '),
+                  similarity: matchResult.similarity,
+                  matchedText: matchResult.matchedText,
+                  context: `Lines ${matchResult.startLine}-${matchResult.endLine}`,
+                  metadata: {
+                    sourceFile: matchResult.fileName,
+                    startLine: matchResult.startLine,
+                    endLine: matchResult.endLine
+                  }
+                }];
+                foundInExistingSource = true;
+                
+                // Update metadata if line numbers changed
+                if (matchResult.startLine !== existingMetadata.startLine || 
+                    matchResult.endLine !== existingMetadata.endLine) {
+                  claim.supportingQuotes[i].metadata = alternativeSources[0].metadata;
+                  await this.extensionState.claimsManager.updateClaim(claim.id, claim);
+                  console.log('[ClaimReview] Updated supporting quote line numbers:', {
+                    old: `${existingMetadata.startLine}-${existingMetadata.endLine}`,
+                    new: `${matchResult.startLine}-${matchResult.endLine}`
+                  });
+                }
+              }
+            }
+            
+            // Only do full search if not found in existing source
+            if (!foundInExistingSource) {
               // Try embedding search first
               const snippets = await this.literatureIndexer.searchSnippetsWithSimilarity(quoteText, 5);
               
-              console.log('[ClaimReview] Supporting embedding search completed, found', snippets?.length || 0, 'snippets');
-              
               if (snippets && snippets.length > 0) {
-                // Log top results for debugging
-                snippets.slice(0, 3).forEach((s, i) => {
-                  console.log(`[ClaimReview] Supporting embedding result ${i + 1}:`, {
-                    fileName: s.fileName,
-                    similarity: s.similarity,
-                    textPreview: s.text.substring(0, 100)
-                  });
-                });
-                
                 alternativeSources = snippets
                   .filter(snippet => snippet.similarity >= 0.7)
                   .map(snippet => ({
                     source: snippet.fileName.replace(/\.txt$/, '').replace(/ - /g, ' '),
                     similarity: snippet.similarity,
                     matchedText: snippet.text,
-                    context: `Lines ${snippet.startLine}-${snippet.endLine}`
+                    context: `Lines ${snippet.startLine}-${snippet.endLine}`,
+                    metadata: {
+                      sourceFile: snippet.fileName,
+                      startLine: snippet.startLine,
+                      endLine: snippet.endLine
+                    }
                   }));
-                
-                console.log('[ClaimReview] Filtered to', alternativeSources.length, 'supporting sources above 0.7 threshold');
               }
               
               // If embedding search didn't find good matches, try fuzzy matching
               if (alternativeSources.length === 0) {
-                console.log('[ClaimReview] Supporting embedding search found no good matches, trying fuzzy matching...');
                 const fuzzyResults = await this.fuzzyQuoteMatcher.searchQuote(quoteText, 5);
                 
-                console.log('[ClaimReview] Supporting fuzzy search completed, found', fuzzyResults.length, 'matches');
-                
                 if (fuzzyResults.length > 0) {
-                  // Log top results
-                  fuzzyResults.slice(0, 3).forEach((r, i) => {
-                    console.log(`[ClaimReview] Supporting fuzzy result ${i + 1}:`, {
-                      fileName: r.fileName,
-                      similarity: r.similarity,
-                      textPreview: r.matchedText.substring(0, 100)
-                    });
-                  });
-                  
-                  alternativeSources = fuzzyResults.map(result => ({
-                    source: result.fileName.replace(/\.txt$/, '').replace(/ - /g, ' '),
-                    similarity: result.similarity,
-                    matchedText: result.matchedText,
-                    context: `Lines ${result.startLine}-${result.endLine}`
+                  alternativeSources = fuzzyResults.map(matchResult => ({
+                    source: matchResult.fileName.replace(/\.txt$/, '').replace(/ - /g, ' '),
+                    similarity: matchResult.similarity,
+                    matchedText: matchResult.matchedText,
+                    context: `Lines ${matchResult.startLine}-${matchResult.endLine}`,
+                    metadata: {
+                      sourceFile: matchResult.fileName,
+                      startLine: matchResult.startLine,
+                      endLine: matchResult.endLine
+                    }
                   }));
                 }
               }
               
-              searchStatus = alternativeSources.length > 0 ? 'found' : 'not_found';
-            } catch (error) {
-              console.error('[ClaimReview] Failed to search for supporting quote anywhere:', error);
-              searchStatus = 'not_found';
+              // Auto-update metadata if we found a match and don't have metadata yet
+              if (alternativeSources.length > 0 && !existingMetadata) {
+                const topMatch = alternativeSources[0];
+                claim.supportingQuotes[i].metadata = topMatch.metadata;
+                
+                // Also update the quote's source to match the actual source file
+                const sourceFileName = topMatch.metadata.sourceFile.replace(/\.txt$/, '');
+                const authorYearMatch = sourceFileName.match(/^([^-]+)\s*-\s*(\d{4})/);
+                if (authorYearMatch) {
+                  const authorYear = `${authorYearMatch[1].trim().split(' ')[0]}${authorYearMatch[2]}`;
+                  claim.supportingQuotes[i].source = authorYear;
+                }
+                
+                await this.extensionState.claimsManager.updateClaim(claim.id, claim);
+                console.log('[ClaimReview] Auto-updated supporting quote metadata and source:', {
+                  metadata: topMatch.metadata,
+                  source: claim.supportingQuotes[i].source
+                });
+              }
             }
+            
+            searchStatus = alternativeSources.length > 0 ? 'found' : 'not_found';
+          } catch (error) {
+            console.error('[ClaimReview] Failed to search for supporting quote:', error);
+            searchStatus = 'not_found';
           }
 
           results.push({
@@ -536,7 +624,7 @@ export class ClaimReviewProvider {
         break;
 
       case 'acceptQuote':
-        await this.handleAcceptQuote(message.claimId, message.quote, message.newQuote, message.newSource);
+        await this.handleAcceptQuote(message.claimId, message.quote, message.newQuote, message.newSource, message.metadata);
         break;
 
       case 'deleteQuote':
@@ -569,6 +657,10 @@ export class ClaimReviewProvider {
 
       case 'updateCategory':
         await this.handleUpdateCategory(message.claimId, message.category);
+        break;
+
+      case 'getExpandedContext':
+        await this.handleGetExpandedContext(message.sourceFile, message.startLine, message.endLine, message.expandLines);
         break;
 
       case 'switchToEditingMode':
@@ -670,7 +762,7 @@ export class ClaimReviewProvider {
   /**
    * Handle accept quote message
    */
-  private async handleAcceptQuote(claimId: string, oldQuote: string, newQuote: string, newSource?: string): Promise<void> {
+  private async handleAcceptQuote(claimId: string, oldQuote: string, newQuote: string, newSource?: string, metadata?: any): Promise<void> {
     try {
       const claim = this.extensionState.claimsManager.getClaim(claimId);
 
@@ -686,6 +778,12 @@ export class ClaimReviewProvider {
         if (newSource) {
           claim.primaryQuote.source = newSource;
         }
+        // Update or preserve metadata
+        if (metadata) {
+          claim.primaryQuote.metadata = metadata;
+        } else if (!claim.primaryQuote.metadata) {
+          claim.primaryQuote.metadata = {};
+        }
       } else if (claim.supportingQuotes && claim.supportingQuotes.length > 0) {
         const index = claim.supportingQuotes.findIndex((q: any) => q.text === oldQuote);
         if (index >= 0) {
@@ -693,6 +791,12 @@ export class ClaimReviewProvider {
           // Update source if provided
           if (newSource) {
             claim.supportingQuotes[index].source = newSource;
+          }
+          // Update or preserve metadata
+          if (metadata) {
+            claim.supportingQuotes[index].metadata = metadata;
+          } else if (!claim.supportingQuotes[index].metadata) {
+            claim.supportingQuotes[index].metadata = {};
           }
         }
       }
@@ -1101,6 +1205,54 @@ export class ClaimReviewProvider {
   }
 
   /**
+   * Handle get expanded context message
+   */
+  private async handleGetExpandedContext(sourceFile: string, startLine: number, endLine: number, expandLines: number): Promise<void> {
+    try {
+      const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || '';
+      const filePath = path.join(workspaceRoot, 'literature/ExtractedText', sourceFile);
+
+      if (!fs.existsSync(filePath)) {
+        console.warn('[ClaimReview] Source file not found:', filePath);
+        if (this.panel) {
+          this.panel.webview.postMessage({
+            type: 'expandedContext',
+            error: 'Source file not found'
+          });
+        }
+        return;
+      }
+
+      const content = fs.readFileSync(filePath, 'utf-8');
+      const lines = content.split('\n');
+
+      // Use the provided range directly (frontend has already calculated it)
+      const newStartLine = Math.max(0, Math.min(startLine, lines.length - 1));
+      const newEndLine = Math.max(0, Math.min(endLine, lines.length - 1));
+
+      // Get the expanded text
+      const expandedText = lines.slice(newStartLine, newEndLine + 1).join('\n');
+
+      if (this.panel) {
+        this.panel.webview.postMessage({
+          type: 'expandedContext',
+          text: expandedText,
+          startLine: newStartLine,
+          endLine: newEndLine
+        });
+      }
+    } catch (error) {
+      console.error('[ClaimReview] Failed to get expanded context:', error);
+      if (this.panel) {
+        this.panel.webview.postMessage({
+          type: 'expandedContext',
+          error: 'Failed to load context'
+        });
+      }
+    }
+  }
+
+  /**
    * Get HTML content for webview
    */
   private async getHtmlContent(webview: vscode.Webview): Promise<string> {
@@ -1161,7 +1313,6 @@ export class ClaimReviewProvider {
           <div class="claim-text"></div>
           <div class="claim-meta">
             <span class="category"></span>
-            <span class="source"></span>
           </div>
         </div>
 

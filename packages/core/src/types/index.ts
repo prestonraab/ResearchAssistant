@@ -19,6 +19,11 @@ export interface SourcedQuote {
   pageNumber?: number;           // Page number in source
   verified: boolean;             // Whether quote verified in source
   confidence?: number;           // Confidence score (0-1) from verification feedback loop
+  metadata?: {                   // Optional metadata about quote location
+    sourceFile?: string;         // Filename in literature/ExtractedText
+    startLine?: number;          // Starting line number in source file
+    endLine?: number;            // Ending line number in source file
+  };
 }
 
 /**

@@ -11,7 +11,7 @@ This file contains all **Method - Batch Correction** claims with their supportin
 **Context**: Assumes Gaussian distribution.
 
 **Primary Quote**:
-> "ComBat [23], which employs an empirical Bayes approach to estimate a location and scale parameter for each gene in each batch separately, and adjusts the observed expression values based on the estimated parameters."
+> "ComBat is one of the most widely used BECAs in transcriptomics [118, 119] proteomics [120], and metabolomics [121]. It uses an empirical Bayes framework to estimate the magnitude (mean and variance) of batch effects, and then remove them [31]."
 
 
 ---
@@ -20,7 +20,7 @@ This file contains all **Method - Batch Correction** claims with their supportin
 ## C_02: ComBat-Seq preserves integer counts for RNA-Seq data
 
 **Category**: Method  
-**Source**: Alharbi2023  
+**Source**: Zhang2020  
 **Context**: Uses Negative Binomial regression.
 
 **Primary Quote**:

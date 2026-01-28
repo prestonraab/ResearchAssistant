@@ -85,7 +85,6 @@ function setupKeyboardShortcuts() {
     'v': { handler: verifyCurrentQuote, modifiers: [] },
     'a': { handler: acceptCurrentQuote, modifiers: [] },
     'd': { handler: deleteCurrentQuote, modifiers: [] },
-    '*': { handler: toggleCurrentQuoteCitation, modifiers: [] },
     'f': { handler: findNewQuotes, modifiers: [] },
     'i': { handler: searchInternet, modifiers: [] },
     'V': { handler: validateSupport, modifiers: ['shift'] },
@@ -129,6 +128,7 @@ const messageHandlers = {
   'snippetTextLoaded': (msg) => handleSnippetTextLoaded(msg),
   'internetSearchResults': (msg) => displayInternetResults(msg.results),
   'supportValidated': (msg) => updateValidationResult(msg),
+  'expandedContext': (msg) => handleExpandedContext(msg),
   'showHelp': () => toggleHelpOverlay(),
   'memoryWarning': (msg) => showNotification(msg.message, 'info'),
   'error': (msg) => showError(msg.message)
@@ -257,34 +257,15 @@ function displayQuotes() {
 function displayQuoteContainer(container, quote, result, type) {
   const statusIcon = getStatusIcon(result);
   const verificationText = getVerificationText(result);
-  // Determine if we should show "Compare Quote" button
   const similarity = result?.similarity || 0;
-  const showCompareQuote = result && !result.verified && result.closestMatch;
   
-  // Check if we have alternative sources
+  // Check if we have alternative sources or closest match
   const hasAlternativeSources = result?.alternativeSources && result.alternativeSources.length > 0;
+  const hasClosestMatch = result && !result.verified && result.closestMatch;
+  const bestMatch = hasAlternativeSources ? result.alternativeSources[0].matchedText : (hasClosestMatch ? result.closestMatch : null);
   
   // Build buttons HTML
   let buttonsHtml = `
-    <button class="btn btn-primary" data-action="editQuote" data-quote="${escapeHtml(quote)}">Edit Quote</button>
-  `;
-  
-  // Add Compare Quote button if not verified and we have a closest match
-  if (showCompareQuote) {
-    buttonsHtml += `
-      <button class="btn btn-secondary" data-action="compareQuote" data-quote="${escapeHtml(quote)}" data-closest-match="${escapeHtml(result.closestMatch)}">Compare Quote</button>
-    `;
-  }
-  
-  // Add "Use Alternative Source" button if alternative sources found
-  if (hasAlternativeSources) {
-    const topMatch = result.alternativeSources[0];
-    buttonsHtml += `
-      <button class="btn btn-success" data-action="useAlternativeSource" data-quote="${escapeHtml(quote)}" data-source="${escapeHtml(topMatch.source)}" data-matched-text="${escapeHtml(topMatch.matchedText)}">Use ${escapeHtml(topMatch.source)}</button>
-    `;
-  }
-  
-  buttonsHtml += `
     <button class="btn btn-danger" data-action="deleteQuote" data-quote="${escapeHtml(quote)}">Delete</button>
     <button class="btn btn-secondary" data-action="findNewQuotes">Find New</button>
   `;
@@ -301,43 +282,183 @@ function displayQuoteContainer(container, quote, result, type) {
     infoHtml = `<div class="verification-info ${getStatusClass(result)}">${verificationText}</div>`;
   }
 
+  // Build the quote display - always with edit mode capability
+  let quoteDisplayHtml = '';
+  
+  // Extract metadata if available
+  const metadata = (hasAlternativeSources && result.alternativeSources[0].metadata) ? result.alternativeSources[0].metadata : null;
+  const sourceForMetadata = hasAlternativeSources ? result.alternativeSources[0].source : null;
+  
+  if (bestMatch && metadata) {
+    // Two-column edit mode with source text from metadata
+    quoteDisplayHtml = `
+      <div class="quote-text-wrapper" data-quote="${escapeHtml(quote)}" data-best-match="${escapeHtml(bestMatch)}" data-source-file="${escapeHtml(metadata.sourceFile)}" data-start-line="${metadata.startLine}" data-end-line="${metadata.endLine}" data-source-name="${escapeHtml(sourceForMetadata || '')}">
+        <div class="quote-display-mode">
+          <div class="quote-text editable-quote">${escapeHtml(quote)}</div>
+        </div>
+        <div class="quote-edit-mode" style="display: none;">
+          <div class="quote-edit-column">
+            <div class="quote-edit-label">Your Quote (editable)</div>
+            <textarea class="quote-edit-textarea">${escapeHtml(quote)}</textarea>
+          </div>
+          <div class="quote-edit-column">
+            <div class="quote-edit-label">
+              Source Text
+              <div class="quote-expand-controls">
+                <button class="btn-icon" data-action="expandUp" title="Show more context above">▲</button>
+                <button class="btn-icon" data-action="expandDown" title="Show more context below">▼</button>
+                <button class="btn-icon" data-action="reset" title="Reset to original">↻</button>
+              </div>
+            </div>
+            <div class="quote-edit-match">${escapeHtml(bestMatch)}</div>
+          </div>
+          <div class="quote-edit-actions">
+            <button class="btn btn-secondary btn-small" data-action="cancelEdit">Cancel</button>
+            <button class="btn btn-primary btn-small" data-action="saveEdit">Save</button>
+          </div>
+        </div>
+      </div>
+    `;
+  } else {
+    // Single-column edit mode without source text
+    quoteDisplayHtml = `
+      <div class="quote-text-wrapper" data-quote="${escapeHtml(quote)}">
+        <div class="quote-display-mode">
+          <div class="quote-text editable-quote">${escapeHtml(quote)}</div>
+        </div>
+        <div class="quote-edit-mode" style="display: none;">
+          <div class="quote-edit-column" style="grid-column: 1 / -1;">
+            <div class="quote-edit-label">Edit Quote</div>
+            <textarea class="quote-edit-textarea">${escapeHtml(quote)}</textarea>
+          </div>
+          <div class="quote-edit-actions">
+            <button class="btn btn-secondary btn-small" data-action="cancelEdit">Cancel</button>
+            <button class="btn btn-primary btn-small" data-action="saveEdit">Save</button>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
   container.innerHTML = `
     <div class="quote-header">
       <span class="quote-type">${type === 'primary' ? 'PRIMARY' : 'SUPPORTING'}</span>
       <span class="status-icon ${getStatusClass(result)}">${statusIcon}</span>
     </div>
-    <div class="quote-text">${escapeHtml(quote)}</div>
+    ${quoteDisplayHtml}
     ${infoHtml}
     <div class="quote-actions">
       ${buttonsHtml}
     </div>
   `;
   
-  // Attach event listeners
-  const editBtn = container.querySelector('[data-action="editQuote"]');
-  if (editBtn) {
-    editBtn.addEventListener('click', () => {
-      editQuote(quote);
-    });
+  // Attach event listener to make quote text clickable
+  const quoteWrapper = container.querySelector('.quote-text-wrapper');
+  if (quoteWrapper) {
+    const displayMode = quoteWrapper.querySelector('.quote-display-mode');
+    const editMode = quoteWrapper.querySelector('.quote-edit-mode');
+    
+    if (displayMode && editMode) {
+      // Click on quote text to enter edit mode
+      displayMode.addEventListener('click', () => {
+        displayMode.style.display = 'none';
+        editMode.style.display = 'grid';
+        const textarea = editMode.querySelector('.quote-edit-textarea');
+        if (textarea) {
+          textarea.focus();
+        }
+      });
+      
+      // Cancel edit
+      const cancelBtn = editMode.querySelector('[data-action="cancelEdit"]');
+      if (cancelBtn) {
+        cancelBtn.addEventListener('click', () => {
+          editMode.style.display = 'none';
+          displayMode.style.display = 'block';
+          // Reset textarea to original value
+          const textarea = editMode.querySelector('.quote-edit-textarea');
+          if (textarea) {
+            textarea.value = quote;
+          }
+        });
+      }
+      
+      // Save edit
+      const saveBtn = editMode.querySelector('[data-action="saveEdit"]');
+      if (saveBtn) {
+        saveBtn.addEventListener('click', () => {
+          const textarea = editMode.querySelector('.quote-edit-textarea');
+          const newQuote = textarea.value.trim();
+          if (newQuote) {
+            // Extract metadata if available
+            const sourceFile = quoteWrapper.getAttribute('data-source-file');
+            const startLine = quoteWrapper.getAttribute('data-current-start-line') || quoteWrapper.getAttribute('data-start-line');
+            const endLine = quoteWrapper.getAttribute('data-current-end-line') || quoteWrapper.getAttribute('data-end-line');
+            const sourceName = quoteWrapper.getAttribute('data-source-name');
+            
+            const metadata = sourceFile ? {
+              sourceFile: sourceFile,
+              startLine: parseInt(startLine),
+              endLine: parseInt(endLine)
+            } : undefined;
+            
+            // Extract author-year from source name if we have it
+            let newSource = undefined;
+            if (sourceName && newQuote !== quote) {
+              // Only update source if quote text changed and we have source metadata
+              const authorYearMatch = sourceName.match(/^([^-]+)\s*-\s*(\d{4})/);
+              newSource = authorYearMatch ? `${authorYearMatch[1].trim().split(' ')[0]}${authorYearMatch[2]}` : undefined;
+            }
+            
+            vscode.postMessage({
+              type: 'acceptQuote',
+              claimId: currentClaim.id,
+              quote: quote,
+              newQuote: newQuote,
+              newSource: newSource,
+              metadata: metadata
+            });
+          }
+          editMode.style.display = 'none';
+          displayMode.style.display = 'block';
+        });
+      }
+      
+      // Expand controls
+      const expandUpBtn = editMode.querySelector('[data-action="expandUp"]');
+      if (expandUpBtn) {
+        expandUpBtn.addEventListener('click', () => {
+          expandContext(quoteWrapper, 'up');
+        });
+      }
+      
+      const expandDownBtn = editMode.querySelector('[data-action="expandDown"]');
+      if (expandDownBtn) {
+        expandDownBtn.addEventListener('click', () => {
+          expandContext(quoteWrapper, 'down');
+        });
+      }
+      
+      const resetBtn = editMode.querySelector('[data-action="reset"]');
+      if (resetBtn) {
+        resetBtn.addEventListener('click', () => {
+          const originalMatch = quoteWrapper.getAttribute('data-best-match');
+          const matchDiv = editMode.querySelector('.quote-edit-match');
+          if (matchDiv && originalMatch) {
+            matchDiv.textContent = originalMatch;
+            // Reset stored line numbers
+            const sourceFile = quoteWrapper.getAttribute('data-source-file');
+            const startLine = parseInt(quoteWrapper.getAttribute('data-start-line') || '0');
+            const endLine = parseInt(quoteWrapper.getAttribute('data-end-line') || '0');
+            quoteWrapper.setAttribute('data-current-start-line', startLine.toString());
+            quoteWrapper.setAttribute('data-current-end-line', endLine.toString());
+          }
+        });
+      }
+    }
   }
   
-  const compareBtn = container.querySelector('[data-action="compareQuote"]');
-  if (compareBtn) {
-    compareBtn.addEventListener('click', () => {
-      const closestMatch = compareBtn.getAttribute('data-closest-match');
-      compareQuote(quote, closestMatch);
-    });
-  }
-  
-  const useAltBtn = container.querySelector('[data-action="useAlternativeSource"]');
-  if (useAltBtn) {
-    useAltBtn.addEventListener('click', () => {
-      const source = useAltBtn.getAttribute('data-source');
-      const matchedText = useAltBtn.getAttribute('data-matched-text');
-      useAlternativeSource(quote, source, matchedText);
-    });
-  }
-  
+  // Attach event listeners for action buttons
   const deleteBtn = container.querySelector('[data-action="deleteQuote"]');
   if (deleteBtn) {
     deleteBtn.addEventListener('click', () => {
@@ -381,30 +502,25 @@ function getVerificationText(result) {
   
   const similarity = Math.round(result.similarity * 100);
   
-  let baseText = '';
+  // If verified in claimed source, show that
   if (result.verified) {
-    baseText = `Verified in source (${similarity}% match)`;
-  } else if (result.nearestMatch) {
-    baseText = `Not verified (nearest: ${similarity}% match)`;
-  } else {
-    // Check search status for more specific messaging
-    if (result.searchStatus === 'searching') {
-      baseText = 'Not found in source • Searching all sources...';
-    } else if (result.searchStatus === 'not_found') {
-      baseText = 'Not found in all sources';
-    } else {
-      baseText = 'Not found in source';
-    }
+    return `Verified in source (${similarity}% match)`;
   }
   
-  // Add alternative sources if found
+  // If we found it in alternative sources, show that
   if (result.alternativeSources && result.alternativeSources.length > 0) {
     const topMatch = result.alternativeSources[0];
     const matchSimilarity = Math.round(topMatch.similarity * 100);
-    baseText = `Not found in source • Found in ${escapeHtml(topMatch.source)} (${matchSimilarity}% match)`;
+    return `Found in ${escapeHtml(topMatch.source)} (${matchSimilarity}% match)`;
   }
   
-  return baseText;
+  // Only show "not found" if we truly couldn't find it anywhere
+  if (result.searchStatus === 'not_found') {
+    return 'Not found in any source';
+  }
+  
+  // Default fallback
+  return `Not verified (${similarity}% match in claimed source)`;
 }
 
 /**
@@ -1219,6 +1335,79 @@ function useAlternativeSource(quote, newSource, matchedText) {
       }
     }
   );
+}
+
+/**
+ * Expand context around a quote
+ */
+function expandContext(quoteWrapper, direction) {
+  const sourceFile = quoteWrapper.getAttribute('data-source-file');
+  if (!sourceFile) {
+    console.warn('[ClaimReview] No source file metadata available');
+    return;
+  }
+  
+  // Get current line numbers (or use original if not set)
+  let startLine = parseInt(quoteWrapper.getAttribute('data-current-start-line') || quoteWrapper.getAttribute('data-start-line'));
+  let endLine = parseInt(quoteWrapper.getAttribute('data-current-end-line') || quoteWrapper.getAttribute('data-end-line'));
+  
+  // Expand by 5 lines in the requested direction
+  const expandLines = 5;
+  
+  // Calculate new range based on direction
+  let newStartLine = startLine;
+  let newEndLine = endLine;
+  
+  if (direction === 'up') {
+    newStartLine = Math.max(0, startLine - expandLines);
+  } else if (direction === 'down') {
+    newEndLine = endLine + expandLines;
+  }
+  
+  vscode.postMessage({
+    type: 'getExpandedContext',
+    sourceFile: sourceFile,
+    startLine: newStartLine,
+    endLine: newEndLine,
+    expandLines: 0  // We've already calculated the new range
+  });
+  
+  // Store the wrapper element and direction for when we get the response
+  quoteWrapper.setAttribute('data-expanding', 'true');
+  quoteWrapper.setAttribute('data-expand-direction', direction);
+}
+
+/**
+ * Handle expanded context response
+ */
+function handleExpandedContext(message) {
+  if (message.error) {
+    showNotification(message.error, 'error');
+    return;
+  }
+  
+  // Find the quote wrapper that requested expansion
+  const quoteWrapper = document.querySelector('[data-expanding="true"]');
+  if (!quoteWrapper) {
+    console.warn('[ClaimReview] No quote wrapper found for expanded context');
+    return;
+  }
+  
+  const direction = quoteWrapper.getAttribute('data-expand-direction');
+  quoteWrapper.removeAttribute('data-expanding');
+  quoteWrapper.removeAttribute('data-expand-direction');
+  
+  // Update the match text
+  const matchDiv = quoteWrapper.querySelector('.quote-edit-match');
+  if (matchDiv) {
+    matchDiv.textContent = message.text;
+    
+    // Update current line numbers
+    quoteWrapper.setAttribute('data-current-start-line', message.startLine);
+    quoteWrapper.setAttribute('data-current-end-line', message.endLine);
+    
+    console.log('[ClaimReview] Expanded context', direction, 'to lines', message.startLine, '-', message.endLine);
+  }
 }
 
 /**

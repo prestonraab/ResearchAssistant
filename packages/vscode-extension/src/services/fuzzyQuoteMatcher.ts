@@ -109,6 +109,86 @@ export class FuzzyQuoteMatcher {
   }
 
   /**
+   * Search for a quote in a specific file (optimized for re-checking existing sources)
+   */
+  async searchQuoteInFile(quote: string, fileName: string): Promise<Array<{
+    fileName: string;
+    similarity: number;
+    matchedText: string;
+    startLine: number;
+    endLine: number;
+  }>> {
+    const filePath = path.join(this.extractedTextPath, fileName);
+    
+    if (!fs.existsSync(filePath)) {
+      console.warn('[FuzzyQuoteMatcher] File not found:', filePath);
+      return [];
+    }
+
+    try {
+      const content = fs.readFileSync(filePath, 'utf-8');
+      const lines = content.split('\n');
+      const normalizedContent = this.normalizeText(content);
+      const normalizedQuote = this.normalizeText(quote);
+      
+      // Check for exact match first
+      if (normalizedContent.includes(normalizedQuote)) {
+        const match = this.findExactMatch(normalizedQuote, content, lines);
+        if (match) {
+          return [{
+            fileName: path.basename(filePath),
+            similarity: 1.0,
+            matchedText: match.text,
+            startLine: match.startLine,
+            endLine: match.endLine
+          }];
+        }
+      }
+
+      // Fuzzy match with sliding window
+      const quoteWords = normalizedQuote.split(' ').filter(w => w.length > 0);
+      const windowSize = quoteWords.length;
+      const sourceWords = normalizedContent.split(' ').filter(w => w.length > 0);
+      let bestSimilarity = 0;
+      let bestMatchIndex = 0;
+
+      for (let i = 0; i <= sourceWords.length - windowSize; i++) {
+        const window = sourceWords.slice(i, i + windowSize).join(' ');
+        const matchingWords = quoteWords.filter(word => window.includes(word)).length;
+        const similarity = matchingWords / quoteWords.length;
+
+        if (similarity > bestSimilarity) {
+          bestSimilarity = similarity;
+          bestMatchIndex = i;
+        }
+
+        if (similarity >= 0.95) {
+          break;
+        }
+      }
+
+      // Only return if similarity is above threshold
+      if (bestSimilarity >= 0.7) {
+        const match = this.findMatchLocation(bestMatchIndex, windowSize, content, lines);
+        if (match) {
+          return [{
+            fileName: path.basename(filePath),
+            similarity: bestSimilarity,
+            matchedText: match.text,
+            startLine: match.startLine,
+            endLine: match.endLine
+          }];
+        }
+      }
+
+      return [];
+    } catch (error) {
+      console.warn(`[FuzzyQuoteMatcher] Error processing file ${filePath}:`, error);
+      return [];
+    }
+  }
+
+  /**
    * Normalize text for comparison
    */
   private normalizeText(text: string): string {

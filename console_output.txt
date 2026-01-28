@@ -1,50 +1,71 @@
-workbench.desktop.main.js:11682 An iframe which has both allow-scripts and allow-same-origin for its sandbox attribute can escape its sandboxing.
-mountTo @ workbench.desktop.main.js:11682
-P @ workbench.desktop.main.js:557
-claim @ workbench.desktop.main.js:557
-claim @ workbench.desktop.main.js:534
-hb @ workbench.desktop.main.js:534
-setInput @ workbench.desktop.main.js:534
-await in setInput
-S @ workbench.desktop.main.js:610
-L @ workbench.desktop.main.js:610
-openEditor @ workbench.desktop.main.js:610
-(anonymous) @ workbench.desktop.main.js:722
-Mb @ workbench.desktop.main.js:722
-Lb @ workbench.desktop.main.js:722
-openEditor @ workbench.desktop.main.js:722
-openEditor @ workbench.desktop.main.js:1259
-openWebview @ workbench.desktop.main.js:535
-$createWebviewPanel @ workbench.desktop.main.js:557
-S @ workbench.desktop.main.js:11502
-Q @ workbench.desktop.main.js:11502
-M @ workbench.desktop.main.js:11502
-L @ workbench.desktop.main.js:11502
-(anonymous) @ workbench.desktop.main.js:11502
-C @ workbench.desktop.main.js:29
-fire @ workbench.desktop.main.js:29
-fire @ workbench.desktop.main.js:550
-l.onmessage @ workbench.desktop.main.js:11513
+
+workbench.desktop.main.js:523 [Extension Host] Verifying quote directly: {quote: 'ComBat is one of the most widely used BECAs in transcriptomics [118, 119] proteomics [120], and meta', authorYear: 'Alharbi2023'}
+workbench.desktop.main.js:523 [Extension Host] Verification result: {verified: false, similarity: 0.6567164179104478, sourceFile: 'Alharbi and Vakanski - 2023 - Machine Learning Met…ification Using Gene Expression Data A Review.txt', nearestMatch: 'used in other related works to find associated gen…model to identify the transcriptional target fact', contextBefore: '## 4.2.2. Recurrent Neural Networks (RNN)\n', …}
+workbench.desktop.main.js:523 [Extension Host] Mapped verification result: {verified: false, similarity: 0.6567164179104478, closestMatch: 'used in other related works to find associated gen…model to identify the transcriptional target fact', context: '## 4.2.2. Recurrent Neural Networks (RNN)\n'}
+workbench.desktop.main.js:523 [Extension Host] [QuoteVerificationService] Cached verification result for Alharbi2023 (similarity: 0.66)
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Primary quote verification result: {verified: false, similarity: 0.6567164179104478}
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Checking existing source: Yu et al. - 2024 - Assessing and mitigating batch effects in large-scale omics studies.txt
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Updated line numbers: {old: '0-0', new: '329-331'}
+workbench.desktop.main.js:523 [Extension Host] [VerificationFeedbackLoop] Cache hit for validation of claim C_01
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Stored context: {claimId: 'C_01'}
+claimReview.js:158 [ClaimReview] Displaying claim: {id: 'C_01', text: 'ComBat uses Empirical Bayes to estimate location and scale parameters', category: 'Method', source: 'Alharbi2023', primaryQuote: {…}, …}
+workbench.desktop.main.js:523 [Extension Host] [QuoteVerificationCache] Saved 125 entries to /Users/phr23/Writing/Chapter/.cache/quote-verification.json
+workbench.desktop.main.js:523 [Extension Host] High memory usage in claim review mode: 450MB / 495MB
+ub
+workbench.desktop.main.js:523 [Extension Host] Claim review mode disposed
+workbench.desktop.main.js:523 [Extension Host] [EditingMode] Loading manuscript from: /Users/phr23/Writing/Chapter/03_Drafting/manuscript.md
+workbench.desktop.main.js:523 [Extension Host] [EditingMode] File exists: true
+workbench.desktop.main.js:523 [Extension Host] [EditingMode] Loaded 92157 characters
+workbench.desktop.main.js:523 [Extension Host] [EditingMode] Manuscript length: 92157 characters
+workbench.desktop.main.js:523 [Extension Host] [EditingMode] Parsed 143 question-answer pairs
+workbench.desktop.main.js:523 [Extension Host] [EditingMode] Extracted 510 sentences from answers
+workbench.desktop.main.js:523 [Extension Host] [EditingMode] Sending 510 sentences to webview
+workbench.desktop.main.js:523 [Extension Host] [EditingMode] Context check: {claimReviewContext: {…}, writingContext: {…}}
+workbench.desktop.main.js:523 [Extension Host] [EditingMode] Final centerItemId: undefined
+editingMode.js:28 [EditingMode WebView] Received initialize message: {sentenceCount: 510, centerItemId: undefined, virtualScrollingEnabled: true}
+editingMode.js:37 [EditingMode WebView] Sentences array: 510
+editingMode.js:41 [EditingMode WebView] Using virtual scrolling
 workbench.desktop.main.js:523 [Extension Host] Editing mode disposed
-claimReview.js:88 Uncaught ReferenceError: toggleCurrentQuoteCitation is not defined
-    at setupKeyboardShortcuts (claimReview.js:88:21)
-    at HTMLDocument.<anonymous> (claimReview.js:12:3)
-setupKeyboardShortcuts @ claimReview.js:88
-(anonymous) @ claimReview.js:12
 workbench.desktop.main.js:523 [Extension Host] [QuoteVerificationService] Cache hit for quote from Alharbi2023
-workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Primary quote verification result: {verified: false, similarity: 0.7671232876712328, willSearch: true}
-workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Quote not found in claimed source, searching all literature...
-workbench.desktop.main.js:523 [Extension Host] [LiteratureIndexer] searchSnippetsWithSimilarity called with query: President Obama has long expressed a strong convic
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Primary quote verification result: {verified: false, similarity: 0.7032967032967034}
+workbench.desktop.main.js:523 [Extension Host] [LiteratureIndexer] searchSnippetsWithSimilarity called with query: We developed a batch correction method, ComBat-seq
 workbench.desktop.main.js:523 [Extension Host] [LiteratureIndexer] Query embedding generated, searching store
 workbench.desktop.main.js:523 [Extension Host] [EmbeddingStore] searchByEmbeddingWithSimilarity called with 9117 total snippets
 workbench.desktop.main.js:523 [Extension Host] [EmbeddingStore] Returning 5 results with similarity scores
 workbench.desktop.main.js:523 [Extension Host] [LiteratureIndexer] Search returned 5 results with similarity scores
-workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Search completed, found 5 snippets
-workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Result 1: {fileName: 'Piccolo et al. - 2022 - The ability to classify pa…on data varies by algorithm and performance m.txt', similarity: 0.5528895608290189, textPreview: 'National Research Council (US) Committee on A Framework for Developing a New Taxonomy of Disease. To'}
-workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Result 2: {fileName: 'Talhouk et al. - 2016 - Single-Patient Molecular T…ter Data Using a Reference-Based Strategy for.txt', similarity: 0.4366551207645076, textPreview: 'We suggest this strategy may facilitate development of NanoString and similar molecular assays by ac'}
-workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Result 3: {fileName: 'Talhouk et al. - 2016 - Single-Patient Molecular T…ter Data Using a Reference-Based Strategy for.txt', similarity: 0.4061588692024897, textPreview: 'Gene expression in particular has been widely used in biomedical research to identify biomarkers and'}
-workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Filtered to 0 sources above 0.7 threshold
-workbench.desktop.main.js:523 [Extension Host] [VerificationFeedbackLoop] Cache hit for validation of claim C_99
-workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Stored context: {claimId: 'C_99'}
-claimReview.js:158 [ClaimReview] Displaying claim: {id: 'C_99', text: 'The Precision Medicine Initiative aims to enable p…trategies that account for individual variability', category: 'Impact', source: 'Alharbi2023', primaryQuote: {…}, …}
-workbench.desktop.main.js:523 [Extension Host] [QuoteVerificationCache] Saved 115 entries to /Users/phr23/Writing/Chapter/.cache/quote-verification.json
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Auto-updated primary quote metadata and source: {metadata: {…}, source: 'Zhang2020'}
+workbench.desktop.main.js:523 [Extension Host] [VerificationFeedbackLoop] Cached validation result for claim C_02
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Stored context: {claimId: 'C_02'}
+claimReview.js:158 [ClaimReview] Displaying claim: {id: 'C_02', text: 'ComBat-Seq preserves integer counts for RNA-Seq data', category: 'Method', source: 'Zhang2020', primaryQuote: {…}, …}
+workbench.desktop.main.js:523 [Extension Host] [QuoteVerificationCache] Saved 125 entries to /Users/phr23/Writing/Chapter/.cache/quote-verification.json
+workbench.desktop.main.js:523 [Extension Host] [PersistenceUtils] ✓ write applications.md (3ms)
+workbench.desktop.main.js:523 [Extension Host] Persisted 167 claims across 9 file(s)
+workbench.desktop.main.js:523 [Extension Host] Verifying quote directly: {quote: 'We developed a batch correction method, ComBat-seq, using a negative binomial regression model that ', authorYear: 'Zhang2020'}
+workbench.desktop.main.js:523 [Extension Host] Verification result: {verified: true, similarity: 1, sourceFile: 'Zhang et al. - 2020 - ComBat-seq batch effect adjustment for RNA-seq count data.txt', matchedText: 'The benefit of integrating batches of genomic data…s and recovers the biological signal in the data.', contextBefore: '## ABSTRACT\n', …}
+workbench.desktop.main.js:523 [Extension Host] Mapped verification result: {verified: true, similarity: 1, closestMatch: 'The benefit of integrating batches of genomic data…s and recovers the biological signal in the data.', context: '## ABSTRACT\n'}
+workbench.desktop.main.js:523 [Extension Host] [QuoteVerificationService] Cached verification result for Zhang2020 (similarity: 1.00)
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Primary quote verification result: {verified: true, similarity: 1}
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Checking existing source: Zhang et al. - 2020 - ComBat-seq batch effect adjustment for RNA-seq count data.txt
+workbench.desktop.main.js:523 [Extension Host] [PersistenceUtils] ✓ write applications.md (3ms)
+workbench.desktop.main.js:523 [Extension Host] [PersistenceUtils] ✓ write uncategorized.md (1ms)
+workbench.desktop.main.js:523 [Extension Host] Persisted 167 claims across 9 file(s)
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Updated line numbers: {old: '14-14', new: '15-15'}
+workbench.desktop.main.js:523 [Extension Host] [VerificationFeedbackLoop] Cache hit for validation of claim C_02
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Stored context: {claimId: 'C_02'}
+claimReview.js:158 [ClaimReview] Displaying claim: {id: 'C_02', text: 'ComBat-Seq preserves integer counts for RNA-Seq data', category: 'Method', source: 'Zhang2020', primaryQuote: {…}, …}
+wo
+workbench.desktop.main.js:523 [Extension Host] [QuoteVerificationCache] Saved 126 entries to /Users/phr23/Writing/Chapter/.cache/quote-verification.json
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Switching to editing mode: {currentClaimId: 'C_02', sentencesForClaim: Array(0)}
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] No sentences found for claim: C_02
+
+workbench.desktop.main.js:523 [Extension Host] Claim review mode disposed
+workbench.desktop.main.js:523 [Extension Host] [EditingMode] Loading manuscript from: /Users/phr23/Writing/Chapter/03_Drafting/manuscript.md
+workbench.desktop.main.js:523 [Extension Host] [EditingMode] File exists: true
+workbench.desktop.main.js:523 [Extension Host] [EditingMode] Loaded 92157 characters
+workbench.desktop.main.js:523 [Extension Host] [EditingMode] Manuscript length: 92157 characters
+workbench.desktop.main.js:523 [Extension Host] [EditingMode] Parsed 143 question-answer pairs
+workbench.desktop.main.js:523 [Extension Host] [EditingMode] Extracted 510 sentences from answers
+workbench.desktop.main.js:523 [Extension Host] [EditingMode] Sending 510 sentences to webview
+workbench.desktop.main.js:523 [Extension Host] [EditingMode] Context check: {claimReviewContext: {…}, writingContext: {…}}
+workbench.desktop.main.js:523 [Extension Host] [EditingMode] Final centerItemId: undefined
+

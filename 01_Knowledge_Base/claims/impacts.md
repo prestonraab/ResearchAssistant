@@ -46,11 +46,11 @@ This file contains all **Impact** claims with their supporting evidence.
 ## C_99: The Precision Medicine Initiative aims to enable prevention and treatment strategies that account for individual variability
 
 **Category**: Impact  
-**Source**: Alharbi2023  
+**Source**: Collins and Varmus 2015 A New Initiative on Precision Medicine  
 **Context**: Launched in 2015 to accelerate biomedical discoveries and provide clinicians with new tools.
 
 **Primary Quote**:
-> "President Obama has long expressed a strong conviction that science offers great potential for improving health. Now, the President has announced a research initiative that aims to accelerate progress toward a new era of precision medicine. We believe that the time is right for this visionary initiative, and the National Institutes of Health (NIH) and other partners will work to achieve this vision. The concept of precision medicine - prevention and treatment strategies that take individual variability into account - is not new; blood typing, for instance, has been used to guide blood transfusions for more than a century."
+> "President Obama has long expressed a strong conviction that science offers great potential for improving health. Now, the President has announced a research initiative that aims to accelerate progress toward a new era of precision medicine (www.whitehouse.gov/precisionmedicine). We believe that the time is right for this visionary initiative, and the National Institutes of Health (NIH) and other partners will work to achieve this vision."
 
 
 ---
@@ -59,11 +59,11 @@ This file contains all **Impact** claims with their supporting evidence.
 ## C_100: Precision medicine requires integration of large-scale genomic data with clinical information
 
 **Category**: Impact  
-**Source**: Alharbi2023  
+**Source**: Ginsburg2018  
 **Context**: Data integration is fundamental to realizing the promise of precision medicine.
 
 **Primary Quote**:
-> "Precision medicine will require access to large-scale, detailed, and highly integrated patient data. Many initiatives are focused on increasing the interoperability of systems that generate and manage patient data and enhancing those systems for use at the point of care."
+> "The challenge is how to obtain the needed evidence when the field is growing and changing so rapidly that the ' gold standard ' of large randomized clinical trials may be unfeasible. Alternatives have been proposed that offer creative approaches to generating evidence, such as new models of risk sharing and evidence development among technology developers, health care systems, and payers. 36 As an example, the Centers for Medicare and Medicaid Services (CMS) had published twenty two ' coverage with evidence development ' policies by December 2016. 37 However, there can be no one-sizefits-all approach for evidence generation, since the evidentiary threshold will vary with the risk of the test and the financial impact on the stakeholders."
 
 
 ---
