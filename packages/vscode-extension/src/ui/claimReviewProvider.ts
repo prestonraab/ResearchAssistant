@@ -195,8 +195,7 @@ export class ClaimReviewProvider {
       const claimData = {
         ...sanitizedClaim,
         suggestedCategory,
-        availableCategories,
-        supportingQuotes: (claim.supportingQuotes || []).map((q: any) => q.text || q)
+        availableCategories
       };
 
       // Send claim data to webview
@@ -249,7 +248,8 @@ export class ClaimReviewProvider {
             type: 'primary',
             verified: primaryResult.verified,
             similarity: primaryResult.similarity,
-            closestMatch: primaryResult.closestMatch
+            closestMatch: primaryResult.closestMatch,
+            confidence: claim.primaryQuote.confidence
           });
         }
       }
@@ -273,7 +273,8 @@ export class ClaimReviewProvider {
             type: 'supporting',
             verified: result.verified,
             similarity: result.similarity,
-            closestMatch: result.closestMatch
+            closestMatch: result.closestMatch,
+            confidence: quoteObj.confidence
           });
         }
       }
@@ -388,7 +389,7 @@ export class ClaimReviewProvider {
         break;
 
       case 'loadSnippetText':
-        await this.handleLoadSnippetText(message.snippetId, message.filePath);
+        await this.handleLoadSnippetText(message.snippetId, message.filePath, message.confidence);
         break;
 
       case 'addSupportingQuote':
@@ -443,14 +444,6 @@ export class ClaimReviewProvider {
         }
         
         await vscode.commands.executeCommand('researchAssistant.openEditingMode');
-        break;
-
-      case 'switchToWritingMode':
-        await vscode.commands.executeCommand('researchAssistant.openWritingMode');
-        break;
-
-      case 'saveScrollPosition':
-        this.scrollPosition = message.position;
         break;
 
       case 'showHelp':
@@ -614,7 +607,7 @@ export class ClaimReviewProvider {
   /**
    * Handle load snippet text message
    */
-  private async handleLoadSnippetText(snippetId: string, filePath: string): Promise<void> {
+  private async handleLoadSnippetText(snippetId: string, filePath: string, confidence: number = 0): Promise<void> {
     try {
       // Get snippet from embedding store
       const allSnippets = this.literatureIndexer.getSnippets();
@@ -638,7 +631,8 @@ export class ClaimReviewProvider {
           snippetId: snippetId,
           text: snippet.text,
           source: snippet.fileName,
-          lineRange: `${snippet.startLine}-${snippet.endLine}`
+          lineRange: `${snippet.startLine}-${snippet.endLine}`,
+          confidence: confidence
         });
       }
     } catch (error) {
@@ -1033,6 +1027,19 @@ export class ClaimReviewProvider {
             <span class="category"></span>
             <span class="source"></span>
           </div>
+        </div>
+
+        <!-- Search box (positioned below title) -->
+        <div id="newQuotesContainer" class="new-quotes-container" style="display: none;">
+          <div class="new-quotes-header">
+            <h3>Searching for Quotes...</h3>
+            <div class="header-controls">
+              <button class="minimize-btn" id="minimizeSearchBtn" title="Minimize">−</button>
+              <button class="close-btn" id="closeSearchBtn" title="Close">✕</button>
+            </div>
+          </div>
+          <div class="new-quotes-list"></div>
+          <div class="new-quotes-status">Initializing search...</div>
         </div>
 
         <!-- Quotes section -->

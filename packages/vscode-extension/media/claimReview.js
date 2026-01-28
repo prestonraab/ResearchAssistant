@@ -31,6 +31,28 @@ function setupEventListeners() {
     toggleSidebar();
   });
 
+  // Search box controls
+  const minimizeBtn = document.getElementById('minimizeSearchBtn');
+  if (minimizeBtn) {
+    minimizeBtn.addEventListener('click', () => {
+      const container = document.getElementById('newQuotesContainer');
+      if (container) {
+        container.classList.toggle('minimized');
+        minimizeBtn.textContent = container.classList.contains('minimized') ? '+' : '−';
+      }
+    });
+  }
+
+  const closeSearchBtn = document.getElementById('closeSearchBtn');
+  if (closeSearchBtn) {
+    closeSearchBtn.addEventListener('click', () => {
+      const container = document.getElementById('newQuotesContainer');
+      if (container) {
+        container.style.display = 'none';
+      }
+    });
+  }
+
   // Action buttons
   document.querySelectorAll('[data-action]').forEach(btn => {
     btn.addEventListener('click', (e) => {
@@ -184,7 +206,7 @@ function displayQuotes() {
     // Show empty state with prompt to add quote
     primaryContainer.innerHTML = `
       <div class="quote-header">
-        <span class="quote-type">PRIMARY QUOTE</span>
+        <span class="quote-type">PRIMARY</span>
         <span class="status-icon not-checked">○</span>
       </div>
       <div class="quote-empty-state">
@@ -223,6 +245,9 @@ function displayQuotes() {
         supportingContainer.appendChild(container);
       }
     });
+    supportingContainer.style.display = 'block';
+  } else {
+    supportingContainer.style.display = 'none';
   }
 }
 
@@ -261,13 +286,25 @@ function displayQuoteContainer(container, quote, result, type) {
     <button class="btn btn-secondary" data-action="findNewQuotes">Find New</button>
   `;
 
+  // Build verification and support info on same line
+  let infoHtml = '';
+  const confidence = result?.confidence;
+  if (confidence !== undefined && confidence > 0) {
+    const percentage = Math.round(confidence * 100);
+    const stars = Math.round(confidence * 5);
+    const starDisplay = '★'.repeat(stars) + '☆'.repeat(5 - stars);
+    infoHtml = `<div class="verification-info ${getStatusClass(result)}">${verificationText} • Support: ${starDisplay} ${percentage}%</div>`;
+  } else {
+    infoHtml = `<div class="verification-info ${getStatusClass(result)}">${verificationText}</div>`;
+  }
+
   container.innerHTML = `
     <div class="quote-header">
-      <span class="quote-type">${type.toUpperCase()} QUOTE</span>
+      <span class="quote-type">${type === 'primary' ? 'PRIMARY' : 'SUPPORTING'}</span>
       <span class="status-icon ${getStatusClass(result)}">${statusIcon}</span>
     </div>
     <div class="quote-text">${escapeHtml(quote)}</div>
-    <div class="verification-info ${getStatusClass(result)}">${verificationText}</div>
+    ${infoHtml}
     <div class="quote-actions">
       ${buttonsHtml}
     </div>
@@ -346,14 +383,6 @@ function getVerificationText(result) {
     baseText = `Not verified (nearest: ${similarity}% match)`;
   } else {
     baseText = 'Not found in sources';
-  }
-  
-  // Add support confidence if available (from Find Quotes workflow)
-  if (result.confidence !== undefined && result.confidence > 0) {
-    const stars = Math.round(result.confidence * 5);
-    const starDisplay = '★'.repeat(stars) + '☆'.repeat(5 - stars);
-    const confidencePercentage = Math.round(result.confidence * 100);
-    return `${baseText} • Support: ${starDisplay} ${confidencePercentage}%`;
   }
   
   return baseText;
@@ -636,23 +665,32 @@ function deleteQuote(quote) {
 function findNewQuotes() {
   if (!currentClaim) return;
   
-  // Show loading state
-  const btn = document.querySelector('[data-action="findNewQuotes"]');
-  const originalText = btn.textContent;
-  btn.textContent = 'Searching...';
-  btn.disabled = true;
+  // Show/reuse the search container
+  const container = document.getElementById('newQuotesContainer');
+  
+  if (container) {
+    // Reset to expanded state
+    container.classList.remove('minimized');
+    container.style.display = 'block';
+    
+    // Clear previous results
+    const list = container.querySelector('.new-quotes-list');
+    list.innerHTML = '';
+    
+    // Update header
+    const header = container.querySelector('.new-quotes-header h3');
+    header.textContent = 'Searching for Quotes...';
+    
+    // Update status
+    const status = container.querySelector('.new-quotes-status');
+    status.textContent = 'Initializing search...';
+  }
   
   vscode.postMessage({
     type: 'findNewQuotes',
     claimId: currentClaim.id,
     query: currentClaim.text
   });
-  
-  // Reset button after 3 seconds
-  setTimeout(() => {
-    btn.textContent = originalText;
-    btn.disabled = false;
-  }, 3000);
 }
 
 /**
@@ -773,37 +811,24 @@ function updateValidationResult(message) {
 function displayNewQuotesRound(message) {
   const container = document.getElementById('newQuotesContainer');
   
-  // Create container on first round
   if (!container) {
-    const newContainer = document.createElement('div');
-    newContainer.id = 'newQuotesContainer';
-    newContainer.className = 'new-quotes-container';
-    newContainer.innerHTML = `
-      <div class="new-quotes-header">
-        <h3>Found Quotes</h3>
-        <button class="close-btn" data-action="closeNewQuotes">✕</button>
-      </div>
-      <div class="new-quotes-list"></div>
-      <div class="new-quotes-status">Searching round ${message.round}...</div>
-    `;
-    
-    // Attach close button listener
-    const closeBtn = newContainer.querySelector('[data-action="closeNewQuotes"]');
-    if (closeBtn) {
-      closeBtn.addEventListener('click', () => {
-        newContainer.remove();
-      });
-    }
-    
-    const mainPanel = document.querySelector('.main-panel');
-    if (mainPanel) {
-      mainPanel.insertBefore(newContainer, mainPanel.firstChild);
-    }
+    console.warn('[ClaimReview] Search container not found');
+    return;
+  }
+
+  // Show container if hidden
+  container.style.display = 'block';
+  container.classList.remove('minimized');
+
+  // Update header on first round
+  if (message.round === 1) {
+    const header = container.querySelector('.new-quotes-header h3');
+    header.textContent = 'Found Quotes';
   }
 
   // Add quotes from this round
-  const list = document.getElementById('newQuotesContainer').querySelector('.new-quotes-list');
-  const status = document.getElementById('newQuotesContainer').querySelector('.new-quotes-status');
+  const list = container.querySelector('.new-quotes-list');
+  const status = container.querySelector('.new-quotes-status');
   
   message.quotes.forEach((q, i) => {
     const item = document.createElement('div');

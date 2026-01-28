@@ -404,12 +404,13 @@ body {
 }
 
 .btn-primary {
-  background-color: var(--color-accent);
-  color: white;
+  background-color: transparent;
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
 }
 
 .btn-primary:hover {
-  background-color: #1976D2;
+  background-color: var(--color-hover);
 }
 
 .btn-secondary {
@@ -663,6 +664,12 @@ body {
   color: var(--color-text);
 }
 
+.header-controls {
+  display: flex;
+  gap: 4px;
+}
+
+.minimize-btn,
 .close-btn {
   background: none;
   border: none;
@@ -674,8 +681,14 @@ body {
   transition: background-color 0.2s;
 }
 
+.minimize-btn:hover,
 .close-btn:hover {
   background-color: var(--color-border);
+}
+
+.new-quotes-container.minimized .new-quotes-list,
+.new-quotes-container.minimized .new-quotes-status {
+  display: none;
 }
 
 .new-quotes-list,

@@ -187,8 +187,6 @@ export class EditingModeProvider {
       if (claimReviewContext?.returnToSentenceId) {
         centerItemId = claimReviewContext.returnToSentenceId;
         console.log(`[EditingMode] Returning to sentence from claim review: ${centerItemId}`);
-        // Clear the context after using it
-        getModeContextManager().setClaimReviewContext({ returnToSentenceId: undefined });
       }
       // If no saved position in editing mode but writing mode has one, find matching sentence by position
       else if (!centerItemId && writingContext.centerItemPosition !== undefined) {
