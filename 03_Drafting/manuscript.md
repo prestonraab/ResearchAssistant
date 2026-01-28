@@ -1,10 +1,8 @@
 ## Abstract
 
-**What is the opening framing for the chapter?** <!-- [ANSWERED] --> The integration of genomic datasets is a cornerstone of modern precision medicine, necessitated by the need for increased statistical power and the validation of biological patterns across diverse populations.  By aggregating data from independent cohorts, researchers can move beyond the limitations of small sample sizes to build more robust machine learning classifiers. <!-- Source: C_99, C_100 -->
+**What is the opening framing for the chapter?** <!-- [undefined] --> The integration of genomic datasets is a cornerstone of modern precision medicine, necessitated by the need for increased statistical power and the validation of biological patterns across diverse populations.  By aggregating data from independent cohorts, researchers can move beyond the limitations of small sample sizes to build more robust machine learning classifiers. <!-- Source: C_99, C_100 -->
 
 **When is it useful to combine datasets?** <!-- [undefined] --> Combining datasets becomes useful when individual studies have limited sample sizes, when validation across independent cohorts is needed, or when meta-analyses can reveal consistent patterns across diverse populations.  Larger sample sizes increase statistical power to detect biological phenomena, enable more robust classifier training, and improve generalizability of findings. **** <!-- Source: C_03 -->
-
-**New question?** <!-- [undefined] --> 
 
 **What is the central problem?** <!-- [undefined] --> This potential is frequently undermined by "batch effects"—systematic technical variations that can lead a classifier to learn how to distinguish between experimental batches rather than meaningful biological conditions.  Batch effects can substantially degrade classifier performance when applied to new batches, and even when batch labels are known, they can inflate performance estimates obtained through cross-validation within a single study while simultaneously causing poor performance on independent datasets. <!-- Source: C_03 -->
 

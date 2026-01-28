@@ -102,3 +102,6 @@ research-assistant-extension/*.vsix
 # Kiro settings (user-specific)
 .kiro/settings/mcp.json
 .kiro/specs
+
+# Cache directory (verification results, embeddings, etc.)
+.cache/

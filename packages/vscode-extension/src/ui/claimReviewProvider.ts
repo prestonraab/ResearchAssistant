@@ -28,7 +28,6 @@ export class ClaimReviewProvider {
   private disposables: vscode.Disposable[] = [];
   private claimDetailsCache: CachingService<any>;
   private disposalManager = getWebviewDisposalManager();
-  private quoteCitationStatus: Map<string, boolean> = new Map(); // Track citation status for quotes
   private benchmark = getBenchmark();
   private immersiveModeManager = getImmersiveModeManager();
   private zoteroService: ZoteroDirectService;
@@ -48,8 +47,14 @@ export class ClaimReviewProvider {
     const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || '';
     this.literatureIndexer = new LiteratureIndexer(workspaceRoot);
     
-    // Initialize verification feedback loop
-    this.verificationFeedbackLoop = new VerificationFeedbackLoop(this.literatureIndexer);
+    // Initialize verification feedback loop with workspace root for cache
+    this.verificationFeedbackLoop = new VerificationFeedbackLoop(
+      this.literatureIndexer,
+      undefined,
+      undefined,
+      undefined,
+      workspaceRoot
+    );
     
     // Initialize sentence-claim mapper with persistence
     this.sentenceClaimMapper = new SentenceClaimMapper(this.extensionState.claimsManager, context.workspaceState);
@@ -385,10 +390,6 @@ export class ClaimReviewProvider {
         await this.handleDeleteQuote(message.claimId, message.quote);
         break;
 
-      case 'toggleQuoteCitation':
-        await this.handleToggleQuoteCitation(message.claimId, message.quote);
-        break;
-
       case 'findNewQuotes':
         await this.handleFindNewQuotes(message.claimId, message.query);
         break;
@@ -575,37 +576,6 @@ export class ClaimReviewProvider {
       vscode.window.showInformationMessage('Quote deleted successfully');
     } catch (error) {
       vscode.window.showErrorMessage(`Failed to delete quote: ${error}`);
-    }
-  }
-
-  /**
-   * Handle toggle quote citation message
-   */
-  private async handleToggleQuoteCitation(claimId: string, quote: string): Promise<void> {
-    try {
-      // For now, we'll store citation status in memory
-      // In the future, this will use SentenceClaimQuoteLinkManager
-      const key = `${claimId}:${quote}`;
-      
-      if (!this.quoteCitationStatus) {
-        this.quoteCitationStatus = new Map();
-      }
-
-      const currentStatus = this.quoteCitationStatus.get(key) || false;
-      const newStatus = !currentStatus;
-      this.quoteCitationStatus.set(key, newStatus);
-
-      // Reload claim display to show updated citation status
-      await this.loadAndDisplayClaim(claimId);
-
-      // Show feedback
-      vscode.window.showInformationMessage(
-        newStatus 
-          ? 'Quote marked for citation' 
-          : 'Quote unmarked for citation'
-      );
-    } catch (error) {
-      vscode.window.showErrorMessage(`Failed to toggle citation: ${error}`);
     }
   }
 
@@ -1116,7 +1086,6 @@ export class ClaimReviewProvider {
 
     // Aggressively trim caches when memory is high
     this.claimDetailsCache.trim(25); // Reduce to 25 items instead of 50
-    this.quoteCitationStatus.clear(); // Clear citation status map
 
     // Force garbage collection if available
     this.disposalManager.forceGarbageCollection();

@@ -14,6 +14,33 @@ body {
   line-height: 1.6;
 }
 
+/* Default to dark theme */
+body {
+  --header-bg: #1e1e1e;
+  --header-fg: #cccccc;
+  --header-hover: rgba(255, 255, 255, 0.1);
+}
+
+/* Light theme - VS Code sets data-vscode-theme-kind="vscode-light" */
+body[data-vscode-theme-kind="vscode-light"] {
+  --header-bg: #f3f3f3;
+  --header-fg: #333333;
+  --header-hover: rgba(0, 0, 0, 0.05);
+}
+
+/* High contrast themes */
+body[data-vscode-theme-kind="vscode-high-contrast"] {
+  --header-bg: #000000;
+  --header-fg: #ffffff;
+  --header-hover: rgba(255, 255, 255, 0.2);
+}
+
+body[data-vscode-theme-kind="vscode-high-contrast-light"] {
+  --header-bg: #ffffff;
+  --header-fg: #000000;
+  --header-hover: rgba(0, 0, 0, 0.1);
+}
+
 .writing-mode-container {
   display: flex;
   flex-direction: column;
@@ -27,15 +54,15 @@ body {
   justify-content: space-between;
   align-items: center;
   padding: 12px 16px;
-  background-color: var(--vscode-titleBar-activeBackground);
-  border-bottom: 1px solid var(--vscode-titleBar-activeForeground);
+  background-color: var(--header-bg);
+  border-bottom: 1px solid var(--vscode-panel-border);
   flex-shrink: 0;
 }
 
 .header .title {
   font-size: 14px;
   font-weight: 600;
-  color: var(--vscode-titleBar-activeForeground);
+  color: var(--header-fg);
 }
 
 .header .controls {
@@ -44,18 +71,20 @@ body {
 }
 
 .icon-btn {
-  background: none;
-  border: 1px solid var(--vscode-button-border);
-  color: var(--vscode-button-foreground);
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--header-fg);
   padding: 6px 12px;
   border-radius: 4px;
   cursor: pointer;
   font-size: 14px;
   transition: all 0.2s;
+  opacity: 0.8;
 }
 
 .icon-btn:hover {
-  background-color: var(--vscode-button-hoverBackground);
+  background-color: var(--header-hover);
+  opacity: 1;
 }
 
 /* Content */
@@ -148,7 +177,7 @@ body {
   height: 8px;
   margin: 0;
   opacity: 0;
-  transition: opacity 0.2s, height 0.2s;
+  transition: opacity 0.2s 0.15s, height 0.2s 0.15s;
   display: grid;
   grid-template-columns: 1fr 2fr 200px;
   gap: 0 8px;
@@ -183,6 +212,16 @@ body {
 .insert-zone:hover .insert-zone-left,
 .insert-zone:hover .insert-zone-center {
   display: flex;
+  animation: fadeIn 0.15s ease-in;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 .insert-zone-btn {
@@ -607,6 +646,36 @@ body {
 .auto-save-indicator.saving {
   background-color: var(--vscode-inputValidation-warningBackground);
   color: var(--vscode-inputValidation-warningForeground);
+}
+
+/* Temporary Notification */
+.temp-notification {
+  position: fixed;
+  bottom: 60px;
+  right: 16px;
+  padding: 12px 20px;
+  background-color: var(--vscode-notifications-background);
+  color: var(--vscode-notifications-foreground);
+  border: 1px solid var(--vscode-notifications-border);
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  z-index: 1000;
+}
+
+.temp-notification-success {
+  border-left: 3px solid #4caf50;
+}
+
+.temp-notification-info {
+  border-left: 3px solid #2196f3;
+}
+
+.temp-notification-warning {
+  border-left: 3px solid #ff9800;
 }
 
 /* Error Notification */

@@ -508,7 +508,6 @@ export class WritingModeProvider {
     <div class="header">
       <div class="title">Research Assistant | Writing Mode</div>
       <div class="controls">
-        <button id="addPairBtn" class="icon-btn" title="Add Question">➕</button>
         <button id="exportMarkdownBtn" class="icon-btn" title="Export as Markdown">📄</button>
         <button id="exportWordBtn" class="icon-btn" title="Export as Word">📋</button>
         <button id="helpBtn" class="icon-btn" title="Help (?)">?</button>

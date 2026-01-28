@@ -1,5 +1,6 @@
 import { MCPClientManager, VerificationResult, VerificationReport } from '../mcp/mcpClient';
 import { ClaimsManager } from './claimsManagerWrapper';
+import { QuoteVerificationCache } from '@research-assistant/core';
 import type { Claim } from '@research-assistant/core';
 
 export interface QuoteVerificationResult {
@@ -28,13 +29,25 @@ export interface BatchVerificationResult {
 }
 
 export class QuoteVerificationService {
+  private cache: QuoteVerificationCache | null = null;
+
   constructor(
     private mcpClient: MCPClientManager,
-    private claimsManager: ClaimsManager
-  ) {}
+    private claimsManager: ClaimsManager,
+    private workspaceRoot?: string
+  ) {
+    // Initialize cache if workspace root is provided
+    if (workspaceRoot) {
+      this.cache = new QuoteVerificationCache(workspaceRoot);
+      this.cache.initialize().catch(error => {
+        console.error('[QuoteVerificationService] Failed to initialize cache:', error);
+      });
+    }
+  }
 
   /**
    * Verify a single quote against its source text
+   * Uses cache if available, otherwise performs verification via MCP
    * @param quote The quote text to verify
    * @param authorYear The source identifier (e.g., "Johnson2007")
    * @returns Verification result with similarity score and closest match if failed
@@ -44,8 +57,29 @@ export class QuoteVerificationService {
       throw new Error('Quote and authorYear are required');
     }
 
+    // Check cache first
+    if (this.cache) {
+      const cached = this.cache.get(quote, authorYear);
+      if (cached) {
+        console.log(`[QuoteVerificationService] Cache hit for quote from ${authorYear}`);
+        return {
+          verified: cached.verified,
+          similarity: cached.similarity,
+          closestMatch: cached.closestMatch, // Now included from cache
+          context: undefined
+        };
+      }
+    }
+
     try {
       const result = await this.mcpClient.verifyQuote(quote, authorYear);
+      
+      // Store in cache with closestMatch
+      if (this.cache) {
+        this.cache.set(quote, authorYear, result.verified, result.similarity, result.closestMatch);
+        console.log(`[QuoteVerificationService] Cached verification result for ${authorYear} (similarity: ${result.similarity.toFixed(2)})`);
+      }
+      
       return result;
     } catch (error) {
       console.error('Error verifying quote:', error);
@@ -346,5 +380,35 @@ export class QuoteVerificationService {
       withoutQuotes,
       verificationRate
     };
+  }
+
+  /**
+   * Get cache statistics
+   * @returns Statistics about the verification cache
+   */
+  getCacheStats() {
+    if (!this.cache) {
+      return null;
+    }
+    return this.cache.getStats();
+  }
+
+  /**
+   * Clear the verification cache
+   */
+  clearCache(): void {
+    if (this.cache) {
+      this.cache.clear();
+      console.log('[QuoteVerificationService] Cache cleared');
+    }
+  }
+
+  /**
+   * Dispose and cleanup
+   */
+  async dispose(): Promise<void> {
+    if (this.cache) {
+      await this.cache.dispose();
+    }
   }
 }

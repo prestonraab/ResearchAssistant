@@ -113,7 +113,7 @@ export class ExtensionState {
     this.readingStatusManager = new ReadingStatusManager(context);
     this.claimExtractor = new ClaimExtractor(this.embeddingService);
     this.configurationManager = new ConfigurationManager(context);
-    this.quoteVerificationService = new QuoteVerificationService(this.mcpClient, this.claimsManager);
+    this.quoteVerificationService = new QuoteVerificationService(this.mcpClient, this.claimsManager, this.workspaceRoot);
     this.autoQuoteVerifier = new AutoQuoteVerifier(this.claimsManager, this.mcpClient);
     this.pdfExtractionService = new PDFExtractionService(this.mcpClient, this.workspaceRoot);
     this.citationNetworkAnalyzer = new CitationNetworkAnalyzer();
@@ -145,7 +145,8 @@ export class ExtensionState {
       this.literatureIndexer,
       this.mcpClient,
       apiKey || '',
-      this.getAbsolutePath(this.config.extractedTextPath)
+      this.getAbsolutePath(this.config.extractedTextPath),
+      this.workspaceRoot
     );
     
     // Hook up auto-verification to claim save events (Requirement 43.1)

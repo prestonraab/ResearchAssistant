@@ -8,7 +8,9 @@ let state = {
   autoSaveTimer: null,
   centerItemId: null,
   scrollTimeout: null,
-  itemHeights: new Map() // Cache of measured item heights by ID
+  itemHeights: new Map(), // Cache of measured item heights by ID
+  undoStack: [], // Stack of previous states for undo
+  maxUndoSteps: 20 // Maximum number of undo steps to keep
 };
 
 // Virtual scrolling configuration
@@ -19,7 +21,6 @@ const BUFFER_SIZE = 3;
 const pairsList = document.getElementById('pairsList');
 const helpBtn = document.getElementById('helpBtn');
 const editBtn = document.getElementById('editBtn');
-const addPairBtn = document.getElementById('addPairBtn');
 const exportMarkdownBtn = document.getElementById('exportMarkdownBtn');
 const exportWordBtn = document.getElementById('exportWordBtn');
 const saveStatus = document.getElementById('saveStatus');
@@ -42,13 +43,6 @@ function setupEventListeners() {
   if (editBtn) {
     editBtn.addEventListener('click', () => {
       vscode.postMessage({ type: 'switchToEditingMode' });
-    });
-  }
-
-  // Add pair button
-  if (addPairBtn) {
-    addPairBtn.addEventListener('click', () => {
-      vscode.postMessage({ type: 'addPair', section: 'New Section' });
     });
   }
 
@@ -78,6 +72,13 @@ function setupEventListeners() {
     if ((e.ctrlKey || e.metaKey) && e.key === 's') {
       e.preventDefault();
       saveManuscript();
+      return;
+    }
+
+    // Ctrl+Z - Undo
+    if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+      e.preventDefault();
+      undo();
       return;
     }
   });
@@ -478,7 +479,7 @@ function attachPairListeners() {
       e.stopPropagation();
       const pairId = e.currentTarget.dataset.pairId;
       console.log('[WritingMode] Delete button clicked for pair:', pairId);
-      if (pairId && confirm('Delete this question-answer pair?')) {
+      if (pairId) {
         deletePair(pairId);
       }
     });
@@ -596,6 +597,8 @@ function updatePairStatus(pairId, status) {
  * Add new pair
  */
 function addNewPair(section) {
+  saveStateToUndo();
+  
   const newPair = {
     id: `QA_${Date.now()}`,
     question: 'New question?',
@@ -616,6 +619,8 @@ function addNewPair(section) {
  * Insert a new pair after a specific index
  */
 function insertPairAfter(afterIndex) {
+  saveStateToUndo();
+  
   // Determine section for new pair
   let section = 'New Section';
   if (afterIndex >= 0 && afterIndex < state.pairs.length) {
@@ -666,6 +671,8 @@ function insertPairAfter(afterIndex) {
  * Insert a new section after a specific index
  */
 function insertSectionAfter(afterIndex) {
+  saveStateToUndo();
+  
   const newSectionName = 'New Section';
   
   const newPair = {
@@ -714,6 +721,8 @@ function insertSectionAfter(afterIndex) {
  * Update section name for all pairs in that section
  */
 function updateSectionName(oldName, newName) {
+  saveStateToUndo();
+  
   let updated = false;
   state.pairs.forEach(pair => {
     if (pair.section === oldName) {
@@ -734,6 +743,8 @@ function updateSectionName(oldName, newName) {
  * Remove a section header by merging its pairs with adjacent section
  */
 function removeSectionHeader(sectionHeader) {
+  saveStateToUndo();
+  
   const sectionName = sectionHeader.dataset.section;
   const firstPairIndex = parseInt(sectionHeader.dataset.firstPairIndex);
   
@@ -766,13 +777,88 @@ function removeSectionHeader(sectionHeader) {
 }
 
 /**
- * Delete pair
+ * Save current state to undo stack
  */
-function deletePair(pairId) {
-  state.pairs = state.pairs.filter(p => p.id !== pairId);
+function saveStateToUndo() {
+  // Deep clone the current pairs array
+  const stateCopy = JSON.parse(JSON.stringify(state.pairs));
+  state.undoStack.push(stateCopy);
+  
+  // Limit undo stack size
+  if (state.undoStack.length > state.maxUndoSteps) {
+    state.undoStack.shift();
+  }
+  
+  console.log('[WritingMode] Saved state to undo stack. Stack size:', state.undoStack.length);
+}
+
+/**
+ * Undo last action
+ */
+function undo() {
+  if (state.undoStack.length === 0) {
+    console.log('[WritingMode] Nothing to undo');
+    showTemporaryNotification('Nothing to undo', 'info');
+    return;
+  }
+  
+  // Pop the last state from the stack
+  const previousState = state.undoStack.pop();
+  state.pairs = previousState;
+  
+  console.log('[WritingMode] Undo performed. Stack size:', state.undoStack.length);
+  
   renderPairs();
   state.isDirty = true;
   scheduleAutoSave();
+  
+  showTemporaryNotification('Undo successful', 'success');
+}
+
+/**
+ * Show temporary notification
+ */
+function showTemporaryNotification(message, type = 'info') {
+  const notification = document.createElement('div');
+  notification.className = `temp-notification temp-notification-${type}`;
+  notification.textContent = message;
+  
+  document.body.appendChild(notification);
+  
+  // Fade in
+  requestAnimationFrame(() => {
+    notification.style.opacity = '1';
+  });
+  
+  // Remove after 2 seconds
+  setTimeout(() => {
+    notification.style.opacity = '0';
+    setTimeout(() => {
+      notification.remove();
+    }, 300);
+  }, 2000);
+}
+
+/**
+ * Delete pair
+ */
+function deletePair(pairId) {
+  console.log('[WritingMode] deletePair called with pairId:', pairId);
+  
+  // Save current state before deleting
+  saveStateToUndo();
+  
+  const beforeCount = state.pairs.length;
+  state.pairs = state.pairs.filter(p => p.id !== pairId);
+  const afterCount = state.pairs.length;
+  
+  console.log('[WritingMode] Deleted:', beforeCount - afterCount, 'pairs');
+  
+  renderPairs();
+  state.isDirty = true;
+  scheduleAutoSave();
+  
+  showTemporaryNotification('Deleted. Press Ctrl+Z to undo', 'info');
 }
 
 /**

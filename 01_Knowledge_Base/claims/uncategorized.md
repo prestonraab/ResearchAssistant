@@ -624,9 +624,6 @@ This file contains all **uncategorized** claims with their supporting evidence.
 **Primary Quote**:
 > "A classifier consists of a collection of predictor variables and a classification rule such that, given observed values of the predictor variables for a sample, we can plug them into the classification rule and based on the result assign a group label to the sample. To build such a classifier in a supervised setting, we need a training data set , consisting of samples for which we are given the observed values of a number of variables as well as the true group labels."
 
-**Supporting Quotes**:
-- "Construction of classifiers, with the aim to assign samples to groups or predict some other trait of interest, is one of the most common goal in gene expression studies. Many studies have focused on different methodologies and pipelines for training a classifier, with the conclusion that there is no such thing as the one and only best/correct classification procedure [12,13]."
-
 
 ---
 

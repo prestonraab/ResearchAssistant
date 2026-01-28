@@ -1,18 +1,5 @@
 /* Editing Mode Styles */
 
-:root {
-  --color-green: #4CAF50;
-  --color-orange: #FF9800;
-  --color-blue: #2196F3;
-  --color-red: #F44336;
-  --color-grey: #9E9E9E;
-  --color-bg: #FFFFFF;
-  --color-text: #212121;
-  --color-border: #BDBDBD;
-  --color-hover: #F5F5F5;
-  --color-accent: #2196F3;
-}
-
 * {
   box-sizing: border-box;
 }
@@ -22,8 +9,35 @@ body {
   padding: 0;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
   font-size: 13px;
-  color: var(--color-text);
-  background-color: var(--color-bg);
+  color: var(--vscode-editor-foreground);
+  background-color: var(--vscode-editor-background);
+}
+
+/* Default to dark theme */
+body {
+  --header-bg: #1e1e1e;
+  --header-fg: #cccccc;
+  --header-hover: rgba(255, 255, 255, 0.1);
+}
+
+/* Light theme - VS Code sets data-vscode-theme-kind="vscode-light" */
+body[data-vscode-theme-kind="vscode-light"] {
+  --header-bg: #f3f3f3;
+  --header-fg: #333333;
+  --header-hover: rgba(0, 0, 0, 0.05);
+}
+
+/* High contrast themes */
+body[data-vscode-theme-kind="vscode-high-contrast"] {
+  --header-bg: #000000;
+  --header-fg: #ffffff;
+  --header-hover: rgba(255, 255, 255, 0.2);
+}
+
+body[data-vscode-theme-kind="vscode-high-contrast-light"] {
+  --header-bg: #ffffff;
+  --header-fg: #000000;
+  --header-hover: rgba(0, 0, 0, 0.1);
 }
 
 .editing-mode-container {
@@ -39,15 +53,15 @@ body {
   justify-content: space-between;
   align-items: center;
   padding: 12px 16px;
-  border-bottom: 1px solid var(--color-border);
-  background-color: var(--color-hover);
+  background-color: var(--header-bg);
+  border-bottom: 1px solid var(--vscode-panel-border);
   flex-shrink: 0;
 }
 
 .header .title {
   font-size: 14px;
-  font-weight: bold;
-  color: var(--color-text);
+  font-weight: 600;
+  color: var(--header-fg);
 }
 
 .header .controls {
@@ -56,18 +70,20 @@ body {
 }
 
 .icon-btn {
-  background: none;
-  border: none;
-  padding: 4px 8px;
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--header-fg);
+  padding: 6px 12px;
+  border-radius: 4px;
   cursor: pointer;
   font-size: 14px;
-  color: var(--color-text);
-  border-radius: 4px;
-  transition: background-color 0.2s;
+  transition: all 0.2s;
+  opacity: 0.8;
 }
 
 .icon-btn:hover {
-  background-color: var(--color-border);
+  background-color: var(--header-hover);
+  opacity: 1;
 }
 
 /* Content */
@@ -77,7 +93,6 @@ body {
   padding: 12px;
 }
 
-/* Sentences List */
 .sentences-list {
   display: flex;
   flex-direction: column;
@@ -86,36 +101,36 @@ body {
 
 /* Sentence Box */
 .sentence-box {
-  border: 1px solid var(--color-border);
-  border-left: 4px solid var(--color-grey);
+  border: 1px solid var(--vscode-panel-border);
+  border-left: 4px solid var(--vscode-descriptionForeground);
   padding: 12px;
   border-radius: 4px;
-  background-color: var(--color-bg);
+  background-color: var(--vscode-editor-background);
   transition: background-color 0.2s;
 }
 
 .sentence-box:hover {
-  background-color: var(--color-hover);
+  background-color: var(--vscode-list-hoverBackground);
 }
 
 .sentence-box.status-green {
-  border-left-color: var(--color-green);
+  border-left-color: #4CAF50;
 }
 
 .sentence-box.status-orange {
-  border-left-color: var(--color-orange);
+  border-left-color: #FF9800;
 }
 
 .sentence-box.status-blue {
-  border-left-color: var(--color-blue);
+  border-left-color: #2196F3;
 }
 
 .sentence-box.status-red {
-  border-left-color: var(--color-red);
+  border-left-color: #F44336;
 }
 
 .sentence-box.status-grey {
-  border-left-color: var(--color-grey);
+  border-left-color: var(--vscode-descriptionForeground);
 }
 
 /* Sentence Header */
@@ -130,7 +145,7 @@ body {
   flex: 1;
   font-size: 13px;
   line-height: 1.5;
-  color: var(--color-text);
+  color: var(--vscode-editor-foreground);
   word-wrap: break-word;
   cursor: pointer;
   padding: 4px;
@@ -139,18 +154,20 @@ body {
 }
 
 .sentence-text:hover {
-  background-color: rgba(33, 150, 243, 0.1);
+  background-color: var(--vscode-list-hoverBackground);
 }
 
 .sentence-text.editing {
-  background-color: rgba(33, 150, 243, 0.2);
+  background-color: var(--vscode-list-activeSelectionBackground);
 }
 
 .sentence-text-input {
   width: 100%;
   padding: 8px;
   font-size: 13px;
-  border: 1px solid var(--color-accent);
+  border: 1px solid var(--vscode-focusBorder);
+  background-color: var(--vscode-input-background);
+  color: var(--vscode-input-foreground);
   border-radius: 2px;
   font-family: inherit;
   resize: vertical;
@@ -159,8 +176,8 @@ body {
 
 .sentence-text-input:focus {
   outline: none;
-  border-color: var(--color-accent);
-  box-shadow: 0 0 0 2px rgba(33, 150, 243, 0.2);
+  border-color: var(--vscode-focusBorder);
+  box-shadow: 0 0 0 1px var(--vscode-focusBorder);
 }
 
 /* Sentence Actions */
@@ -173,37 +190,35 @@ body {
 .action-btn {
   padding: 4px 8px;
   font-size: 11px;
-  border: 1px solid var(--color-border);
-  background-color: var(--color-bg);
-  color: var(--color-text);
+  border: 1px solid var(--vscode-button-border);
+  background-color: var(--vscode-button-background);
+  color: var(--vscode-button-foreground);
   border-radius: 2px;
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .action-btn:hover {
-  background-color: var(--color-accent);
-  color: white;
-  border-color: var(--color-accent);
+  background-color: var(--vscode-button-hoverBackground);
 }
 
 .action-btn.primary {
-  background-color: var(--color-accent);
-  color: white;
-  border-color: var(--color-accent);
+  background-color: var(--vscode-button-background);
+  color: var(--vscode-button-foreground);
+  border-color: var(--vscode-button-border);
 }
 
 .action-btn.danger {
-  background-color: var(--color-red);
-  color: white;
-  border-color: var(--color-red);
+  background-color: var(--vscode-inputValidation-errorBackground);
+  color: var(--vscode-inputValidation-errorForeground);
+  border-color: var(--vscode-inputValidation-errorBorder);
 }
 
 /* Claims Container */
 .claims-container {
   margin-top: 8px;
   padding-left: 16px;
-  border-left: 2px solid var(--color-border);
+  border-left: 2px solid var(--vscode-panel-border);
 }
 
 .claims-header {
@@ -212,7 +227,7 @@ body {
   align-items: center;
   margin-bottom: 8px;
   font-size: 11px;
-  color: var(--color-grey);
+  color: var(--vscode-descriptionForeground);
   font-weight: bold;
 }
 
@@ -221,7 +236,7 @@ body {
   border: none;
   padding: 0;
   cursor: pointer;
-  color: var(--color-grey);
+  color: var(--vscode-descriptionForeground);
   font-size: 12px;
 }
 
@@ -237,10 +252,10 @@ body {
 
 /* Claim Box */
 .claim-box {
-  border: 1px solid #E0E0E0;
+  border: 1px solid var(--vscode-panel-border);
   padding: 8px 12px;
   border-radius: 2px;
-  background-color: #FAFAFA;
+  background-color: var(--vscode-editor-background);
   transition: background-color 0.2s;
   display: flex;
   justify-content: space-between;
@@ -249,7 +264,7 @@ body {
 }
 
 .claim-box:hover {
-  background-color: #F5F5F5;
+  background-color: var(--vscode-list-hoverBackground);
 }
 
 .claim-content {
@@ -267,19 +282,19 @@ body {
 }
 
 .claim-status-icon.verified {
-  color: var(--color-green);
+  color: #4CAF50;
 }
 
 .claim-status-icon.unverified {
-  color: var(--color-orange);
+  color: #FF9800;
 }
 
 .claim-status-icon.not-checked {
-  color: var(--color-grey);
+  color: var(--vscode-descriptionForeground);
 }
 
 .claim-status-icon.invalid {
-  color: var(--color-red);
+  color: #F44336;
 }
 
 .claim-text-wrapper {
@@ -289,12 +304,22 @@ body {
 .claim-id {
   font-size: 11px;
   font-weight: bold;
-  color: var(--color-accent);
+  color: var(--vscode-textLink-foreground);
+}
+
+.claim-id.clickable {
+  cursor: pointer;
+  text-decoration: underline;
+  transition: opacity 0.2s;
+}
+
+.claim-id.clickable:hover {
+  opacity: 0.7;
 }
 
 .claim-text {
   font-size: 12px;
-  color: #424242;
+  color: var(--vscode-editor-foreground);
   line-height: 1.4;
   word-wrap: break-word;
   cursor: pointer;
@@ -304,18 +329,20 @@ body {
 }
 
 .claim-text:hover {
-  background-color: rgba(33, 150, 243, 0.1);
+  background-color: var(--vscode-list-hoverBackground);
 }
 
 .claim-text.editing {
-  background-color: rgba(33, 150, 243, 0.2);
+  background-color: var(--vscode-list-activeSelectionBackground);
 }
 
 .claim-text-input {
   width: 100%;
   padding: 6px;
   font-size: 12px;
-  border: 1px solid var(--color-accent);
+  border: 1px solid var(--vscode-focusBorder);
+  background-color: var(--vscode-input-background);
+  color: var(--vscode-input-foreground);
   border-radius: 2px;
   font-family: inherit;
   resize: vertical;
@@ -324,8 +351,8 @@ body {
 
 .claim-text-input:focus {
   outline: none;
-  border-color: var(--color-accent);
-  box-shadow: 0 0 0 2px rgba(33, 150, 243, 0.2);
+  border-color: var(--vscode-focusBorder);
+  box-shadow: 0 0 0 1px var(--vscode-focusBorder);
 }
 
 .claim-actions {
@@ -337,35 +364,32 @@ body {
 .claim-action-btn {
   padding: 2px 6px;
   font-size: 10px;
-  border: 1px solid var(--color-border);
-  background-color: var(--color-bg);
-  color: var(--color-text);
+  border: 1px solid var(--vscode-button-border);
+  background-color: var(--vscode-button-background);
+  color: var(--vscode-button-foreground);
   border-radius: 2px;
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .claim-action-btn:hover {
-  background-color: var(--color-accent);
-  color: white;
-  border-color: var(--color-accent);
+  background-color: var(--vscode-button-hoverBackground);
 }
 
 .claim-action-btn.delete {
-  color: var(--color-red);
+  color: var(--vscode-inputValidation-errorForeground);
 }
 
 .claim-action-btn.delete:hover {
-  background-color: var(--color-red);
-  color: white;
-  border-color: var(--color-red);
+  background-color: var(--vscode-inputValidation-errorBackground);
+  border-color: var(--vscode-inputValidation-errorBorder);
 }
 
 /* Empty State */
 .empty-state {
   text-align: center;
   padding: 40px 20px;
-  color: var(--color-grey);
+  color: var(--vscode-descriptionForeground);
 }
 
 .empty-state-icon {
@@ -380,7 +404,8 @@ body {
 
 .empty-state-hint {
   font-size: 12px;
-  color: #999;
+  color: var(--vscode-descriptionForeground);
+  opacity: 0.7;
 }
 
 /* Help Overlay */
@@ -402,19 +427,20 @@ body {
 }
 
 .help-content {
-  background-color: white;
+  background-color: var(--vscode-editor-background);
+  border: 1px solid var(--vscode-panel-border);
   border-radius: 4px;
   padding: 24px;
   max-width: 500px;
   max-height: 80vh;
   overflow-y: auto;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
 }
 
 .help-content h2 {
   margin: 0 0 16px 0;
   font-size: 16px;
-  color: var(--color-text);
+  color: var(--vscode-editor-foreground);
 }
 
 .help-section {
@@ -425,7 +451,7 @@ body {
   margin: 0 0 8px 0;
   font-size: 13px;
   font-weight: bold;
-  color: var(--color-accent);
+  color: var(--vscode-textLink-foreground);
 }
 
 .shortcut {
@@ -437,7 +463,8 @@ body {
 
 .shortcut .key {
   font-family: 'Courier New', monospace;
-  background-color: #f0f0f0;
+  background-color: var(--vscode-textCodeBlock-background);
+  color: var(--vscode-editor-foreground);
   padding: 2px 6px;
   border-radius: 2px;
   min-width: 80px;
@@ -445,16 +472,16 @@ body {
 }
 
 .shortcut .description {
-  color: #666;
+  color: var(--vscode-descriptionForeground);
   flex: 1;
 }
 
 .help-footer {
   margin-top: 16px;
   padding-top: 12px;
-  border-top: 1px solid var(--color-border);
+  border-top: 1px solid var(--vscode-panel-border);
   font-size: 11px;
-  color: var(--color-grey);
+  color: var(--vscode-descriptionForeground);
   text-align: center;
 }
 
@@ -466,8 +493,9 @@ body {
 
 .tooltip .tooltiptext {
   visibility: hidden;
-  background-color: #333;
-  color: #fff;
+  background-color: var(--vscode-editorHoverWidget-background);
+  color: var(--vscode-editorHoverWidget-foreground);
+  border: 1px solid var(--vscode-editorHoverWidget-border);
   text-align: center;
   border-radius: 2px;
   padding: 6px 8px;
@@ -498,12 +526,12 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #ccc;
+  background: var(--vscode-scrollbarSlider-background);
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #999;
+  background: var(--vscode-scrollbarSlider-hoverBackground);
 }
 
 /* Responsive */

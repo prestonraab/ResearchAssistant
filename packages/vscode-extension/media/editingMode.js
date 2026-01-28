@@ -293,7 +293,6 @@ function renderSentenceBox(sentence) {
         </div>
         <div class="sentence-actions">
           <button class="action-btn" data-action="match" data-sentence-id="${sentence.id}" title="Match Claims">Match</button>
-          <button class="action-btn" data-action="write" data-sentence-id="${sentence.id}" title="Write Mode">✎</button>
           <button class="action-btn primary" data-action="create" data-sentence-id="${sentence.id}" title="Create Claim (c)">+Claim</button>
         </div>
       </div>
@@ -330,27 +329,19 @@ function renderClaimsContainer(sentence) {
  */
 function renderClaimBox(sentenceId, claim) {
   const statusIcon = getClaimStatusIcon(claim);
-  const citationStatus = claim.citedForFinal ? '★' : '☆'; // Filled or empty star
-  const citationTitle = claim.citedForFinal 
-    ? 'Quote marked for citation (click to unmark)' 
-    : 'Quote not marked for citation (click to mark)';
   
   return `
     <div class="claim-box" data-claim-id="${claim.id}" data-sentence-id="${sentenceId}">
       <div class="claim-content">
         <div class="claim-status-icon ${getClaimStatusClass(claim)}">${statusIcon}</div>
         <div class="claim-text-wrapper">
-          <div class="claim-id">${claim.id}</div>
-          <div class="claim-text" data-claim-id="${claim.id}" title="Original: ${claim.originalText}">
+          <div class="claim-id clickable" data-claim-id="${claim.id}" title="Click to open in Claim Review">${claim.id}</div>
+          <div class="claim-text" title="Original: ${claim.originalText}">
             ${escapeHtml(claim.text)}
           </div>
         </div>
       </div>
       <div class="claim-actions">
-        <button class="claim-action-btn citation-btn" data-action="toggleCitation" data-claim-id="${claim.id}" data-sentence-id="${sentenceId}" title="${citationTitle}">
-          ${citationStatus}
-        </button>
-        <button class="claim-action-btn" data-action="edit" data-claim-id="${claim.id}" title="Edit">✎</button>
         <button class="claim-action-btn delete" data-action="delete" data-claim-id="${claim.id}" data-sentence-id="${sentenceId}" title="Delete (x)">✕</button>
       </div>
     </div>
@@ -425,9 +416,6 @@ function attachSentenceListeners() {
         case 'match':
           vscode.postMessage({ type: 'matchClaims', sentenceId });
           break;
-        case 'write':
-          vscode.postMessage({ type: 'switchToWritingMode' });
-          break;
         case 'create':
           vscode.postMessage({ type: 'createClaim', sentenceId });
           break;
@@ -435,10 +423,18 @@ function attachSentenceListeners() {
     });
   });
 
+  // Claim ID click to open in Claim Review
+  document.querySelectorAll('.claim-id.clickable').forEach(el => {
+    el.addEventListener('click', (e) => {
+      const claimId = e.target.dataset.claimId;
+      vscode.postMessage({ type: 'openClaim', claimId });
+    });
+  });
+
   // Claim text click to edit
   document.querySelectorAll('.claim-text').forEach(el => {
     el.addEventListener('click', (e) => {
-      const claimId = e.target.dataset.claimId;
+      const claimId = e.target.closest('.claim-box').dataset.claimId;
       editClaimText(claimId);
     });
   });
@@ -451,12 +447,6 @@ function attachSentenceListeners() {
       const sentenceId = e.target.dataset.sentenceId;
       
       switch (action) {
-        case 'toggleCitation':
-          vscode.postMessage({ type: 'toggleCitation', sentenceId, claimId });
-          break;
-        case 'edit':
-          vscode.postMessage({ type: 'openClaim', claimId });
-          break;
         case 'delete':
           vscode.postMessage({ type: 'deleteClaim', sentenceId, claimId });
           break;
@@ -615,11 +605,6 @@ document.addEventListener('keydown', (e) => {
     if (currentSentenceId && currentClaimId) {
       vscode.postMessage({ type: 'deleteClaim', sentenceId: currentSentenceId, claimId: currentClaimId });
     }
-  } else if (e.key === '*' && !editingSentenceId && !editingClaimId) {
-    // Toggle citation for selected quote
-    if (currentSentenceId && currentClaimId) {
-      vscode.postMessage({ type: 'toggleCitation', sentenceId: currentSentenceId, claimId: currentClaimId });
-    }
   } else if (e.key === 'Enter' && !editingSentenceId && !editingClaimId) {
     // Open claim in review mode
     if (currentClaimId) {
@@ -748,18 +733,6 @@ window.addEventListener('message', (event) => {
       if (sentenceForDelete) {
         sentenceForDelete.claims = sentenceForDelete.claims.filter(c => c.id !== message.claimId);
         renderSentences();
-      }
-      break;
-
-    case 'citationToggled':
-      // Update citation status for the claim
-      const sentenceForCitation = sentences.find(s => s.id === message.sentenceId);
-      if (sentenceForCitation) {
-        const claimForCitation = sentenceForCitation.claims.find(c => c.id === message.claimId);
-        if (claimForCitation) {
-          claimForCitation.citedForFinal = message.citedForFinal;
-          renderSentences();
-        }
       }
       break;
 

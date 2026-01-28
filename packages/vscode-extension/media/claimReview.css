@@ -325,10 +325,6 @@ body {
 
 /* Validation section */
 .validation-section {
-  background-color: #FAFAFA;
-  border: 1px solid var(--color-border);
-  border-radius: 4px;
-  padding: 12px;
   margin-bottom: 24px;
 }
 
@@ -339,6 +335,113 @@ body {
   margin: 0 0 12px 0;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+}
+
+.validation-result {
+  background-color: #FAFAFA;
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  padding: 12px;
+}
+
+.validation-result.strong {
+  border-left: 4px solid var(--color-green);
+  background-color: #F1F8F4;
+}
+
+.validation-result.moderate {
+  border-left: 4px solid var(--color-orange);
+  background-color: #FFF8F0;
+}
+
+.validation-result.weak {
+  border-left: 4px solid var(--color-red);
+  background-color: #FFF5F5;
+}
+
+.validation-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.validation-icon {
+  font-size: 18px;
+  font-weight: bold;
+}
+
+.validation-result.strong .validation-icon {
+  color: var(--color-green);
+}
+
+.validation-result.moderate .validation-icon {
+  color: var(--color-orange);
+}
+
+.validation-result.weak .validation-icon {
+  color: var(--color-red);
+}
+
+.validation-title {
+  font-size: 13px;
+  font-weight: bold;
+  color: var(--color-text);
+}
+
+.validation-analysis {
+  font-size: 12px;
+  color: var(--color-text);
+  line-height: 1.4;
+  margin-bottom: 12px;
+}
+
+.suggested-quotes {
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid var(--color-border);
+}
+
+.suggested-quotes h4 {
+  font-size: 11px;
+  font-weight: bold;
+  color: var(--color-grey);
+  margin: 0 0 8px 0;
+  text-transform: uppercase;
+}
+
+.suggested-quote-item {
+  display: flex;
+  gap: 12px;
+  padding: 8px;
+  background-color: white;
+  border: 1px solid var(--color-border);
+  border-radius: 2px;
+  margin-bottom: 8px;
+  align-items: flex-start;
+}
+
+.suggested-quote-item .quote-number {
+  font-weight: bold;
+  color: var(--color-accent);
+  min-width: 24px;
+  text-align: center;
+  padding-top: 2px;
+}
+
+.suggested-quote-item .quote-text {
+  flex: 1;
+  font-size: 12px;
+  color: var(--color-text);
+  line-height: 1.4;
+  margin-bottom: 8px;
+  background-color: transparent;
+  padding: 0;
+  border: none;
+}
+
+.suggested-quote-item .btn {
+  flex-shrink: 0;
 }
 
 .validation-gauge {

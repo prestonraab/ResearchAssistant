@@ -257,20 +257,12 @@ function displayQuotes() {
 function displayQuoteContainer(container, quote, result, type) {
   const statusIcon = getStatusIcon(result);
   const verificationText = getVerificationText(result);
-  const citationStatus = result?.citedForFinal ? '★' : '☆'; // Filled or empty star
-  const citationTitle = result?.citedForFinal 
-    ? 'Quote marked for citation (click to unmark)' 
-    : 'Quote not marked for citation (click to mark)';
-  
   // Determine if we should show "Fix Quote" button
   const similarity = result?.similarity || 0;
   const showFixQuote = result && similarity < 1.0 && result.closestMatch;
   
   // Build buttons HTML
   let buttonsHtml = `
-    <button class="btn btn-citation" data-action="toggleCitation" data-quote="${escapeHtml(quote)}" title="${citationTitle}">
-      ${citationStatus}
-    </button>
     <button class="btn btn-primary" data-action="editQuote" data-quote="${escapeHtml(quote)}">Edit Quote</button>
   `;
   
@@ -311,13 +303,6 @@ function displayQuoteContainer(container, quote, result, type) {
   `;
   
   // Attach event listeners
-  const citationBtn = container.querySelector('[data-action="toggleCitation"]');
-  if (citationBtn) {
-    citationBtn.addEventListener('click', () => {
-      toggleQuoteCitation(quote);
-    });
-  }
-  
   const editBtn = container.querySelector('[data-action="editQuote"]');
   if (editBtn) {
     editBtn.addEventListener('click', () => {
@@ -389,11 +374,100 @@ function getVerificationText(result) {
 }
 
 /**
- * Display validation (hidden - kept for compatibility)
+ * Display validation results
  */
 function displayValidation() {
-  // Validation section is now hidden
-  // Support information is shown inline with each quote
+  if (!currentValidationResult || !currentValidationResult.similarity) {
+    return;
+  }
+
+  // Find or create validation section after quotes section
+  let validationSection = document.getElementById('validationSection');
+  if (!validationSection) {
+    validationSection = document.createElement('div');
+    validationSection.id = 'validationSection';
+    validationSection.className = 'validation-section';
+    
+    const quotesSection = document.getElementById('quotesSection');
+    if (quotesSection && quotesSection.parentNode) {
+      quotesSection.parentNode.insertBefore(validationSection, quotesSection.nextSibling);
+    }
+  }
+
+  const similarity = currentValidationResult.similarity;
+  const supported = currentValidationResult.supported;
+  const suggestedQuotes = currentValidationResult.suggestedQuotes || [];
+  const analysis = currentValidationResult.analysis || '';
+
+  // Determine status class
+  let statusClass = 'weak';
+  let statusIcon = '⚠';
+  if (similarity >= 0.75) {
+    statusClass = 'strong';
+    statusIcon = '✓';
+  } else if (similarity >= 0.6) {
+    statusClass = 'moderate';
+    statusIcon = '○';
+  }
+
+  // Build suggested quotes HTML
+  let suggestedQuotesHtml = '';
+  if (suggestedQuotes.length > 0) {
+    suggestedQuotesHtml = `
+      <div class="suggested-quotes">
+        <h4>Suggested Alternative Quotes:</h4>
+        ${suggestedQuotes.map((quote, i) => `
+          <div class="suggested-quote-item">
+            <div class="quote-number">${i + 1}</div>
+            <div class="quote-text">${escapeHtml(quote)}</div>
+            <button class="btn btn-small btn-primary" data-action="useSuggestedQuote" data-quote="${escapeHtml(quote)}">Use This Quote</button>
+          </div>
+        `).join('')}
+      </div>
+    `;
+  }
+
+  validationSection.innerHTML = `
+    <h2>VALIDATION</h2>
+    <div class="validation-result ${statusClass}">
+      <div class="validation-header">
+        <span class="validation-icon">${statusIcon}</span>
+        <span class="validation-title">Claim-Quote Support: ${Math.round(similarity * 100)}%</span>
+      </div>
+      <div class="validation-analysis">${escapeHtml(analysis)}</div>
+      ${suggestedQuotesHtml}
+    </div>
+  `;
+
+  // Attach event listeners for suggested quotes
+  validationSection.querySelectorAll('[data-action="useSuggestedQuote"]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const quote = btn.getAttribute('data-quote');
+      useSuggestedQuote(quote);
+    });
+  });
+}
+
+/**
+ * Use a suggested quote as the primary quote
+ */
+function useSuggestedQuote(quote) {
+  if (!currentClaim) return;
+  
+  showConfirmModal(
+    'Replace Primary Quote',
+    'Replace the current primary quote with this suggested quote?',
+    (confirmed) => {
+      if (confirmed) {
+        vscode.postMessage({
+          type: 'acceptQuote',
+          claimId: currentClaim.id,
+          quote: currentClaim.primaryQuote?.text || '',
+          newQuote: quote
+        });
+      }
+    }
+  );
 }
 
 /**
@@ -621,19 +695,6 @@ function fixQuote(quote, closestMatch) {
  */
 function acceptQuote(quote) {
   editQuote(quote);
-}
-
-/**
- * Toggle citation status for a quote
- */
-function toggleQuoteCitation(quote) {
-  if (!currentClaim) return;
-  
-  vscode.postMessage({
-    type: 'toggleQuoteCitation',
-    claimId: currentClaim.id,
-    quote: quote
-  });
 }
 
 /**

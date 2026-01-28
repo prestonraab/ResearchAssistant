@@ -312,6 +312,31 @@ export { SynthesisEngine } from './services/SynthesisEngine.js';
 export { SearchQueryGenerator } from './services/SearchQueryGenerator.js';
 
 // ============================================================================
+// Caching Services
+// ============================================================================
+
+/**
+ * Quote Verification Cache
+ * 
+ * Caches quote verification results to avoid redundant API calls.
+ */
+export { QuoteVerificationCache, QuoteVerificationEntry } from './services/caching/index.js';
+
+/**
+ * Claim-Quote Confidence Cache
+ * 
+ * Caches LLM confidence assessments for claim-quote pairs.
+ */
+export { ClaimQuoteConfidenceCache, ConfidenceCacheEntry } from './services/caching/index.js';
+
+/**
+ * Claim Validation Cache
+ * 
+ * Caches claim validation results (similarity, support status, suggested quotes).
+ */
+export { ClaimValidationCache, CachedValidationResult } from './services/caching/index.js';
+
+// ============================================================================
 // Parser Exports
 // ============================================================================
 

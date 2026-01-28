@@ -5,6 +5,7 @@ import * as fs from 'fs/promises';
 import { LiteratureIndexer } from './literatureIndexer';
 import { EmbeddedSnippet } from './embeddingStore';
 import { EmbeddingService } from './embeddingService';
+import { ClaimQuoteConfidenceCache, ClaimValidationCache } from '@research-assistant/core';
 import type { Claim } from '@research-assistant/core';
 import { MCPClientManager } from '../mcp/mcpClient';
 
@@ -44,6 +45,8 @@ export class VerificationFeedbackLoop {
   private literatureIndexer: LiteratureIndexer;
   private embeddingService: EmbeddingService;
   private mcpClient: MCPClientManager;
+  private confidenceCache: ClaimQuoteConfidenceCache | null = null;
+  private validationCache: ClaimValidationCache | null = null;
   private openaiApiKey: string;
   private maxRounds: number = 3;
   private readonly WEAK_SUPPORT_THRESHOLD = 0.6;
@@ -54,13 +57,27 @@ export class VerificationFeedbackLoop {
     literatureIndexer: LiteratureIndexer,
     mcpClient?: MCPClientManager,
     openaiApiKey?: string,
-    extractedTextPath: string = 'literature/ExtractedText'
+    extractedTextPath: string = 'literature/ExtractedText',
+    workspaceRoot?: string
   ) {
     this.literatureIndexer = literatureIndexer;
     this.mcpClient = mcpClient || ({} as MCPClientManager);
     this.embeddingService = new EmbeddingService(openaiApiKey);
     this.openaiApiKey = openaiApiKey || this.getSettingValue('openaiApiKey') || process.env.OPENAI_API_KEY || '';
     this.extractedTextPath = extractedTextPath;
+    
+    // Initialize caches if workspace root is provided
+    if (workspaceRoot) {
+      this.confidenceCache = new ClaimQuoteConfidenceCache(workspaceRoot);
+      this.confidenceCache.initialize().catch(error => {
+        console.error('[VerificationFeedbackLoop] Failed to initialize confidence cache:', error);
+      });
+      
+      this.validationCache = new ClaimValidationCache(workspaceRoot);
+      this.validationCache.initialize().catch(error => {
+        console.error('[VerificationFeedbackLoop] Failed to initialize validation cache:', error);
+      });
+    }
   }
 
   /**
@@ -222,8 +239,23 @@ export class VerificationFeedbackLoop {
 
   /**
    * Verify a single snippet against the claim
+   * Uses cache if available, otherwise calls LLM
    */
   private async verifySnippet(claim: string, snippet: EmbeddedSnippet, similarity: number = 0): Promise<VerificationResult> {
+    // Check cache first
+    if (this.confidenceCache) {
+      const cached = this.confidenceCache.get(claim, snippet.text);
+      if (cached) {
+        console.log(`[VerificationFeedbackLoop] Cache hit for claim-quote pair (confidence: ${cached.confidence.toFixed(2)})`);
+        return {
+          snippet,
+          supports: cached.confidence >= this.WEAK_SUPPORT_THRESHOLD,
+          confidence: cached.confidence,
+          reasoning: 'Cached result'
+        };
+      }
+    }
+
     if (!this.openaiApiKey) {
       console.warn('[VerificationFeedbackLoop] OpenAI API key not configured');
       return {
@@ -256,12 +288,20 @@ Respond in JSON format:
       const response = await this.callOpenAIAPI(prompt);
       const parsed = JSON.parse(response);
 
-      return {
+      const result = {
         snippet,
         supports: parsed.supports === true,
         confidence: parsed.confidence || 0,
         reasoning: parsed.reasoning || ''
       };
+
+      // Store in cache
+      if (this.confidenceCache) {
+        this.confidenceCache.set(claim, snippet.text, result.confidence);
+        console.log(`[VerificationFeedbackLoop] Cached confidence score: ${result.confidence.toFixed(2)}`);
+      }
+
+      return result;
     } catch (error) {
       console.error('[VerificationFeedbackLoop] Error verifying snippet:', error);
       return {
@@ -388,12 +428,28 @@ Generate a refined search query (2-5 words) that would find more relevant papers
   /**
    * Validate whether a claim's quote actually supports the claim text.
    * Uses semantic similarity between claim text and quote text.
+   * Checks cache first before computing.
    * 
    * @param claim The claim to validate
    * @returns Validation result with similarity score and support status
    */
   async validateSupport(claim: Claim): Promise<SupportValidation> {
     try {
+      // Check cache first
+      if (this.validationCache) {
+        const cached = this.validationCache.get(claim.text);
+        if (cached) {
+          console.log(`[VerificationFeedbackLoop] Cache hit for validation of claim ${claim.id}`);
+          return {
+            claimId: claim.id,
+            similarity: cached.similarity,
+            supported: cached.supported,
+            suggestedQuotes: cached.suggestedQuotes,
+            analysis: cached.analysis
+          };
+        }
+      }
+      
       // Get the quote text and source from primaryQuote
       const quoteText = claim.primaryQuote?.text || '';
       const source = claim.primaryQuote?.source || '';
@@ -413,13 +469,26 @@ Generate a refined search query (2-5 words) that would find more relevant papers
       // Generate analysis text
       const analysis = this.generateAnalysis(similarity, supported);
       
-      return {
+      const result: SupportValidation = {
         claimId: claim.id,
         similarity,
         supported,
         suggestedQuotes,
         analysis
       };
+      
+      // Store in cache
+      if (this.validationCache) {
+        this.validationCache.set(claim.text, {
+          similarity,
+          supported,
+          suggestedQuotes: suggestedQuotes || [],
+          analysis
+        });
+        console.log(`[VerificationFeedbackLoop] Cached validation result for claim ${claim.id}`);
+      }
+      
+      return result;
     } catch (error) {
       console.error(`Error validating support for claim ${claim.id}:`, error);
       return {
@@ -659,5 +728,37 @@ Generate a refined search query (2-5 words) that would find more relevant papers
    */
   updateExtractedTextPath(newPath: string): void {
     this.extractedTextPath = newPath;
+  }
+
+  /**
+   * Get cache statistics
+   */
+  getCacheStats() {
+    if (!this.confidenceCache) {
+      return null;
+    }
+    return this.confidenceCache.getStats();
+  }
+
+  /**
+   * Clear the confidence cache
+   */
+  clearCache(): void {
+    if (this.confidenceCache) {
+      this.confidenceCache.clear();
+      console.log('[VerificationFeedbackLoop] Confidence cache cleared');
+    }
+  }
+
+  /**
+   * Dispose and cleanup
+   */
+  async dispose(): Promise<void> {
+    if (this.confidenceCache) {
+      await this.confidenceCache.dispose();
+    }
+    if (this.validationCache) {
+      await this.validationCache.dispose();
+    }
   }
 }
