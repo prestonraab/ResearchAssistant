@@ -244,7 +244,7 @@ function renderPair(pair) {
   
   // Condense claims into single row
   const claimsDisplay = pair.claims && pair.claims.length > 0
-    ? `CLAIMS: ${pair.claims.map(c => `<span class="claim-badge" data-claim-id="${escapeHtml(c)}">${escapeHtml(c)}</span>`).join('')}`
+    ? pair.claims.map(c => `<span class="claim-badge" data-claim-id="${escapeHtml(c)}">${escapeHtml(c)}</span>`).join('')
     : '';
 
   // Count cited sources
@@ -257,36 +257,45 @@ function renderPair(pair) {
   const citationSidebarHtml = renderCitationSidebar(pair);
 
   return `
-    <div class="pair-row" data-pair-id="${pair.id}">
-      <!-- Left column: Controls and Question -->
-      <div class="left-column">
-        <div class="question-header">
-          <span class="status-badge status-${statusClass}" style="background-color: ${statusColor}">
-            ${status}
-          </span>
-          <span class="section-badge">${escapeHtml(pair.section)}</span>
-          <button class="citations-toggle-btn" data-pair-id="${pair.id}" title="Toggle citations">📌${citationBadge}</button>
-          <button class="delete-btn" data-pair-id="${pair.id}" title="Delete">🗑️</button>
+    <div class="pair-wrapper" data-pair-id="${pair.id}">
+      <!-- Three-column content row -->
+      <div class="pair-row" data-pair-id="${pair.id}">
+        <!-- Left column: Question -->
+        <div class="left-column">
+          <div class="question-text" contenteditable="true" data-pair-id="${pair.id}">
+            ${escapeHtml(pair.question)}
+          </div>
         </div>
-        <div class="question-text" contenteditable="true" data-pair-id="${pair.id}">
-          ${escapeHtml(pair.question)}
+        
+        <!-- Middle column: Answer and Citations -->
+        <div class="middle-column">
+          <textarea 
+            class="answer-editor" 
+            data-pair-id="${pair.id}"
+            placeholder="Write your answer here..."
+          >${escapeHtml(pair.answer || '')}</textarea>
+          
+          <!-- Citations section (expandable within middle column) -->
+          <div class="citations-section" data-pair-id="${pair.id}" style="display: none;">
+            ${citationSidebarHtml}
+          </div>
         </div>
-        ${claimsDisplay ? `<div class="claims-inline">${claimsDisplay}</div>` : ''}
+        
+        <!-- Right column: Metadata -->
+        <div class="right-column">
+          <div class="pair-header">
+            <span class="section-badge">${escapeHtml(pair.section)}</span>
+            ${claimsDisplay ? `<div class="claims-badges">${claimsDisplay}</div>` : ''}
+            <div class="action-row">
+              <span class="status-badge status-${statusClass}" style="background-color: ${statusColor}">
+                ${status}
+              </span>
+              <button class="citations-toggle-btn" data-pair-id="${pair.id}" title="Toggle citations">📌${citationBadge}</button>
+              <button class="delete-btn" data-pair-id="${pair.id}" title="Delete">🗑️</button>
+            </div>
+          </div>
+        </div>
       </div>
-      
-      <!-- Right column: Answer -->
-      <div class="right-column">
-        <textarea 
-          class="answer-editor" 
-          data-pair-id="${pair.id}"
-          placeholder="Write your answer here..."
-        >${escapeHtml(pair.answer || '')}</textarea>
-      </div>
-    </div>
-
-    <!-- Citations section (expandable, full-width below pair) -->
-    <div class="citations-section" data-pair-id="${pair.id}" style="display: none;">
-      ${citationSidebarHtml}
     </div>
   `;
 }
@@ -324,7 +333,7 @@ function renderCitationSidebar(pair) {
 
   const citationItemsHtml = linkedSources.map((source, index) => {
     const isChecked = source.cited ? 'checked' : '';
-    const quotePreview = escapeHtml(source.quote || '').substring(0, 150);
+    const quoteText = escapeHtml(source.quote || '');
     
     return `
       <div class="citation-item" data-pair-id="${pair.id}" data-source-index="${index}">
@@ -339,8 +348,8 @@ function renderCitationSidebar(pair) {
         <div class="citation-source">
           <div class="citation-source-title">${escapeHtml(source.title || 'Unknown')}</div>
           <div class="citation-source-meta">${escapeHtml(source.source || 'Unknown source')}</div>
+          <div class="citation-quote-text">${quoteText}</div>
         </div>
-        <div class="citation-quote-preview">${quotePreview}${source.quote && source.quote.length > 150 ? '...' : ''}</div>
       </div>
     `;
   }).join('');

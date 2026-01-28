@@ -62,55 +62,104 @@ body {
 .content {
   flex: 1;
   overflow-y: auto;
-  padding: 16px;
+  padding: 8px;
 }
 
 /* Pairs List */
 .pairs-list {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 0;
+  margin: 0;
 }
 
-/* Pair Row - Two Column Layout */
-.pair-row {
-  display: grid;
-  grid-template-columns: 30% 1fr;
-  gap: 16px;
+/* Pair Wrapper */
+.pair-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
   border: 1px solid var(--vscode-panel-border);
-  border-radius: 8px;
-  padding: 16px;
+  border-radius: 0;
+  border-bottom: none;
+  padding: 0;
   background-color: var(--vscode-editor-background);
   transition: box-shadow 0.2s;
+  margin-bottom: 0;
 }
 
-.pair-row:hover {
+.pair-wrapper:first-child {
+  border-radius: 8px 8px 0 0;
+}
+
+.pair-wrapper:last-child {
+  border-radius: 0 0 8px 8px;
+  border-bottom: 1px solid var(--vscode-panel-border);
+}
+
+.pair-wrapper:hover {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
-/* Left Column - Controls and Question */
+/* Pair Header - Now in right column */
+.pair-header {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  min-height: auto;
+  width: 100%;
+}
+
+.action-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 4px;
+  justify-content: flex-end;
+}
+
+/* Pair Row - Three Column Layout */
+.pair-row {
+  display: grid;
+  grid-template-columns: 1fr 2fr 200px;
+  gap: 0 8px;
+  align-items: start;
+  padding: 0;
+}
+
+/* Left Column - Question */
 .left-column {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  border-right: 2px solid var(--vscode-panel-border);
-  padding-right: 16px;
+  gap: 0;
+  padding: 0;
 }
 
-/* Right Column - Answer */
+/* Middle Column - Answer and Citations */
+.middle-column {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding: 0;
+}
+
+/* Right Column - Metadata (flexible) */
 .right-column {
   display: flex;
   flex-direction: column;
+  gap: 0;
+  align-items: flex-end;
+  position: relative;
+  min-height: 0;
 }
 
-/* Citations Section - Full Width Below Pair */
+/* Citations Section - Within Right Column */
 .citations-section {
   border: 1px solid var(--vscode-panel-border);
-  border-top: none;
-  border-radius: 0 0 8px 8px;
-  padding: 16px;
+  border-radius: 4px;
+  padding: 12px;
   background-color: var(--vscode-editor-background);
-  margin-bottom: 16px;
+  margin-top: 8px;
 }
 
 /* Citation Sidebar */
@@ -130,8 +179,8 @@ body {
 
 .citation-items-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 12px;
+  grid-template-columns: 1fr;
+  gap: 8px;
 }
 
 .citation-item {
@@ -143,7 +192,6 @@ body {
   background-color: var(--vscode-input-background);
   border: 1px solid var(--vscode-input-border);
   transition: all 0.2s;
-  position: relative;
 }
 
 .citation-item:hover {
@@ -152,7 +200,7 @@ body {
 }
 
 .citation-checkbox {
-  margin-top: 2px;
+  margin-top: 4px;
   cursor: pointer;
   flex-shrink: 0;
 }
@@ -160,7 +208,7 @@ body {
 .citation-source {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
   flex: 1;
   min-width: 0;
 }
@@ -177,30 +225,16 @@ body {
   color: var(--vscode-descriptionForeground);
 }
 
-.citation-quote-preview {
-  display: none;
-  position: absolute;
-  bottom: 100%;
-  left: 0;
-  right: 0;
-  margin-bottom: 8px;
-  padding: 8px;
-  background-color: var(--vscode-editor-background);
-  border: 1px solid var(--vscode-focusBorder);
-  border-radius: 4px;
+.citation-quote-text {
   font-size: 11px;
   color: var(--vscode-editor-foreground);
   line-height: 1.4;
-  max-height: 120px;
-  overflow-y: auto;
-  z-index: 1000;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
   word-break: break-word;
   white-space: pre-wrap;
-}
-
-.citation-item:hover .citation-quote-preview {
-  display: block;
+  padding: 6px;
+  background-color: var(--vscode-editor-background);
+  border-radius: 2px;
+  border-left: 2px solid var(--vscode-focusBorder);
 }
 
 .citation-empty {
@@ -230,25 +264,27 @@ body {
 
 .status-badge {
   display: inline-block;
-  padding: 4px 12px;
-  border-radius: 12px;
-  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 10px;
   font-weight: 600;
   color: white;
   text-transform: uppercase;
   white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .section-badge {
   display: inline-block;
-  padding: 4px 8px;
-  border-radius: 4px;
-  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-size: 10px;
   font-weight: 500;
   color: var(--vscode-descriptionForeground);
   background-color: var(--vscode-editor-background);
   border: 1px solid var(--vscode-widget-border);
   white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .delete-btn {
@@ -299,14 +335,16 @@ body {
 }
 
 .question-text {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
   color: var(--vscode-editor-foreground);
-  padding: 8px;
+  padding: 2px;
   border: 1px solid transparent;
-  border-radius: 4px;
-  min-height: 40px;
+  border-radius: 2px;
+  min-height: 24px;
   cursor: text;
+  line-height: 1.4;
+  margin: 0;
 }
 
 .question-text:hover {
@@ -388,17 +426,18 @@ body {
 
 .answer-editor {
   width: 100%;
-  min-height: 100px;
-  padding: 12px;
+  min-height: 60px;
+  padding: 2px;
   border: 1px solid var(--vscode-input-border);
-  border-radius: 4px;
+  border-radius: 2px;
   background-color: var(--vscode-input-background);
   color: var(--vscode-input-foreground);
   font-family: inherit;
   font-size: 13px;
-  line-height: 1.6;
+  line-height: 1.5;
   resize: none;
   overflow: hidden;
+  margin: 0;
 }
 
 .answer-editor:focus {
