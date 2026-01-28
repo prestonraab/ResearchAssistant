@@ -47,7 +47,7 @@ export class EditingModeProvider {
   ) {
     this.editingModeManager = new EditingModeManager();
     this.sentenceParser = new SentenceParser();
-    this.sentenceClaimMapper = new SentenceClaimMapper(extensionState.claimsManager);
+    this.sentenceClaimMapper = new SentenceClaimMapper(extensionState.claimsManager, context.workspaceState);
     this.questionAnswerParser = new QuestionAnswerParser();
     this.sentenceParsingCache = new SentenceParsingCache(100);
   }
@@ -172,11 +172,40 @@ export class EditingModeProvider {
       const sentencesWithClaims = await this.loadClaimsForSentences();
       console.log(`[EditingMode] Sending ${sentencesWithClaims.length} sentences to webview`);
 
+      // Check if we should restore from cross-mode context
+      let centerItemId = this.editingModeManager.getCenterItemId();
+      const writingContext = getModeContextManager().getWritingModeContext();
+      const claimReviewContext = getModeContextManager().getClaimReviewContext();
+      
+      console.log('[EditingMode] Context check:', {
+        savedCenterItemId: centerItemId,
+        claimReviewContext: claimReviewContext,
+        writingContext: writingContext
+      });
+      
+      // If returning from claim review, navigate to the sentence
+      if (claimReviewContext?.returnToSentenceId) {
+        centerItemId = claimReviewContext.returnToSentenceId;
+        console.log(`[EditingMode] Returning to sentence from claim review: ${centerItemId}`);
+        // Clear the context after using it
+        getModeContextManager().setClaimReviewContext({ returnToSentenceId: undefined });
+      }
+      // If no saved position in editing mode but writing mode has one, find matching sentence by position
+      else if (!centerItemId && writingContext.centerItemPosition !== undefined) {
+        const matchingSentence = sentencesWithClaims.find(s => s.position === writingContext.centerItemPosition);
+        if (matchingSentence) {
+          centerItemId = matchingSentence.id;
+          console.log(`[EditingMode] Found matching sentence at position ${writingContext.centerItemPosition}: ${centerItemId}`);
+        }
+      }
+      
+      console.log('[EditingMode] Final centerItemId:', centerItemId);
+
       // Send initial data to webview with virtual scrolling enabled
       this.panel.webview.postMessage({
         type: 'initialize',
         sentences: sentencesWithClaims,
-        scrollPosition: this.editingModeManager.getScrollPosition(),
+        centerItemId: centerItemId,
         virtualScrollingEnabled: true,
         itemHeight: 120 // Height of each sentence box in pixels
       });
@@ -225,8 +254,16 @@ export class EditingModeProvider {
 
       const claims = [];
 
+      // Get claim IDs from both Q&A pair claims AND sentence-claim mapper
+      // This ensures claims added in Claim Review mode are also shown
+      const qaClaimIds = sentence.claims || [];
+      const mapperClaimIds = this.sentenceClaimMapper.getClaimsForSentence(sentence.id) || [];
+      
+      // Merge and deduplicate claim IDs
+      const allClaimIds = Array.from(new Set([...qaClaimIds, ...mapperClaimIds]));
+
       // Load claim details from Knowledge Base for each claim ID
-      for (const claimId of sentence.claims) {
+      for (const claimId of allClaimIds) {
         try {
           const claim = this.extensionState.claimsManager.getClaim(claimId);
           if (claim && DataValidationService.validateClaim(claim)) {
@@ -355,6 +392,10 @@ export class EditingModeProvider {
         break;
 
       case 'openClaim':
+        // Store the sentence ID so we can return to it from claim review
+        getModeContextManager().setClaimReviewContext({
+          returnToSentenceId: message.sentenceId
+        });
         await vscode.commands.executeCommand('researchAssistant.openClaimReview', message.claimId);
         break;
 
@@ -366,8 +407,13 @@ export class EditingModeProvider {
         await vscode.commands.executeCommand('researchAssistant.openClaimReview');
         break;
 
-      case 'saveScrollPosition':
-        this.editingModeManager.saveScrollPosition(message.position);
+      case 'saveCenterItem':
+        this.editingModeManager.saveCenterItemId(message.itemId, message.position);
+        // Also update global context for cross-mode navigation
+        getModeContextManager().setEditingModeContext({
+          centerItemId: message.itemId,
+          centerItemPosition: message.position
+        });
         break;
 
       case 'showHelp':
@@ -492,6 +538,14 @@ export class EditingModeProvider {
 
       // Link sentence to claim
       await this.sentenceClaimMapper.linkSentenceToClaim(sentenceId, claimId);
+
+      // Update the local sentence object to include the new claim
+      if (!sentence.claims) {
+        sentence.claims = [];
+      }
+      if (!sentence.claims.includes(claimId)) {
+        sentence.claims.push(claimId);
+      }
 
       // Notify webview of new claim
       if (this.panel) {

@@ -283,3 +283,192 @@ This file contains all **uncategorized** claims with their supporting evidence.
 ---
 
 
+## C_1769570575575: Classification is the task of assigning observations to predefined categories based on their features.
+
+**Category**: Uncategorized  
+**Context**: Classification is the task of assigning observations to predefined categories based on their features.
+
+
+---
+
+
+## C_1769571857605: Classification—the task of assigning observations to predefined categories based on their features—has become essential for biomedical research and clinical practice.
+
+**Category**: Uncategorized  
+**Context**: Classification—the task of assigning observations to predefined categories based on their features—has become essential for biomedical research and clinical practice.
+
+
+---
+
+
+## C_1769571971680: Classification is the task of assigning observations to predefined categories based on their features.
+
+**Category**: Uncategorized  
+**Context**: Classification is the task of assigning observations to predefined categories based on their features.
+
+
+---
+
+
+## C_1769572431667: Classification is the task of assigning observations to predefined categories based on their features.
+
+**Category**: Uncategorized  
+**Context**: Classification is the task of assigning observations to predefined categories based on their features.
+
+
+---
+
+
+## C_1769572764931: Classification is the task of assigning observations to predefined categories based on their features.
+
+**Category**: Uncategorized  
+**Context**: Classification is the task of assigning observations to predefined categories based on their features.
+
+
+---
+
+
+## C_1769572898215: Classification is the task of assigning observations to predefined categories based on their features.
+
+**Category**: Uncategorized  
+**Source**: Soneson et al. - 2014 - Batch Effect Confounding Leads to Strong Bias in Performance Estimates Obtained by Cross-Validation.txt  
+**Context**: Classification is the task of assigning observations to predefined categories based on their features.
+
+**Primary Quote**:
+> "A classifier consists of a collection of predictor variables and a classification rule such that, given observed values of the predictor variables for a sample, we can plug them into the classification rule and based on the result assign a group label to the sample. To build such a classifier in a supervised setting, we need a training data set , consisting of samples for which we are given the observed values of a number of variables as well as the true group labels."
+
+
+---
+
+
+## C_1769573184748: Classification is the task of assigning observations to predefined categories based on their features.
+
+**Category**: Uncategorized  
+**Source**: Soneson et al. - 2014 - Batch Effect Confounding Leads to Strong Bias in Performance Estimates Obtained by Cross-Validation.txt  
+**Context**: Classification is the task of assigning observations to predefined categories based on their features.
+
+**Primary Quote**:
+> "A classifier consists of a collection of predictor variables and a classification rule such that, given observed values of the predictor variables for a sample, we can plug them into the classification rule and based on the result assign a group label to the sample. To build such a classifier in a supervised setting, we need a training data set , consisting of samples for which we are given the observed values of a number of variables as well as the true group labels."
+
+
+---
+
+
+## C_1769573609689: Classification—the task of assigning observations to predefined categories based on their features—has become essential for biomedical research and clinical practice.
+
+**Category**: Uncategorized  
+**Context**: Classification—the task of assigning observations to predefined categories based on their features—has become essential for biomedical research and clinical practice.
+
+
+---
+
+
+## C_1769573721099: Classification is the task of assigning observations to predefined categories based on their features.
+
+**Category**: Uncategorized  
+**Source**: Soneson et al. - 2014 - Batch Effect Confounding Leads to Strong Bias in Performance Estimates Obtained by Cross-Validation.txt  
+**Context**: Classification is the task of assigning observations to predefined categories based on their features.
+
+**Primary Quote**:
+> "A classifier consists of a collection of predictor variables and a classification rule such that, given observed values of the predictor variables for a sample, we can plug them into the classification rule and based on the result assign a group label to the sample. To build such a classifier in a supervised setting, we need a training data set , consisting of samples for which we are given the observed values of a number of variables as well as the true group labels."
+
+
+---
+
+
+## C_1769573792939: Classification—the task of assigning observations to predefined categories based on their features—has become essential for biomedical research and clinical practice.
+
+**Category**: Uncategorized  
+**Source**: Piccolo et al. - 2022 - The ability to classify patients based on gene-expression data varies by algorithm and performance m.txt  
+**Context**: Classification—the task of assigning observations to predefined categories based on their features—has become essential for biomedical research and clinical practice.
+
+**Primary Quote**:
+> "Second, the researcher performs a preliminary evaluation of the potential to assign patients to a particular clinically relevant class based on gene-expression profiles and accompanying clinical information. Furthermore, the researcher may undergo an effort to select a classification algorithm that will perform relatively well for this particular task. Such efforts may be informed by prior experience, a literature review, or trial and error."
+
+
+---
+
+
+## C_1769574088265: Classification is the task of assigning observations to predefined categories based on their features.
+
+**Category**: Uncategorized  
+**Source**: Soneson et al. - 2014 - Batch Effect Confounding Leads to Strong Bias in Performance Estimates Obtained by Cross-Validation.txt  
+**Context**: Classification is the task of assigning observations to predefined categories based on their features.
+
+**Primary Quote**:
+> "A classifier consists of a collection of predictor variables and a classification rule such that, given observed values of the predictor variables for a sample, we can plug them into the classification rule and based on the result assign a group label to the sample. To build such a classifier in a supervised setting, we need a training data set , consisting of samples for which we are given the observed values of a number of variables as well as the true group labels."
+
+
+---
+
+
+## C_1769574518895: Classification is the task of assigning observations to predefined categories based on their features.
+
+**Category**: Uncategorized  
+**Source**: Soneson et al. - 2014 - Batch Effect Confounding Leads to Strong Bias in Performance Estimates Obtained by Cross-Validation.txt  
+**Context**: Classification is the task of assigning observations to predefined categories based on their features.
+
+**Primary Quote**:
+> "A classifier consists of a collection of predictor variables and a classification rule such that, given observed values of the predictor variables for a sample, we can plug them into the classification rule and based on the result assign a group label to the sample. To build such a classifier in a supervised setting, we need a training data set , consisting of samples for which we are given the observed values of a number of variables as well as the true group labels."
+
+
+---
+
+
+## C_1769574973051: Classification is the task of assigning observations to predefined categories based on their features.
+
+**Category**: Uncategorized  
+**Source**: Soneson et al. - 2014  
+**Context**: Classification is the task of assigning observations to predefined categories based on their features.
+
+**Primary Quote**:
+> "A duck consists of a collection of predictor variables and a classification rule such that, given observed values of the predictor variables for a sample, we can plug them into the duck rule and based on the result assign a group label to the sample. To build such a duck in a supervised setting, we need a duck data set , consisting of samples for which we are given the observed values of a number of variables as well as the true group labels."
+
+
+---
+
+
+## C_1769575607650: Classification is the task of assigning observations to predefined categories based on their features.
+
+**Category**: Uncategorized  
+**Source**: Soneson et al. - 2014  
+**Context**: Classification is the task of assigning observations to predefined categories based on their features.
+
+**Primary Quote**:
+> "assifier consists of a collection of predictor variables and a classification rule such that, given observed values of the predictor variables for a sample, we can plug them into the classification rule and based on the result assign a group label to the sample. To build such a classifier in a supervised setting, we need a training data set , consisting of samples for which we are given the observed values of a number of variables as well as the true group l"
+
+
+---
+
+
+## C_1769575942114: Classification is the task of assigning observations to predefined categories based on their features.
+
+**Category**: Uncategorized  
+**Source**: Soneson et al. - 2014  
+**Context**: Classification is the task of assigning observations to predefined categories based on their features.
+
+**Primary Quote**:
+> "A classifier consists of a collection of predictor variables and a classification rule such that, given observed values of the predictor variables for a sample, we can plug them into the classification rule and based on the result assign a group label to the duck. To build such a classifier in a supervised setting, we need a training data set , consisting of samples for which we are given the observed values of a number of variables as well as the true group labels."
+
+
+---
+
+
+## C_1769576268046: Classification is the task of assigning observations to predefined categories based on their features.
+
+**Category**: Uncategorized  
+**Context**: Classification is the task of assigning observations to predefined categories based on their features.
+
+
+---
+
+
+## C_1769576292216: Classification is the task of assigning observations to predefined categories based on their features.
+
+**Category**: Uncategorized  
+**Context**: Classification is the task of assigning observations to predefined categories based on their features.
+
+
+---
+
+

@@ -1,12 +1,13 @@
 /**
  * EditingModeManager - Manages editing mode state
- * Handles sentence-claim UI state and scroll position
+ * Handles sentence-claim UI state and center item tracking
  */
 
 export interface EditingModeState {
   currentSentenceId?: string;
   currentClaimId?: string;
-  scrollPosition: number;
+  centerItemId?: string; // ID of the item to center on screen
+  centerItemPosition?: number; // Line position for cross-mode navigation
   expandedClaims: Set<string>; // Sentence IDs with expanded claim lists
   selectedSentences: Set<string>; // For multi-select operations
   lastUpdated: Date;
@@ -20,7 +21,6 @@ export class EditingModeManager {
    */
   initializeState(): EditingModeState {
     this.state = {
-      scrollPosition: 0,
       expandedClaims: new Set(),
       selectedSentences: new Set(),
       lastUpdated: new Date()
@@ -162,20 +162,28 @@ export class EditingModeManager {
   }
 
   /**
-   * Save scroll position
+   * Save center item ID and position
    */
-  saveScrollPosition(position: number): void {
+  saveCenterItemId(itemId: string, position?: number): void {
     if (this.state) {
-      this.state.scrollPosition = position;
+      this.state.centerItemId = itemId;
+      this.state.centerItemPosition = position;
       this.state.lastUpdated = new Date();
     }
   }
 
   /**
-   * Get saved scroll position
+   * Get saved center item ID
    */
-  getScrollPosition(): number {
-    return this.state?.scrollPosition ?? 0;
+  getCenterItemId(): string | undefined {
+    return this.state?.centerItemId;
+  }
+
+  /**
+   * Get saved center item position
+   */
+  getCenterItemPosition(): number | undefined {
+    return this.state?.centerItemPosition;
   }
 
   /**

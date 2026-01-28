@@ -147,9 +147,9 @@ export class DashboardProvider implements vscode.WebviewViewProvider {
       readingCompleted: progress.completedAt
     }));
     const papersTotal = readingStatuses.length;
-    const papersRead = readingStatuses.filter(s => s.status === 'read').length;
-    const papersReading = readingStatuses.filter(s => s.status === 'reading').length;
-    const papersToRead = readingStatuses.filter(s => s.status === 'to-read').length;
+    const papersRead = readingStatuses.filter(s => s.status === 'read' || s.status === 'deeply-read').length;
+    const papersReading = readingStatuses.filter(s => s.status === 'some-read').length;
+    const papersToRead = readingStatuses.filter(s => s.status === 'unread').length;
 
     // Get coverage data
     const sections = this._extensionState.outlineParser.getHierarchy();

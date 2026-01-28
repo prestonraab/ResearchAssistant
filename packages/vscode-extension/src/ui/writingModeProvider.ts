@@ -149,11 +149,24 @@ export class WritingModeProvider {
       // Sanitize for webview transmission
       const sanitizedPairs = DataValidationService.sanitizeQAPairsForWebview(questionAnswerPairs);
 
+      // Check if we should restore from cross-mode context
+      let centerItemId = this.writingModeManager.getCenterItemId();
+      const editingContext = getModeContextManager().getEditingModeContext();
+      
+      // If no saved position in writing mode but editing mode has one, find matching pair by position
+      if (!centerItemId && editingContext.centerItemPosition !== undefined) {
+        const matchingPair = sanitizedPairs.find(p => p.position === editingContext.centerItemPosition);
+        if (matchingPair) {
+          centerItemId = matchingPair.id;
+          console.log(`[WritingMode] Found matching pair at position ${editingContext.centerItemPosition}: ${centerItemId}`);
+        }
+      }
+
       // Send initial data to webview
       this.panel.webview.postMessage({
         type: 'initialize',
         pairs: sanitizedPairs,
-        scrollPosition: this.writingModeManager.getScrollPosition()
+        centerItemId: centerItemId
       });
 
       // Store in mode context
@@ -269,8 +282,13 @@ export class WritingModeProvider {
         await this.handleCitationToggled(message.pairId, message.sourceIndex, message.cited);
         break;
 
-      case 'saveScrollPosition':
-        this.writingModeManager.saveScrollPosition(message.position);
+      case 'saveCenterItem':
+        this.writingModeManager.saveCenterItemId(message.itemId, message.position);
+        // Also update global context for cross-mode navigation
+        getModeContextManager().setWritingModeContext({
+          centerItemId: message.itemId,
+          centerItemPosition: message.position
+        });
         break;
 
       case 'switchToEditingMode':

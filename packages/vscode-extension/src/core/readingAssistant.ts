@@ -93,9 +93,9 @@ export class ReadingAssistant {
     // Check reading status
     const status = this.readingStatusManager.getStatus(paperId);
 
-    if (!status || status.status === 'to-read') {
-      // Automatically mark as "reading" when opening
-      this.readingStatusManager.setStatus(paperId, 'reading');
+    if (!status || status.status === 'unread') {
+      // Automatically mark as "some-read" when opening
+      this.readingStatusManager.setStatus(paperId, 'some-read');
       
       vscode.window.showInformationMessage(
         `Reading: ${paperId}`,
@@ -293,7 +293,7 @@ export class ReadingAssistant {
    * 
    * Validates: Requirement 16.1, 16.2
    */
-  async trackReadingProgress(paperId: string, status: 'reading' | 'read'): Promise<void> {
+  async trackReadingProgress(paperId: string, status: 'some-read' | 'read' | 'deeply-read'): Promise<void> {
     await this.readingStatusManager.setStatus(paperId, status);
   }
 
@@ -377,7 +377,7 @@ export class ReadingAssistant {
         }
 
         const paperId = this.getPaperIdFromPath(editor.document.uri.fsPath);
-        await this.trackReadingProgress(paperId, 'reading');
+        await this.trackReadingProgress(paperId, 'some-read');
         vscode.window.showInformationMessage(`${paperId} marked as reading`);
       })
     ];

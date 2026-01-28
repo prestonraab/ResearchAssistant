@@ -13,6 +13,7 @@ import { LiteratureIndexer } from '../services/literatureIndexer';
 import { VerificationFeedbackLoop } from '../services/verificationFeedbackLoop';
 import { getModeContextManager } from '../core/modeContextManager';
 import { DataValidationService } from '../core/dataValidationService';
+import { SentenceClaimMapper } from '../core/sentenceClaimMapper';
 
 /**
  * ClaimReviewProvider - Webview panel provider for claim review mode
@@ -33,6 +34,8 @@ export class ClaimReviewProvider {
   private zoteroService: ZoteroDirectService;
   private literatureIndexer: LiteratureIndexer;
   private verificationFeedbackLoop: VerificationFeedbackLoop;
+  private scrollPosition: number = 0; // Track scroll position for restoration
+  private sentenceClaimMapper: SentenceClaimMapper;
 
   constructor(
     private extensionState: ExtensionState,
@@ -47,6 +50,9 @@ export class ClaimReviewProvider {
     
     // Initialize verification feedback loop
     this.verificationFeedbackLoop = new VerificationFeedbackLoop(this.literatureIndexer);
+    
+    // Initialize sentence-claim mapper with persistence
+    this.sentenceClaimMapper = new SentenceClaimMapper(this.extensionState.claimsManager, context.workspaceState);
   }
 
   /**
@@ -190,11 +196,7 @@ export class ClaimReviewProvider {
         ...sanitizedClaim,
         suggestedCategory,
         availableCategories,
-        supportingQuotes: (claim.supportingQuotes || []).map((q: any) => ({
-          text: q.text || q,
-          source: q.source || 'Unknown',
-          verified: q.verified ?? false
-        }))
+        supportingQuotes: (claim.supportingQuotes || []).map((q: any) => q.text || q)
       };
 
       // Send claim data to webview
@@ -203,16 +205,20 @@ export class ClaimReviewProvider {
         claim: claimData,
         verificationResults,
         validationResult,
-        usageLocations
+        usageLocations,
+        scrollPosition: this.scrollPosition
       });
 
       // Store in mode context for potential return to editing mode
+      // Preserve returnToSentenceId if it was already set
+      const existingContext = getModeContextManager().getClaimReviewContext();
       getModeContextManager().setClaimReviewContext({
         claimId,
         claim: claimData,
         verificationResults,
         validationResult,
-        usageLocations
+        usageLocations,
+        returnToSentenceId: existingContext?.returnToSentenceId
       });
     } catch (error) {
       vscode.window.showErrorMessage(`Failed to load claim: ${error}`);
@@ -227,31 +233,43 @@ export class ClaimReviewProvider {
       const results: any[] = [];
 
       // Verify primary quote
-      if (claim.primaryQuote && claim.primaryQuote.text) {
-        const primaryResult = await this.extensionState.quoteVerificationService.verifyQuote(
-          claim.primaryQuote.text,
-          claim.primaryQuote.source
-        );
+      if (claim.primaryQuote) {
+        // Handle both string and object formats
+        const quoteText = typeof claim.primaryQuote === 'string' ? claim.primaryQuote : (claim.primaryQuote.text || '');
+        const quoteSource = typeof claim.primaryQuote === 'string' ? '' : (claim.primaryQuote.source || '');
+        
+        if (quoteText) {
+          const primaryResult = await this.extensionState.quoteVerificationService.verifyQuote(
+            quoteText,
+            quoteSource
+          );
 
-        results.push({
-          quote: claim.primaryQuote.text,
-          type: 'primary',
-          verified: primaryResult.verified,
-          similarity: primaryResult.similarity,
-          closestMatch: primaryResult.closestMatch
-        });
+          results.push({
+            quote: quoteText,
+            type: 'primary',
+            verified: primaryResult.verified,
+            similarity: primaryResult.similarity,
+            closestMatch: primaryResult.closestMatch
+          });
+        }
       }
 
       // Verify supporting quotes
       if (claim.supportingQuotes && Array.isArray(claim.supportingQuotes)) {
         for (const quoteObj of claim.supportingQuotes) {
+          // Handle both string and object formats
+          const quoteText = typeof quoteObj === 'string' ? quoteObj : (quoteObj.text || '');
+          const quoteSource = typeof quoteObj === 'string' ? '' : (quoteObj.source || '');
+          
+          if (!quoteText) continue;
+          
           const result = await this.extensionState.quoteVerificationService.verifyQuote(
-            quoteObj.text,
-            quoteObj.source
+            quoteText,
+            quoteSource
           );
 
           results.push({
-            quote: quoteObj.text,
+            quote: quoteText,
             type: 'supporting',
             verified: result.verified,
             similarity: result.similarity,
@@ -394,11 +412,45 @@ export class ClaimReviewProvider {
         break;
 
       case 'switchToEditingMode':
+        // Get the sentence ID - either from stored context or from sentence-claim mapper
+        let sentenceIdToReturn = undefined;
+        
+        // First check if we have a stored returnToSentenceId from when we opened the claim
+        const claimReviewContext = getModeContextManager().getClaimReviewContext();
+        if (claimReviewContext?.returnToSentenceId) {
+          sentenceIdToReturn = claimReviewContext.returnToSentenceId;
+          console.log('[ClaimReview] Using stored returnToSentenceId:', sentenceIdToReturn);
+        } else {
+          // Fall back to looking up the sentence-claim link
+          const sentencesForClaim = this.sentenceClaimMapper.getSentencesForClaim(this.currentClaimId || '');
+          console.log('[ClaimReview] Switching to editing mode:', {
+            currentClaimId: this.currentClaimId,
+            sentencesForClaim: sentencesForClaim
+          });
+          if (sentencesForClaim.length > 0) {
+            sentenceIdToReturn = sentencesForClaim[0];
+            console.log('[ClaimReview] Found sentence from mapper:', sentenceIdToReturn);
+          } else {
+            console.warn('[ClaimReview] No sentences found for claim:', this.currentClaimId);
+          }
+        }
+        
+        // Store the sentence ID for editing mode to use
+        if (sentenceIdToReturn) {
+          getModeContextManager().setClaimReviewContext({
+            returnToSentenceId: sentenceIdToReturn
+          });
+        }
+        
         await vscode.commands.executeCommand('researchAssistant.openEditingMode');
         break;
 
       case 'switchToWritingMode':
         await vscode.commands.executeCommand('researchAssistant.openWritingMode');
+        break;
+
+      case 'saveScrollPosition':
+        this.scrollPosition = message.position;
         break;
 
       case 'showHelp':
@@ -416,6 +468,38 @@ export class ClaimReviewProvider {
   private async handleVerifyQuote(quote: string, source: string): Promise<void> {
     try {
       const result = await this.extensionState.quoteVerificationService.verifyQuote(quote, source);
+
+      // If we have a current claim, persist the verification status
+      if (this.currentClaimId) {
+        try {
+          // Determine if this is the primary quote or a supporting quote
+          const claim = this.extensionState.claimsManager.getClaim(this.currentClaimId);
+          if (claim) {
+            if (claim.primaryQuote && claim.primaryQuote.text === quote) {
+              // Update primary quote verification status
+              await this.extensionState.quoteVerificationService.updatePrimaryQuoteVerificationStatus(
+                this.currentClaimId,
+                result.verified
+              );
+            } else if (claim.supportingQuotes) {
+              // Find and update supporting quote verification status
+              const quoteIndex = claim.supportingQuotes.findIndex((q: any) => 
+                (typeof q === 'string' ? q : q.text) === quote
+              );
+              if (quoteIndex >= 0) {
+                await this.extensionState.quoteVerificationService.updateSupportingQuoteVerificationStatus(
+                  this.currentClaimId,
+                  quoteIndex,
+                  result.verified
+                );
+              }
+            }
+          }
+        } catch (error) {
+          console.warn('[ClaimReview] Failed to persist verification status:', error);
+          // Don't fail the verification display if persistence fails
+        }
+      }
 
       if (this.panel) {
         this.panel.webview.postMessage({
@@ -580,34 +664,60 @@ export class ClaimReviewProvider {
         return;
       }
 
-      // Initialize supporting quotes array if needed
-      if (!claim.supportingQuotes) {
-        claim.supportingQuotes = [];
-      }
+      // Extract author-year from source filename (format: "Author et al. - YYYY - Title.txt")
+      // We need just the "Author et al. - YYYY" part for verification
+      const authorYearMatch = source.match(/^([^-]+\s*-\s*\d{4})/);
+      const authorYear = authorYearMatch ? authorYearMatch[1].trim() : source;
 
-      // Check if quote already exists
-      const quoteExists = claim.supportingQuotes.some((q: any) => q.text === quote);
-      if (quoteExists) {
-        vscode.window.showWarningMessage('This quote is already in supporting quotes');
-        return;
-      }
+      // If primary quote is empty, add to primary quote instead of supporting
+      if (!claim.primaryQuote || !claim.primaryQuote.text || claim.primaryQuote.text.trim() === '') {
+        claim.primaryQuote = {
+          text: quote,
+          source: authorYear,
+          verified: false
+        };
+      } else {
+        // Initialize supporting quotes array if needed
+        if (!claim.supportingQuotes) {
+          claim.supportingQuotes = [];
+        }
 
-      // Add quote to supporting quotes
-      claim.supportingQuotes.push({
-        text: quote,
-        source: source,
-        verified: false
-      });
+        // Check if quote already exists
+        const quoteExists = claim.supportingQuotes.some((q: any) => q.text === quote);
+        if (quoteExists) {
+          vscode.window.showWarningMessage('This quote is already in supporting quotes');
+          return;
+        }
+
+        // Add quote to supporting quotes
+        claim.supportingQuotes.push({
+          text: quote,
+          source: authorYear,
+          verified: false
+        });
+      }
 
       // Update claim
       await this.extensionState.claimsManager.updateClaim(claimId, claim);
 
+      // Ensure the claim is still linked to its original sentence(s)
+      const linkedSentences = this.sentenceClaimMapper.getSentencesForClaim(claimId);
+      console.log('[ClaimReview] Checking sentence links:', {
+        claimId,
+        linkedSentences,
+        mapperState: this.sentenceClaimMapper
+      });
+      if (linkedSentences.length === 0) {
+        console.warn('[ClaimReview] Claim has no linked sentences');
+        // If no sentences are linked, this might be a new claim - user will need to link it manually
+      }
+
       // Reload claim display
       await this.loadAndDisplayClaim(claimId);
 
-      vscode.window.showInformationMessage('Quote added to supporting quotes');
+      vscode.window.showInformationMessage('Quote added successfully');
     } catch (error) {
-      vscode.window.showErrorMessage(`Failed to add supporting quote: ${error}`);
+      vscode.window.showErrorMessage(`Failed to add quote: ${error}`);
     }
   }
 
@@ -644,18 +754,25 @@ export class ClaimReviewProvider {
           totalSnippetsSearched += round.snippets.length;
           totalSupportingFound += round.supportingSnippets.length;
 
-          // Send minimal data to webview (ID, summary, source, line range only)
+          // Send minimal data to webview (ID, summary, source, line range, and confidence)
           if (this.panel && round.supportingSnippets.length > 0) {
             this.panel.webview.postMessage({
               type: 'newQuotesRound',
               round: round.round,
-              quotes: round.supportingSnippets.map((snippet) => ({
-                id: snippet.id,
-                summary: snippet.text, // Send full text, not truncated
-                source: snippet.fileName,
-                lineRange: `${snippet.startLine}-${snippet.endLine}`,
-                filePath: snippet.filePath
-              }))
+              quotes: round.supportingSnippets.map((snippet) => {
+                // Find the verification result for this snippet to get confidence
+                const verification = round.verifications.find(v => v.snippet.id === snippet.id);
+                const confidence = verification?.confidence || 0;
+                
+                return {
+                  id: snippet.id,
+                  summary: snippet.text, // Send full text, not truncated
+                  source: snippet.fileName,
+                  lineRange: `${snippet.startLine}-${snippet.endLine}`,
+                  filePath: snippet.filePath,
+                  confidence: confidence // Add confidence score (0-1)
+                };
+              })
             });
           }
         }

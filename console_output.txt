@@ -1,31 +1,35 @@
-workbench.desktop.main.js:523 [Extension Host] [PersistenceUtils] ✓ write applications.md (3ms)
-workbench.desktop.main.js:523 [Extension Host] [PersistenceUtils] ✓ write challenges.md (2ms)
-workbench.desktop.main.js:523 [Extension Host] [PersistenceUtils] ✓ write methods_batch_correction.md (3ms)
-workbench.desktop.main.js:523 [Extension Host] [PersistenceUtils] ✓ write results.md (2ms)
+workbench.desktop.main.js:523 [Extension Host] [PersistenceUtils] ✓ write applications.md (2ms)
+workbench.desktop.main.js:523 [Extension Host] [PersistenceUtils] ✓ write challenges.md (1ms)
+workbench.desktop.main.js:523 [Extension Host] [PersistenceUtils] ✓ write methods_batch_correction.md (1ms)
+workbench.desktop.main.js:523 [Extension Host] [PersistenceUtils] ✓ write results.md (1ms)
 workbench.desktop.main.js:523 [Extension Host] [PersistenceUtils] ✓ write data_sources.md (1ms)
 workbench.desktop.main.js:523 [Extension Host] [PersistenceUtils] ✓ write data_trends.md (1ms)
 workbench.desktop.main.js:523 [Extension Host] [PersistenceUtils] ✓ write impacts.md (1ms)
 workbench.desktop.main.js:523 [Extension Host] [PersistenceUtils] ✓ write phenomena.md (1ms)
 workbench.desktop.main.js:523 [Extension Host] [PersistenceUtils] ✓ write uncategorized.md (1ms)
-workbench.desktop.main.js:523 [Extension Host] Persisted 138 claims across 9 file(s)
-workbench.desktop.main.js:11682 An iframe which has both allow-scripts and allow-same-origin for its sandbox attribute can escape its sandboxing.
-mountTo @ workbench.desktop.main.js:11682
-P @ workbench.desktop.main.js:557
-claim @ workbench.desktop.main.js:557
-claim @ workbench.desktop.main.js:534
-hb @ workbench.desktop.main.js:534
-setInput @ workbench.desktop.main.js:534
-await in setInput
-S @ workbench.desktop.main.js:610
-L @ workbench.desktop.main.js:610
-openEditor @ workbench.desktop.main.js:610
-(anonymous) @ workbench.desktop.main.js:722
-Mb @ workbench.desktop.main.js:722
-Lb @ workbench.desktop.main.js:722
-openEditor @ workbench.desktop.main.js:722
-openEditor @ workbench.desktop.main.js:1259
-openWebview @ workbench.desktop.main.js:535
-$createWebviewPanel @ workbench.desktop.main.js:557
+workbench.desktop.main.js:523 [Extension Host] Persisted 139 claims across 9 file(s)
+workbench.desktop.main.js:523 [Extension Host] Verifying quote directly: {quote: 'A classifier consists of a collection of predictor variables and a classification rule such that, gi', authorYear: 'Soneson et al. - 2014 - Batch Effect Confounding L…rmance Estimates Obtained by Cross-Validation.txt'}
+workbench.desktop.main.js:523 [Extension Host] Verification result: {verified: false, similarity: 0.7087719298245614, sourceFile: 'Anderson et al. - 2014 - Diagnosis of Childhood Tuberculosis and Host RNA Expression in Africa.txt', nearestMatch: 'ct with a person who had a positive smear for tube…ig. 2). Since a positive result on an IGRA in the', contextBefore: '## CASE DEFINITIONS\n', …}
+workbench.desktop.main.js:523 [Extension Host] Mapped verification result: {verified: false, similarity: 0.7087719298245614, closestMatch: 'ct with a person who had a positive smear for tube…ig. 2). Since a positive result on an IGRA in the', context: '## CASE DEFINITIONS\n'}
+claimReview.js:223 [ClaimReview] Displaying claim: {id: 'C_1769570575575', text: 'Classification is the task of assigning observatio…to predefined categories based on their features.', category: 'Uncategorized', source: 'Unknown', primaryQuote: '', …}
+claimReview.js:295 Uncaught TypeError: quote.trim is not a function
+    at claimReview.js:295:26
+    at Array.forEach (<anonymous>)
+    at displayQuotes (claimReview.js:294:35)
+    at displayClaim (claimReview.js:240:3)
+    at handleMessage (claimReview.js:170:7)
+    at claimReview.js:52:5
+(anonymous) @ claimReview.js:295
+displayQuotes @ claimReview.js:294
+displayClaim @ claimReview.js:240
+handleMessage @ claimReview.js:170
+(anonymous) @ claimReview.js:52
+postMessage
+(anonymous) @ index.html?id=931997a8-976e-42d5-8ec1-3cf2511655c7&parentId=1&origin=1ee8b06c-cbe2-4ca2-91f3-b6e49478eb05&swVersion=4&extensionId=research-tools.research-assistant&platform=electron&vscode-resource-base-authority=vscode-resource.vscode-cdn.net&parentOrigin=vscode-file%3A%2F%2Fvscode-app:1257
+HostMessaging.channel.port1.onmessage @ index.html?id=931997a8-976e-42d5-8ec1-3cf2511655c7&parentId=1&origin=1ee8b06c-cbe2-4ca2-91f3-b6e49478eb05&swVersion=4&extensionId=research-tools.research-assistant&platform=electron&vscode-resource-base-authority=vscode-resource.vscode-cdn.net&parentOrigin=vscode-file%3A%2F%2Fvscode-app:324
+workbench.desktop.main.js:523 [Extension Host] High memory usage in claim review mode: 781MB / 824MB
+ubs @ workbench.desktop.main.js:523
+$logExtensionHostMessage @ workbench.desktop.main.js:523
 S @ workbench.desktop.main.js:11502
 Q @ workbench.desktop.main.js:11502
 M @ workbench.desktop.main.js:11502
@@ -35,38 +39,6 @@ C @ workbench.desktop.main.js:29
 fire @ workbench.desktop.main.js:29
 fire @ workbench.desktop.main.js:550
 l.onmessage @ workbench.desktop.main.js:11513
-workbench.desktop.main.js:523 [Extension Host] Editing mode disposed
-claimReview.js:223 [ClaimReview] Displaying claim: {id: 'C_1769569910666', text: 'Classification is the task of assigning observatio…to predefined categories based on their features.', category: 'Uncategorized', suggestedCategory: 'Background', availableCategories: Array(10), …}
-workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Find quotes requested: {claimId: 'C_1769569910666', query: 'Classification is the task of assigning observatio...'}
-workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Starting verification feedback loop
-workbench.desktop.main.js:523 [Extension Host] [VerificationFeedbackLoop] Starting verification loop for claim: Classification is the task of assigning observatio
-workbench.desktop.main.js:523 [Extension Host] [VerificationFeedbackLoop] Ensuring literature is indexed...
-workbench.desktop.main.js:523 [Extension Host] [LiteratureIndexer] Found 64 text files to check
-workbench.desktop.main.js:523 [Extension Host] [LiteratureIndexer] Skipping unchanged file: Alharbi and Vakanski - 2023 - Machine Learning Methods for Cancer Classification Using Gene Expression Data A Review.txt
-workbench.desktop.main.js:523 [Extension Host] [LiteratureIndexer] Indexing complete: {indexed: 0, skipped: 64, errors: 0}
-workbench.desktop.main.js:523 [Extension Host] [VerificationFeedbackLoop] Index stats: {indexed: 0, skipped: 64, errors: 0}
-workbench.desktop.main.js:523 [Extension Host] [VerificationFeedbackLoop] Round 1/3
-workbench.desktop.main.js:523 [Extension Host] [LiteratureIndexer] searchSnippets called with query: Classification is the task of assigning observatio
-workbench.desktop.main.js:523 [Extension Host] [LiteratureIndexer] Query embedding generated, searching store
-workbench.desktop.main.js:523 [Extension Host] [EmbeddingStore] searchByEmbedding called with 9117 total snippets
-workbench.desktop.main.js:523 [Extension Host] [EmbeddingStore] Returning 5 results (cache size: 10)
-workbench.desktop.main.js:523 [Extension Host] [LiteratureIndexer] Search returned 5 results
-workbench.desktop.main.js:523 [Extension Host] [VerificationFeedbackLoop] Found 5 snippets
-workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Round 1 complete: {snippetsSearched: 5, supportingFound: 5}
-workbench.desktop.main.js:523 [Extension Host] [VerificationFeedbackLoop] Round 1: 5/5 snippets support claim
-workbench.desktop.main.js:523 [Extension Host] [VerificationFeedbackLoop] Found supporting evidence, stopping
-workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Verification loop complete: {rounds: 1, totalSnippets: 5, supportingSnippets: 5}
-workbench.desktop.main.js:523 [Extension Host] [PersistenceUtils] ✓ write applications.md (4ms)
-workbench.desktop.main.js:523 [Extension Host] [PersistenceUtils] ✓ write challenges.md (2ms)
-workbench.desktop.main.js:523 [Extension Host] [PersistenceUtils] ✓ write methods_batch_correction.md (3ms)
-workbench.desktop.main.js:523 [Extension Host] [PersistenceUtils] ✓ write results.md (2ms)
-workbench.desktop.main.js:523 [Extension Host] [PersistenceUtils] ✓ write data_sources.md (2ms)
-workbench.desktop.main.js:523 [Extension Host] [PersistenceUtils] ✓ write data_trends.md (1ms)
-workbench.desktop.main.js:523 [Extension Host] [PersistenceUtils] ✓ write impacts.md (1ms)
-workbench.desktop.main.js:523 [Extension Host] [PersistenceUtils] ✓ write phenomena.md (1ms)
-workbench.desktop.main.js:523 [Extension Host] [PersistenceUtils] ✓ write uncategorized.md (1ms)
-workbench.desktop.main.js:523 [Extension Host] Persisted 138 claims across 9 file(s)
-claimReview.js:223 [ClaimReview] Displaying claim: {id: 'C_1769569910666', text: 'Classification is the task of assigning observatio…to predefined categories based on their features.', category: 'Uncategorized', suggestedCategory: 'Background', availableCategories: Array(10), …}
 workbench.desktop.main.js:11682 An iframe which has both allow-scripts and allow-same-origin for its sandbox attribute can escape its sandboxing.
 mountTo @ workbench.desktop.main.js:11682
 P @ workbench.desktop.main.js:557

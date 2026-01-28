@@ -43,7 +43,7 @@ export class ClaimMatchingProvider {
       extensionState.claimsManager,
       extensionState.embeddingService
     );
-    this.sentenceClaimMapper = new SentenceClaimMapper(extensionState.claimsManager);
+    this.sentenceClaimMapper = new SentenceClaimMapper(extensionState.claimsManager, context.workspaceState);
     this.sentenceParser = new SentenceParser();
     this.claimSimilarityCache = new ClaimSimilarityCache(5000);
   }

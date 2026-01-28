@@ -8,13 +8,18 @@ let editingSentenceId = null;
 let editingClaimId = null;
 
 // Virtual scrolling configuration
-const ITEM_HEIGHT = 120; // Approximate height of a sentence box
+const ESTIMATED_ITEM_HEIGHT = 120; // Initial estimate, will be refined
 const BUFFER_SIZE = 5; // Number of items to render outside visible area
 let virtualScrollState = {
   startIndex: 0,
   endIndex: 0,
-  visibleRange: { start: 0, end: 0 }
+  visibleRange: { start: 0, end: 0 },
+  itemHeights: new Map() // Cache of measured item heights by ID
 };
+let isScrolling = false;
+let scrollTimeout = null;
+let centerItemId = null;
+let lastScrollTop = 0;
 
 /**
  * Initialize editing mode
@@ -22,11 +27,12 @@ let virtualScrollState = {
 function initialize(data) {
   console.log('[EditingMode WebView] Received initialize message:', {
     sentenceCount: data.sentences?.length || 0,
-    scrollPosition: data.scrollPosition,
+    centerItemId: data.centerItemId,
     virtualScrollingEnabled: data.virtualScrollingEnabled
   });
   
   sentences = data.sentences || [];
+  centerItemId = data.centerItemId || null;
   
   console.log('[EditingMode WebView] Sentences array:', sentences.length);
   
@@ -39,9 +45,13 @@ function initialize(data) {
     renderSentences();
   }
   
-  // Restore scroll position
-  if (data.scrollPosition) {
-    document.querySelector('.content').scrollTop = data.scrollPosition;
+  // Restore scroll to center item after rendering is complete
+  if (centerItemId) {
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        scrollToCenterItem(centerItemId);
+      });
+    });
   }
 }
 
@@ -54,7 +64,7 @@ function initializeVirtualScrolling() {
   
   // Create virtual scroll container
   container.innerHTML = `
-    <div class="virtual-scroll-container" style="height: ${sentences.length * ITEM_HEIGHT}px;">
+    <div class="virtual-scroll-container" style="height: 0px;">
       <div class="virtual-scroll-content"></div>
     </div>
   `;
@@ -63,7 +73,62 @@ function initializeVirtualScrolling() {
   updateVirtualScroll();
   
   // Listen to scroll events
-  contentDiv.addEventListener('scroll', debounce(updateVirtualScroll, 50));
+  contentDiv.addEventListener('scroll', () => {
+    isScrolling = true;
+    const currentScrollTop = contentDiv.scrollTop;
+    
+    // Clear existing timeout
+    if (scrollTimeout) {
+      clearTimeout(scrollTimeout);
+    }
+    
+    // Update virtual scroll immediately for responsiveness
+    updateVirtualScroll();
+    
+    // Save center item after user stops scrolling (500ms)
+    scrollTimeout = setTimeout(() => {
+      const currentCenterItem = getCenterItem();
+      if (currentCenterItem && currentCenterItem.id !== centerItemId) {
+        centerItemId = currentCenterItem.id;
+        vscode.postMessage({ 
+          type: 'saveCenterItem', 
+          itemId: centerItemId,
+          position: currentCenterItem.position
+        });
+      }
+      isScrolling = false;
+    }, 500);
+    
+    lastScrollTop = currentScrollTop;
+  });
+}
+
+/**
+ * Get cumulative height up to a specific index
+ */
+function getCumulativeHeight(upToIndex) {
+  let height = 0;
+  for (let i = 0; i < upToIndex && i < sentences.length; i++) {
+    const sentenceId = sentences[i].id;
+    height += virtualScrollState.itemHeights.get(sentenceId) || ESTIMATED_ITEM_HEIGHT;
+  }
+  return height;
+}
+
+/**
+ * Find which item is at a given scroll position
+ */
+function findItemAtScrollPosition(scrollTop) {
+  let cumulativeHeight = 0;
+  for (let i = 0; i < sentences.length; i++) {
+    const sentenceId = sentences[i].id;
+    const itemHeight = virtualScrollState.itemHeights.get(sentenceId) || ESTIMATED_ITEM_HEIGHT;
+    if (cumulativeHeight + itemHeight > scrollTop) {
+      return i;
+    }
+    cumulativeHeight += itemHeight;
+  }
+  return Math.max(0, sentences.length - 1);
 }
 
 /**
@@ -79,30 +144,98 @@ function updateVirtualScroll() {
   const scrollTop = contentDiv.scrollTop;
   const containerHeight = contentDiv.clientHeight;
   
-  // Calculate visible range
-  const startIndex = Math.max(0, Math.floor(scrollTop / ITEM_HEIGHT) - BUFFER_SIZE);
-  const endIndex = Math.min(
-    sentences.length,
-    Math.ceil((scrollTop + containerHeight) / ITEM_HEIGHT) + BUFFER_SIZE
-  );
+  // Find visible range based on actual measured heights
+  const startIndex = findItemAtScrollPosition(scrollTop);
+  let cumulativeHeight = getCumulativeHeight(startIndex);
+  let endIndex = startIndex;
   
-  // Only re-render if range changed
-  if (startIndex === virtualScrollState.startIndex && endIndex === virtualScrollState.endIndex) {
+  // Find end index by accumulating heights until we exceed viewport
+  while (endIndex < sentences.length && cumulativeHeight < scrollTop + containerHeight) {
+    const sentenceId = sentences[endIndex].id;
+    const itemHeight = virtualScrollState.itemHeights.get(sentenceId) || ESTIMATED_ITEM_HEIGHT;
+    cumulativeHeight += itemHeight;
+    endIndex++;
+  }
+  
+  // Add buffer items
+  const bufferStart = Math.max(0, startIndex - BUFFER_SIZE);
+  const bufferEnd = Math.min(sentences.length, endIndex + BUFFER_SIZE);
+  
+  // Only re-render if range changed significantly
+  if (bufferStart === virtualScrollState.startIndex && bufferEnd === virtualScrollState.endIndex) {
     return;
   }
   
-  virtualScrollState.startIndex = startIndex;
-  virtualScrollState.endIndex = endIndex;
+  virtualScrollState.startIndex = bufferStart;
+  virtualScrollState.endIndex = bufferEnd;
+  
+  // Calculate offset for positioning
+  const offsetY = getCumulativeHeight(bufferStart);
+  
+  // Calculate total height for container
+  const totalHeight = getCumulativeHeight(sentences.length);
+  container.style.height = totalHeight + 'px';
   
   // Render visible items
-  const visibleSentences = sentences.slice(startIndex, endIndex);
-  const offsetY = startIndex * ITEM_HEIGHT;
-  
+  const visibleSentences = sentences.slice(bufferStart, bufferEnd);
   content.innerHTML = visibleSentences.map(sentence => renderSentenceBox(sentence)).join('');
   content.style.transform = `translateY(${offsetY}px)`;
   
+  // Measure actual heights of rendered items
+  requestAnimationFrame(() => {
+    const sentenceBoxes = document.querySelectorAll('.sentence-box');
+    sentenceBoxes.forEach(box => {
+      const sentenceId = box.dataset.sentenceId;
+      const actualHeight = box.offsetHeight;
+      virtualScrollState.itemHeights.set(sentenceId, actualHeight);
+    });
+  });
+  
   // Attach event listeners
   attachSentenceListeners();
+}
+
+/**
+ * Get the sentence currently in the center of the viewport
+ */
+function getCenterItem() {
+  const contentDiv = document.querySelector('.content');
+  if (!contentDiv) return null;
+
+  const centerY = contentDiv.scrollTop + contentDiv.clientHeight / 2;
+  let cumulativeHeight = 0;
+  
+  for (let i = 0; i < sentences.length; i++) {
+    const sentenceId = sentences[i].id;
+    const itemHeight = virtualScrollState.itemHeights.get(sentenceId) || ESTIMATED_ITEM_HEIGHT;
+    
+    if (cumulativeHeight + itemHeight > centerY) {
+      return sentences[i];
+    }
+    cumulativeHeight += itemHeight;
+  }
+  
+  return sentences.length > 0 ? sentences[sentences.length - 1] : null;
+}
+
+/**
+ * Scroll to center a specific item by ID
+ */
+function scrollToCenterItem(itemId) {
+  const itemIndex = sentences.findIndex(s => s.id === itemId);
+  if (itemIndex < 0) return;
+  
+  const contentDiv = document.querySelector('.content');
+  
+  // Calculate scroll position to center this item
+  let cumulativeHeight = getCumulativeHeight(itemIndex);
+  const itemHeight = virtualScrollState.itemHeights.get(itemId) || ESTIMATED_ITEM_HEIGHT;
+  const itemCenter = cumulativeHeight + itemHeight / 2;
+  const viewportCenter = contentDiv.clientHeight / 2;
+  const scrollTarget = Math.max(0, itemCenter - viewportCenter);
+  
+  contentDiv.scrollTop = scrollTarget;
+  console.log('[EditingMode WebView] Scrolled to center item:', itemId);
 }
 
 /**
@@ -578,6 +711,12 @@ window.addEventListener('message', (event) => {
       } else {
         renderSentences();
       }
+      // Re-center on the same item if it still exists
+      if (centerItemId) {
+        requestAnimationFrame(() => {
+          scrollToCenterItem(centerItemId);
+        });
+      }
       break;
 
     case 'sentenceDeleted':
@@ -658,11 +797,14 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Save scroll position on scroll
-  const content = document.querySelector('.content');
-  if (content) {
-    content.addEventListener('scroll', () => {
-      vscode.postMessage({ type: 'saveScrollPosition', position: content.scrollTop });
-    });
-  }
+  // Save scroll position when leaving the page
+  window.addEventListener('beforeunload', () => {
+    const content = document.querySelector('.content');
+    if (content) {
+      const currentPosition = content.scrollTop;
+      if (Math.abs(currentPosition - lastSavedScrollPosition) > 10) {
+        vscode.postMessage({ type: 'saveScrollPosition', position: currentPosition });
+      }
+    }
+  });
 });

@@ -258,6 +258,62 @@ export class QuoteVerificationService {
   }
 
   /**
+   * Update the verification status of a supporting quote
+   * @param claimId The claim ID
+   * @param quoteIndex The index of the supporting quote
+   * @param verified The verification status
+   */
+  async updateSupportingQuoteVerificationStatus(claimId: string, quoteIndex: number, verified: boolean): Promise<void> {
+    const claim = this.claimsManager.getClaim(claimId);
+    if (!claim) {
+      throw new Error(`Claim ${claimId} not found`);
+    }
+
+    if (!claim.supportingQuotes || quoteIndex < 0 || quoteIndex >= claim.supportingQuotes.length) {
+      throw new Error(`Supporting quote at index ${quoteIndex} not found in claim ${claimId}`);
+    }
+
+    // Update the verification status of the quote
+    const quote = claim.supportingQuotes[quoteIndex];
+    if (typeof quote === 'string') {
+      // If it's a string, convert to object with verified status
+      claim.supportingQuotes[quoteIndex] = {
+        text: quote,
+        source: 'Unknown',
+        verified
+      };
+    } else {
+      // If it's already an object, just update the verified status
+      quote.verified = verified;
+    }
+
+    // Persist the change
+    await this.claimsManager.updateClaim(claimId, claim);
+  }
+
+  /**
+   * Update the verification status of the primary quote
+   * @param claimId The claim ID
+   * @param verified The verification status
+   */
+  async updatePrimaryQuoteVerificationStatus(claimId: string, verified: boolean): Promise<void> {
+    const claim = this.claimsManager.getClaim(claimId);
+    if (!claim) {
+      throw new Error(`Claim ${claimId} not found`);
+    }
+
+    if (!claim.primaryQuote) {
+      throw new Error(`Primary quote not found in claim ${claimId}`);
+    }
+
+    // Update the verification status
+    claim.primaryQuote.verified = verified;
+
+    // Persist the change
+    await this.claimsManager.updateClaim(claimId, claim);
+  }
+
+  /**
    * Get all unverified claims
    * @returns Array of claims that have not been verified
    */

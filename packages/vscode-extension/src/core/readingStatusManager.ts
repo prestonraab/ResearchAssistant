@@ -2,9 +2,14 @@ import * as vscode from 'vscode';
 import { PersistenceUtils } from './persistenceUtils';
 
 /**
- * Reading status for a paper
+ * Reading status levels for a paper
+ * Unread: Not started
+ * Some Read: Started reading, but not finished
+ * Skimmed: Quickly reviewed key sections
+ * Read: Fully read
+ * Deeply Read: Read with detailed notes and analysis
  */
-export type ReadingStatus = 'to-read' | 'reading' | 'read';
+export type ReadingStatus = 'unread' | 'some-read' | 'skimmed' | 'read' | 'deeply-read';
 
 /**
  * Reading progress information for a paper
@@ -14,6 +19,8 @@ export interface ReadingProgress {
   startedAt?: Date;
   completedAt?: Date;
   readingDuration?: number; // in minutes
+  notesCount?: number; // Number of notes/highlights made
+  lastAccessedAt?: Date;
 }
 
 /**
@@ -24,15 +31,18 @@ interface SerializedReadingProgress {
   startedAt?: string; // ISO date string
   completedAt?: string; // ISO date string
   readingDuration?: number;
+  notesCount?: number;
+  lastAccessedAt?: string;
 }
 
 /**
- * ReadingStatusManager tracks reading progress for papers.
+ * ReadingStatusManager tracks reading progress for papers with multiple levels.
  * 
  * Features:
- * - Store reading status (to-read/reading/read) in workspace state
+ * - Store reading status (unread/some-read/skimmed/read/deeply-read) in workspace state
  * - Track timestamps for reading start and completion
  * - Calculate reading duration
+ * - Track number of notes/highlights
  * - Persist status across extension restarts
  * 
  * Validates Requirements 4.5, 16.1, 16.2, 16.3
@@ -57,27 +67,38 @@ export class ReadingStatusManager {
    * 
    * @param paperId Unique identifier for the paper (e.g., Zotero item key)
    * @param status New reading status
+   * @param notesCount Optional number of notes/highlights made
    * 
    * Validates: Requirements 4.5, 16.1, 16.2
    */
-  async setStatus(paperId: string, status: ReadingStatus): Promise<void> {
+  async setStatus(paperId: string, status: ReadingStatus, notesCount?: number): Promise<void> {
     const currentProgress = this.statusMap.get(paperId);
     const now = new Date();
 
     let newProgress: ReadingProgress;
 
-    if (status === 'reading') {
-      // When marking as "reading", record the start timestamp
-      // Validates: Requirement 16.1
+    if (status === 'some-read') {
+      // When marking as "some-read", record the start timestamp
       newProgress = {
-        status: 'reading',
+        status: 'some-read',
         startedAt: currentProgress?.startedAt || now,
         completedAt: undefined,
-        readingDuration: undefined
+        readingDuration: undefined,
+        notesCount: notesCount ?? currentProgress?.notesCount,
+        lastAccessedAt: now
+      };
+    } else if (status === 'skimmed') {
+      // When marking as "skimmed", record quick review
+      newProgress = {
+        status: 'skimmed',
+        startedAt: currentProgress?.startedAt || now,
+        completedAt: now,
+        readingDuration: currentProgress?.readingDuration ?? 15, // Assume ~15 min for skim
+        notesCount: notesCount ?? currentProgress?.notesCount,
+        lastAccessedAt: now
       };
     } else if (status === 'read') {
       // When marking as "read", record completion time and calculate duration
-      // Validates: Requirement 16.2
       const startedAt = currentProgress?.startedAt || now;
       const completedAt = now;
       const durationMs = completedAt.getTime() - startedAt.getTime();
@@ -87,20 +108,51 @@ export class ReadingStatusManager {
         status: 'read',
         startedAt,
         completedAt,
-        readingDuration: durationMinutes
+        readingDuration: durationMinutes,
+        notesCount: notesCount ?? currentProgress?.notesCount,
+        lastAccessedAt: now
+      };
+    } else if (status === 'deeply-read') {
+      // When marking as "deeply-read", record thorough reading with notes
+      const startedAt = currentProgress?.startedAt || now;
+      const completedAt = now;
+      const durationMs = completedAt.getTime() - startedAt.getTime();
+      const durationMinutes = Math.round(durationMs / (1000 * 60));
+
+      newProgress = {
+        status: 'deeply-read',
+        startedAt,
+        completedAt,
+        readingDuration: durationMinutes,
+        notesCount: notesCount ?? currentProgress?.notesCount ?? 0,
+        lastAccessedAt: now
       };
     } else {
-      // status === 'to-read'
+      // status === 'unread'
       newProgress = {
-        status: 'to-read',
+        status: 'unread',
         startedAt: undefined,
         completedAt: undefined,
-        readingDuration: undefined
+        readingDuration: undefined,
+        notesCount: undefined,
+        lastAccessedAt: undefined
       };
     }
 
     this.statusMap.set(paperId, newProgress);
     await this.saveToStorage();
+  }
+
+  /**
+   * Increment notes count for a paper
+   */
+  async incrementNotesCount(paperId: string): Promise<void> {
+    const progress = this.statusMap.get(paperId);
+    if (progress) {
+      progress.notesCount = (progress.notesCount ?? 0) + 1;
+      progress.lastAccessedAt = new Date();
+      await this.saveToStorage();
+    }
   }
 
   /**
@@ -141,24 +193,36 @@ export class ReadingStatusManager {
    * Validates: Requirement 16.3
    */
   getStatistics(): {
-    toRead: number;
-    reading: number;
+    unread: number;
+    someRead: number;
+    skimmed: number;
     read: number;
+    deeplyRead: number;
     totalReadingTime: number; // in minutes
     averageReadingTime: number; // in minutes
+    totalNotes: number;
   } {
-    let toRead = 0;
-    let reading = 0;
+    let unread = 0;
+    let someRead = 0;
+    let skimmed = 0;
     let read = 0;
+    let deeplyRead = 0;
     let totalReadingTime = 0;
+    let totalNotes = 0;
 
     for (const progress of this.statusMap.values()) {
       switch (progress.status) {
-        case 'to-read':
-          toRead++;
+        case 'unread':
+          unread++;
           break;
-        case 'reading':
-          reading++;
+        case 'some-read':
+          someRead++;
+          break;
+        case 'skimmed':
+          skimmed++;
+          if (progress.readingDuration) {
+            totalReadingTime += progress.readingDuration;
+          }
           break;
         case 'read':
           read++;
@@ -166,17 +230,30 @@ export class ReadingStatusManager {
             totalReadingTime += progress.readingDuration;
           }
           break;
+        case 'deeply-read':
+          deeplyRead++;
+          if (progress.readingDuration) {
+            totalReadingTime += progress.readingDuration;
+          }
+          break;
+      }
+      if (progress.notesCount) {
+        totalNotes += progress.notesCount;
       }
     }
 
-    const averageReadingTime = read > 0 ? Math.round(totalReadingTime / read) : 0;
+    const completedCount = skimmed + read + deeplyRead;
+    const averageReadingTime = completedCount > 0 ? Math.round(totalReadingTime / completedCount) : 0;
 
     return {
-      toRead,
-      reading,
+      unread,
+      someRead,
+      skimmed,
       read,
+      deeplyRead,
       totalReadingTime,
-      averageReadingTime
+      averageReadingTime,
+      totalNotes
     };
   }
 
@@ -217,7 +294,9 @@ export class ReadingStatusManager {
         status: serialized.status,
         startedAt: serialized.startedAt ? new Date(serialized.startedAt) : undefined,
         completedAt: serialized.completedAt ? new Date(serialized.completedAt) : undefined,
-        readingDuration: serialized.readingDuration
+        readingDuration: serialized.readingDuration,
+        notesCount: serialized.notesCount,
+        lastAccessedAt: serialized.lastAccessedAt ? new Date(serialized.lastAccessedAt) : undefined
       };
 
       this.statusMap.set(paperId, progress);
@@ -257,7 +336,9 @@ export class ReadingStatusManager {
           status: progress.status,
           startedAt: progress.startedAt?.toISOString(),
           completedAt: progress.completedAt?.toISOString(),
-          readingDuration: progress.readingDuration
+          readingDuration: progress.readingDuration,
+          notesCount: progress.notesCount,
+          lastAccessedAt: progress.lastAccessedAt?.toISOString()
         };
       }
 

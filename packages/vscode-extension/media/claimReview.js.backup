@@ -731,22 +731,11 @@ function displayNewQuotesRound(message) {
   message.quotes.forEach((q, i) => {
     const item = document.createElement('div');
     item.className = 'new-quote-item';
-    const quoteNumber = list.children.length + 1; // Calculate number when adding
-    
-    // Calculate support percentage and stars from confidence
-    const confidence = q.confidence || 0;
-    const percentage = Math.round(confidence * 100);
-    const stars = Math.round(confidence * 5);
-    const starDisplay = '★'.repeat(stars) + '☆'.repeat(5 - stars);
-    
     item.innerHTML = `
-      <div class="quote-number">${quoteNumber}</div>
+      <div class="quote-number">${list.children.length + i + 1}</div>
       <div class="quote-details">
         <div class="quote-summary">"${escapeHtml(q.summary)}"</div>
         <div class="quote-source">${escapeHtml(q.source)} (lines ${q.lineRange})</div>
-        <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid #ccc; display: flex; align-items: center; gap: 12px; font-size: 12px; color: #000;">
-          Support: ${starDisplay} ${percentage}%
-        </div>
         <button class="btn btn-small btn-primary" data-action="addQuote" data-snippet-id="${escapeHtml(q.id)}" data-file-path="${escapeHtml(q.filePath)}">Add Quote</button>
       </div>
     `;

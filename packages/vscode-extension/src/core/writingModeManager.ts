@@ -1,11 +1,12 @@
 /**
  * WritingModeManager - Manages writing mode state
- * Handles outline-manuscript synchronization and scroll position
+ * Handles outline-manuscript synchronization and center item tracking
  */
 
 export interface WritingModeState {
   currentSection?: string;
-  scrollPosition: number;
+  centerItemId?: string; // ID of the pair to center on screen
+  centerItemPosition?: number; // Line position for cross-mode navigation
   manuscriptPath: string;
   outlinePath: string;
   lastUpdated: Date;
@@ -19,7 +20,6 @@ export class WritingModeManager {
    */
   initializeState(manuscriptPath: string, outlinePath: string): WritingModeState {
     this.state = {
-      scrollPosition: 0,
       manuscriptPath,
       outlinePath,
       lastUpdated: new Date()
@@ -52,20 +52,28 @@ export class WritingModeManager {
   }
 
   /**
-   * Save scroll position
+   * Save center item ID and position
    */
-  saveScrollPosition(position: number): void {
+  saveCenterItemId(itemId: string, position?: number): void {
     if (this.state) {
-      this.state.scrollPosition = position;
+      this.state.centerItemId = itemId;
+      this.state.centerItemPosition = position;
       this.state.lastUpdated = new Date();
     }
   }
 
   /**
-   * Get saved scroll position
+   * Get saved center item ID
    */
-  getScrollPosition(): number {
-    return this.state?.scrollPosition ?? 0;
+  getCenterItemId(): string | undefined {
+    return this.state?.centerItemId;
+  }
+
+  /**
+   * Get saved center item position
+   */
+  getCenterItemPosition(): number | undefined {
+    return this.state?.centerItemPosition;
   }
 
   /**

@@ -29,7 +29,8 @@ export class ModeContextManager {
    */
   setEditingModeContext(context: {
     sentences?: any[];
-    scrollPosition?: number;
+    centerItemId?: string;
+    centerItemPosition?: number;
     selectedSentenceId?: string;
     lastModifiedClaimId?: string;
   }): void {
@@ -49,7 +50,8 @@ export class ModeContextManager {
    */
   setWritingModeContext(context: {
     pairs?: any[];
-    scrollPosition?: number;
+    centerItemId?: string;
+    centerItemPosition?: number;
     selectedPairId?: string;
   }): void {
     this.writingModeContext = { ...this.writingModeContext, ...context };
@@ -72,6 +74,7 @@ export class ModeContextManager {
     verificationResults?: any[];
     validationResult?: any;
     usageLocations?: any[];
+    returnToSentenceId?: string;
   }): void {
     this.claimReviewContext = { ...this.claimReviewContext, ...context };
     this.onContextChangeEmitter.fire({ mode: 'claimReview', context: this.claimReviewContext });
@@ -126,7 +129,12 @@ export class ModeContextManager {
         this.writingModeContext = {};
         break;
       case 'claimReview':
+        // Preserve returnToSentenceId when clearing claim review context
+        const returnToSentenceId = this.claimReviewContext.returnToSentenceId;
         this.claimReviewContext = {};
+        if (returnToSentenceId) {
+          this.claimReviewContext.returnToSentenceId = returnToSentenceId;
+        }
         break;
       case 'claimMatching':
         this.claimMatchingContext = {};

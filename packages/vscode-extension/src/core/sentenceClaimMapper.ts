@@ -1,5 +1,6 @@
 import { ClaimsManager } from './claimsManagerWrapper';
 import { Sentence } from './sentenceParser';
+import * as vscode from 'vscode';
 
 /**
  * SentenceClaimMapper - Manages many-to-many relationships between sentences and claims
@@ -13,10 +14,74 @@ export interface SentenceClaimMapping {
   updatedAt: Date;
 }
 
+const SENTENCE_CLAIM_MAPPINGS_KEY = 'sentenceClaimMappings';
+
 export class SentenceClaimMapper {
   private mappings: Map<string, SentenceClaimMapping> = new Map();
+  private memento: vscode.Memento | null = null;
 
-  constructor(private claimsManager: ClaimsManager) {}
+  constructor(private claimsManager: ClaimsManager, memento?: vscode.Memento) {
+    this.memento = memento || null;
+    if (this.memento) {
+      this.loadMappingsFromMemento();
+    }
+  }
+
+  /**
+   * Initialize with memento for persistence
+   */
+  setMemento(memento: vscode.Memento): void {
+    this.memento = memento;
+    this.loadMappingsFromMemento();
+  }
+
+  /**
+   * Load mappings from memento
+   */
+  private loadMappingsFromMemento(): void {
+    if (!this.memento) return;
+    
+    try {
+      const stored = this.memento.get<Record<string, any>>(SENTENCE_CLAIM_MAPPINGS_KEY, {});
+      this.mappings.clear();
+      
+      for (const [sentenceId, data] of Object.entries(stored)) {
+        this.mappings.set(sentenceId, {
+          sentenceId,
+          claimIds: data.claimIds || [],
+          createdAt: new Date(data.createdAt),
+          updatedAt: new Date(data.updatedAt)
+        });
+      }
+      
+      console.log(`[SentenceClaimMapper] Loaded ${this.mappings.size} mappings from memento`);
+    } catch (error) {
+      console.error('[SentenceClaimMapper] Failed to load mappings from memento:', error);
+    }
+  }
+
+  /**
+   * Save mappings to memento
+   */
+  private async saveMappingsToMemento(): Promise<void> {
+    if (!this.memento) return;
+    
+    try {
+      const stored: Record<string, any> = {};
+      
+      for (const [sentenceId, mapping] of this.mappings.entries()) {
+        stored[sentenceId] = {
+          claimIds: mapping.claimIds,
+          createdAt: mapping.createdAt.toISOString(),
+          updatedAt: mapping.updatedAt.toISOString()
+        };
+      }
+      
+      await this.memento.update(SENTENCE_CLAIM_MAPPINGS_KEY, stored);
+    } catch (error) {
+      console.error('[SentenceClaimMapper] Failed to save mappings to memento:', error);
+    }
+  }
 
   /**
    * Link a sentence to a claim
@@ -38,6 +103,9 @@ export class SentenceClaimMapper {
       mapping.claimIds.push(claimId);
       mapping.updatedAt = new Date();
     }
+
+    // Persist the change
+    await this.saveMappingsToMemento();
   }
 
   /**
@@ -55,6 +123,9 @@ export class SentenceClaimMapper {
         this.mappings.delete(sentenceId);
       }
     }
+
+    // Persist the change
+    await this.saveMappingsToMemento();
   }
 
   /**
@@ -89,6 +160,7 @@ export class SentenceClaimMapper {
     if (mapping) {
       // Claims are preserved - just remove the mapping
       this.mappings.delete(sentenceId);
+      await this.saveMappingsToMemento();
     }
   }
 
@@ -96,12 +168,24 @@ export class SentenceClaimMapper {
    * Delete a claim (removes from all sentences)
    */
   async deleteClaim(claimId: string): Promise<void> {
+    let changed = false;
+    
     for (const [sentenceId, mapping] of this.mappings.entries()) {
+      const originalLength = mapping.claimIds.length;
       mapping.claimIds = mapping.claimIds.filter(id => id !== claimId);
+
+      if (mapping.claimIds.length !== originalLength) {
+        changed = true;
+        mapping.updatedAt = new Date();
+      }
 
       if (mapping.claimIds.length === 0) {
         this.mappings.delete(sentenceId);
       }
+    }
+
+    if (changed) {
+      await this.saveMappingsToMemento();
     }
   }
 

@@ -5,8 +5,15 @@
 let state = {
   pairs: [],
   isDirty: false,
-  autoSaveTimer: null
+  autoSaveTimer: null,
+  centerItemId: null,
+  scrollTimeout: null,
+  itemHeights: new Map() // Cache of measured item heights by ID
 };
+
+// Virtual scrolling configuration
+const ESTIMATED_ITEM_HEIGHT = 150; // Initial estimate for Q&A pairs
+const BUFFER_SIZE = 3;
 
 // DOM elements
 const pairsList = document.getElementById('pairsList');
@@ -74,6 +81,38 @@ function setupEventListeners() {
       return;
     }
   });
+
+  // Save center item on scroll with debounce
+  const content = document.querySelector('.content');
+  if (content) {
+    content.addEventListener('scroll', () => {
+      if (state.scrollTimeout) {
+        clearTimeout(state.scrollTimeout);
+      }
+
+      // Measure actual heights of visible pair rows
+      requestAnimationFrame(() => {
+        const pairRows = document.querySelectorAll('.pair-row');
+        pairRows.forEach(row => {
+          const pairId = row.dataset.pairId;
+          const actualHeight = row.offsetHeight;
+          state.itemHeights.set(pairId, actualHeight);
+        });
+      });
+
+      state.scrollTimeout = setTimeout(() => {
+        const currentCenterItem = getCenterItem();
+        if (currentCenterItem && currentCenterItem.id !== state.centerItemId) {
+          state.centerItemId = currentCenterItem.id;
+          vscode.postMessage({ 
+            type: 'saveCenterItem', 
+            itemId: state.centerItemId,
+            position: currentCenterItem.position
+          });
+        }
+      }, 500);
+    });
+  }
 }
 
 /**
@@ -114,14 +153,25 @@ window.addEventListener('message', (event) => {
  */
 function initializeUI(message) {
   console.log('[WritingMode WebView] Received initialize message:', {
-    pairCount: message.pairs?.length || 0
+    pairCount: message.pairs?.length || 0,
+    centerItemId: message.centerItemId
   });
   
   state.pairs = message.pairs || [];
+  state.centerItemId = message.centerItemId || null;
   
   console.log('[WritingMode WebView] Pairs array:', state.pairs.length);
   
   renderPairs();
+  
+  // Restore scroll to center item after rendering is complete
+  if (state.centerItemId) {
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        scrollToCenterItem(state.centerItemId);
+      });
+    });
+  }
   
   updateSaveStatus('Saved');
 }
@@ -156,6 +206,16 @@ function renderPairs() {
   pairsList.innerHTML = state.pairs.map(pair => renderPair(pair)).join('');
   
   console.log('[WritingMode] Rendered HTML length:', pairsList.innerHTML.length);
+  
+  // Measure actual heights of rendered pair rows
+  requestAnimationFrame(() => {
+    const pairRows = document.querySelectorAll('.pair-row');
+    pairRows.forEach(row => {
+      const pairId = row.dataset.pairId;
+      const actualHeight = row.offsetHeight;
+      state.itemHeights.set(pairId, actualHeight);
+    });
+  });
   
   // Attach event listeners
   attachPairListeners();
@@ -455,4 +515,75 @@ function escapeHtml(text) {
   const div = document.createElement('div');
   div.textContent = text;
   return div.innerHTML;
+}
+
+/**
+ * Get cumulative height up to a specific index
+ */
+function getCumulativeHeight(upToIndex) {
+  let height = 0;
+  for (let i = 0; i < upToIndex && i < state.pairs.length; i++) {
+    const pairId = state.pairs[i].id;
+    height += state.itemHeights.get(pairId) || ESTIMATED_ITEM_HEIGHT;
+  }
+  return height;
+}
+
+/**
+ * Find which pair is at a given scroll position
+ */
+function findItemAtScrollPosition(scrollTop) {
+  let cumulativeHeight = 0;
+  for (let i = 0; i < state.pairs.length; i++) {
+    const pairId = state.pairs[i].id;
+    const itemHeight = state.itemHeights.get(pairId) || ESTIMATED_ITEM_HEIGHT;
+    if (cumulativeHeight + itemHeight > scrollTop) {
+      return i;
+    }
+    cumulativeHeight += itemHeight;
+  }
+  return Math.max(0, state.pairs.length - 1);
+}
+
+/**
+ * Get the pair currently in the center of the viewport
+ */
+function getCenterItem() {
+  const contentDiv = document.querySelector('.content');
+  if (!contentDiv) return null;
+
+  const centerY = contentDiv.scrollTop + contentDiv.clientHeight / 2;
+  let cumulativeHeight = 0;
+  
+  for (let i = 0; i < state.pairs.length; i++) {
+    const pairId = state.pairs[i].id;
+    const itemHeight = state.itemHeights.get(pairId) || ESTIMATED_ITEM_HEIGHT;
+    
+    if (cumulativeHeight + itemHeight > centerY) {
+      return state.pairs[i];
+    }
+    cumulativeHeight += itemHeight;
+  }
+  
+  return state.pairs.length > 0 ? state.pairs[state.pairs.length - 1] : null;
+}
+
+/**
+ * Scroll to center a specific item by ID
+ */
+function scrollToCenterItem(itemId) {
+  const itemIndex = state.pairs.findIndex(p => p.id === itemId);
+  if (itemIndex < 0) return;
+  
+  const contentDiv = document.querySelector('.content');
+  
+  // Calculate scroll position to center this item
+  let cumulativeHeight = getCumulativeHeight(itemIndex);
+  const itemHeight = state.itemHeights.get(itemId) || ESTIMATED_ITEM_HEIGHT;
+  const itemCenter = cumulativeHeight + itemHeight / 2;
+  const viewportCenter = contentDiv.clientHeight / 2;
+  const scrollTarget = Math.max(0, itemCenter - viewportCenter);
+  
+  contentDiv.scrollTop = scrollTarget;
+  console.log('[WritingMode WebView] Scrolled to center item:', itemId);
 }
