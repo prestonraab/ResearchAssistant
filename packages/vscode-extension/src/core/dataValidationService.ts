@@ -95,8 +95,9 @@ export class DataValidationService {
       return false;
     }
 
-    if (!pair.answer || typeof pair.answer !== 'string') {
-      console.warn('[DataValidation] Q&A pair missing or invalid answer:', pair.answer);
+    // Answer can be empty (user might still be drafting)
+    if (typeof pair.answer !== 'string') {
+      console.warn('[DataValidation] Q&A pair answer is not a string:', pair.answer);
       return false;
     }
 

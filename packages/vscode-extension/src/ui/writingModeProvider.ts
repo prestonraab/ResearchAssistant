@@ -136,9 +136,29 @@ export class WritingModeProvider {
       // Validate Q&A pairs
       if (!DataValidationService.validateQAPairsArray(questionAnswerPairs)) {
         console.warn('[WritingMode] Q&A pairs validation failed');
+        
+        // Find which pair is invalid to provide better error message
+        let errorDetails = 'Failed to parse manuscript. ';
+        let invalidPairId = null;
+        for (let i = 0; i < questionAnswerPairs.length; i++) {
+          const pair = questionAnswerPairs[i];
+          if (!pair.id || !pair.question || typeof pair.answer !== 'string') {
+            errorDetails += `Issue at Q&A #${i + 1}: "${pair.question || '(no question)'}". `;
+            if (!pair.id) {
+              errorDetails += 'Missing ID. ';
+            }
+            if (!pair.question) {
+              errorDetails += 'Question is empty. ';
+            }
+            invalidPairId = pair.id;
+            break;
+          }
+        }
+        
         this.panel.webview.postMessage({
           type: 'error',
-          message: 'Failed to parse manuscript into valid Q&A pairs'
+          message: errorDetails,
+          pairId: invalidPairId
         });
         return;
       }
@@ -297,6 +317,15 @@ export class WritingModeProvider {
 
       case 'switchToClaimReview':
         await vscode.commands.executeCommand('researchAssistant.openClaimReview');
+        break;
+
+      case 'openClaim':
+        // Store the current writing mode context so we can return to it
+        getModeContextManager().setWritingModeContext({
+          centerItemId: this.writingModeManager.getCenterItemId(),
+          centerItemPosition: this.writingModeManager.getCenterItemPosition?.()
+        });
+        await vscode.commands.executeCommand('researchAssistant.openClaimReview', message.claimId);
         break;
 
       case 'exportMarkdown':

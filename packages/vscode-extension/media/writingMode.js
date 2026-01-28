@@ -143,6 +143,10 @@ window.addEventListener('message', (event) => {
       deletePair(message.pairId);
       break;
 
+    case 'error':
+      showErrorNotification(message.message, message.pairId);
+      break;
+
     default:
       console.warn('Unknown message type:', message.type);
   }
@@ -234,20 +238,19 @@ function renderPair(pair) {
     linkedSourcesCount: pair.linkedSources?.length || 0
   });
   
-  const statusClass = pair.status.toLowerCase().replace(/\s+/g, '-');
-  const statusColor = getStatusColor(pair.status);
+  const status = pair.status || 'DRAFT';
+  const statusClass = status.toLowerCase().replace(/\s+/g, '-');
+  const statusColor = getStatusColor(status);
   
-  const claimsHtml = pair.claims.length > 0
-    ? `<div class="claims-list">
-         <div class="claims-label">Claims:</div>
-         ${pair.claims.map(c => `<span class="claim-badge">${c}</span>`).join('')}
-       </div>`
-    : '<div class="claims-empty">No claims yet</div>';
+  // Condense claims into single row
+  const claimsDisplay = pair.claims && pair.claims.length > 0
+    ? `CLAIMS: ${pair.claims.map(c => `<span class="claim-badge" data-claim-id="${escapeHtml(c)}">${escapeHtml(c)}</span>`).join('')}`
+    : '';
 
   // Count cited sources
   const citedCount = (pair.linkedSources || []).filter(s => s.cited).length;
-  const citationIndicator = citedCount > 0 
-    ? `<span class="citation-indicator">${citedCount} cited</span>`
+  const citationBadge = citedCount > 0 
+    ? `<span class="citation-badge">${citedCount}</span>`
     : '';
 
   // Render citation sidebar
@@ -255,32 +258,34 @@ function renderPair(pair) {
 
   return `
     <div class="pair-row" data-pair-id="${pair.id}">
-      <!-- Question column -->
-      <div class="question-column">
+      <!-- Left column: Controls and Question -->
+      <div class="left-column">
         <div class="question-header">
           <span class="status-badge status-${statusClass}" style="background-color: ${statusColor}">
-            ${pair.status}
+            ${status}
           </span>
-          ${citationIndicator}
+          <span class="section-badge">${escapeHtml(pair.section)}</span>
+          <button class="citations-toggle-btn" data-pair-id="${pair.id}" title="Toggle citations">📌${citationBadge}</button>
           <button class="delete-btn" data-pair-id="${pair.id}" title="Delete">🗑️</button>
         </div>
         <div class="question-text" contenteditable="true" data-pair-id="${pair.id}">
           ${escapeHtml(pair.question)}
         </div>
-        ${claimsHtml}
-        <div class="section-label">${escapeHtml(pair.section)}</div>
+        ${claimsDisplay ? `<div class="claims-inline">${claimsDisplay}</div>` : ''}
       </div>
       
-      <!-- Answer column -->
-      <div class="answer-column">
+      <!-- Right column: Answer -->
+      <div class="right-column">
         <textarea 
           class="answer-editor" 
           data-pair-id="${pair.id}"
           placeholder="Write your answer here..."
         >${escapeHtml(pair.answer || '')}</textarea>
       </div>
+    </div>
 
-      <!-- Citation sidebar -->
+    <!-- Citations section (expandable, full-width below pair) -->
+    <div class="citations-section" data-pair-id="${pair.id}" style="display: none;">
       ${citationSidebarHtml}
     </div>
   `;
@@ -343,7 +348,9 @@ function renderCitationSidebar(pair) {
   return `
     <div class="citation-sidebar">
       <div class="citation-sidebar-label">Citations (${linkedSources.length})</div>
-      ${citationItemsHtml}
+      <div class="citation-items-grid">
+        ${citationItemsHtml}
+      </div>
     </div>
   `;
 }
@@ -352,12 +359,20 @@ function renderCitationSidebar(pair) {
  * Attach event listeners to pairs
  */
 function attachPairListeners() {
-  // Answer editors
+  // Answer editors - with auto-expand
   document.querySelectorAll('.answer-editor').forEach(editor => {
     editor.addEventListener('input', (e) => {
       const pairId = e.target.dataset.pairId;
       updatePairAnswer(pairId, e.target.value);
+      
+      // Auto-expand textarea
+      e.target.style.height = 'auto';
+      e.target.style.height = Math.min(e.target.scrollHeight, 600) + 'px';
     });
+    
+    // Initial height calculation
+    editor.style.height = 'auto';
+    editor.style.height = Math.min(editor.scrollHeight, 600) + 'px';
   });
 
   // Question editors
@@ -368,6 +383,21 @@ function attachPairListeners() {
     });
   });
 
+  // Claim badges
+  document.querySelectorAll('.claim-badge').forEach(badge => {
+    badge.addEventListener('click', (e) => {
+      const claimId = e.target.dataset.claimId;
+      if (claimId) {
+        vscode.postMessage({
+          type: 'openClaim',
+          claimId: claimId
+        });
+      }
+    });
+    // Make claim badges look clickable
+    badge.style.cursor = 'pointer';
+  });
+
   // Delete buttons
   document.querySelectorAll('.delete-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
@@ -375,6 +405,14 @@ function attachPairListeners() {
       if (confirm('Delete this question-answer pair?')) {
         deletePair(pairId);
       }
+    });
+  });
+
+  // Citations toggle buttons
+  document.querySelectorAll('.citations-toggle-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const pairId = e.currentTarget.dataset.pairId;
+      toggleCitationsSection(pairId);
     });
   });
 
@@ -402,6 +440,17 @@ function attachPairListeners() {
       });
     });
   });
+}
+
+/**
+ * Toggle citations section visibility for a pair
+ */
+function toggleCitationsSection(pairId) {
+  const section = document.querySelector(`.citations-section[data-pair-id="${pairId}"]`);
+  if (section) {
+    const isHidden = section.style.display === 'none';
+    section.style.display = isHidden ? 'block' : 'none';
+  }
 }
 
 /**
@@ -495,6 +544,59 @@ function saveManuscript() {
 function updateSaveStatus(status) {
   if (saveStatus) {
     saveStatus.textContent = status;
+  }
+}
+
+/**
+ * Show error notification
+ */
+function showErrorNotification(message, pairId = null) {
+  const notification = document.createElement('div');
+  notification.className = 'error-notification';
+  
+  let actionHtml = '';
+  if (pairId) {
+    actionHtml = `<button class="error-action" data-pair-id="${escapeHtml(pairId)}">Go to Q&A</button>`;
+  }
+  
+  notification.innerHTML = `
+    <div class="error-icon">⚠️</div>
+    <div class="error-content">
+      <div class="error-title">Validation Error</div>
+      <div class="error-message">${escapeHtml(message)}</div>
+    </div>
+    <div class="error-actions">
+      ${actionHtml}
+      <button class="error-close">✕</button>
+    </div>
+  `;
+  
+  const container = document.querySelector('.content') || document.body;
+  container.insertBefore(notification, container.firstChild);
+  
+  // Auto-remove after 10 seconds
+  const timeout = setTimeout(() => {
+    notification.remove();
+  }, 10000);
+  
+  // Go to Q&A button
+  const actionBtn = notification.querySelector('.error-action');
+  if (actionBtn) {
+    actionBtn.addEventListener('click', () => {
+      const pairId = actionBtn.getAttribute('data-pair-id');
+      scrollToCenterItem(pairId);
+      clearTimeout(timeout);
+      notification.remove();
+    });
+  }
+  
+  // Close button
+  const closeBtn = notification.querySelector('.error-close');
+  if (closeBtn) {
+    closeBtn.addEventListener('click', () => {
+      clearTimeout(timeout);
+      notification.remove();
+    });
   }
 }
 

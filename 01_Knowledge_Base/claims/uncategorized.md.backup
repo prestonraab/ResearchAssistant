@@ -611,8 +611,18 @@ This file contains all **uncategorized** claims with their supporting evidence.
 **Primary Quote**:
 > "A classifier consists of a collection of predictor variables and a classification rule such that, given observed values of the predictor variables for a sample, we can plug them into the classification rule and based on the result assign a group label to the sample. To build such a classifier in a supervised setting, we need a training data set , consisting of samples for which we are given the observed values of a number of variables as well as the true group labels."
 
-**Supporting Quotes**:
-- "Researchers can use these findings as a resource for deciding which algorithms and settings to prioritize when deriving transcriptome-based biomarkers in future efforts. ## Introduction Researchers use observational data to derive categories, or classes, into which patients can be assigned."
+
+---
+
+
+## C_1769581457790: Classification is the task of assigning observations to predefined categories based on their features.
+
+**Category**: Uncategorized  
+**Source**: Soneson et al. - 2014  
+**Context**: Classification is the task of assigning observations to predefined categories based on their features.
+
+**Primary Quote**:
+> "A classifier consists of a collection of predictor variables and a classification rule such that, given observed values of the predictor variables for a sample, we can plug them into the classification rule and based on the result assign a group label to the sample. To build such a classifier in a supervised setting, we need a training data set , consisting of samples for which we are given the observed values of a number of variables as well as the true group labels."
 
 
 ---
