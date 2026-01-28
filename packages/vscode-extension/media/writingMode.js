@@ -207,7 +207,29 @@ function renderPairs() {
     });
   }
 
-  pairsList.innerHTML = state.pairs.map(pair => renderPair(pair)).join('');
+  // Group pairs by section and render with section headers
+  let html = '';
+  let currentSection = null;
+  
+  state.pairs.forEach((pair, index) => {
+    // Add insert zone before first item
+    if (index === 0) {
+      html += renderInsertZone(-1);
+    }
+    
+    // Add section header if this is a new section
+    if (pair.section !== currentSection) {
+      currentSection = pair.section;
+      html += renderSectionHeader(pair.section, index);
+    }
+    
+    html += renderPair(pair);
+    
+    // Add insert zone after each pair
+    html += renderInsertZone(index);
+  });
+  
+  pairsList.innerHTML = html;
   
   console.log('[WritingMode] Rendered HTML length:', pairsList.innerHTML.length);
   
@@ -226,6 +248,34 @@ function renderPairs() {
 }
 
 /**
+ * Render a section header
+ */
+function renderSectionHeader(sectionName, firstPairIndex) {
+  return `
+    <div class="section-header" data-section="${escapeHtml(sectionName)}" data-first-pair-index="${firstPairIndex}">
+      <h2 class="section-title" contenteditable="true">${escapeHtml(sectionName)}</h2>
+    </div>
+  `;
+}
+
+/**
+ * Render an insert zone between items
+ */
+function renderInsertZone(afterIndex) {
+  return `
+    <div class="insert-zone" data-after-index="${afterIndex}">
+      <div class="insert-zone-left">
+        <button class="insert-zone-btn insert-section-btn" data-after-index="${afterIndex}">+ Section</button>
+      </div>
+      <div class="insert-zone-center">
+        <button class="insert-zone-btn insert-pair-btn" data-after-index="${afterIndex}">+ Question</button>
+      </div>
+      <div class="insert-zone-right"></div>
+    </div>
+  `;
+}
+
+/**
  * Render a single question-answer pair
  */
 function renderPair(pair) {
@@ -240,7 +290,6 @@ function renderPair(pair) {
   
   const status = pair.status || 'DRAFT';
   const statusClass = status.toLowerCase().replace(/\s+/g, '-');
-  const statusColor = getStatusColor(status);
   
   // Condense claims into single row
   const claimsDisplay = pair.claims && pair.claims.length > 0
@@ -284,12 +333,14 @@ function renderPair(pair) {
         <!-- Right column: Metadata -->
         <div class="right-column">
           <div class="pair-header">
-            <span class="section-badge">${escapeHtml(pair.section)}</span>
             ${claimsDisplay ? `<div class="claims-badges">${claimsDisplay}</div>` : ''}
             <div class="action-row">
-              <span class="status-badge status-${statusClass}" style="background-color: ${statusColor}">
-                ${status}
-              </span>
+              <select class="status-dropdown" data-pair-id="${pair.id}">
+                <option value="DRAFT" ${status === 'DRAFT' ? 'selected' : ''}>Draft</option>
+                <option value="RESEARCH" ${status === 'RESEARCH' || status === 'RESEARCH NEEDED' ? 'selected' : ''}>Research</option>
+                <option value="PARTIAL" ${status === 'PARTIAL' ? 'selected' : ''}>Partial</option>
+                <option value="ANSWERED" ${status === 'ANSWERED' ? 'selected' : ''}>Answered</option>
+              </select>
               <button class="citations-toggle-btn" data-pair-id="${pair.id}" title="Toggle citations">📌${citationBadge}</button>
               <button class="delete-btn" data-pair-id="${pair.id}" title="Delete">🗑️</button>
             </div>
@@ -298,22 +349,6 @@ function renderPair(pair) {
       </div>
     </div>
   `;
-}
-
-/**
- * Get status color
- */
-function getStatusColor(status) {
-  switch (status.toUpperCase()) {
-    case 'ANSWERED':
-      return '#4caf50';
-    case 'RESEARCH NEEDED':
-      return '#ff9800';
-    case 'PARTIAL':
-      return '#2196f3';
-    default:
-      return '#9e9e9e';
-  }
 }
 
 /**
@@ -392,6 +427,35 @@ function attachPairListeners() {
     });
   });
 
+  // Section title editors
+  document.querySelectorAll('.section-title').forEach(editor => {
+    editor.addEventListener('input', (e) => {
+      const sectionHeader = e.target.closest('.section-header');
+      const oldSectionName = sectionHeader.dataset.section;
+      const newSectionName = e.target.textContent.trim();
+      
+      // If empty, mark for deletion
+      if (newSectionName === '') {
+        e.target.style.opacity = '0.5';
+      } else {
+        e.target.style.opacity = '1';
+      }
+    });
+    
+    editor.addEventListener('blur', (e) => {
+      const sectionHeader = e.target.closest('.section-header');
+      const oldSectionName = sectionHeader.dataset.section;
+      const newSectionName = e.target.textContent.trim();
+      
+      // If empty, remove the section (merge with previous or next section)
+      if (newSectionName === '') {
+        removeSectionHeader(sectionHeader);
+      } else if (newSectionName !== oldSectionName) {
+        updateSectionName(oldSectionName, newSectionName);
+      }
+    });
+  });
+
   // Claim badges
   document.querySelectorAll('.claim-badge').forEach(badge => {
     badge.addEventListener('click', (e) => {
@@ -410,8 +474,11 @@ function attachPairListeners() {
   // Delete buttons
   document.querySelectorAll('.delete-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
-      const pairId = e.target.dataset.pairId;
-      if (confirm('Delete this question-answer pair?')) {
+      e.preventDefault();
+      e.stopPropagation();
+      const pairId = e.currentTarget.dataset.pairId;
+      console.log('[WritingMode] Delete button clicked for pair:', pairId);
+      if (pairId && confirm('Delete this question-answer pair?')) {
         deletePair(pairId);
       }
     });
@@ -447,6 +514,30 @@ function attachPairListeners() {
         sourceIndex,
         cited: isChecked
       });
+    });
+  });
+
+  // Insert zone buttons
+  document.querySelectorAll('.insert-pair-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const afterIndex = parseInt(e.target.dataset.afterIndex);
+      insertPairAfter(afterIndex);
+    });
+  });
+
+  document.querySelectorAll('.insert-section-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const afterIndex = parseInt(e.target.dataset.afterIndex);
+      insertSectionAfter(afterIndex);
+    });
+  });
+
+  // Status dropdowns
+  document.querySelectorAll('.status-dropdown').forEach(dropdown => {
+    dropdown.addEventListener('change', (e) => {
+      const pairId = e.target.dataset.pairId;
+      const newStatus = e.target.value;
+      updatePairStatus(pairId, newStatus);
     });
   });
 }
@@ -489,13 +580,26 @@ function updatePairQuestion(pairId, question) {
 }
 
 /**
+ * Update pair status
+ */
+function updatePairStatus(pairId, status) {
+  const pair = state.pairs.find(p => p.id === pairId);
+  if (pair) {
+    pair.status = status;
+    state.isDirty = true;
+    updateSaveStatus('Unsaved');
+    scheduleAutoSave();
+  }
+}
+
+/**
  * Add new pair
  */
 function addNewPair(section) {
   const newPair = {
-    id: `QA_${state.pairs.length}`,
+    id: `QA_${Date.now()}`,
     question: 'New question?',
-    status: 'RESEARCH NEEDED',
+    status: 'DRAFT',
     answer: '',
     claims: [],
     section: section || 'New Section',
@@ -506,6 +610,159 @@ function addNewPair(section) {
   renderPairs();
   state.isDirty = true;
   scheduleAutoSave();
+}
+
+/**
+ * Insert a new pair after a specific index
+ */
+function insertPairAfter(afterIndex) {
+  // Determine section for new pair
+  let section = 'New Section';
+  if (afterIndex >= 0 && afterIndex < state.pairs.length) {
+    section = state.pairs[afterIndex].section;
+  } else if (afterIndex === -1 && state.pairs.length > 0) {
+    section = state.pairs[0].section;
+  }
+  
+  const newPair = {
+    id: `QA_${Date.now()}`,
+    question: 'New question?',
+    status: 'DRAFT',
+    answer: '',
+    claims: [],
+    linkedSources: [],
+    section: section,
+    position: afterIndex + 1
+  };
+  
+  // Insert at the correct position
+  state.pairs.splice(afterIndex + 1, 0, newPair);
+  
+  // Update positions
+  state.pairs.forEach((pair, index) => {
+    pair.position = index;
+  });
+  
+  renderPairs();
+  state.isDirty = true;
+  scheduleAutoSave();
+  
+  // Focus on the new question
+  requestAnimationFrame(() => {
+    const newQuestionElement = document.querySelector(`.question-text[data-pair-id="${newPair.id}"]`);
+    if (newQuestionElement) {
+      newQuestionElement.focus();
+      // Select all text
+      const range = document.createRange();
+      range.selectNodeContents(newQuestionElement);
+      const selection = window.getSelection();
+      selection.removeAllRanges();
+      selection.addRange(range);
+    }
+  });
+}
+
+/**
+ * Insert a new section after a specific index
+ */
+function insertSectionAfter(afterIndex) {
+  const newSectionName = 'New Section';
+  
+  const newPair = {
+    id: `QA_${Date.now()}`,
+    question: 'New question?',
+    status: 'DRAFT',
+    answer: '',
+    claims: [],
+    linkedSources: [],
+    section: newSectionName,
+    position: afterIndex + 1
+  };
+  
+  // Insert at the correct position
+  state.pairs.splice(afterIndex + 1, 0, newPair);
+  
+  // Update positions
+  state.pairs.forEach((pair, index) => {
+    pair.position = index;
+  });
+  
+  renderPairs();
+  state.isDirty = true;
+  scheduleAutoSave();
+  
+  // Focus on the new section title
+  requestAnimationFrame(() => {
+    const sectionHeaders = document.querySelectorAll('.section-header');
+    for (const header of sectionHeaders) {
+      const sectionTitle = header.querySelector('.section-title');
+      if (sectionTitle && sectionTitle.textContent === newSectionName) {
+        sectionTitle.focus();
+        // Select all text
+        const range = document.createRange();
+        range.selectNodeContents(sectionTitle);
+        const selection = window.getSelection();
+        selection.removeAllRanges();
+        selection.addRange(range);
+        break;
+      }
+    }
+  });
+}
+
+/**
+ * Update section name for all pairs in that section
+ */
+function updateSectionName(oldName, newName) {
+  let updated = false;
+  state.pairs.forEach(pair => {
+    if (pair.section === oldName) {
+      pair.section = newName;
+      updated = true;
+    }
+  });
+  
+  if (updated) {
+    state.isDirty = true;
+    scheduleAutoSave();
+    // Re-render to update section headers
+    renderPairs();
+  }
+}
+
+/**
+ * Remove a section header by merging its pairs with adjacent section
+ */
+function removeSectionHeader(sectionHeader) {
+  const sectionName = sectionHeader.dataset.section;
+  const firstPairIndex = parseInt(sectionHeader.dataset.firstPairIndex);
+  
+  // Find the section to merge into (previous section if exists, otherwise next)
+  let targetSection = 'Untitled';
+  
+  // Look for previous pair's section
+  if (firstPairIndex > 0) {
+    targetSection = state.pairs[firstPairIndex - 1].section;
+  } else if (firstPairIndex < state.pairs.length - 1) {
+    // Look for next different section
+    for (let i = firstPairIndex; i < state.pairs.length; i++) {
+      if (state.pairs[i].section !== sectionName) {
+        targetSection = state.pairs[i].section;
+        break;
+      }
+    }
+  }
+  
+  // Update all pairs in the removed section
+  state.pairs.forEach(pair => {
+    if (pair.section === sectionName) {
+      pair.section = targetSection;
+    }
+  });
+  
+  state.isDirty = true;
+  scheduleAutoSave();
+  renderPairs();
 }
 
 /**

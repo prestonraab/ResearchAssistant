@@ -73,6 +73,47 @@ body {
   margin: 0;
 }
 
+/* Section Header */
+.section-header {
+  padding: 24px 16px 12px 16px;
+  background-color: var(--vscode-editor-background);
+  border-bottom: 2px solid var(--vscode-panel-border);
+  margin-top: 16px;
+  position: relative;
+}
+
+.section-header:first-child {
+  margin-top: 0;
+}
+
+.section-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--vscode-editor-foreground);
+  margin: 0;
+  padding: 8px;
+  border: 2px solid transparent;
+  border-radius: 4px;
+  cursor: text;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.section-title:hover {
+  border-color: var(--vscode-input-border);
+}
+
+.section-title:focus {
+  border-color: var(--vscode-focusBorder);
+  background-color: var(--vscode-input-background);
+}
+
+.section-title[contenteditable="true"]:empty:before {
+  content: "Section name...";
+  color: var(--vscode-input-placeholderForeground);
+  font-style: italic;
+}
+
 /* Pair Wrapper */
 .pair-wrapper {
   display: flex;
@@ -85,6 +126,7 @@ body {
   background-color: var(--vscode-editor-background);
   transition: box-shadow 0.2s;
   margin-bottom: 0;
+  position: relative;
 }
 
 .pair-wrapper:first-child {
@@ -98,6 +140,66 @@ body {
 
 .pair-wrapper:hover {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Insert Zone - Appears between items */
+.insert-zone {
+  position: relative;
+  height: 8px;
+  margin: 0;
+  opacity: 0;
+  transition: opacity 0.2s, height 0.2s;
+  display: grid;
+  grid-template-columns: 1fr 2fr 200px;
+  gap: 0 8px;
+  align-items: center;
+  background-color: transparent;
+}
+
+.insert-zone:hover {
+  opacity: 1;
+  height: 40px;
+  background-color: var(--vscode-editor-background);
+  border: 1px dashed var(--vscode-focusBorder);
+  border-left: none;
+  border-right: none;
+}
+
+.insert-zone-left {
+  display: none;
+  justify-content: center;
+  padding-left: 8px;
+}
+
+.insert-zone-center {
+  display: none;
+  justify-content: center;
+}
+
+.insert-zone-right {
+  /* Empty, for alignment */
+}
+
+.insert-zone:hover .insert-zone-left,
+.insert-zone:hover .insert-zone-center {
+  display: flex;
+}
+
+.insert-zone-btn {
+  background-color: var(--vscode-button-background);
+  color: var(--vscode-button-foreground);
+  border: none;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 500;
+  transition: background-color 0.2s;
+  white-space: nowrap;
+}
+
+.insert-zone-btn:hover {
+  background-color: var(--vscode-button-hoverBackground);
 }
 
 /* Pair Header - Now in right column */
@@ -274,18 +376,33 @@ body {
   flex-shrink: 0;
 }
 
-.section-badge {
-  display: inline-block;
-  padding: 2px 6px;
-  border-radius: 3px;
-  font-size: 10px;
-  font-weight: 500;
+.status-dropdown {
+  background-color: transparent;
   color: var(--vscode-descriptionForeground);
-  background-color: var(--vscode-editor-background);
-  border: 1px solid var(--vscode-widget-border);
-  white-space: nowrap;
+  border: 1px solid transparent;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  outline: none;
   flex-shrink: 0;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
 }
+
+.status-dropdown:hover {
+  background-color: var(--vscode-input-background);
+  border-color: var(--vscode-input-border);
+}
+
+.status-dropdown:focus {
+  background-color: var(--vscode-dropdown-background);
+  border-color: var(--vscode-focusBorder);
+}
+
+
 
 .delete-btn {
   background: none;
@@ -338,7 +455,7 @@ body {
   font-size: 13px;
   font-weight: 600;
   color: var(--vscode-editor-foreground);
-  padding: 2px;
+  padding: 8px;
   border: 1px solid transparent;
   border-radius: 2px;
   min-height: 24px;
@@ -427,7 +544,7 @@ body {
 .answer-editor {
   width: 100%;
   min-height: 60px;
-  padding: 2px;
+  padding: 8px;
   border: 1px solid var(--vscode-input-border);
   border-radius: 2px;
   background-color: var(--vscode-input-background);
