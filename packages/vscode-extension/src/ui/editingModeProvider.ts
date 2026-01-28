@@ -66,6 +66,17 @@ export class EditingModeProvider {
     // If panel already exists and is not disposed, reveal it
     if (this.panel && !this.panelDisposed) {
       this.panel.reveal(vscode.ViewColumn.One);
+      
+      // Check if we need to navigate to a specific sentence (e.g., returning from claim review)
+      const claimReviewContext = getModeContextManager().getClaimReviewContext();
+      if (claimReviewContext?.returnToSentenceId) {
+        console.log('[EditingMode] Navigating to sentence from existing panel:', claimReviewContext.returnToSentenceId);
+        this.panel.webview.postMessage({
+          type: 'scrollToItem',
+          itemId: claimReviewContext.returnToSentenceId
+        });
+      }
+      
       return;
     }
 

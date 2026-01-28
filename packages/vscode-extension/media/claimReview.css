@@ -161,8 +161,13 @@ body {
 /* Claim header */
 .claim-header {
   margin-bottom: 24px;
+  padding-top: 16px;
   padding-bottom: 16px;
   border-bottom: 2px solid var(--color-accent);
+  position: sticky;
+  top: 0;
+  background-color: var(--color-bg);
+  z-index: 10;
 }
 
 .claim-id {
@@ -297,18 +302,6 @@ body {
   font-size: 11px;
   color: var(--color-grey);
   margin-bottom: 8px;
-}
-
-.verification-info.verified {
-  color: var(--color-green);
-}
-
-.verification-info.unverified {
-  color: var(--color-orange);
-}
-
-.verification-info.invalid {
-  color: var(--color-red);
 }
 
 .quote-actions {

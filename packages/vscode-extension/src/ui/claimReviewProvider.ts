@@ -217,6 +217,11 @@ export class ClaimReviewProvider {
         verificationResults,
         validationResult,
         usageLocations,
+        returnToSentenceId: existingContext?.returnToSentenceId || undefined
+      });
+      
+      console.log('[ClaimReview] Stored context:', {
+        claimId,
         returnToSentenceId: existingContext?.returnToSentenceId
       });
     } catch (error) {

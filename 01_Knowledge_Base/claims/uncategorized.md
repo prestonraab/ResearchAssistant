@@ -585,8 +585,40 @@ This file contains all **uncategorized** claims with their supporting evidence.
 **Primary Quote**:
 > "A classifier consists of a collection of predictor variables and a classification rule such that, given observed values of the predictor variables for a sample, we can plug them into the classification rule and based on the result assign a group label to the sample. To build such a classifier in a supervised setting, we need a training data set , consisting of samples for which we are given the observed values of a number of variables as well as the true group labels."
 
-**Supporting Quotes**:
-- "Second, the researcher performs a preliminary evaluation of the potential to assign patients to a particular clinically relevant class based on gene-expression profiles and accompanying clinical information. Furthermore, the researcher may undergo an effort to select a classification algorithm that will perform relatively well for this particular task. Such efforts may be informed by prior experience, a literature review, or trial and error."
+
+---
+
+
+## C_1769581109801: Classification is the task of assigning observations to predefined categories based on their features.
+
+**Category**: Uncategorized  
+**Source**: Soneson et al. - 2014  
+**Context**: Classification is the task of assigning observations to predefined categories based on their features.
+
+**Primary Quote**:
+> "A classifier consists of a clues of a number of variables as well as the true group labels."
+
+
+---
+
+
+## C_1769581278593: Classification is the task of assigning observations to predefined categories based on their features.
+
+**Category**: Uncategorized  
+**Source**: Soneson et al. - 2014  
+**Context**: Classification is the task of assigning observations to predefined categories based on their features.
+
+**Primary Quote**:
+> "A classifier consists of a collection of predictor variables and a classification rule such that, given observed values of the predictor variables for a sample, we can plug them into the classification rule and based on the result assign a group label to the sample. To build such a classifier in a supervised setting, we need a training data set , consisting of samples for which we are given the observed values of a number of variables as well as the true group labels."
+
+
+---
+
+
+## C_1769581457790: Classification is the task of assigning observations to predefined categories based on their features.
+
+**Category**: Uncategorized  
+**Context**: Classification is the task of assigning observations to predefined categories based on their features.
 
 
 ---
