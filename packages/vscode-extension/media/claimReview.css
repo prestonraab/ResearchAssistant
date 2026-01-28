@@ -529,6 +529,17 @@ body {
   background-color: var(--color-hover);
 }
 
+.btn-success {
+  background-color: #28a745;
+  color: white;
+  border: 1px solid #28a745;
+}
+
+.btn-success:hover {
+  background-color: #218838;
+  border-color: #1e7e34;
+}
+
 .action-buttons {
   display: flex;
   gap: 8px;
@@ -596,6 +607,48 @@ body {
 .modal-dialog .btn {
   padding: 6px 12px;
   font-size: 12px;
+}
+
+/* Compare modal specific styles */
+.modal-compare {
+  max-width: 800px;
+  width: 90%;
+}
+
+.compare-container {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.compare-column {
+  display: flex;
+  flex-direction: column;
+}
+
+.compare-column h4 {
+  margin: 0 0 8px 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.compare-text {
+  padding: 12px;
+  background-color: var(--color-hover);
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  font-size: 12px;
+  line-height: 1.5;
+  min-height: 100px;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+.compare-suggested {
+  background-color: #e8f5e9;
+  border-color: #4CAF50;
 }
 
 /* Help overlay */

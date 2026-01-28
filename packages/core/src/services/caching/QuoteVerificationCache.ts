@@ -62,6 +62,7 @@ export class QuoteVerificationCache {
    */
   async initialize(): Promise<void> {
     try {
+      console.log('[QuoteVerificationCache] Starting cache initialization...');
       await this.loadFromDisk();
       console.log(`[QuoteVerificationCache] Loaded ${this.cache.size} entries from cache`);
     } catch (error) {

@@ -14,6 +14,7 @@ import {
   ClaimExtractor,
   SynthesisEngine,
   SearchQueryGenerator,
+  LiteratureIndexer,
 } from '@research-assistant/core';
 import { ZoteroService } from './services/ZoteroService.js';
 import { DoclingService } from './services/DoclingService.js';
@@ -29,33 +30,131 @@ export interface Services {
   claimExtractor: ClaimExtractor;
   synthesisEngine: SynthesisEngine;
   searchQueryGenerator: SearchQueryGenerator;
+  literatureIndexer: LiteratureIndexer;
   zoteroService?: ZoteroService;
   doclingService?: DoclingService;
+  workspaceRoot: string;
 }
 
 /**
  * Tool handler mapping - maps tool names to service methods
  */
 const toolHandlers: Record<string, (args: any, services: Services) => Promise<any>> = {
-  search_by_question: async (args, s) => s.searchService.searchByQuestion(args.question, args.threshold),
-  search_by_draft: async (args, s) => s.searchService.searchByDraft(args.draft_text, args.mode, args.threshold),
-  find_multi_source_support: async (args, s) => s.searchService.findMultiSourceSupport(args.statement, args.min_sources),
-  analyze_section_coverage: async (args, s) => s.coverageAnalyzer.analyzeSectionCoverage(args.section_id),
-  analyze_manuscript_coverage: async (args, s) => s.coverageAnalyzer.analyzeManuscriptCoverage(),
-  calculate_claim_strength: async (args, s) => s.claimStrengthCalculator.calculateStrength(args.claim_id),
-  calculate_claim_strength_batch: async (args, s) => s.claimStrengthCalculator.calculateStrengthBatch(args.claim_ids),
+  search_by_question: async (args, s) => {
+    const claims = s.claimsManager.getAllClaims();
+    if (claims.length === 0) {
+      throw new Error('Claims not loaded. The server may still be initializing. Please wait a moment and try again.');
+    }
+    return s.searchService.searchByQuestion(args.question, args.threshold);
+  },
+  validate_draft_citations: async (args, s) => {
+    const claims = s.claimsManager.getAllClaims();
+    if (claims.length === 0) {
+      throw new Error('Claims not loaded. The server may still be initializing. Please wait a moment and try again.');
+    }
+    return s.searchService.searchByDraft(args.draft_text, args.mode, args.threshold);
+  },
+  find_multi_source_support: async (args, s) => {
+    const claims = s.claimsManager.getAllClaims();
+    if (claims.length === 0) {
+      throw new Error('Claims not loaded. The server may still be initializing. Please wait a moment and try again.');
+    }
+    return s.searchService.findMultiSourceSupport(args.statement, args.min_sources);
+  },
+  check_section_coverage: async (args, s) => {
+    const claims = s.claimsManager.getAllClaims();
+    if (claims.length === 0) {
+      throw new Error('Claims not loaded. The server may still be initializing. Please wait a moment and try again.');
+    }
+    return s.coverageAnalyzer.analyzeSectionCoverage(args.section_id);
+  },
+  check_manuscript_coverage: async (args, s) => {
+    const claims = s.claimsManager.getAllClaims();
+    if (claims.length === 0) {
+      throw new Error('Claims not loaded. The server may still be initializing. Please wait a moment and try again.');
+    }
+    return s.coverageAnalyzer.analyzeManuscriptCoverage();
+  },
+  calculate_claim_strength: async (args, s) => {
+    const claims = s.claimsManager.getAllClaims();
+    if (claims.length === 0) {
+      throw new Error('Claims not loaded. The server may still be initializing. Please wait a moment and try again.');
+    }
+    return s.claimStrengthCalculator.calculateStrength(args.claim_id);
+  },
+  calculate_claim_strength_batch: async (args, s) => {
+    const claims = s.claimsManager.getAllClaims();
+    if (claims.length === 0) {
+      throw new Error('Claims not loaded. The server may still be initializing. Please wait a moment and try again.');
+    }
+    return s.claimStrengthCalculator.calculateStrengthBatch(args.claim_ids);
+  },
   rank_papers_for_section: async (args, s) => s.paperRanker.rankPapersForSection(args.section_id, args.papers),
   rank_papers_for_query: async (args, s) => s.paperRanker.rankPapersForQuery(args.query, args.papers),
   extract_claims_from_text: async (args, s) => s.claimExtractor.extractFromText(args.text, args.source),
   suggest_sections_for_claim: async (args, s) => s.claimExtractor.suggestSections(args.claim_text, args.sections),
   group_claims_by_theme: async (args, s) => s.synthesisEngine.groupClaimsByTheme(args.claims, args.threshold),
-  generate_paragraph: async (args, s) => s.synthesisEngine.generateParagraph({
-    claims: args.claims,
-    style: args.style,
-    includeCitations: args.include_citations,
-    maxLength: args.max_length || 0,
-  }),
   generate_search_queries: async (args, s) => s.searchQueryGenerator.generateQueriesForSection(args.section_id),
+  
+  // Utility tools
+  list_claims: async (args, s) => {
+    const claims = s.claimsManager.getAllClaims();
+    if (claims.length === 0) {
+      throw new Error('Claims not loaded. The server may still be initializing. Please wait a moment and try again.');
+    }
+    
+    // Filter by category if provided
+    let filtered = claims;
+    if (args.category) {
+      filtered = claims.filter(c => c.category.toLowerCase().includes(args.category.toLowerCase()));
+    }
+    
+    // Filter by source if provided
+    if (args.source) {
+      filtered = filtered.filter(c => c.primaryQuote?.source?.toLowerCase().includes(args.source.toLowerCase()));
+    }
+    
+    // Filter by text search if provided
+    if (args.search_text) {
+      const searchLower = args.search_text.toLowerCase();
+      filtered = filtered.filter(c => 
+        c.text.toLowerCase().includes(searchLower) ||
+        c.primaryQuote?.text?.toLowerCase().includes(searchLower)
+      );
+    }
+    
+    // Limit results
+    const limit = args.limit || 50;
+    const results = filtered.slice(0, limit);
+    
+    return {
+      total_claims: claims.length,
+      filtered_count: filtered.length,
+      returned_count: results.length,
+      claims: results.map(c => ({
+        id: c.id,
+        text: c.text,
+        category: c.category,
+        source: c.primaryQuote?.source || 'Unknown',
+        verified: c.verified,
+        sections: c.sections
+      }))
+    };
+  },
+  
+  get_claim_details: async (args, s) => {
+    const claims = s.claimsManager.getAllClaims();
+    if (claims.length === 0) {
+      throw new Error('Claims not loaded. The server may still be initializing. Please wait a moment and try again.');
+    }
+    
+    const claim = s.claimsManager.getClaim(args.claim_id);
+    if (!claim) {
+      throw new Error(`Claim not found: ${args.claim_id}`);
+    }
+    
+    return claim;
+  },
   
   // Zotero tools
   zotero_get_collections: async (args, s) => {
@@ -188,7 +287,7 @@ const toolHandlers: Record<string, (args: any, services: Services) => Promise<an
     );
   },
 
-  find_weakly_supported_claims: async (args, s) => {
+  find_unsupported_claims: async (args, s) => {
     const allClaims = s.claimsManager.getAllClaims();
     const weakClaims = [];
     
@@ -272,6 +371,66 @@ const toolHandlers: Record<string, (args: any, services: Services) => Promise<an
         similarity: bestSimilarity,
         context,
         threshold
+      };
+    } catch (error) {
+      throw new Error(`Failed to search for quote: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  },
+
+  find_quote_anywhere: async (args, s) => {
+    const { quote, threshold = 0.7, top_n = 3 } = args;
+
+    if (!quote || quote.trim().length === 0) {
+      throw new Error('quote is required and cannot be empty');
+    }
+
+    try {
+      // Generate embedding for the quote
+      const quoteEmbedding = await s.embeddingService.generateEmbedding(quote);
+      
+      // Get more results than needed to filter by threshold
+      const snippets = await s.literatureIndexer.searchSnippets(quote, top_n * 5);
+      
+      if (snippets.length === 0) {
+        return {
+          found: false,
+          quote,
+          totalFilesSearched: 0,
+          matchesFound: 0,
+          threshold,
+          matches: []
+        };
+      }
+
+      // Calculate similarities and filter by threshold
+      const matches: any[] = [];
+      for (const snippet of snippets) {
+        const similarity = s.embeddingService.cosineSimilarity(quoteEmbedding, snippet.embedding);
+        
+        if (similarity >= threshold) {
+          // Extract source ID from filename (e.g., "Johnson et al. - 2007 - ..." -> "Johnson2007")
+          const sourceMatch = snippet.fileName.match(/^([A-Za-z]+)(?:\s+(?:et al\.|and))?.*?(\d{4})/);
+          const sourceId = sourceMatch ? `${sourceMatch[1]}${sourceMatch[2]}` : snippet.fileName.replace('.txt', '');
+          
+          matches.push({
+            source: sourceId,
+            filename: snippet.fileName,
+            bestMatch: snippet.text,
+            similarity,
+            context: snippet.text // The snippet already includes context
+          });
+        }
+        
+        if (matches.length >= top_n) break;
+      }
+
+      return {
+        found: matches.length > 0,
+        quote,
+        totalFilesSearched: 'indexed',
+        matchesFound: matches.length,
+        threshold,
+        matches
       };
     } catch (error) {
       throw new Error(`Failed to search for quote: ${error instanceof Error ? error.message : String(error)}`);

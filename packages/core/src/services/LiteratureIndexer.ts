@@ -1,8 +1,8 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import { EmbeddingStore, EmbeddedSnippet } from './embeddingStore';
-import { SnippetExtractor } from './snippetExtractor';
-import { EmbeddingService } from './embeddingService';
+import { EmbeddingStore, EmbeddedSnippet } from './EmbeddingStore.js';
+import { SnippetExtractor } from './SnippetExtractor.js';
+import { EmbeddingService } from './EmbeddingService.js';
 
 /**
  * Orchestrates indexing of literature files
@@ -15,16 +15,19 @@ export class LiteratureIndexer {
   private extractedTextPath: string;
   private isIndexing: boolean = false;
 
-  constructor(workspaceRoot: string, extractedTextPath: string = 'literature/ExtractedText') {
+  constructor(
+    workspaceRoot: string,
+    embeddingService: EmbeddingService,
+    extractedTextPath: string = 'literature/ExtractedText'
+  ) {
     this.embeddingStore = new EmbeddingStore(workspaceRoot);
     this.snippetExtractor = new SnippetExtractor();
-    this.embeddingService = new EmbeddingService();
+    this.embeddingService = embeddingService;
     this.extractedTextPath = path.join(workspaceRoot, extractedTextPath);
   }
 
   /**
    * Index all literature files that have changed
-   * Called on extension startup and periodically
    */
   async indexChangedFiles(): Promise<{ indexed: number; skipped: number; errors: number }> {
     if (this.isIndexing) {
@@ -51,7 +54,6 @@ export class LiteratureIndexer {
         try {
           const content = fs.readFileSync(filePath, 'utf-8');
 
-          // Check if file has changed
           if (!this.embeddingStore.hasFileChanged(filePath, content)) {
             console.log(`[LiteratureIndexer] Skipping unchanged file: ${path.basename(filePath)}`);
             stats.skipped++;
@@ -75,11 +77,7 @@ export class LiteratureIndexer {
     return stats;
   }
 
-  /**
-   * Index a single file
-   */
   private async indexFile(filePath: string, content: string): Promise<void> {
-    // Extract snippets
     const snippets = this.snippetExtractor.extractSnippets(content, path.basename(filePath));
     console.log(`[LiteratureIndexer] Extracted ${snippets.length} snippets from ${path.basename(filePath)}`);
 
@@ -87,18 +85,16 @@ export class LiteratureIndexer {
       return;
     }
 
-    // Generate embeddings for each snippet
     const embeddedSnippets: EmbeddedSnippet[] = [];
 
     for (let i = 0; i < snippets.length; i++) {
       const snippet = snippets[i];
       
-      // Show progress
       if (i % 10 === 0) {
         console.log(`[LiteratureIndexer] Embedding snippet ${i + 1}/${snippets.length}`);
       }
 
-      const embedding = await this.embeddingService.embed(snippet.text);
+      const embedding = await this.embeddingService.generateEmbedding(snippet.text);
       
       if (!embedding) {
         console.warn(`[LiteratureIndexer] Failed to embed snippet ${i + 1}`);
@@ -117,18 +113,13 @@ export class LiteratureIndexer {
       });
     }
 
-    // Store embeddings
     this.embeddingStore.addSnippets(embeddedSnippets, filePath, content);
   }
 
-  /**
-   * Search for snippets similar to a query
-   */
   async searchSnippets(query: string, limit: number = 10): Promise<EmbeddedSnippet[]> {
     console.log('[LiteratureIndexer] searchSnippets called with query:', query.substring(0, 50));
     
-    // Embed the query
-    const queryEmbedding = await this.embeddingService.embed(query);
+    const queryEmbedding = await this.embeddingService.generateEmbedding(query);
     
     if (!queryEmbedding) {
       console.warn('[LiteratureIndexer] Failed to embed query');
@@ -137,71 +128,25 @@ export class LiteratureIndexer {
 
     console.log('[LiteratureIndexer] Query embedding generated, searching store');
     
-    // Search in store
     const results = this.embeddingStore.searchByEmbedding(queryEmbedding, limit);
     console.log('[LiteratureIndexer] Search returned', results.length, 'results');
     
     return results;
   }
 
-  /**
-   * Search for snippets similar to a query with similarity scores
-   * Useful for filtering by threshold
-   */
-  async searchSnippetsWithSimilarity(query: string, limit: number = 10): Promise<import('./embeddingStore').EmbeddedSnippetWithSimilarity[]> {
-    console.log('[LiteratureIndexer] searchSnippetsWithSimilarity called with query:', query.substring(0, 50));
-    
-    // Embed the query
-    const queryEmbedding = await this.embeddingService.embed(query);
-    
-    if (!queryEmbedding) {
-      console.warn('[LiteratureIndexer] Failed to embed query');
-      return [];
-    }
-
-    console.log('[LiteratureIndexer] Query embedding generated, searching store');
-    
-    // Search in store with similarity scores
-    const results = this.embeddingStore.searchByEmbeddingWithSimilarity(queryEmbedding, limit);
-    console.log('[LiteratureIndexer] Search returned', results.length, 'results with similarity scores');
-    
-    return results;
-  }
-
-  /**
-   * Get all snippets from the store
-   */
   getSnippets(): EmbeddedSnippet[] {
     return this.embeddingStore.getAllSnippets();
   }
 
-  /**
-   * Get indexing statistics
-   */
-  getStats(): { snippetCount: number; fileCount: number; indexSize: string; cacheSize: number } {
-    const storeStats = this.embeddingStore.getStats();
-    const cacheStats = this.embeddingService.getCacheStats();
-
-    return {
-      snippetCount: storeStats.snippetCount,
-      fileCount: storeStats.fileCount,
-      indexSize: storeStats.indexSize,
-      cacheSize: cacheStats.size
-    };
+  getStats(): { snippetCount: number; fileCount: number; indexSize: string } {
+    return this.embeddingStore.getStats();
   }
 
-  /**
-   * Clear all embeddings
-   */
   clearIndex(): void {
     this.embeddingStore.clear();
-    this.embeddingService.clearCache();
-    console.log('[LiteratureIndexer] Cleared all embeddings and cache');
+    console.log('[LiteratureIndexer] Cleared all embeddings');
   }
 
-  /**
-   * Check if indexing is in progress
-   */
   isIndexingInProgress(): boolean {
     return this.isIndexing;
   }

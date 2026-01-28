@@ -102,6 +102,7 @@ export class MCPClientManager {
     maxDelay: 10000,
     backoffMultiplier: 2,
   };
+  private zoteroDirectService: any; // Will be lazily initialized
 
   // Grouped API access
   public readonly zotero = {
@@ -116,8 +117,6 @@ export class MCPClientManager {
 
   public readonly citation = {
     verifyQuote: (quote: string, authorYear: string) => this.verifyQuote(quote, authorYear),
-    searchQuotes: (searchTerm: string, authorFilter?: string) => this.searchQuotes(searchTerm, authorFilter),
-    verifyAllQuotes: () => this.verifyAllQuotes(),
   };
 
   public readonly docling = {
@@ -131,6 +130,17 @@ export class MCPClientManager {
 
   constructor() {
     this.loadConfig();
+  }
+
+  /**
+   * Get or create ZoteroDirectService instance
+   */
+  private async getZoteroService(): Promise<any> {
+    if (!this.zoteroDirectService) {
+      const { ZoteroDirectService } = await import('../services/zoteroDirectService');
+      this.zoteroDirectService = new ZoteroDirectService();
+    }
+    return this.zoteroDirectService;
   }
 
   private async loadConfig(): Promise<void> {
@@ -259,7 +269,7 @@ export class MCPClientManager {
     });
   }
 
-  // Zotero MCP methods
+  // Zotero MCP methods - delegate to ZoteroDirectService
   async zoteroSemanticSearch(query: string, limit: number = 10): Promise<ZoteroItem[]> {
     const cacheKey = this.getCacheKey('zotero:search', query, limit);
     const cached = this.getFromCache<ZoteroItem[]>(cacheKey);
@@ -267,20 +277,10 @@ export class MCPClientManager {
     if (cached) {
       return cached;
     }
-
-    if (!this.isConnected('zotero')) {
-      console.warn('Zotero MCP not connected, returning cached results or empty array');
-      const emptyResult: ZoteroItem[] = [];
-      this.setCache(cacheKey, emptyResult);
-      return emptyResult;
-    }
     
     try {
-      const results = await this.withRetry(async () => {
-        // Placeholder for actual MCP call
-        // In real implementation: call mcp_zotero_zotero_semantic_search
-        return [] as ZoteroItem[];
-      });
+      const zoteroService = await this.getZoteroService();
+      const results = await zoteroService.semanticSearch(query, limit);
       
       this.setCache(cacheKey, results);
       return results;
@@ -299,19 +299,10 @@ export class MCPClientManager {
     if (cached) {
       return cached;
     }
-
-    if (!this.isConnected('zotero')) {
-      console.warn('Zotero MCP not connected, returning cached metadata');
-      this.setCache(cacheKey, null);
-      return null;
-    }
     
     try {
-      const metadata = await this.withRetry(async () => {
-        // Placeholder for actual MCP call
-        // In real implementation: call mcp_zotero_zotero_get_item_metadata
-        return null as ZoteroMetadata | null;
-      });
+      const zoteroService = await this.getZoteroService();
+      const metadata = await zoteroService.getItemMetadata(itemKey);
       
       if (metadata) {
         this.setCache(cacheKey, metadata);
@@ -319,7 +310,7 @@ export class MCPClientManager {
       return metadata;
     } catch (error) {
       console.error('Get item metadata failed:', error);
-      return cached;
+      return cached || null;
     }
   }
 
@@ -330,19 +321,10 @@ export class MCPClientManager {
     if (cached) {
       return cached;
     }
-
-    if (!this.isConnected('zotero')) {
-      console.warn('Zotero MCP not connected, returning cached fulltext');
-      this.setCache(cacheKey, '');
-      return '';
-    }
     
     try {
-      const fulltext = await this.withRetry(async () => {
-        // Placeholder for actual MCP call
-        // In real implementation: call mcp_zotero_zotero_get_item_fulltext
-        return '';
-      });
+      const zoteroService = await this.getZoteroService();
+      const fulltext = await zoteroService.getItemFulltext(itemKey);
       
       if (fulltext) {
         this.setCache(cacheKey, fulltext);
@@ -363,20 +345,10 @@ export class MCPClientManager {
     if (cached) {
       return cached;
     }
-
-    if (!this.isConnected('zotero')) {
-      console.warn('Zotero MCP not connected, returning cached collections');
-      const emptyResult: ZoteroCollection[] = [];
-      this.setCache(cacheKey, emptyResult);
-      return emptyResult;
-    }
     
     try {
-      const collections = await this.withRetry(async () => {
-        // Placeholder for actual MCP call
-        // In real implementation: call mcp_zotero_zotero_get_collections
-        return [] as ZoteroCollection[];
-      });
+      const zoteroService = await this.getZoteroService();
+      const collections = await zoteroService.getCollections();
       
       this.setCache(cacheKey, collections);
       return collections;
@@ -395,20 +367,10 @@ export class MCPClientManager {
     if (cached) {
       return cached;
     }
-
-    if (!this.isConnected('zotero')) {
-      console.warn('Zotero MCP not connected, returning cached collection items');
-      const emptyResult: any[] = [];
-      this.setCache(cacheKey, emptyResult);
-      return emptyResult;
-    }
     
     try {
-      const items = await this.withRetry(async () => {
-        // Placeholder for actual MCP call
-        // In real implementation: call mcp_zotero_zotero_get_collection_items
-        return [] as any[];
-      });
+      const zoteroService = await this.getZoteroService();
+      const items = await zoteroService.getCollectionItems(collectionKey, limit);
       
       this.setCache(cacheKey, items);
       return items;
@@ -427,20 +389,10 @@ export class MCPClientManager {
     if (cached) {
       return cached;
     }
-
-    if (!this.isConnected('zotero')) {
-      console.warn('Zotero MCP not connected, returning cached recent items');
-      const emptyResult: any[] = [];
-      this.setCache(cacheKey, emptyResult);
-      return emptyResult;
-    }
     
     try {
-      const items = await this.withRetry(async () => {
-        // Placeholder for actual MCP call
-        // In real implementation: call mcp_zotero_zotero_get_recent
-        return [] as any[];
-      });
+      const zoteroService = await this.getZoteroService();
+      const items = await zoteroService.getRecentItems(limit);
       
       this.setCache(cacheKey, items);
       return items;
@@ -459,20 +411,10 @@ export class MCPClientManager {
     if (cached) {
       return cached;
     }
-
-    if (!this.isConnected('zotero')) {
-      console.warn('Zotero MCP not connected, returning cached item children');
-      const emptyResult: any[] = [];
-      this.setCache(cacheKey, emptyResult);
-      return emptyResult;
-    }
     
     try {
-      const children = await this.withRetry(async () => {
-        // Placeholder for actual MCP call
-        // In real implementation: call mcp_zotero_zotero_get_item_children
-        return [] as any[];
-      });
+      const zoteroService = await this.getZoteroService();
+      const children = await zoteroService.getItemChildren(itemKey);
       
       this.setCache(cacheKey, children);
       return children;
@@ -534,63 +476,6 @@ export class MCPClientManager {
       const fallback = cached || { verified: false, similarity: 0 };
       this.setCache(cacheKey, fallback);
       return fallback;
-    }
-  }
-
-  async searchQuotes(searchTerm: string, authorFilter?: string): Promise<QuoteMatch[]> {
-    const cacheKey = this.getCacheKey('citation:search', searchTerm, authorFilter || '');
-    const cached = this.getFromCache<QuoteMatch[]>(cacheKey);
-    
-    if (cached) {
-      return cached;
-    }
-
-    if (!this.isConnected('citation')) {
-      console.warn('Citation MCP not connected, returning cached results');
-      const emptyResult: QuoteMatch[] = [];
-      this.setCache(cacheKey, emptyResult);
-      return emptyResult;
-    }
-    
-    try {
-      const results = await this.withRetry(async () => {
-        // Placeholder for actual MCP call
-        // In real implementation: call mcp_citation_search_quotes
-        return [] as QuoteMatch[];
-      });
-      
-      this.setCache(cacheKey, results);
-      return results;
-    } catch (error) {
-      console.error('Search quotes failed:', error);
-      const fallback = cached || [];
-      this.setCache(cacheKey, fallback);
-      return fallback;
-    }
-  }
-
-  async verifyAllQuotes(): Promise<VerificationReport> {
-    if (!this.isConnected('citation')) {
-      console.warn('Citation MCP not connected');
-      throw new Error('Citation MCP not available for batch verification');
-    }
-    
-    try {
-      const report = await this.withRetry(async () => {
-        // Placeholder for actual MCP call
-        // In real implementation: call mcp_citation_verify_all_quotes
-        return {
-          totalQuotes: 0,
-          verified: 0,
-          failed: 0,
-          failures: [],
-        } as VerificationReport;
-      }, { maxRetries: 1 }); // Fewer retries for batch operations
-      
-      return report;
-    } catch (error) {
-      console.error('Verify all quotes failed:', error);
-      throw error;
     }
   }
 

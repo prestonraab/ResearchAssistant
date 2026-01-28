@@ -257,19 +257,30 @@ function displayQuotes() {
 function displayQuoteContainer(container, quote, result, type) {
   const statusIcon = getStatusIcon(result);
   const verificationText = getVerificationText(result);
-  // Determine if we should show "Fix Quote" button
+  // Determine if we should show "Compare Quote" button
   const similarity = result?.similarity || 0;
-  const showFixQuote = result && similarity < 1.0 && result.closestMatch;
+  const showCompareQuote = result && !result.verified && result.closestMatch;
+  
+  // Check if we have alternative sources
+  const hasAlternativeSources = result?.alternativeSources && result.alternativeSources.length > 0;
   
   // Build buttons HTML
   let buttonsHtml = `
     <button class="btn btn-primary" data-action="editQuote" data-quote="${escapeHtml(quote)}">Edit Quote</button>
   `;
   
-  // Add Fix Quote button if verification < 100%
-  if (showFixQuote) {
+  // Add Compare Quote button if not verified and we have a closest match
+  if (showCompareQuote) {
     buttonsHtml += `
-      <button class="btn btn-secondary" data-action="fixQuote" data-quote="${escapeHtml(quote)}" data-closest-match="${escapeHtml(result.closestMatch)}">Fix Quote</button>
+      <button class="btn btn-secondary" data-action="compareQuote" data-quote="${escapeHtml(quote)}" data-closest-match="${escapeHtml(result.closestMatch)}">Compare Quote</button>
+    `;
+  }
+  
+  // Add "Use Alternative Source" button if alternative sources found
+  if (hasAlternativeSources) {
+    const topMatch = result.alternativeSources[0];
+    buttonsHtml += `
+      <button class="btn btn-success" data-action="useAlternativeSource" data-quote="${escapeHtml(quote)}" data-source="${escapeHtml(topMatch.source)}" data-matched-text="${escapeHtml(topMatch.matchedText)}">Use ${escapeHtml(topMatch.source)}</button>
     `;
   }
   
@@ -310,11 +321,20 @@ function displayQuoteContainer(container, quote, result, type) {
     });
   }
   
-  const fixBtn = container.querySelector('[data-action="fixQuote"]');
-  if (fixBtn) {
-    fixBtn.addEventListener('click', () => {
-      const closestMatch = fixBtn.getAttribute('data-closest-match');
-      fixQuote(quote, closestMatch);
+  const compareBtn = container.querySelector('[data-action="compareQuote"]');
+  if (compareBtn) {
+    compareBtn.addEventListener('click', () => {
+      const closestMatch = compareBtn.getAttribute('data-closest-match');
+      compareQuote(quote, closestMatch);
+    });
+  }
+  
+  const useAltBtn = container.querySelector('[data-action="useAlternativeSource"]');
+  if (useAltBtn) {
+    useAltBtn.addEventListener('click', () => {
+      const source = useAltBtn.getAttribute('data-source');
+      const matchedText = useAltBtn.getAttribute('data-matched-text');
+      useAlternativeSource(quote, source, matchedText);
     });
   }
   
@@ -367,7 +387,21 @@ function getVerificationText(result) {
   } else if (result.nearestMatch) {
     baseText = `Not verified (nearest: ${similarity}% match)`;
   } else {
-    baseText = 'Not found in sources';
+    // Check search status for more specific messaging
+    if (result.searchStatus === 'searching') {
+      baseText = 'Not found in source • Searching all sources...';
+    } else if (result.searchStatus === 'not_found') {
+      baseText = 'Not found in all sources';
+    } else {
+      baseText = 'Not found in source';
+    }
+  }
+  
+  // Add alternative sources if found
+  if (result.alternativeSources && result.alternativeSources.length > 0) {
+    const topMatch = result.alternativeSources[0];
+    const matchSimilarity = Math.round(topMatch.similarity * 100);
+    baseText = `Not found in source • Found in ${escapeHtml(topMatch.source)} (${matchSimilarity}% match)`;
   }
   
   return baseText;
@@ -659,26 +693,76 @@ function acceptCurrentQuote() {
 }
 
 /**
- * Edit quote
+ * Compare quote - show side-by-side comparison with closest match
  */
-function editQuote(quote) {
-  showEditModal('Edit Quote', quote, (newQuote) => {
-    if (newQuote && newQuote.trim()) {
-      vscode.postMessage({
-        type: 'acceptQuote',
-        claimId: currentClaim.id,
-        quote: quote,
-        newQuote: newQuote
-      });
+function compareQuote(currentQuote, closestMatch) {
+  // Create modal overlay
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay';
+  
+  // Create modal dialog
+  const dialog = document.createElement('div');
+  dialog.className = 'modal-dialog modal-compare';
+  
+  dialog.innerHTML = `
+    <h3>Compare Quotes</h3>
+    <div class="compare-container">
+      <div class="compare-column">
+        <h4>Current Quote</h4>
+        <div class="compare-text">${escapeHtml(currentQuote)}</div>
+      </div>
+      <div class="compare-column">
+        <h4>Suggested Quote (from source)</h4>
+        <div class="compare-text compare-suggested">${escapeHtml(closestMatch)}</div>
+      </div>
+    </div>
+    <div class="modal-buttons">
+      <button class="btn btn-secondary" id="modalKeepCurrent">Keep Current</button>
+      <button class="btn btn-primary" id="modalUseSuggested">Use Suggested</button>
+    </div>
+  `;
+  
+  overlay.appendChild(dialog);
+  document.body.appendChild(overlay);
+  
+  // Handle use suggested
+  const useSuggestedBtn = dialog.querySelector('#modalUseSuggested');
+  useSuggestedBtn.addEventListener('click', () => {
+    overlay.remove();
+    vscode.postMessage({
+      type: 'acceptQuote',
+      claimId: currentClaim.id,
+      quote: currentQuote,
+      newQuote: closestMatch
+    });
+  });
+  
+  // Handle keep current
+  const keepCurrentBtn = dialog.querySelector('#modalKeepCurrent');
+  keepCurrentBtn.addEventListener('click', () => {
+    overlay.remove();
+  });
+  
+  // Handle escape key
+  overlay.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      overlay.remove();
+    }
+  });
+  
+  // Close on overlay click
+  overlay.addEventListener('click', (e) => {
+    if (e.target === overlay) {
+      overlay.remove();
     }
   });
 }
 
 /**
- * Fix quote - replace with verified text from source
+ * Edit quote
  */
-function fixQuote(quote, closestMatch) {
-  showEditModal('Fix Quote', closestMatch, (newQuote) => {
+function editQuote(quote) {
+  showEditModal('Edit Quote', quote, (newQuote) => {
     if (newQuote && newQuote.trim()) {
       vscode.postMessage({
         type: 'acceptQuote',
@@ -1107,6 +1191,34 @@ function acceptNewQuote(snippetId, filePath, confidence = 0) {
   
   // Show loading state
   showNotification('Loading quote text...', 'info');
+}
+
+/**
+ * Use alternative source - update the quote's source to the correct one
+ */
+function useAlternativeSource(quote, newSource, matchedText) {
+  if (!currentClaim) return;
+  
+  // Extract author-year from filename (e.g., "Johnson et al. - 2007 - Title.txt" -> "Johnson2007")
+  const authorYearMatch = newSource.match(/^([^-]+)\s*-\s*(\d{4})/);
+  const authorYear = authorYearMatch ? `${authorYearMatch[1].trim().split(' ')[0]}${authorYearMatch[2]}` : newSource;
+  
+  showConfirmModal(
+    'Update Quote Source',
+    `Update the source to ${authorYear} and use the matched text from that source?`,
+    (confirmed) => {
+      if (confirmed) {
+        // Update both the quote text (to the matched text) and source
+        vscode.postMessage({
+          type: 'acceptQuote',
+          claimId: currentClaim.id,
+          quote: quote,
+          newQuote: matchedText,
+          newSource: authorYear
+        });
+      }
+    }
+  );
 }
 
 /**

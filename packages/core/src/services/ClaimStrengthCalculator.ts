@@ -1,5 +1,6 @@
 import { EmbeddingService } from './EmbeddingService.js';
 import { ClaimsManager } from '../managers/ClaimsManager.js';
+import { ClaimValidationCache } from './caching/index.js';
 import {
   ClaimStrengthResult,
   SupportingClaim,
@@ -15,6 +16,8 @@ export class ClaimStrengthCalculator {
   private embeddingService: EmbeddingService;
   private claimsManager: ClaimsManager;
   private similarityThreshold: number;
+  private validationCache: ClaimValidationCache | null = null;
+  private workspaceRoot: string | null = null;
 
   // Keywords for detecting negation
   private readonly NEGATION_KEYWORDS = [
@@ -86,11 +89,21 @@ export class ClaimStrengthCalculator {
   constructor(
     embeddingService: EmbeddingService,
     claimsManager: ClaimsManager,
-    similarityThreshold: number = 0.7
+    similarityThreshold: number = 0.7,
+    workspaceRoot?: string
   ) {
     this.embeddingService = embeddingService;
     this.claimsManager = claimsManager;
     this.similarityThreshold = similarityThreshold;
+    this.workspaceRoot = workspaceRoot || null;
+    
+    // Initialize validation cache if workspace root is provided
+    if (workspaceRoot) {
+      this.validationCache = new ClaimValidationCache(workspaceRoot);
+      this.validationCache.initialize().catch(error => {
+        console.error('[ClaimStrengthCalculator] Failed to initialize validation cache:', error);
+      });
+    }
   }
 
   /**
@@ -390,6 +403,7 @@ export class ClaimStrengthCalculator {
   /**
    * Validate whether a claim's quote actually supports the claim text.
    * Analyzes semantic similarity between claim text and supporting quotes.
+   * Checks cache first before computing.
    * 
    * @param claim The claim to validate
    * @param minSources Minimum number of independent sources required
@@ -405,8 +419,24 @@ export class ClaimStrengthCalculator {
     similarity: number;
     supported: boolean;
     analysis: string;
+    suggestedQuotes?: string[];
   }> {
     try {
+      // Check cache first
+      if (this.validationCache) {
+        const cached = this.validationCache.get(claim.text);
+        if (cached) {
+          console.log(`[ClaimStrengthCalculator] Cache hit for validation of claim ${claim.id}`);
+          return {
+            claimId: claim.id,
+            similarity: cached.similarity,
+            supported: cached.supported,
+            analysis: cached.analysis,
+            suggestedQuotes: cached.suggestedQuotes
+          };
+        }
+      }
+      
       // Calculate similarity between claim text and primary quote
       const claimEmbedding = await this.embeddingService.generateEmbedding(claim.text);
       const quoteEmbedding = await this.embeddingService.generateEmbedding(claim.primaryQuote?.text || '');
@@ -427,12 +457,25 @@ export class ClaimStrengthCalculator {
         minSources
       );
 
-      return {
+      const result = {
         claimId: claim.id,
         similarity,
         supported,
         analysis,
       };
+      
+      // Store in cache
+      if (this.validationCache) {
+        this.validationCache.set(claim.text, {
+          similarity,
+          supported,
+          suggestedQuotes: [],
+          analysis
+        });
+        console.log(`[ClaimStrengthCalculator] Cached validation result for claim ${claim.id}`);
+      }
+      
+      return result;
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : 'Unknown error';
       return {

@@ -95,6 +95,9 @@ export class ClaimsManager extends CoreClaimsManager {
       // Infer missing sources from filenames
       await this.inferMissingSources(claims);
       
+      // Restore verification status from cache
+      await this.restoreVerificationStatus(claims);
+      
       // Sync mutable claims map
       this.mutableClaims.clear();
       for (const claim of claims) {
@@ -219,6 +222,44 @@ export class ClaimsManager extends CoreClaimsManager {
     const author = authorMatch[1];
 
     return `${author}${year}`;
+  }
+
+  /**
+   * Restore verification status from cache for claims with quotes.
+   * This ensures verification status persists across extension reloads.
+   */
+  private async restoreVerificationStatus(claims: Claim[]): Promise<void> {
+    // Import the cache here to avoid circular dependencies
+    const { QuoteVerificationCache } = await import('@research-assistant/core');
+    
+    try {
+      const workspaceRoot = path.dirname(path.dirname(this.filePath));
+      const cache = new QuoteVerificationCache(workspaceRoot);
+      await cache.initialize();
+      
+      let restoredCount = 0;
+      
+      for (const claim of claims) {
+        // Skip claims without primary quotes
+        if (!claim.primaryQuote || !claim.primaryQuote.text || !claim.primaryQuote.source) {
+          continue;
+        }
+        
+        // Check cache for this quote
+        const cached = cache.get(claim.primaryQuote.text, claim.primaryQuote.source);
+        if (cached) {
+          claim.verified = cached.verified;
+          claim.primaryQuote.verified = cached.verified;
+          restoredCount++;
+        }
+      }
+      
+      if (restoredCount > 0) {
+        console.log(`[ClaimsManager] Restored verification status for ${restoredCount} claims from cache`);
+      }
+    } catch (error) {
+      console.warn('[ClaimsManager] Failed to restore verification status from cache:', error);
+    }
   }
 
   /**

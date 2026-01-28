@@ -311,6 +311,27 @@ export { SynthesisEngine } from './services/SynthesisEngine.js';
  */
 export { SearchQueryGenerator } from './services/SearchQueryGenerator.js';
 
+/**
+ * Literature Services
+ * 
+ * Services for indexing and searching literature.
+ */
+export { LiteratureIndexer } from './services/LiteratureIndexer.js';
+export { EmbeddingStore, EmbeddedSnippet, QuantizedSnippet, EmbeddingIndex } from './services/EmbeddingStore.js';
+export { SnippetExtractor } from './services/SnippetExtractor.js';
+export { EmbeddingQuantizer } from './services/EmbeddingQuantizer.js';
+
+/**
+ * Quote Verification Service
+ * 
+ * Service for verifying quotes against source texts with caching.
+ */
+export {
+  QuoteVerificationService,
+  QuoteVerifier,
+  ClaimsProvider
+} from './services/QuoteVerificationService.js';
+
 // ============================================================================
 // Caching Services
 // ============================================================================

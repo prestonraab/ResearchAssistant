@@ -278,17 +278,8 @@ export class ClaimSupportValidator {
         }
       }
       
-      // If no file found, try to use Citation MCP to get source text
-      try {
-        const matches = await this.mcpClient.citation.searchQuotes('', source);
-        if (matches.length > 0) {
-          // Combine all contexts to approximate the source text
-          return matches.map(m => m.context).join('\n\n');
-        }
-      } catch (error) {
-        console.warn('Citation MCP not available for source text retrieval');
-      }
-      
+      // If no file found, source text is not available
+      console.warn(`Source file not found for: ${source}`);
       return null;
     } catch (error) {
       console.error(`Error loading source text for ${source}:`, error);

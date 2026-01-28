@@ -1,0 +1,7 @@
+## The Challenge of Batch Effects
+
+Batch effects are systematic technical variations introduced when handling samples in batches <!-- Source: C_105 -->. These technical artifacts arise from multiple sources: laboratory conditions, reagent lots, and personnel differences <!-- Source: C_104 -->. Additionally, equipment variations and calibration differences introduce systematic biases that manifest as batch effects <!-- Source: C_106 -->.
+
+The impact of these technical variations extends beyond simple noise. When batch effects are confounded with outcomes of interest, models may select and encode batch-related features rather than true biological signals <!-- Source: C_102 -->. Consequently, classifiers trained on such data may achieve high internal performance while failing to generalize to external datasets <!-- Source: C_103 -->. This phenomenon is particularly problematic because cross-validation within a single study may give optimistic performance estimates, as classifiers can learn batch-specific patterns rather than genuine biological relationships <!-- Source: C_04 -->.
+
+Statistical adjustment methods, commonly referred to as batch correction methods, aim to remove technical variation while preserving biological signal. However, the balance between these objectives varies across methods and contexts, and the optimal approach depends on the specific characteristics of the data and the intended downstream analysis.

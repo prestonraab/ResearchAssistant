@@ -7,6 +7,8 @@ import { WritingModeProvider } from '../ui/writingModeProvider';
 import { EditingModeProvider } from '../ui/editingModeProvider';
 import { ClaimMatchingProvider } from '../ui/claimMatchingProvider';
 import { ManuscriptExportOptions } from '../core/exportService';
+import { SectionTagger } from '../core/sectionTagger';
+import { QuestionAnswerParser } from '../core/questionAnswerParser';
 
 export function registerManuscriptCommands(
   context: vscode.ExtensionContext,
@@ -240,6 +242,87 @@ export function registerManuscriptCommands(
         );
       } catch (error) {
         vscode.window.showErrorMessage(`PDF extraction failed: ${error}`);
+      }
+    }),
+
+    vscode.commands.registerCommand('researchAssistant.tagClaimsFromManuscript', async () => {
+      if (!extensionState) {
+        return;
+      }
+
+      try {
+        const manuscriptPath = extensionState.getAbsolutePath('03_Drafting/manuscript.md');
+        if (!fs.existsSync(manuscriptPath)) {
+          vscode.window.showErrorMessage('Manuscript file not found at 03_Drafting/manuscript.md');
+          return;
+        }
+
+        const result = await vscode.window.showInformationMessage(
+          'This will automatically tag claims with sections based on where they are used in the manuscript. Continue?',
+          { modal: true },
+          'Yes, Tag Claims',
+          'Preview First',
+          'Cancel'
+        );
+
+        if (result === 'Cancel' || !result) {
+          return;
+        }
+
+        const manuscriptText = fs.readFileSync(manuscriptPath, 'utf-8');
+        const parser = new QuestionAnswerParser();
+        const tagger = new SectionTagger(parser, extensionState.claimsManager);
+
+        if (result === 'Preview First') {
+          // Show preview of what would be tagged
+          const analysis = await tagger.analyzeManuscript(manuscriptText);
+          const report = tagger.getSectionUsageReport(manuscriptText);
+
+          let preview = `Found ${analysis.claimsTagged} claims used in ${analysis.sectionsFound} sections:\n\n`;
+          
+          for (const [section, claims] of report.entries()) {
+            preview += `## ${section}\n`;
+            preview += `${claims.length} claims: ${claims.join(', ')}\n\n`;
+          }
+
+          const previewDoc = await vscode.workspace.openTextDocument({
+            content: preview,
+            language: 'markdown'
+          });
+          await vscode.window.showTextDocument(previewDoc);
+
+          const confirm = await vscode.window.showInformationMessage(
+            'Apply these section tags to claims?',
+            'Yes, Apply',
+            'Cancel'
+          );
+
+          if (confirm !== 'Yes, Apply') {
+            return;
+          }
+        }
+
+        await vscode.window.withProgress(
+          {
+            location: vscode.ProgressLocation.Notification,
+            title: 'Tagging Claims with Sections',
+            cancellable: false
+          },
+          async () => {
+            const result = await tagger.tagClaimsFromManuscript(manuscriptText);
+
+            vscode.window.showInformationMessage(
+              `Section tagging complete!\n\nTagged ${result.claimsTagged} claims with ${result.sectionsFound} sections`,
+              { modal: true }
+            );
+
+            // Refresh the outline tree to show updated coverage
+            vscode.commands.executeCommand('researchAssistant.refreshOutline');
+          }
+        );
+      } catch (error) {
+        vscode.window.showErrorMessage(`Section tagging failed: ${error}`);
+        logger?.error('Section tagging error:', error);
       }
     }),
 

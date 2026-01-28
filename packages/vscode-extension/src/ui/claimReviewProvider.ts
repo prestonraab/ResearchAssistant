@@ -14,6 +14,7 @@ import { VerificationFeedbackLoop } from '../services/verificationFeedbackLoop';
 import { getModeContextManager } from '../core/modeContextManager';
 import { DataValidationService } from '../core/dataValidationService';
 import { SentenceClaimMapper } from '../core/sentenceClaimMapper';
+import { FuzzyQuoteMatcher } from '../services/fuzzyQuoteMatcher';
 
 /**
  * ClaimReviewProvider - Webview panel provider for claim review mode
@@ -35,6 +36,7 @@ export class ClaimReviewProvider {
   private verificationFeedbackLoop: VerificationFeedbackLoop;
   private scrollPosition: number = 0; // Track scroll position for restoration
   private sentenceClaimMapper: SentenceClaimMapper;
+  private fuzzyQuoteMatcher: FuzzyQuoteMatcher;
 
   constructor(
     private extensionState: ExtensionState,
@@ -46,6 +48,9 @@ export class ClaimReviewProvider {
     // Initialize literature indexer with workspace root
     const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || '';
     this.literatureIndexer = new LiteratureIndexer(workspaceRoot);
+    
+    // Initialize fuzzy quote matcher for fallback
+    this.fuzzyQuoteMatcher = new FuzzyQuoteMatcher(workspaceRoot);
     
     // Initialize verification feedback loop with workspace root for cache
     this.verificationFeedbackLoop = new VerificationFeedbackLoop(
@@ -253,13 +258,90 @@ export class ClaimReviewProvider {
             quoteSource
           );
 
+          console.log('[ClaimReview] Primary quote verification result:', {
+            verified: primaryResult.verified,
+            similarity: primaryResult.similarity,
+            willSearch: !primaryResult.verified
+          });
+
+          // If quote not verified in claimed source, search across all literature using LiteratureIndexer
+          let alternativeSources: any[] = [];
+          let searchStatus: 'not_searched' | 'searching' | 'found' | 'not_found' = 'not_searched';
+          
+          if (!primaryResult.verified) {
+            console.log('[ClaimReview] Quote not found in claimed source, searching all literature...');
+            searchStatus = 'searching';
+            
+            try {
+              // Try embedding search first
+              const snippets = await this.literatureIndexer.searchSnippetsWithSimilarity(quoteText, 5);
+              
+              console.log('[ClaimReview] Embedding search completed, found', snippets?.length || 0, 'snippets');
+              
+              if (snippets && snippets.length > 0) {
+                // Log top results for debugging
+                snippets.slice(0, 3).forEach((s, i) => {
+                  console.log(`[ClaimReview] Embedding result ${i + 1}:`, {
+                    fileName: s.fileName,
+                    similarity: s.similarity,
+                    textPreview: s.text.substring(0, 100)
+                  });
+                });
+                
+                alternativeSources = snippets
+                  .filter(snippet => snippet.similarity >= 0.7)
+                  .map(snippet => ({
+                    source: snippet.fileName.replace(/\.txt$/, '').replace(/ - /g, ' '),
+                    similarity: snippet.similarity,
+                    matchedText: snippet.text,
+                    context: `Lines ${snippet.startLine}-${snippet.endLine}`
+                  }));
+                
+                console.log('[ClaimReview] Filtered to', alternativeSources.length, 'sources above 0.7 threshold');
+              }
+              
+              // If embedding search didn't find good matches, try fuzzy matching
+              if (alternativeSources.length === 0) {
+                console.log('[ClaimReview] Embedding search found no good matches, trying fuzzy matching...');
+                const fuzzyResults = await this.fuzzyQuoteMatcher.searchQuote(quoteText, 5);
+                
+                console.log('[ClaimReview] Fuzzy search completed, found', fuzzyResults.length, 'matches');
+                
+                if (fuzzyResults.length > 0) {
+                  // Log top results
+                  fuzzyResults.slice(0, 3).forEach((r, i) => {
+                    console.log(`[ClaimReview] Fuzzy result ${i + 1}:`, {
+                      fileName: r.fileName,
+                      similarity: r.similarity,
+                      textPreview: r.matchedText.substring(0, 100)
+                    });
+                  });
+                  
+                  alternativeSources = fuzzyResults.map(result => ({
+                    source: result.fileName.replace(/\.txt$/, '').replace(/ - /g, ' '),
+                    similarity: result.similarity,
+                    matchedText: result.matchedText,
+                    context: `Lines ${result.startLine}-${result.endLine}`
+                  }));
+                }
+              }
+              
+              searchStatus = alternativeSources.length > 0 ? 'found' : 'not_found';
+            } catch (error) {
+              console.error('[ClaimReview] Failed to search for quote anywhere:', error);
+              searchStatus = 'not_found';
+            }
+          }
+
           results.push({
             quote: quoteText,
             type: 'primary',
             verified: primaryResult.verified,
             similarity: primaryResult.similarity,
             closestMatch: primaryResult.closestMatch,
-            confidence: claim.primaryQuote.confidence
+            confidence: claim.primaryQuote.confidence,
+            alternativeSources: alternativeSources.length > 0 ? alternativeSources : undefined,
+            searchStatus
           });
         }
       }
@@ -278,13 +360,84 @@ export class ClaimReviewProvider {
             quoteSource
           );
 
+          // If quote not verified in claimed source, search across all literature using LiteratureIndexer
+          let alternativeSources: any[] = [];
+          let searchStatus: 'not_searched' | 'searching' | 'found' | 'not_found' = 'not_searched';
+          
+          if (!result.verified) {
+            console.log('[ClaimReview] Supporting quote not found in claimed source, searching all literature...');
+            searchStatus = 'searching';
+            
+            try {
+              // Try embedding search first
+              const snippets = await this.literatureIndexer.searchSnippetsWithSimilarity(quoteText, 5);
+              
+              console.log('[ClaimReview] Supporting embedding search completed, found', snippets?.length || 0, 'snippets');
+              
+              if (snippets && snippets.length > 0) {
+                // Log top results for debugging
+                snippets.slice(0, 3).forEach((s, i) => {
+                  console.log(`[ClaimReview] Supporting embedding result ${i + 1}:`, {
+                    fileName: s.fileName,
+                    similarity: s.similarity,
+                    textPreview: s.text.substring(0, 100)
+                  });
+                });
+                
+                alternativeSources = snippets
+                  .filter(snippet => snippet.similarity >= 0.7)
+                  .map(snippet => ({
+                    source: snippet.fileName.replace(/\.txt$/, '').replace(/ - /g, ' '),
+                    similarity: snippet.similarity,
+                    matchedText: snippet.text,
+                    context: `Lines ${snippet.startLine}-${snippet.endLine}`
+                  }));
+                
+                console.log('[ClaimReview] Filtered to', alternativeSources.length, 'supporting sources above 0.7 threshold');
+              }
+              
+              // If embedding search didn't find good matches, try fuzzy matching
+              if (alternativeSources.length === 0) {
+                console.log('[ClaimReview] Supporting embedding search found no good matches, trying fuzzy matching...');
+                const fuzzyResults = await this.fuzzyQuoteMatcher.searchQuote(quoteText, 5);
+                
+                console.log('[ClaimReview] Supporting fuzzy search completed, found', fuzzyResults.length, 'matches');
+                
+                if (fuzzyResults.length > 0) {
+                  // Log top results
+                  fuzzyResults.slice(0, 3).forEach((r, i) => {
+                    console.log(`[ClaimReview] Supporting fuzzy result ${i + 1}:`, {
+                      fileName: r.fileName,
+                      similarity: r.similarity,
+                      textPreview: r.matchedText.substring(0, 100)
+                    });
+                  });
+                  
+                  alternativeSources = fuzzyResults.map(result => ({
+                    source: result.fileName.replace(/\.txt$/, '').replace(/ - /g, ' '),
+                    similarity: result.similarity,
+                    matchedText: result.matchedText,
+                    context: `Lines ${result.startLine}-${result.endLine}`
+                  }));
+                }
+              }
+              
+              searchStatus = alternativeSources.length > 0 ? 'found' : 'not_found';
+            } catch (error) {
+              console.error('[ClaimReview] Failed to search for supporting quote anywhere:', error);
+              searchStatus = 'not_found';
+            }
+          }
+
           results.push({
             quote: quoteText,
             type: 'supporting',
             verified: result.verified,
             similarity: result.similarity,
             closestMatch: result.closestMatch,
-            confidence: quoteObj.confidence
+            confidence: quoteObj.confidence,
+            alternativeSources: alternativeSources.length > 0 ? alternativeSources : undefined,
+            searchStatus
           });
         }
       }
@@ -383,7 +536,7 @@ export class ClaimReviewProvider {
         break;
 
       case 'acceptQuote':
-        await this.handleAcceptQuote(message.claimId, message.quote, message.newQuote);
+        await this.handleAcceptQuote(message.claimId, message.quote, message.newQuote, message.newSource);
         break;
 
       case 'deleteQuote':
@@ -517,7 +670,7 @@ export class ClaimReviewProvider {
   /**
    * Handle accept quote message
    */
-  private async handleAcceptQuote(claimId: string, oldQuote: string, newQuote: string): Promise<void> {
+  private async handleAcceptQuote(claimId: string, oldQuote: string, newQuote: string, newSource?: string): Promise<void> {
     try {
       const claim = this.extensionState.claimsManager.getClaim(claimId);
 
@@ -529,10 +682,18 @@ export class ClaimReviewProvider {
       // Replace quote in claim
       if (claim.primaryQuote && claim.primaryQuote.text === oldQuote) {
         claim.primaryQuote.text = newQuote;
+        // Update source if provided
+        if (newSource) {
+          claim.primaryQuote.source = newSource;
+        }
       } else if (claim.supportingQuotes && claim.supportingQuotes.length > 0) {
         const index = claim.supportingQuotes.findIndex((q: any) => q.text === oldQuote);
         if (index >= 0) {
           claim.supportingQuotes[index].text = newQuote;
+          // Update source if provided
+          if (newSource) {
+            claim.supportingQuotes[index].source = newSource;
+          }
         }
       }
 

@@ -76,7 +76,7 @@ export const tools: Tool[] = [
     }
   },
   {
-    name: 'search_by_draft',
+    name: 'validate_draft_citations',
     description: 'Search for claims matching draft manuscript text. Analyzes each sentence to find supporting evidence and identifies gaps. Use this after writing a draft to find citations.',
     inputSchema: {
       type: 'object',
@@ -120,7 +120,7 @@ export const tools: Tool[] = [
     }
   },
   {
-    name: 'analyze_section_coverage',
+    name: 'check_section_coverage',
     description: 'Analyze literature coverage for a specific section at the sentence level. Returns which sentences are supported by claims, which need citations, and generates targeted search queries for unsupported sentences.',
     inputSchema: {
       type: 'object',
@@ -134,7 +134,7 @@ export const tools: Tool[] = [
     }
   },
   {
-    name: 'analyze_manuscript_coverage',
+    name: 'check_manuscript_coverage',
     description: 'Analyze literature coverage for the entire manuscript. Returns coverage statistics for all sections and identifies the weakest sections that need more supporting evidence.',
     inputSchema: {
       type: 'object',
@@ -239,20 +239,6 @@ export const tools: Tool[] = [
     }
   },
   {
-    name: 'generate_paragraph',
-    description: 'Generate a coherent paragraph from multiple claims. Supports narrative, analytical, and descriptive styles. Preserves citations and adds transition phrases. Use this to draft literature review paragraphs.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        claims: { type: 'array', items: claimSchema, description: 'Array of claims to synthesize' },
-        style: { type: 'string', enum: ['narrative', 'analytical', 'descriptive'], description: 'Writing style: narrative (tells story), analytical (compares/contrasts), descriptive (lists/enumerates)' },
-        include_citations: { type: 'boolean', description: 'Whether to include citation references in (AuthorYear) format' },
-        max_length: { type: 'number', description: 'Optional: Maximum paragraph length in characters. Default is 0 (no limit)', minimum: 0 }
-      },
-      required: ['claims', 'style', 'include_citations']
-    }
-  },
-  {
     name: 'generate_search_queries',
     description: 'Generate 2-5 targeted search queries for a section based on title and content. Extracts key terms, converts questions to queries, and ensures uniqueness. Use this to find relevant papers efficiently.',
     inputSchema: {
@@ -264,6 +250,47 @@ export const tools: Tool[] = [
         }
       },
       required: ['section_id']
+    }
+  },
+  {
+    name: 'list_claims',
+    description: 'List claims with optional filtering by category, source, or text search. Fast way to browse available claims without semantic search. Returns claim summaries with IDs for detailed lookup.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        category: {
+          type: 'string',
+          description: 'Optional: Filter by category (e.g., "Method", "Phenomenon", "Impact")'
+        },
+        source: {
+          type: 'string',
+          description: 'Optional: Filter by source (e.g., "Johnson2007", "Alharbi2023")'
+        },
+        search_text: {
+          type: 'string',
+          description: 'Optional: Search in claim text and quotes'
+        },
+        limit: {
+          type: 'number',
+          description: 'Optional: Maximum number of results to return. Default is 50',
+          minimum: 1,
+          maximum: 200
+        }
+      }
+    }
+  },
+  {
+    name: 'get_claim_details',
+    description: 'Get full details for a specific claim including all quotes, sections, and metadata. Use after finding a claim ID from list_claims or search.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        claim_id: {
+          type: 'string',
+          description: 'The claim ID (e.g., "C_01", "C_104")'
+        }
+      },
+      required: ['claim_id']
     }
   },
   {
@@ -532,7 +559,7 @@ export const tools: Tool[] = [
     }
   },
   {
-    name: 'find_weakly_supported_claims',
+    name: 'find_unsupported_claims',
     description: 'Identify all claims with insufficient support. Analyzes all claims in the knowledge base and returns those with low similarity between claim text and supporting quotes.',
     inputSchema: {
       type: 'object',
@@ -579,6 +606,32 @@ export const tools: Tool[] = [
         }
       },
       required: ['quote', 'source']
+    }
+  },
+  {
+    name: 'find_quote_anywhere',
+    description: 'Search for a quote across all literature files in the extracted text directory. Returns the best matches with source, similarity score, and context. Use this when you want to verify a quote but don\'t know which source contains it, or when the source reference might be incorrect.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        quote: {
+          type: 'string',
+          description: 'The quote text to search for'
+        },
+        threshold: {
+          type: 'number',
+          description: 'Optional: Minimum similarity threshold (0-1). Default is 0.7',
+          minimum: 0,
+          maximum: 1
+        },
+        top_n: {
+          type: 'number',
+          description: 'Optional: Number of top matches to return. Default is 3',
+          minimum: 1,
+          maximum: 10
+        }
+      },
+      required: ['quote']
     }
   },
   {

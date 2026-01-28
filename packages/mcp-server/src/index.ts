@@ -32,6 +32,7 @@ import {
   ClaimExtractor,
   SynthesisEngine,
   SearchQueryGenerator,
+  LiteratureIndexer,
 } from '@research-assistant/core';
 import { ZoteroService } from './services/ZoteroService.js';
 import { DoclingService } from './services/DoclingService.js';
@@ -62,6 +63,10 @@ const claimsManager = new ClaimsManager(config.workspaceRoot);
 const searchService = new SearchService(embeddingService, claimsManager, config.similarityThreshold);
 const outlineParser = new OutlineParser();
 const manuscriptFile = path.join(config.workspaceRoot, '03_Drafting', 'manuscript.md');
+const literatureIndexer = new LiteratureIndexer(
+  config.workspaceRoot,
+  embeddingService
+);
 
 // Initialize Zotero service if credentials are available
 let zoteroService: ZoteroService | undefined;
@@ -85,16 +90,53 @@ const services: Services = {
   searchService,
   outlineParser,
   coverageAnalyzer: new CoverageAnalyzer(outlineParser, searchService, manuscriptFile, config.similarityThreshold),
-  claimStrengthCalculator: new ClaimStrengthCalculator(embeddingService, claimsManager, config.similarityThreshold),
+  claimStrengthCalculator: new ClaimStrengthCalculator(embeddingService, claimsManager, config.similarityThreshold, config.workspaceRoot),
   paperRanker: new PaperRanker(embeddingService, outlineParser, 50, config.citationBoostFactor, 200, 500),
   claimExtractor: new ClaimExtractor(embeddingService),
   synthesisEngine: new SynthesisEngine(embeddingService),
   searchQueryGenerator: new SearchQueryGenerator(outlineParser),
+  literatureIndexer,
   zoteroService,
   doclingService,
+  workspaceRoot: config.workspaceRoot,
 };
 
 console.error('✓ All services initialized successfully');
+
+// Auto-load claims and outline on startup
+(async () => {
+  try {
+    console.error('Loading claims database...');
+    await claimsManager.loadClaims();
+    const claimCount = claimsManager.getAllClaims().length;
+    console.error(`✓ Loaded ${claimCount} claims`);
+  } catch (error) {
+    console.error('⚠ Failed to load claims:', error instanceof Error ? error.message : String(error));
+  }
+
+  try {
+    console.error('Parsing outline...');
+    const outlinePath = path.join(config.workspaceRoot, '03_Drafting', 'outline.md');
+    await outlineParser.parse(outlinePath);
+    const sectionCount = outlineParser.getSections().length;
+    console.error(`✓ Parsed ${sectionCount} sections from outline`);
+  } catch (error) {
+    console.error('⚠ Failed to parse outline:', error instanceof Error ? error.message : String(error));
+  }
+
+  try {
+    console.error('Indexing literature files (this may take a few minutes on first run)...');
+    const stats = await literatureIndexer.indexChangedFiles();
+    console.error(`✓ Literature indexed: ${stats.indexed} new, ${stats.skipped} unchanged, ${stats.errors} errors`);
+    
+    if (stats.indexed === 0 && stats.skipped === 0) {
+      console.error('⚠ No literature files found or indexed. Check that literature/ExtractedText exists and contains .txt files');
+    }
+  } catch (error) {
+    console.error('⚠ Failed to index literature:', error instanceof Error ? error.message : String(error));
+    console.error('Stack trace:', error instanceof Error ? error.stack : 'N/A');
+  }
+})();
 
 // Create MCP server
 const server = new Server(

@@ -145,6 +145,151 @@ export class ZoteroDirectService {
   }
 
   /**
+   * Get collections from library
+   */
+  async getCollections(): Promise<Array<{ key: string; name: string; parentCollection?: string }>> {
+    if (!this.userId) {
+      return [];
+    }
+
+    const cacheKey = 'collections';
+    const cached = this.getFromCache(cacheKey);
+    if (cached) {
+      return cached;
+    }
+
+    try {
+      const url = `${this.baseUrl}/users/${this.userId}/collections?format=json`;
+      const collections = await this.makeRequest(url);
+      
+      if (!Array.isArray(collections)) {
+        return [];
+      }
+
+      const results = collections.map((col: any) => ({
+        key: col.key || col.data?.key || '',
+        name: col.data?.name || col.name || 'Unnamed Collection',
+        parentCollection: col.data?.parentCollection || col.parentCollection
+      }));
+
+      this.setCache(cacheKey, results);
+      return results;
+    } catch (error) {
+      console.error('Failed to get collections:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Get items from a specific collection
+   */
+  async getCollectionItems(collectionKey: string, limit?: number): Promise<any[]> {
+    if (!this.userId) {
+      return [];
+    }
+
+    const cacheKey = `collection:${collectionKey}:${limit || 'all'}`;
+    const cached = this.getFromCache(cacheKey);
+    if (cached) {
+      return cached;
+    }
+
+    try {
+      const limitParam = limit ? `&limit=${limit}` : '';
+      const url = `${this.baseUrl}/users/${this.userId}/collections/${collectionKey}/items/top?format=json${limitParam}`;
+      
+      const items = await this.makeRequest(url);
+      
+      if (!Array.isArray(items)) {
+        return [];
+      }
+
+      const results = items.map(item => this.parseZoteroItem(item)).filter(Boolean);
+      this.setCache(cacheKey, results);
+      return results;
+    } catch (error) {
+      console.error('Failed to get collection items:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Get children (attachments, notes) of an item
+   */
+  async getItemChildren(itemKey: string): Promise<any[]> {
+    if (!this.userId) {
+      return [];
+    }
+
+    const cacheKey = `children:${itemKey}`;
+    const cached = this.getFromCache(cacheKey);
+    if (cached) {
+      return cached;
+    }
+
+    try {
+      const url = `${this.baseUrl}/users/${this.userId}/items/${itemKey}/children?format=json`;
+      
+      const children = await this.makeRequest(url);
+      
+      if (!Array.isArray(children)) {
+        return [];
+      }
+
+      // Parse children to extract useful info
+      const results = children.map((child: any) => {
+        const data = child.data || child;
+        return {
+          key: child.key || data.key,
+          itemType: data.itemType,
+          contentType: data.contentType,
+          filename: data.filename,
+          title: data.title,
+          data: data
+        };
+      });
+
+      this.setCache(cacheKey, results);
+      return results;
+    } catch (error) {
+      console.error('Failed to get item children:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Get item fulltext (if available)
+   */
+  async getItemFulltext(itemKey: string): Promise<string> {
+    if (!this.userId) {
+      return '';
+    }
+
+    const cacheKey = `fulltext:${itemKey}`;
+    const cached = this.getFromCache(cacheKey);
+    if (cached) {
+      return cached;
+    }
+
+    try {
+      const url = `${this.baseUrl}/users/${this.userId}/items/${itemKey}/fulltext?format=json`;
+      
+      const response = await this.makeRequest(url);
+      
+      const fulltext = response?.content || '';
+      
+      if (fulltext) {
+        this.setCache(cacheKey, fulltext);
+      }
+      
+      return fulltext;
+    } catch (error) {
+      console.error('Failed to get item fulltext:', error);
+      return '';
+    }
+  }
+
+  /**
    * Parse Zotero API response into ZoteroItem
    */
   private parseZoteroItem(item: any): ZoteroItem | null {

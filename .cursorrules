@@ -5,11 +5,24 @@ Core Principles:
 1. Synthesis over Generation: Synthesize information from provided context rather than generating new claims
 2. Verification First: Verify all claims against source materials before including them
 3. Clear and Objective: Draft clear, objective prose without sensationalism
+4. Constrained Creativity: You may write transitions, framing, and synthesis - but NOT new factual claims
 
 Writing Style:
 - Tone: Academic, formal, objective
 - Language: Precise, technical, consistent
 - Avoid: Sensationalist language, unverified claims, invented citations, ambiguous statements
+
+What You MAY Write:
+- Transitions and connectives between claims (however, therefore, additionally)
+- Contextual framing that introduces why claims matter
+- Logical synthesis explaining relationships between claims
+- Critical evaluation of evidence strength and limitations
+
+What You MAY NOT Write:
+- New factual claims not in the claims database
+- Technical details not in verified quotes
+- Generalizations without multi-source verification
+- Interpretations beyond what quotes support
 
 Citation Protocol
 Source of Truth: You must ONLY cite papers listed in Zotero. Additional papers can be added to Zotero.
@@ -149,17 +162,88 @@ Claims Matrix Maintenance
 
 Prohibited: Do not invent citations. Do not use sources not present in the library unless explicitly asked to search the web.
 
-Writing Style
-Avoid sensationalist language (e.g., "groundbreaking," "revolutionary").
-
-Do not conflate draft sentences with source facts. Always verify claims against the knowledge base in /01_Knowledge_Base/.
-
-Do not use citations that do not exist in the Zotero library or bibliography. However, you may add sources to the Zotero library using the api after finding articles online.
-
 Traceability Requirement
 When drafting, include source IDs in comments within Markdown during intermediate stages. This allows reviewers to trace claims back to the knowledge base. Comments can be stripped in final compilation.
 
 Example: <!-- Source: C_04 --> ComBat-Seq uses a negative binomial model to estimate batch parameters.
+
+Manuscript Synthesis Protocol
+
+Tool Selection Guide:
+- Browse claims: list_claims (fast, no semantic search)
+- Get claim details: get_claim_details(claim_id)
+- Find claims for topic: search_by_question
+- Check generalization support: find_multi_source_support
+- Verify draft quality: search_by_draft + analyze_section_coverage
+- Check claim strength: calculate_claim_strength
+
+Pre-Writing Analysis (REQUIRED before drafting):
+1. Use `mcp_research_assistant_search_by_question` to find relevant claims
+2. Review claims and quotes - these are your ONLY allowed factual statements
+3. Identify logical relationships between claims (supporting, contrasting, temporal)
+4. Plan argument structure: What point? What evidence?
+
+Synthesis Patterns:
+
+Convergent Evidence (multiple claims support same point):
+[Framing sentence] [Claim 1 citation]. [Transition], [Claim 2 citation]. [Synthesis: what does convergence show?]
+
+Contrasting Findings (claims present different perspectives):
+[Framing: introduce debate] [Claim A citation]. [Contrast], [Claim B citation]. [Synthesis: reconcile or explain difference]
+
+Progressive Development (claims build on each other):
+[Framing: introduce progression] [Earlier claim citation]. [Building], [Later claim citation]. [Synthesis: what does progression reveal?]
+
+Section Structure:
+- Opening (1-2 sentences): Frame why section matters. No new factual claims.
+- Development: Present evidence using claims database. Group related claims, show relationships.
+- Synthesis (1-3 sentences): Interpret what evidence collectively shows. Must follow logically from claims.
+- Transition (1 sentence): Connect to next section.
+
+Multi-Source Requirement for Generalizations:
+If sentence contains: often, typically, generally, commonly, usually, frequently, widely, most, many, consistently
+→ MUST use `mcp_research_assistant_find_multi_source_support(statement="...")`
+→ Verify 2-3 independent sources support the claim
+→ If insufficient: weaken claim ("Some studies show...") or find more sources
+
+Evidence Strength Hedging:
+- Strong (3+ sources, no contradictions): "Studies consistently show..."
+- Moderate (2 sources, or variation): "Research suggests..."
+- Limited (1 source): "One study found..." or "[Author] reported..."
+- Conflicting: "While [Source1] found X, [Source2] reported Y..."
+
+Draft Refinement Workflow:
+1. Coverage Check: `mcp_research_assistant_analyze_section_coverage(section_id)` - identify unsupported sentences
+2. Citation Verification: `mcp_research_assistant_search_by_draft(draft_text, mode="sentence")` - verify each factual sentence
+3. Synthesis Quality: Does each paragraph make a clear point? Do claims support it? Are transitions meaningful?
+4. Voice and Flow: Read aloud. Natural? Too many citations in one sentence? Clear progression?
+
+Prohibited Patterns:
+❌ Citation dumping: "Method X is effective (S1, S2, S3, S4, S5)."
+✓ "Method X has shown effectiveness. [Claim1 from S1]. Similarly, [Claim2 from S2]."
+
+❌ Vague synthesis: "These findings suggest batch effects are important."
+✓ "These findings indicate batch effects reduce accuracy by 10-30%, making correction essential."
+
+❌ Unsupported leaps: "Since batch effects reduce accuracy, all studies should use ComBat."
+✓ "Since batch effects reduce accuracy [C1], correction methods like ComBat [C2] may improve performance, though optimal method depends on data characteristics [C3]."
+
+❌ Invented technical details: "ComBat uses a three-stage algorithm with adaptive parameters."
+✓ Only state what's in verified quotes. If not in database, find it or omit it.
+
+Synthesis Quality Checklist (verify after drafting):
+□ Every factual statement has a claim ID
+□ Transitions are meaningful (not just "Additionally")
+□ Synthesis statements interpret relationships, not just list claims
+□ No technical details beyond what quotes state
+□ Generalizations verified with multiple sources (find_multi_source_support)
+
+Example-Driven Synthesis:
+❌ Bad: "Batch effects are a problem. They come from many sources. They affect classifiers."
+✓ Good: "Batch effects arise from laboratory conditions and equipment variations [C_104, C_106]. When confounded with outcomes, these technical artifacts can cause models to encode batch identity rather than biological signals [C_102], leading to poor generalization [C_103]."
+
+❌ Bad: "Studies show batch effects reduce accuracy."
+✓ Good: "Batch effects can reduce classifier accuracy by 10-30% [C_XX], with the magnitude depending on the degree of confounding between batch and outcome [C_YY]."
 
 Python Execution
 This project uses `uv` for dependency management. When executing Python scripts or commands:

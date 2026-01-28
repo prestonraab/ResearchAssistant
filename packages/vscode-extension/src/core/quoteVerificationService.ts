@@ -30,6 +30,7 @@ export interface BatchVerificationResult {
 
 export class QuoteVerificationService {
   private cache: QuoteVerificationCache | null = null;
+  private cacheReady: Promise<void>;
 
   constructor(
     private mcpClient: MCPClientManager,
@@ -39,10 +40,19 @@ export class QuoteVerificationService {
     // Initialize cache if workspace root is provided
     if (workspaceRoot) {
       this.cache = new QuoteVerificationCache(workspaceRoot);
-      this.cache.initialize().catch(error => {
+      this.cacheReady = this.cache.initialize().catch(error => {
         console.error('[QuoteVerificationService] Failed to initialize cache:', error);
       });
+    } else {
+      this.cacheReady = Promise.resolve();
     }
+  }
+
+  /**
+   * Ensure cache is ready before operations
+   */
+  private async ensureCacheReady(): Promise<void> {
+    await this.cacheReady;
   }
 
   /**
@@ -56,6 +66,9 @@ export class QuoteVerificationService {
     if (!quote || !authorYear) {
       throw new Error('Quote and authorYear are required');
     }
+
+    // Ensure cache is loaded before checking
+    await this.ensureCacheReady();
 
     // Check cache first
     if (this.cache) {
@@ -386,7 +399,8 @@ export class QuoteVerificationService {
    * Get cache statistics
    * @returns Statistics about the verification cache
    */
-  getCacheStats() {
+  async getCacheStats() {
+    await this.ensureCacheReady();
     if (!this.cache) {
       return null;
     }

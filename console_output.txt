@@ -1,44 +1,3 @@
-workbench.desktop.main.js:523 [Extension Host] [PersistenceUtils] ✓ write applications.md (2ms)
-workbench.desktop.main.js:523 [Extension Host] [PersistenceUtils] ✓ write challenges.md (1ms)
-workbench.desktop.main.js:523 [Extension Host] [PersistenceUtils] ✓ write methods_batch_correction.md (1ms)
-workbench.desktop.main.js:523 [Extension Host] [PersistenceUtils] ✓ write results.md (1ms)
-workbench.desktop.main.js:523 [Extension Host] [PersistenceUtils] ✓ write data_sources.md (1ms)
-workbench.desktop.main.js:523 [Extension Host] [PersistenceUtils] ✓ write data_trends.md (1ms)
-workbench.desktop.main.js:523 [Extension Host] [PersistenceUtils] ✓ write impacts.md (1ms)
-workbench.desktop.main.js:523 [Extension Host] [PersistenceUtils] ✓ write phenomena.md (1ms)
-workbench.desktop.main.js:523 [Extension Host] [PersistenceUtils] ✓ write uncategorized.md (1ms)
-workbench.desktop.main.js:523 [Extension Host] Persisted 139 claims across 9 file(s)
-workbench.desktop.main.js:523 [Extension Host] Verifying quote directly: {quote: 'A classifier consists of a collection of predictor variables and a classification rule such that, gi', authorYear: 'Soneson et al. - 2014 - Batch Effect Confounding L…rmance Estimates Obtained by Cross-Validation.txt'}
-workbench.desktop.main.js:523 [Extension Host] Verification result: {verified: false, similarity: 0.7087719298245614, sourceFile: 'Anderson et al. - 2014 - Diagnosis of Childhood Tuberculosis and Host RNA Expression in Africa.txt', nearestMatch: 'ct with a person who had a positive smear for tube…ig. 2). Since a positive result on an IGRA in the', contextBefore: '## CASE DEFINITIONS\n', …}
-workbench.desktop.main.js:523 [Extension Host] Mapped verification result: {verified: false, similarity: 0.7087719298245614, closestMatch: 'ct with a person who had a positive smear for tube…ig. 2). Since a positive result on an IGRA in the', context: '## CASE DEFINITIONS\n'}
-claimReview.js:223 [ClaimReview] Displaying claim: {id: 'C_1769570575575', text: 'Classification is the task of assigning observatio…to predefined categories based on their features.', category: 'Uncategorized', source: 'Unknown', primaryQuote: '', …}
-claimReview.js:295 Uncaught TypeError: quote.trim is not a function
-    at claimReview.js:295:26
-    at Array.forEach (<anonymous>)
-    at displayQuotes (claimReview.js:294:35)
-    at displayClaim (claimReview.js:240:3)
-    at handleMessage (claimReview.js:170:7)
-    at claimReview.js:52:5
-(anonymous) @ claimReview.js:295
-displayQuotes @ claimReview.js:294
-displayClaim @ claimReview.js:240
-handleMessage @ claimReview.js:170
-(anonymous) @ claimReview.js:52
-postMessage
-(anonymous) @ index.html?id=931997a8-976e-42d5-8ec1-3cf2511655c7&parentId=1&origin=1ee8b06c-cbe2-4ca2-91f3-b6e49478eb05&swVersion=4&extensionId=research-tools.research-assistant&platform=electron&vscode-resource-base-authority=vscode-resource.vscode-cdn.net&parentOrigin=vscode-file%3A%2F%2Fvscode-app:1257
-HostMessaging.channel.port1.onmessage @ index.html?id=931997a8-976e-42d5-8ec1-3cf2511655c7&parentId=1&origin=1ee8b06c-cbe2-4ca2-91f3-b6e49478eb05&swVersion=4&extensionId=research-tools.research-assistant&platform=electron&vscode-resource-base-authority=vscode-resource.vscode-cdn.net&parentOrigin=vscode-file%3A%2F%2Fvscode-app:324
-workbench.desktop.main.js:523 [Extension Host] High memory usage in claim review mode: 781MB / 824MB
-ubs @ workbench.desktop.main.js:523
-$logExtensionHostMessage @ workbench.desktop.main.js:523
-S @ workbench.desktop.main.js:11502
-Q @ workbench.desktop.main.js:11502
-M @ workbench.desktop.main.js:11502
-L @ workbench.desktop.main.js:11502
-(anonymous) @ workbench.desktop.main.js:11502
-C @ workbench.desktop.main.js:29
-fire @ workbench.desktop.main.js:29
-fire @ workbench.desktop.main.js:550
-l.onmessage @ workbench.desktop.main.js:11513
 workbench.desktop.main.js:11682 An iframe which has both allow-scripts and allow-same-origin for its sandbox attribute can escape its sandboxing.
 mountTo @ workbench.desktop.main.js:11682
 P @ workbench.desktop.main.js:557
@@ -66,14 +25,26 @@ C @ workbench.desktop.main.js:29
 fire @ workbench.desktop.main.js:29
 fire @ workbench.desktop.main.js:550
 l.onmessage @ workbench.desktop.main.js:11513
-workbench.desktop.main.js:523 [Extension Host] Claim review mode disposed
-workbench.desktop.main.js:523 [Extension Host] [EditingMode] Loading manuscript from: /Users/phr23/Writing/Chapter/03_Drafting/manuscript.md
-workbench.desktop.main.js:523 [Extension Host] [EditingMode] File exists: true
-workbench.desktop.main.js:523 [Extension Host] [EditingMode] Loaded 114407 characters
-workbench.desktop.main.js:523 [Extension Host] [EditingMode] Manuscript length: 114407 characters
-workbench.desktop.main.js:523 [Extension Host] [EditingMode] Parsed 143 question-answer pairs
-workbench.desktop.main.js:523 [Extension Host] [EditingMode] Extracted 510 sentences from answers
-workbench.desktop.main.js:523 [Extension Host] [EditingMode] Sending 510 sentences to webview
-editingMode.js:23 [EditingMode WebView] Received initialize message: {sentenceCount: 510, scrollPosition: 0, virtualScrollingEnabled: true}
-editingMode.js:31 [EditingMode WebView] Sentences array: 510
-editingMode.js:35 [EditingMode WebView] Using virtual scrolling
+workbench.desktop.main.js:523 [Extension Host] Editing mode disposed
+claimReview.js:88 Uncaught ReferenceError: toggleCurrentQuoteCitation is not defined
+    at setupKeyboardShortcuts (claimReview.js:88:21)
+    at HTMLDocument.<anonymous> (claimReview.js:12:3)
+setupKeyboardShortcuts @ claimReview.js:88
+(anonymous) @ claimReview.js:12
+workbench.desktop.main.js:523 [Extension Host] [QuoteVerificationService] Cache hit for quote from Alharbi2023
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Primary quote verification result: {verified: false, similarity: 0.7671232876712328, willSearch: true}
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Quote not found in claimed source, searching all literature...
+workbench.desktop.main.js:523 [Extension Host] [LiteratureIndexer] searchSnippetsWithSimilarity called with query: President Obama has long expressed a strong convic
+workbench.desktop.main.js:523 [Extension Host] [LiteratureIndexer] Query embedding generated, searching store
+workbench.desktop.main.js:523 [Extension Host] [EmbeddingStore] searchByEmbeddingWithSimilarity called with 9117 total snippets
+workbench.desktop.main.js:523 [Extension Host] [EmbeddingStore] Returning 5 results with similarity scores
+workbench.desktop.main.js:523 [Extension Host] [LiteratureIndexer] Search returned 5 results with similarity scores
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Search completed, found 5 snippets
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Result 1: {fileName: 'Piccolo et al. - 2022 - The ability to classify pa…on data varies by algorithm and performance m.txt', similarity: 0.5528895608290189, textPreview: 'National Research Council (US) Committee on A Framework for Developing a New Taxonomy of Disease. To'}
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Result 2: {fileName: 'Talhouk et al. - 2016 - Single-Patient Molecular T…ter Data Using a Reference-Based Strategy for.txt', similarity: 0.4366551207645076, textPreview: 'We suggest this strategy may facilitate development of NanoString and similar molecular assays by ac'}
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Result 3: {fileName: 'Talhouk et al. - 2016 - Single-Patient Molecular T…ter Data Using a Reference-Based Strategy for.txt', similarity: 0.4061588692024897, textPreview: 'Gene expression in particular has been widely used in biomedical research to identify biomarkers and'}
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Filtered to 0 sources above 0.7 threshold
+workbench.desktop.main.js:523 [Extension Host] [VerificationFeedbackLoop] Cache hit for validation of claim C_99
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Stored context: {claimId: 'C_99'}
+claimReview.js:158 [ClaimReview] Displaying claim: {id: 'C_99', text: 'The Precision Medicine Initiative aims to enable p…trategies that account for individual variability', category: 'Impact', source: 'Alharbi2023', primaryQuote: {…}, …}
+workbench.desktop.main.js:523 [Extension Host] [QuoteVerificationCache] Saved 115 entries to /Users/phr23/Writing/Chapter/.cache/quote-verification.json
