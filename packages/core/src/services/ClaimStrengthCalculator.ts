@@ -126,7 +126,7 @@ export class ClaimStrengthCalculator {
       }
 
       // Skip claims from the same source (not independent)
-      if (claim.source === targetClaim.source) {
+      if (claim.primaryQuote?.source === targetClaim.primaryQuote?.source) {
         continue;
       }
 
@@ -155,7 +155,7 @@ export class ClaimStrengthCalculator {
 
           contradictoryClaims.push({
             claimId: claim.id,
-            source: claim.source,
+            source: claim.primaryQuote?.source || 'Unknown',
             similarity,
             sentimentOpposition,
           });
@@ -163,7 +163,7 @@ export class ClaimStrengthCalculator {
           // This is a supporting claim
           supportingClaims.push({
             claimId: claim.id,
-            source: claim.source,
+            source: claim.primaryQuote?.source || 'Unknown',
             similarity,
           });
         }
@@ -238,7 +238,7 @@ export class ClaimStrengthCalculator {
         }
 
         // Skip claims from the same source
-        if (claim.source === targetClaim.source) {
+        if (claim.primaryQuote?.source === targetClaim.primaryQuote?.source) {
           continue;
         }
 
@@ -270,14 +270,14 @@ export class ClaimStrengthCalculator {
 
             contradictoryClaims.push({
               claimId: claim.id,
-              source: claim.source,
+              source: claim.primaryQuote?.source || 'Unknown',
               similarity,
               sentimentOpposition,
             });
           } else {
             supportingClaims.push({
               claimId: claim.id,
-              source: claim.source,
+              source: claim.primaryQuote?.source || 'Unknown',
               similarity,
             });
           }
@@ -388,6 +388,86 @@ export class ClaimStrengthCalculator {
   }
 
   /**
+   * Validate whether a claim's quote actually supports the claim text.
+   * Analyzes semantic similarity between claim text and supporting quotes.
+   * 
+   * @param claim The claim to validate
+   * @param minSources Minimum number of independent sources required
+   * @param similarityThreshold Minimum similarity threshold for support
+   * @returns Validation result with similarity score and support status
+   */
+  async validateSupport(
+    claim: Claim,
+    minSources: number = 1,
+    similarityThreshold: number = 0.6
+  ): Promise<{
+    claimId: string;
+    similarity: number;
+    supported: boolean;
+    analysis: string;
+  }> {
+    try {
+      // Calculate similarity between claim text and primary quote
+      const claimEmbedding = await this.embeddingService.generateEmbedding(claim.text);
+      const quoteEmbedding = await this.embeddingService.generateEmbedding(claim.primaryQuote?.text || '');
+      const similarity = this.embeddingService.cosineSimilarity(claimEmbedding, quoteEmbedding);
+
+      // Check if claim meets minimum source requirement
+      const strength = await this.calculateStrength(claim.id);
+      const hasEnoughSources = strength.supportingClaims.length >= minSources;
+
+      // Determine if claim is supported
+      const supported = similarity >= similarityThreshold && hasEnoughSources;
+
+      // Generate analysis text
+      const analysis = this.generateSupportAnalysis(
+        similarity,
+        supported,
+        strength.supportingClaims.length,
+        minSources
+      );
+
+      return {
+        claimId: claim.id,
+        similarity,
+        supported,
+        analysis,
+      };
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+      return {
+        claimId: claim.id,
+        similarity: 0,
+        supported: false,
+        analysis: `Error during validation: ${errorMsg}`,
+      };
+    }
+  }
+
+  /**
+   * Generate a human-readable analysis of the validation result.
+   */
+  private generateSupportAnalysis(
+    similarity: number,
+    supported: boolean,
+    supportingSourceCount: number,
+    minSources: number
+  ): string {
+    const similarityPercent = (similarity * 100).toFixed(1);
+    const sourceStatus = `${supportingSourceCount}/${minSources} sources`;
+
+    if (similarity >= 0.75 && supportingSourceCount >= minSources) {
+      return `Strong support: Quote strongly supports claim (${similarityPercent}% similarity, ${sourceStatus})`;
+    } else if (similarity >= 0.6 && supportingSourceCount >= minSources) {
+      return `Moderate support: Quote provides some support (${similarityPercent}% similarity, ${sourceStatus}). Consider finding a more directly relevant quote.`;
+    } else if (supportingSourceCount < minSources) {
+      return `Insufficient sources: Only ${supportingSourceCount} of ${minSources} required sources found. Need more independent sources.`;
+    } else {
+      return `Weak support: Quote may not adequately support claim (${similarityPercent}% similarity, ${sourceStatus}). Consider finding a better supporting quote.`;
+    }
+  }
+
+  /**
    * Check if two texts have opposing sentiment
    */
   private hasSentimentOpposition(text1: string, text2: string): boolean {
@@ -414,4 +494,5 @@ export class ClaimStrengthCalculator {
     // Opposition exists if one is positive and the other is negative
     return (hasPositive1 && hasNegative2) || (hasNegative1 && hasPositive2);
   }
+
 }

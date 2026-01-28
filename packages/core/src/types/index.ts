@@ -10,19 +10,28 @@
 // ============================================================================
 
 /**
+ * A quote with its source information
+ */
+export interface SourcedQuote {
+  text: string;                  // Quote text
+  source: string;                // Source reference (e.g., "Smith2020")
+  sourceId?: number;             // Numeric source identifier
+  pageNumber?: number;           // Page number in source
+  verified: boolean;             // Whether quote verified in source
+}
+
+/**
  * Represents a research claim with supporting evidence
  */
 export interface Claim {
   id: string;                    // Unique identifier (e.g., "C_01")
   text: string;                  // The claim statement
   category: string;              // Category (e.g., "Method", "Result")
-  source: string;                // Source reference (e.g., "Smith2020")
-  sourceId: number;              // Numeric source identifier
   context: string;               // Additional context
-  primaryQuote: string;          // Main supporting quote
-  supportingQuotes: string[];    // Additional supporting quotes
+  primaryQuote: SourcedQuote;    // Main supporting quote with source
+  supportingQuotes: SourcedQuote[];  // Additional supporting quotes with sources
   sections: string[];            // Associated outline sections
-  verified: boolean;             // Quote verification status
+  verified: boolean;             // Overall verification status
   createdAt: Date;               // Creation timestamp
   modifiedAt: Date;              // Last modification timestamp
 }

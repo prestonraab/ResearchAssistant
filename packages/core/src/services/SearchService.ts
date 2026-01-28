@@ -85,9 +85,9 @@ export class SearchService {
         matches.push({
           claimId: claim.id,
           claimText: claim.text,
-          source: claim.source,
+          source: claim.primaryQuote?.source || 'Unknown',
           similarity,
-          primaryQuote: claim.primaryQuote,
+          primaryQuote: claim.primaryQuote?.text || '',
         });
       }
     }
@@ -312,9 +312,9 @@ export class SearchService {
         matches.push({
           claimId: claim.id,
           claimText: claim.text,
-          source: claim.source,
+          source: claim.primaryQuote?.source || 'Unknown',
           similarity,
-          primaryQuote: claim.primaryQuote,
+          primaryQuote: claim.primaryQuote?.text || '',
         });
       }
     }

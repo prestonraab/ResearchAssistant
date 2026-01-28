@@ -386,6 +386,18 @@
           "type": "number",
           "default": 0.7,
           "description": "Minimum similarity threshold for claim matching (0-1)"
+        },
+        "researchAssistant.zoteroUserId": {
+          "type": "string",
+          "default": "",
+          "description": "Zotero User ID for accessing your library. Get it from https://www.zotero.org/settings/keys",
+          "markdownDescription": "Zotero User ID for accessing your library. [Get it here](https://www.zotero.org/settings/keys)"
+        },
+        "researchAssistant.zoteroApiKey": {
+          "type": "string",
+          "default": "",
+          "description": "Zotero API key (optional, for private libraries). Get it from https://www.zotero.org/settings/keys",
+          "markdownDescription": "Zotero API key (optional, for private libraries). [Get it here](https://www.zotero.org/settings/keys)"
         }
       }
     }

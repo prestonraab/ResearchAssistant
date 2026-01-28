@@ -67,11 +67,11 @@ export class ClaimMatchingService {
 
       // Convert to SimilarClaim format
       return topResults.map(({ claim, similarity }) => ({
-        claimId: claim.id,
-        text: claim.text,
-        category: claim.category,
-        source: claim.source,
-        similarity
+        claimId: claim.id || `claim_${Date.now()}`,
+        text: claim.text || '',
+        category: claim.category || 'Unknown',
+        source: claim.primaryQuote?.source || '',
+        similarity: similarity != null ? similarity : 0
       }));
     } catch (error) {
       console.error('Error finding similar claims:', error);

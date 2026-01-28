@@ -205,7 +205,12 @@ export function registerVerificationCommands(
 
                 if (replace === 'Yes') {
                   await extensionState!.claimsManager.updateClaim(claimId, {
-                    primaryQuote: selected.quote
+                    primaryQuote: {
+                      text: selected.quote,
+                      source: claim.primaryQuote?.source || '',
+                      sourceId: claim.primaryQuote?.sourceId,
+                      verified: false
+                    }
                   });
                   vscode.window.showInformationMessage(`Updated primary quote for ${claimId}`);
                   claimsProvider.refresh();

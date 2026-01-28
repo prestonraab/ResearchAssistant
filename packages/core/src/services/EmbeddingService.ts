@@ -47,6 +47,12 @@ export class EmbeddingService {
   private cacheDir: string;
   private maxCacheSize: number;
   private model: string;
+  private requestQueue: Array<() => Promise<any>> = [];
+  private isProcessingQueue = false;
+  private lastRequestTime = 0;
+  private minRequestInterval = 100; // Minimum 100ms between requests to avoid rate limiting
+  private maxConcurrentRequests = 1; // Process one request at a time
+  private activeRequests = 0;
 
   /**
    * Creates a new EmbeddingService instance.
@@ -104,6 +110,7 @@ export class EmbeddingService {
    * - Automatically caches the result in both memory and disk
    * - Trims the cache if it exceeds maxCacheSize after adding new entry
    * - Uses MD5 hash of text as cache key
+   * - Rate-limited to prevent overwhelming the API
    * 
    * **Requirement 13.1:** Generate vector representation of text
    */
@@ -126,30 +133,32 @@ export class EmbeddingService {
       return diskCached;
     }
 
-    // Generate new embedding
-    try {
-      const response = await this.openai.embeddings.create({
-        model: this.model,
-        input: text,
-      });
+    // Generate new embedding with rate limiting
+    return this.queueRequest(async () => {
+      try {
+        const response = await this.openai.embeddings.create({
+          model: this.model,
+          input: text,
+        });
 
-      const embedding = response.data[0].embedding;
+        const embedding = response.data[0].embedding;
 
-      // Cache the result
-      this.cache.set(cacheKey, embedding);
-      this.saveToDiskCache(cacheKey, embedding);
+        // Cache the result
+        this.cache.set(cacheKey, embedding);
+        this.saveToDiskCache(cacheKey, embedding);
 
-      // Trim cache if needed
-      if (this.cache.size > this.maxCacheSize) {
-        this.trimCache(this.maxCacheSize);
+        // Trim cache if needed
+        if (this.cache.size > this.maxCacheSize) {
+          this.trimCache(this.maxCacheSize);
+        }
+
+        return embedding;
+      } catch (error) {
+        throw new Error(
+          `Failed to generate embedding: ${error instanceof Error ? error.message : String(error)}`
+        );
       }
-
-      return embedding;
-    } catch (error) {
-      throw new Error(
-        `Failed to generate embedding: ${error instanceof Error ? error.message : String(error)}`
-      );
-    }
+    });
   }
 
   /**
@@ -172,6 +181,7 @@ export class EmbeddingService {
    * - Maintains input order in output array
    * - Updates LRU ordering for cache hits
    * - Trims cache if needed after adding new entries
+   * - Rate-limited to prevent overwhelming the API
    * 
    * **Requirement 13.4:** Support batch embedding generation for efficiency
    */
@@ -207,37 +217,153 @@ export class EmbeddingService {
       }
     }
 
-    // Generate embeddings for uncached texts
+    // Generate embeddings for uncached texts with rate limiting
     if (uncachedTexts.length > 0) {
-      try {
-        const response = await this.openai.embeddings.create({
-          model: this.model,
-          input: uncachedTexts,
-        });
+      await this.queueRequest(async () => {
+        try {
+          const response = await this.openai.embeddings.create({
+            model: this.model,
+            input: uncachedTexts,
+          });
 
-        // Store results in correct positions
-        for (let i = 0; i < uncachedTexts.length; i++) {
-          const embedding = response.data[i].embedding;
-          const originalIndex = uncachedIndices[i];
-          const cacheKey = this.getCacheKey(uncachedTexts[i]);
+          // Store results in correct positions
+          for (let i = 0; i < uncachedTexts.length; i++) {
+            const embedding = response.data[i].embedding;
+            const originalIndex = uncachedIndices[i];
+            const cacheKey = this.getCacheKey(uncachedTexts[i]);
 
-          results[originalIndex] = embedding;
-          this.cache.set(cacheKey, embedding);
-          this.saveToDiskCache(cacheKey, embedding);
+            results[originalIndex] = embedding;
+            this.cache.set(cacheKey, embedding);
+            this.saveToDiskCache(cacheKey, embedding);
+          }
+
+          // Trim cache if needed
+          if (this.cache.size > this.maxCacheSize) {
+            this.trimCache(this.maxCacheSize);
+          }
+        } catch (error) {
+          throw new Error(
+            `Failed to generate batch embeddings: ${error instanceof Error ? error.message : String(error)}`
+          );
         }
+      });
+    }
 
-        // Trim cache if needed
-        if (this.cache.size > this.maxCacheSize) {
-          this.trimCache(this.maxCacheSize);
-        }
-      } catch (error) {
-        throw new Error(
-          `Failed to generate batch embeddings: ${error instanceof Error ? error.message : String(error)}`
-        );
+    return results;
+  }
+
+  /**
+   * Generates embeddings for multiple texts in parallel batches.
+   * 
+   * This method is optimized for large-scale embedding generation by:
+   * - Processing texts in parallel batches (default 100 per batch)
+   * - Checking cache first to minimize API calls
+   * - Maintaining order of results
+   * - Automatically handling rate limiting
+   * 
+   * @param texts - Array of text strings to generate embeddings for
+   * @param batchSize - Number of texts to process per API call (default: 100)
+   * @returns Promise resolving to array of embedding vectors (in same order as input)
+   * 
+   * @throws {Error} If any API call fails
+   * 
+   * @remarks
+   * - Useful for indexing large document collections
+   * - Processes batches sequentially to avoid rate limiting
+   * - Each batch is checked against cache independently
+   * - Results maintain the same order as input texts
+   * 
+   * **Requirement 13.4:** Support batch embedding generation for efficiency
+   */
+  async generateBatchParallel(texts: string[], batchSize: number = 100): Promise<number[][]> {
+    if (texts.length === 0) {
+      return [];
+    }
+
+    const results: number[][] = new Array(texts.length);
+    
+    // Process in sequential batches (not truly parallel to avoid rate limiting)
+    for (let i = 0; i < texts.length; i += batchSize) {
+      const batch = texts.slice(i, i + batchSize);
+      const batchResults = await this.generateBatch(batch);
+      
+      // Store results in correct positions
+      for (let j = 0; j < batch.length; j++) {
+        results[i + j] = batchResults[j];
       }
     }
 
     return results;
+  }
+
+  /**
+   * Wait for rate limit to be respected before making next request.
+   * Ensures minimum interval between API calls to avoid overwhelming the service.
+   * 
+   * @private
+   */
+  private async waitForRateLimit(): Promise<void> {
+    const now = Date.now();
+    const timeSinceLastRequest = now - this.lastRequestTime;
+    
+    if (timeSinceLastRequest < this.minRequestInterval) {
+      const waitTime = this.minRequestInterval - timeSinceLastRequest;
+      await new Promise(resolve => setTimeout(resolve, waitTime));
+    }
+    
+    this.lastRequestTime = Date.now();
+  }
+
+  /**
+   * Queue an API request to be processed with rate limiting.
+   * Ensures requests are processed sequentially to avoid overwhelming the API.
+   * 
+   * @param requestFn - Async function that makes the API request
+   * @returns Promise resolving to the API response
+   * 
+   * @private
+   */
+  private async queueRequest<T>(requestFn: () => Promise<T>): Promise<T> {
+    return new Promise((resolve, reject) => {
+      this.requestQueue.push(async () => {
+        try {
+          await this.waitForRateLimit();
+          const result = await requestFn();
+          resolve(result);
+        } catch (error) {
+          reject(error);
+        }
+      });
+      
+      this.processQueue();
+    });
+  }
+
+  /**
+   * Process queued requests sequentially with rate limiting.
+   * 
+   * @private
+   */
+  private async processQueue(): Promise<void> {
+    if (this.isProcessingQueue || this.activeRequests >= this.maxConcurrentRequests) {
+      return;
+    }
+
+    this.isProcessingQueue = true;
+
+    while (this.requestQueue.length > 0 && this.activeRequests < this.maxConcurrentRequests) {
+      const request = this.requestQueue.shift();
+      if (request) {
+        this.activeRequests++;
+        try {
+          await request();
+        } finally {
+          this.activeRequests--;
+        }
+      }
+    }
+
+    this.isProcessingQueue = false;
   }
 
   /**

@@ -78,14 +78,14 @@ describe('ClaimsManager', () => {
       expect(claims[0].id).toBe('C_01');
       expect(claims[0].text).toBe('RNA-seq is widely used for transcriptome analysis');
       expect(claims[0].category).toBe('Method');
-      expect(claims[0].source).toBe('Smith2020');
-      expect(claims[0].primaryQuote).toBe('RNA-seq has become the gold standard for transcriptome analysis.');
+      expect(claims[0].primaryQuote.source).toBe('Smith2020');
+      expect(claims[0].primaryQuote.text).toBe('RNA-seq has become the gold standard for transcriptome analysis.');
       expect(claims[0].supportingQuotes).toHaveLength(1);
 
       expect(claims[1].id).toBe('C_02');
       expect(claims[1].text).toBe('Single-cell RNA-seq reveals cellular heterogeneity');
       expect(claims[1].category).toBe('Result');
-      expect(claims[1].source).toBe('Johnson2021');
+      expect(claims[1].primaryQuote.source).toBe('Johnson2021');
       expect(claims[1].context).toBe('Study of immune cells');
       expect(claims[1].supportingQuotes).toHaveLength(2);
     });
@@ -282,7 +282,7 @@ describe('ClaimsManager', () => {
       expect(claim).not.toBeNull();
       expect(claim?.id).toBe('C_01');
       expect(claim?.text).toBe('First claim');
-      expect(claim?.source).toBe('Smith2020');
+      expect(claim?.primaryQuote.source).toBe('Smith2020');
     });
 
     it('should return null for non-existent claim ID', () => {
@@ -348,7 +348,7 @@ describe('ClaimsManager', () => {
       expect(smithClaims).toHaveLength(2);
       expect(smithClaims[0].id).toBe('C_01');
       expect(smithClaims[1].id).toBe('C_02');
-      expect(smithClaims.every(c => c.source === 'Smith2020')).toBe(true);
+      expect(smithClaims.every(c => c.primaryQuote.source === 'Smith2020')).toBe(true);
     });
 
     it('should return empty array for source with no claims', () => {
@@ -601,7 +601,7 @@ describe('ClaimsManager', () => {
       const claims = await claimsManager.loadClaims();
 
       expect(claims).toHaveLength(1);
-      expect(claims[0].primaryQuote).toBe(
+      expect(claims[0].primaryQuote.text).toBe(
         'This is a very long quote that spans multiple lines in the markdown file and should be concatenated properly.'
       );
       expect(claims[0].supportingQuotes).toHaveLength(2);
@@ -629,8 +629,8 @@ describe('ClaimsManager', () => {
 
       expect(claims).toHaveLength(1);
       expect(claims[0].text).toBe('RNA-seq & scRNA-seq: "revolutionary" methods (2020)');
-      expect(claims[0].primaryQuote).toContain('~95%');
-      expect(claims[0].supportingQuotes[0]).toContain('p < 0.001');
+      expect(claims[0].primaryQuote.text).toContain('~95%');
+      expect(claims[0].supportingQuotes[0].text).toContain('p < 0.001');
     });
 
     it('should handle claims with Source ID in parentheses', async () => {
@@ -735,8 +735,8 @@ Claims should follow the format below.
       const claims = await claimsManager.loadClaims();
 
       expect(claims).toHaveLength(1);
-      expect(claims[0].primaryQuote).toBe('This has extra spaces');
-      expect(claims[0].supportingQuotes[0]).toBe('Supporting quote text');
+      expect(claims[0].primaryQuote.text).toBe('This has extra spaces');
+      expect(claims[0].supportingQuotes[0].text).toBe('Supporting quote text');
     });
   });
 

@@ -160,8 +160,8 @@ export class SynthesisEngine {
     // Sort claims by source for logical flow
     const sortedClaims = [...claims].sort((a, b) => {
       // Sort by year (extracted from source AuthorYear format)
-      const yearA = this.extractYear(a.source);
-      const yearB = this.extractYear(b.source);
+      const yearA = this.extractYear(a.primaryQuote?.source || '');
+      const yearB = this.extractYear(b.primaryQuote?.source || '');
       return yearA - yearB;
     });
 
@@ -316,7 +316,7 @@ export class SynthesisEngine {
       const next = claims[i + 1];
 
       // Check if same source
-      if (current.source === next.source) {
+      if (current.primaryQuote?.source === next.primaryQuote?.source) {
         transitions.push('In the same study,');
       }
       // Check if same category
@@ -347,8 +347,8 @@ export class SynthesisEngine {
     // Collect unique sources
     const sources = new Set<string>();
     for (const claim of claims) {
-      if (claim.source) {
-        sources.add(claim.source);
+      if (claim.primaryQuote && claim.primaryQuote.source) {
+        sources.add(claim.primaryQuote.source);
       }
     }
 
@@ -373,10 +373,10 @@ export class SynthesisEngine {
    * Format a single citation.
    */
   private formatCitation(claim: Claim): string {
-    if (!claim.source) {
+    if (!claim.primaryQuote || !claim.primaryQuote.source) {
       return '';
     }
-    return ` (${claim.source})`;
+    return ` (${claim.primaryQuote.source})`;
   }
 
   /**

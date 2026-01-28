@@ -171,7 +171,7 @@ export class ClaimCompletionProvider implements vscode.CompletionItemProvider {
     item.label = claim.id;
     
     // Set detail to show category and source
-    item.detail = `${claim.category} - ${claim.source}`;
+    item.detail = `${claim.category} - ${claim.primaryQuote?.source || 'Unknown'}`;
     
     // Set documentation with claim preview
     const preview = this.createClaimPreview(claim);
@@ -199,12 +199,14 @@ export class ClaimCompletionProvider implements vscode.CompletionItemProvider {
   private createClaimPreview(claim: Claim): string {
     let preview = `**${claim.id}**: ${claim.text}\n\n`;
     preview += `**Category**: ${claim.category}  \n`;
-    preview += `**Source**: ${claim.source}\n\n`;
+    if (claim.primaryQuote && claim.primaryQuote.source) {
+      preview += `**Source**: ${claim.primaryQuote.source}\n\n`;
+    }
     
-    if (claim.primaryQuote) {
-      const truncatedQuote = claim.primaryQuote.length > 150 
-        ? claim.primaryQuote.substring(0, 150) + '...'
-        : claim.primaryQuote;
+    if (claim.primaryQuote && claim.primaryQuote.text) {
+      const truncatedQuote = claim.primaryQuote.text.length > 150 
+        ? claim.primaryQuote.text.substring(0, 150) + '...'
+        : claim.primaryQuote.text;
       preview += `**Quote**: "${truncatedQuote}"\n\n`;
     }
     

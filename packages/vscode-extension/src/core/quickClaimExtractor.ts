@@ -347,10 +347,13 @@ export class QuickClaimExtractor {
       id: claimId,
       text: claimText,
       category: finalCategory,
-      source: finalSource,
-      sourceId: sourceId,
       context: '', // Context can be added later if needed
-      primaryQuote: form.quote,
+      primaryQuote: {
+        text: form.quote,
+        source: finalSource,
+        sourceId: sourceId,
+        verified: false
+      },
       supportingQuotes: [],
       sections: finalSections,
       verified: false,
@@ -398,8 +401,9 @@ export class QuickClaimExtractor {
     // For now, generate a simple numeric ID based on existing claims
     const existingClaims = this.claimsManager.getClaims();
     const sourceIds = existingClaims
-      .filter(c => c.source === source)
-      .map(c => c.sourceId);
+      .filter(c => c.primaryQuote?.source === source)
+      .map(c => c.primaryQuote?.sourceId)
+      .filter(id => id !== undefined) as number[];
     
     if (sourceIds.length > 0) {
       // Use existing source ID
@@ -407,7 +411,9 @@ export class QuickClaimExtractor {
     }
     
     // Generate new source ID
-    const allSourceIds = existingClaims.map(c => c.sourceId);
+    const allSourceIds = existingClaims
+      .map(c => c.primaryQuote?.sourceId)
+      .filter(id => id !== undefined) as number[];
     const maxId = allSourceIds.length > 0 ? Math.max(...allSourceIds) : 0;
     return maxId + 1;
   }

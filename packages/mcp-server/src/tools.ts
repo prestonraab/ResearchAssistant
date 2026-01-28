@@ -430,5 +430,190 @@ export const tools: Tool[] = [
         }
       }
     }
+  },
+  {
+    name: 'extract_claims_from_arbitrary_text',
+    description: 'Extract potential claims from any text (not just papers). Identifies declarative sentences, calculates confidence scores, categorizes by type, and includes surrounding context. Use this to extract claims from arbitrary text for addition to the claims database.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        text: {
+          type: 'string',
+          description: 'The text to extract claims from'
+        },
+        source: {
+          type: 'string',
+          description: 'Source identifier (e.g., "Smith2020", "Interview2024")'
+        },
+        confidence_threshold: {
+          type: 'number',
+          description: 'Optional: Minimum confidence threshold (0-1). Default is 0.5',
+          minimum: 0,
+          maximum: 1
+        }
+      },
+      required: ['text', 'source']
+    }
+  },
+  {
+    name: 'bulk_import_from_zotero',
+    description: 'Import multiple papers from a Zotero collection and extract their text. Returns count of papers imported, texts extracted, and any errors encountered.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        collection_key: {
+          type: 'string',
+          description: 'The Zotero collection key to import from'
+        },
+        limit: {
+          type: 'number',
+          description: 'Optional: Maximum number of papers to import. Default is 50',
+          minimum: 1,
+          maximum: 500
+        }
+      },
+      required: ['collection_key']
+    }
+  },
+  {
+    name: 'search_papers_for_text',
+    description: 'Find papers relevant to arbitrary text using semantic similarity. Ranks papers by relevance to the provided text and returns top matches with similarity scores.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        text: {
+          type: 'string',
+          description: 'The text to find relevant papers for'
+        },
+        papers: {
+          type: 'array',
+          items: paperMetadataSchema,
+          description: 'Array of paper metadata objects to search through'
+        },
+        limit: {
+          type: 'number',
+          description: 'Optional: Maximum number of results to return. Default is 10',
+          minimum: 1,
+          maximum: 100
+        },
+        threshold: {
+          type: 'number',
+          description: 'Optional: Minimum similarity threshold (0-1). Default is 0.3',
+          minimum: 0,
+          maximum: 1
+        }
+      },
+      required: ['text', 'papers']
+    }
+  },
+  {
+    name: 'validate_claim_support',
+    description: 'Check if a claim has sufficient multi-source support. Analyzes semantic similarity between claim text and supporting quotes, identifies weak support, and suggests better quotes from the same source.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        claim_id: {
+          type: 'string',
+          description: 'The claim ID to validate (e.g., "C_01", "C_02a")'
+        },
+        min_sources: {
+          type: 'number',
+          description: 'Optional: Minimum number of independent sources required. Default is 1',
+          minimum: 1
+        },
+        similarity_threshold: {
+          type: 'number',
+          description: 'Optional: Minimum similarity threshold (0-1). Default is 0.6',
+          minimum: 0,
+          maximum: 1
+        }
+      },
+      required: ['claim_id']
+    }
+  },
+  {
+    name: 'find_weakly_supported_claims',
+    description: 'Identify all claims with insufficient support. Analyzes all claims in the knowledge base and returns those with low similarity between claim text and supporting quotes.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        min_sources: {
+          type: 'number',
+          description: 'Optional: Minimum number of independent sources required. Default is 1',
+          minimum: 1
+        },
+        similarity_threshold: {
+          type: 'number',
+          description: 'Optional: Minimum similarity threshold (0-1). Default is 0.6',
+          minimum: 0,
+          maximum: 1
+        },
+        limit: {
+          type: 'number',
+          description: 'Optional: Maximum number of results to return. Default is 50',
+          minimum: 1,
+          maximum: 1000
+        }
+      }
+    }
+  },
+  {
+    name: 'find_quote_in_source',
+    description: 'Search for a quote in a source document and find the closest matching text. Returns the best match with similarity score and surrounding context. Use this to verify quotes exist in their sources or find alternative phrasings.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        quote: {
+          type: 'string',
+          description: 'The quote text to search for'
+        },
+        source: {
+          type: 'string',
+          description: 'Source identifier (e.g., "Smith2020") or full text to search in'
+        },
+        threshold: {
+          type: 'number',
+          description: 'Optional: Minimum similarity threshold (0-1). Default is 0.7',
+          minimum: 0,
+          maximum: 1
+        }
+      },
+      required: ['quote', 'source']
+    }
+  },
+  {
+    name: 'batch_verify_quotes',
+    description: 'Verify quotes for multiple claims in a single operation. Returns verification results for each claim including similarity scores and closest matches. Use this to efficiently verify many claims at once.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        claim_ids: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Array of claim IDs to verify (e.g., ["C_01", "C_02", "C_03"])'
+        },
+        similarity_threshold: {
+          type: 'number',
+          description: 'Optional: Minimum similarity threshold for verification (0-1). Default is 0.8',
+          minimum: 0,
+          maximum: 1
+        }
+      },
+      required: ['claim_ids']
+    }
+  },
+  {
+    name: 'categorize_claim',
+    description: 'Automatically categorize a claim by analyzing its text. Returns the suggested category and confidence score. Use this to organize claims into appropriate category files.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        claim_text: {
+          type: 'string',
+          description: 'The claim text to categorize'
+        }
+      },
+      required: ['claim_text']
+    }
   }
 ];

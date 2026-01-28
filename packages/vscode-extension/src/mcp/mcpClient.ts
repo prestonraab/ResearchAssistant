@@ -691,6 +691,71 @@ export class MCPClientManager {
     }
   }
 
+  async categorizeClaim(claimText: string): Promise<any> {
+    const cacheKey = this.getCacheKey('research:categorize', claimText);
+    const cached = this.getFromCache<any>(cacheKey);
+    
+    if (cached) {
+      return cached;
+    }
+
+    try {
+      const result = await this.withRetry(async () => {
+        // Get workspace root
+        const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+        if (!workspaceRoot) {
+          throw new Error('No workspace folder open');
+        }
+
+        // Import ClaimExtractor from core
+        const { ClaimExtractor } = await import('@research-assistant/core');
+        const { EmbeddingService } = await import('@research-assistant/core');
+        
+        // Get OpenAI API key from settings
+        const config = vscode.workspace.getConfiguration('researchAssistant');
+        const apiKey = config.get<string>('openaiApiKey') || process.env.OPENAI_API_KEY || '';
+        
+        if (!apiKey) {
+          throw new Error('OpenAI API key not configured');
+        }
+        
+        // Create extractor instance with absolute cache path
+        const cachePath = path.join(workspaceRoot, '.cache', 'embeddings');
+        const embeddingService = new EmbeddingService(apiKey, cachePath);
+        const extractor = new ClaimExtractor(embeddingService);
+        
+        // Categorize the claim
+        const category = extractor.categorizeClaim(claimText);
+        
+        // Map to display name
+        const categoryMap: Record<string, string> = {
+          'method': 'Method',
+          'result': 'Result',
+          'conclusion': 'Conclusion',
+          'background': 'Background',
+          'challenge': 'Challenge',
+          'data_source': 'Data Source',
+          'data_trend': 'Data Trend',
+          'impact': 'Impact',
+          'application': 'Application',
+          'phenomenon': 'Phenomenon'
+        };
+        
+        return {
+          suggestedCategory: category,
+          displayCategory: categoryMap[category] || 'Background',
+          availableCategories: Object.values(categoryMap)
+        };
+      });
+      
+      this.setCache(cacheKey, result);
+      return result;
+    } catch (error) {
+      console.error('Categorize claim failed:', error);
+      throw error;
+    }
+  }
+
   clearCache(): void {
     this.cache.clear();
   }

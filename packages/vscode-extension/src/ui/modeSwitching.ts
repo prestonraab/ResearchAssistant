@@ -183,26 +183,11 @@ export function getBreadcrumbCss(): string {
 export function getModeSwitchingJs(): string {
   return `
     (function() {
-      // Handle mode switching keyboard shortcuts
-      document.addEventListener('keydown', (e) => {
-        if (e.shiftKey) {
-          switch (e.key.toUpperCase()) {
-            case 'W':
-              e.preventDefault();
-              vscode.postMessage({ type: 'switchToWritingMode' });
-              break;
-            case 'E':
-              e.preventDefault();
-              vscode.postMessage({ type: 'switchToEditingMode' });
-              break;
-            case 'C':
-              e.preventDefault();
-              vscode.postMessage({ type: 'switchToClaimReview' });
-              break;
-          }
-        }
+      // Mode switching is handled by VS Code keybindings (Cmd/Ctrl+Alt+W/E/R)
+      // No keyboard shortcuts in webview to avoid conflicts with typing
 
-        // Handle Esc to close mode
+      // Handle Esc to close mode
+      document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') {
           e.preventDefault();
           vscode.postMessage({ type: 'closeMode' });

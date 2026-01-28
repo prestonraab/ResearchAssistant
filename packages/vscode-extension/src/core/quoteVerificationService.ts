@@ -71,7 +71,7 @@ export class QuoteVerificationService {
       };
     }
 
-    if (!claim.primaryQuote) {
+    if (!claim.primaryQuote || !claim.primaryQuote.text) {
       return {
         claimId,
         verified: false,
@@ -80,7 +80,7 @@ export class QuoteVerificationService {
       };
     }
 
-    if (!claim.source) {
+    if (!claim.primaryQuote.source) {
       return {
         claimId,
         verified: false,
@@ -91,7 +91,7 @@ export class QuoteVerificationService {
 
     try {
       // Verify primary quote
-      const result = await this.verifyQuote(claim.primaryQuote, claim.source);
+      const result = await this.verifyQuote(claim.primaryQuote.text, claim.primaryQuote.source);
       
       // Update claim verification status
       if (result.verified) {
@@ -151,7 +151,7 @@ export class QuoteVerificationService {
 
     for (const claim of claims) {
       // Skip claims without quotes
-      if (!claim.primaryQuote) {
+      if (!claim.primaryQuote || !claim.primaryQuote.text) {
         continue;
       }
 
@@ -171,8 +171,8 @@ export class QuoteVerificationService {
         if (result.closestMatch) {
           failures.push({
             claimId: claim.id,
-            quote: claim.primaryQuote,
-            source: claim.source,
+            quote: claim.primaryQuote.text,
+            source: claim.primaryQuote.source,
             closestMatch: result.closestMatch,
             similarity: result.similarity
           });
@@ -209,7 +209,7 @@ export class QuoteVerificationService {
     for (const claimId of claimIds) {
       const claim = this.claimsManager.getClaim(claimId);
       
-      if (!claim || !claim.primaryQuote) {
+      if (!claim || !claim.primaryQuote || !claim.primaryQuote.text) {
         continue;
       }
 
@@ -228,8 +228,8 @@ export class QuoteVerificationService {
         if (result.closestMatch && claim) {
           failures.push({
             claimId: claim.id,
-            quote: claim.primaryQuote,
-            source: claim.source,
+            quote: claim.primaryQuote.text,
+            source: claim.primaryQuote.source,
             closestMatch: result.closestMatch,
             similarity: result.similarity
           });

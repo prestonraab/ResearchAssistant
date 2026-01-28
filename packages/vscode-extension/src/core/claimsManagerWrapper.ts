@@ -3,6 +3,7 @@ import * as fs from 'fs/promises';
 import * as path from 'path';
 import { ClaimsManager as CoreClaimsManager } from '@research-assistant/core';
 import type { Claim } from '@research-assistant/core';
+import { PersistenceUtils } from './persistenceUtils';
 
 interface ClaimFileMapping {
   [claimId: string]: string; // Maps claim ID to category file path
@@ -27,6 +28,15 @@ export class ClaimsManager extends CoreClaimsManager {
   public readonly onDidChange = this.onDidChangeEmitter.event;
   private onClaimSavedEmitter = new vscode.EventEmitter<Claim>();
   public readonly onClaimSaved = this.onClaimSavedEmitter.event;
+  
+  // Write queue to prevent race conditions
+  private writeQueue: Promise<void> = Promise.resolve();
+  private isLoading: boolean = false;
+  private isWriting: boolean = false;
+  
+  // Consolidate multiple file change events
+  private pendingReloadTimer: NodeJS.Timeout | undefined;
+  private readonly RELOAD_DEBOUNCE_MS = 500;
 
   constructor(filePath: string) {
     // Extract workspace root from file path
@@ -36,52 +46,90 @@ export class ClaimsManager extends CoreClaimsManager {
     this.filePath = filePath;
   }
 
-  updatePath(filePath: string): void {
+  async updatePath(filePath: string): Promise<void> {
     this.filePath = filePath;
-    this.loadClaims();
+    await this.loadClaims();
+  }
+
+  /**
+   * Request a reload with debouncing to consolidate multiple changes
+   * Used by file watchers to avoid multiple reloads
+   */
+  requestReload(): void {
+    // Clear existing timer
+    if (this.pendingReloadTimer) {
+      clearTimeout(this.pendingReloadTimer);
+    }
+
+    // Set new timer to reload after debounce period
+    this.pendingReloadTimer = setTimeout(() => {
+      this.loadClaims().catch(error => {
+        console.error('Error reloading claims after external change:', error);
+      });
+      this.pendingReloadTimer = undefined;
+    }, this.RELOAD_DEBOUNCE_MS);
   }
 
   /**
    * Override loadClaims to add event emission and sync mutable state
    */
   async loadClaims(): Promise<Claim[]> {
-    const claims = await super.loadClaims();
-    
-    // Infer missing sources from filenames
-    await this.inferMissingSources(claims);
-    
-    // Sync mutable claims map
-    this.mutableClaims.clear();
-    for (const claim of claims) {
-      this.mutableClaims.set(claim.id, claim);
+    // Prevent loads during active writes to maintain consistency
+    if (this.isWriting) {
+      console.warn('[ClaimsManager] Write in progress, deferring load');
+      // Request reload after write completes
+      this.requestReload();
+      return this.getClaims();
     }
-    
-    // Build file mapping for claims
-    this.claimToFileMap = {};
-    const claimsDir = path.join(path.dirname(this.filePath), 'claims');
-    
+
+    // Prevent concurrent loads
+    if (this.isLoading) {
+      console.warn('[ClaimsManager] Load already in progress, skipping duplicate load');
+      return this.getClaims();
+    }
+
+    this.isLoading = true;
     try {
-      const stat = await fs.stat(claimsDir);
-      if (stat.isDirectory()) {
-        // Claims are in category files
-        for (const claim of claims) {
-          this.claimToFileMap[claim.id] = this.getDefaultFileForClaim(claim);
+      const claims = await super.loadClaims();
+      
+      // Infer missing sources from filenames
+      await this.inferMissingSources(claims);
+      
+      // Sync mutable claims map
+      this.mutableClaims.clear();
+      for (const claim of claims) {
+        this.mutableClaims.set(claim.id, claim);
+      }
+      
+      // Build file mapping for claims
+      this.claimToFileMap = {};
+      const claimsDir = path.join(path.dirname(this.filePath), 'claims');
+      
+      try {
+        const stat = await fs.stat(claimsDir);
+        if (stat.isDirectory()) {
+          // Claims are in category files
+          for (const claim of claims) {
+            this.claimToFileMap[claim.id] = this.getDefaultFileForClaim(claim);
+          }
+        } else {
+          // Claims are in single file
+          for (const claim of claims) {
+            this.claimToFileMap[claim.id] = this.filePath;
+          }
         }
-      } else {
-        // Claims are in single file
+      } catch {
+        // Claims directory doesn't exist, use single file
         for (const claim of claims) {
           this.claimToFileMap[claim.id] = this.filePath;
         }
       }
-    } catch {
-      // Claims directory doesn't exist, use single file
-      for (const claim of claims) {
-        this.claimToFileMap[claim.id] = this.filePath;
-      }
+      
+      this.onDidChangeEmitter.fire();
+      return claims;
+    } finally {
+      this.isLoading = false;
     }
-    
-    this.onDidChangeEmitter.fire();
-    return claims;
   }
 
   /**
@@ -100,18 +148,18 @@ export class ClaimsManager extends CoreClaimsManager {
       const txtFiles = files.filter(f => f.endsWith('.txt'));
 
       for (const claim of claims) {
-        // Skip if already has a source
-        if (claim.source && claim.source !== 'Unknown' && claim.source !== '') {
+        // Skip if already has a source in primaryQuote
+        if (claim.primaryQuote && claim.primaryQuote.source && claim.primaryQuote.source !== 'Unknown' && claim.primaryQuote.source !== '') {
           continue;
         }
 
         // Skip if no primary quote to search with
-        if (!claim.primaryQuote) {
+        if (!claim.primaryQuote || !claim.primaryQuote.text) {
           continue;
         }
 
         // Search for the quote in all files
-        const quoteWords = claim.primaryQuote
+        const quoteWords = claim.primaryQuote.text
           .toLowerCase()
           .split(/\s+/)
           .filter(w => w.length > 4)
@@ -132,7 +180,7 @@ export class ClaimsManager extends CoreClaimsManager {
               // Extract author-year from filename
               const authorYear = this.extractAuthorYearFromFilename(file);
               if (authorYear) {
-                claim.source = authorYear;
+                claim.primaryQuote.source = authorYear;
                 break;
               }
             }
@@ -199,7 +247,7 @@ export class ClaimsManager extends CoreClaimsManager {
    * Override findClaimsBySource to use mutable state
    */
   findClaimsBySource(source: string): Claim[] {
-    return this.getClaims().filter(claim => claim.source === source);
+    return this.getClaims().filter(claim => claim.primaryQuote && claim.primaryQuote.source === source);
   }
 
   /**
@@ -213,6 +261,13 @@ export class ClaimsManager extends CoreClaimsManager {
    * Save a new or updated claim
    */
   async saveClaim(claim: Claim): Promise<void> {
+    // Validate claim before saving
+    const validation = PersistenceUtils.validateClaim(claim);
+    if (!validation.valid) {
+      await PersistenceUtils.showValidationWarning(validation.errors, `claim ${claim?.id}`);
+      throw new Error(`Invalid claim: ${validation.errors.join(', ')}`);
+    }
+
     // Ensure claim has required fields
     if (!claim.id || !claim.text) {
       throw new Error('Claim must have id and text');
@@ -233,7 +288,8 @@ export class ClaimsManager extends CoreClaimsManager {
       this.claimToFileMap[claim.id] = this.getDefaultFileForClaim(claim);
     }
     
-    await this.persistClaims();
+    // Queue the persistence operation
+    await this.queuePersist();
     
     this.onDidChangeEmitter.fire();
     
@@ -253,8 +309,36 @@ export class ClaimsManager extends CoreClaimsManager {
     // Prevent changing immutable fields
     const { id: _, createdAt: __, ...allowedUpdates } = updates;
     
+    // Check if category is being changed
+    const oldCategory = claim.category;
     Object.assign(claim, allowedUpdates, { modifiedAt: new Date() });
-    await this.persistClaims();
+    
+    // If category changed, update the file mapping
+    if (updates.category && updates.category !== oldCategory) {
+      const newFilePath = this.getDefaultFileForClaim(claim);
+      const oldFilePath = this.claimToFileMap[id];
+      this.claimToFileMap[id] = newFilePath;
+      
+      // If claims are in category files, remove from old file
+      if (oldFilePath && oldFilePath !== newFilePath && oldFilePath.includes('/claims/')) {
+        try {
+          const oldFileContent = await fs.readFile(oldFilePath, 'utf-8');
+          const claimHeaderRegex = new RegExp(`## ${id}:.*?(?=##|$)`, 'gs');
+          const newContent = oldFileContent.replace(claimHeaderRegex, '').trim();
+          if (newContent) {
+            await fs.writeFile(oldFilePath, newContent + '\n', 'utf-8');
+          } else {
+            // If file is now empty, delete it
+            await fs.unlink(oldFilePath);
+          }
+        } catch (error) {
+          console.warn(`Could not remove claim from old file ${oldFilePath}:`, error);
+        }
+      }
+    }
+    
+    // Queue the persistence operation
+    await this.queuePersist();
     
     this.onDidChangeEmitter.fire();
   }
@@ -271,7 +355,7 @@ export class ClaimsManager extends CoreClaimsManager {
     if (!claim.sections.includes(sectionId)) {
       claim.sections.push(sectionId);
       claim.modifiedAt = new Date();
-      await this.persistClaims();
+      await this.queuePersist();
       
       this.onDidChangeEmitter.fire();
     }
@@ -290,7 +374,7 @@ export class ClaimsManager extends CoreClaimsManager {
     if (index > -1) {
       claim.sections.splice(index, 1);
       claim.modifiedAt = new Date();
-      await this.persistClaims();
+      await this.queuePersist();
       
       this.onDidChangeEmitter.fire();
     }
@@ -307,7 +391,7 @@ export class ClaimsManager extends CoreClaimsManager {
     
     this.mutableClaims.delete(id);
     delete this.claimToFileMap[id];
-    await this.persistClaims();
+    await this.queuePersist();
     
     this.onDidChangeEmitter.fire();
   }
@@ -334,7 +418,7 @@ export class ClaimsManager extends CoreClaimsManager {
     const lowerQuery = query.toLowerCase();
     return this.getClaims().filter(claim => 
       claim.text.toLowerCase().includes(lowerQuery) ||
-      claim.primaryQuote.toLowerCase().includes(lowerQuery) ||
+      (claim.primaryQuote?.text && claim.primaryQuote.text.toLowerCase().includes(lowerQuery)) ||
       (claim.context && claim.context.toLowerCase().includes(lowerQuery))
     );
   }
@@ -393,10 +477,8 @@ export class ClaimsManager extends CoreClaimsManager {
       id: this.generateClaimId(),
       text: primaryClaim.text,
       category: primaryClaim.category,
-      source: claimsToMerge.map(c => c.source).join(', '),
-      sourceId: primaryClaim.sourceId,
       context: claimsToMerge.map(c => c.context).filter(c => c).join(' | '),
-      primaryQuote: primaryClaim.primaryQuote,
+      primaryQuote: primaryClaim.primaryQuote || { text: '', source: '', verified: false },
       supportingQuotes: [],
       sections: [],
       verified: false,
@@ -452,10 +534,12 @@ export class ClaimsManager extends CoreClaimsManager {
       id,
       text,
       category: '',
-      source: '',
-      sourceId: 0,
       context: '',
-      primaryQuote: '',
+      primaryQuote: {
+        text: '',
+        source: '',
+        verified: false
+      },
       supportingQuotes: [],
       sections: [],
       verified: false,
@@ -475,8 +559,15 @@ export class ClaimsManager extends CoreClaimsManager {
       content += `**Category**: ${claim.category}  \n`;
     }
     
-    if (claim.source && claim.sourceId) {
-      content += `**Source**: ${claim.source} (Source ID: ${claim.sourceId})  \n`;
+    // Get source from primaryQuote (quotes have sources, not claims)
+    if (claim.primaryQuote && claim.primaryQuote.source) {
+      const source = claim.primaryQuote.source;
+      const sourceId = claim.primaryQuote.sourceId;
+      if (sourceId) {
+        content += `**Source**: ${source} (Source ID: ${sourceId})  \n`;
+      } else {
+        content += `**Source**: ${source}  \n`;
+      }
     }
     
     // Add sections field if claim has section associations
@@ -488,27 +579,29 @@ export class ClaimsManager extends CoreClaimsManager {
       content += `**Context**: ${claim.context}\n\n`;
     }
     
-    if (claim.primaryQuote) {
+    if (claim.primaryQuote && claim.primaryQuote.text) {
+      const quoteText = claim.primaryQuote.text;
       // Detect if quote has a citation prefix (e.g., "(Abstract):")
-      const hasPrefix = claim.primaryQuote.match(/^\([^)]+\):/);
+      const hasPrefix = quoteText.match(/^\([^)]+\):/);
       if (hasPrefix) {
         content += `**Primary Quote** ${hasPrefix[0]}\n`;
-        content += `> "${claim.primaryQuote.substring(hasPrefix[0].length).trim()}"\n\n`;
+        content += `> "${quoteText.substring(hasPrefix[0].length).trim()}"\n\n`;
       } else {
         content += `**Primary Quote**:\n`;
-        content += `> "${claim.primaryQuote}"\n\n`;
+        content += `> "${quoteText}"\n\n`;
       }
     }
     
     if (claim.supportingQuotes && claim.supportingQuotes.length > 0) {
       content += `**Supporting Quotes**:\n`;
-      for (const quote of claim.supportingQuotes) {
+      for (const quoteObj of claim.supportingQuotes) {
+        const quoteText = quoteObj.text || '';
         // Check if quote has citation prefix
-        const prefixMatch = quote.match(/^\(([^)]+)\):\s*(.+)$/);
+        const prefixMatch = quoteText.match(/^\(([^)]+)\):\s*(.+)$/);
         if (prefixMatch) {
           content += `- (${prefixMatch[1]}): "${prefixMatch[2]}"\n`;
         } else {
-          content += `- "${quote}"\n`;
+          content += `- "${quoteText}"\n`;
         }
       }
       content += '\n';
@@ -519,7 +612,21 @@ export class ClaimsManager extends CoreClaimsManager {
 
   // Private helper methods for file writing
 
+  /**
+   * Queue a persistence operation to prevent race conditions
+   * All writes are serialized through this queue
+   */
+  private async queuePersist(): Promise<void> {
+    this.writeQueue = this.writeQueue.then(() => this.persistClaims()).catch(error => {
+      console.error('Error in write queue:', error);
+      throw error;
+    });
+    
+    return this.writeQueue;
+  }
+
   private async persistClaims(): Promise<void> {
+    this.isWriting = true;
     try {
       // Group claims by their source file
       const claimsByFile = new Map<string, Claim[]>();
@@ -533,16 +640,101 @@ export class ClaimsManager extends CoreClaimsManager {
         claimsByFile.get(filePath)!.push(claim);
       }
       
-      // Write each file incrementally
+      // Write each file with atomic writes and retry logic
+      const writeResults: Array<{ filePath: string; success: boolean; error?: Error }> = [];
       for (const [filePath, claims] of claimsByFile.entries()) {
-        await this.writeClaimsToFile(filePath, claims);
+        try {
+          const content = this.buildClaimsFileContent(filePath, claims);
+          
+          const result = await PersistenceUtils.writeFileAtomic(filePath, content, {
+            maxRetries: 3,
+            initialDelayMs: 100
+          });
+          
+          if (!result.success) {
+            writeResults.push({ filePath, success: false, error: result.error });
+            console.error(`Failed to persist claims to ${filePath}:`, result.error);
+          } else {
+            writeResults.push({ filePath, success: true });
+          }
+        } catch (error) {
+          const err = error instanceof Error ? error : new Error(String(error));
+          writeResults.push({ filePath, success: false, error: err });
+          console.error(`Error persisting claims to ${filePath}:`, err);
+        }
+      }
+      
+      // Check if all writes succeeded
+      const failedWrites = writeResults.filter(r => !r.success);
+      if (failedWrites.length > 0) {
+        const errorMessage = failedWrites.map(w => `${w.filePath}: ${w.error?.message}`).join('\n');
+        console.error('Some claims failed to persist:', errorMessage);
+        
+        // Show error to user with retry option
+        await PersistenceUtils.showPersistenceError(
+          new Error(`Failed to save ${failedWrites.length} file(s)`),
+          'save claims',
+          failedWrites[0].filePath,
+          () => this.persistClaims()
+        );
+        
+        throw new Error(`Failed to persist ${failedWrites.length} file(s)`);
       }
       
       console.log(`Persisted ${this.getClaims().length} claims across ${claimsByFile.size} file(s)`);
     } catch (error) {
       console.error('Error persisting claims:', error);
       throw error;
+    } finally {
+      this.isWriting = false;
     }
+  }
+
+  private buildClaimsFileContent(filePath: string, claims: Claim[]): string {
+    // Sort claims by ID for consistent ordering
+    claims.sort((a, b) => {
+      const aNum = parseInt(a.id.replace('C_', ''), 10);
+      const bNum = parseInt(b.id.replace('C_', ''), 10);
+      return aNum - bNum;
+    });
+
+    // Build file content
+    let content = '';
+    
+    // Add header if this is a category file
+    if (filePath.includes('/claims/')) {
+      const fileName = path.basename(filePath, '.md');
+      const categoryName = this.getCategoryNameFromFileName(fileName);
+      content = `# Claims and Evidence: ${categoryName}\n\n`;
+      content += `This file contains all **${categoryName}** claims with their supporting evidence.\n\n`;
+      content += '---\n\n';
+    }
+
+    // Add each claim
+    for (const claim of claims) {
+      content += this.serializeClaim(claim);
+      content += '\n---\n\n\n';
+    }
+
+    return content;
+  }
+
+  private getCategoryNameFromFileName(fileName: string): string {
+    const nameMap: { [key: string]: string } = {
+      'methods_batch_correction': 'Method - Batch Correction',
+      'methods_advanced': 'Method - Advanced',
+      'methods_classifiers': 'Method - Classifiers',
+      'methods': 'Method',
+      'results': 'Result',
+      'challenges': 'Challenge',
+      'data_sources': 'Data Source',
+      'data_trends': 'Data Trend',
+      'impacts': 'Impact',
+      'applications': 'Application',
+      'phenomena': 'Phenomenon'
+    };
+    
+    return nameMap[fileName] || fileName;
   }
 
   private getDefaultFileForClaim(claim: Claim): string {
@@ -572,51 +764,8 @@ export class ClaimsManager extends CoreClaimsManager {
   }
 
   private async writeClaimsToFile(filePath: string, claims: Claim[]): Promise<void> {
-    // Sort claims by ID for consistent ordering
-    claims.sort((a, b) => {
-      const aNum = parseInt(a.id.replace('C_', ''), 10);
-      const bNum = parseInt(b.id.replace('C_', ''), 10);
-      return aNum - bNum;
-    });
-
-    // Build file content
-    let content = '';
-    
-    // Add header if this is a category file
-    if (filePath.includes('/claims/')) {
-      const fileName = path.basename(filePath, '.md');
-      const categoryName = this.getCategoryNameFromFileName(fileName);
-      content = `# Claims and Evidence: ${categoryName}\n\n`;
-      content += `This file contains all **${categoryName}** claims with their supporting evidence.\n\n`;
-      content += '---\n\n';
-    }
-
-    // Add each claim
-    for (const claim of claims) {
-      content += this.serializeClaim(claim);
-      content += '\n---\n\n\n';
-    }
-
-    // Write file with incremental update strategy
+    const content = this.buildClaimsFileContent(filePath, claims);
     await this.writeFileIncremental(filePath, content);
-  }
-
-  private getCategoryNameFromFileName(fileName: string): string {
-    const nameMap: { [key: string]: string } = {
-      'methods_batch_correction': 'Method - Batch Correction',
-      'methods_advanced': 'Method - Advanced',
-      'methods_classifiers': 'Method - Classifiers',
-      'methods': 'Method',
-      'results': 'Result',
-      'challenges': 'Challenge',
-      'data_sources': 'Data Source',
-      'data_trends': 'Data Trend',
-      'impacts': 'Impact',
-      'applications': 'Application',
-      'phenomena': 'Phenomenon'
-    };
-    
-    return nameMap[fileName] || fileName;
   }
 
   private async writeFileIncremental(filePath: string, newContent: string): Promise<void> {
@@ -631,12 +780,11 @@ export class ClaimsManager extends CoreClaimsManager {
 
       // Only write if content has changed
       if (existingContent !== newContent) {
-        // Ensure directory exists
-        const dir = path.dirname(filePath);
-        await fs.mkdir(dir, { recursive: true });
-        
-        // Write new content
-        await fs.writeFile(filePath, newContent, 'utf-8');
+        // Use atomic write
+        const result = await PersistenceUtils.writeFileAtomic(filePath, newContent);
+        if (!result.success) {
+          throw result.error || new Error('Unknown write error');
+        }
       }
     } catch (error) {
       console.error(`Error writing file ${filePath}:`, error);

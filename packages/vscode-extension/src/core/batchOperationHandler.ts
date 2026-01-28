@@ -106,8 +106,8 @@ export class BatchOperationHandler {
         }
 
         const verificationResult = await this.quoteVerificationService.verifyQuote(
-          claim.primaryQuote,
-          claim.source
+          claim.primaryQuote.text,
+          claim.primaryQuote.source
         );
 
         if (verificationResult.verified) {

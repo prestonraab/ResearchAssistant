@@ -70,7 +70,9 @@ export class PaperRanker {
    */
   async rankPapersForQuery(
     query: string,
-    papers: PaperMetadata[]
+    papers: PaperMetadata[],
+    limit?: number,
+    threshold?: number
   ): Promise<RankedPaper[]> {
     // Validate inputs
     if (!query || query.trim().length === 0 || papers.length === 0) {
@@ -97,6 +99,11 @@ export class PaperRanker {
         abstractEmbedding
       );
 
+      // Skip papers below threshold if specified
+      if (threshold !== undefined && semanticSimilarity < threshold) {
+        continue;
+      }
+
       // Calculate citation boost
       const citationBoost = this.calculateCitationBoost(paper.citationCount);
 
@@ -117,6 +124,11 @@ export class PaperRanker {
 
     // Sort by descending relevance score (highest first)
     rankedPapers.sort((a, b) => b.relevanceScore - a.relevanceScore);
+
+    // Apply limit if specified
+    if (limit !== undefined && limit > 0) {
+      return rankedPapers.slice(0, limit);
+    }
 
     return rankedPapers;
   }

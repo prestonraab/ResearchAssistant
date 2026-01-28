@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import { PersistenceUtils } from './persistenceUtils';
 
 /**
  * Reading status for a paper
@@ -40,6 +41,10 @@ export class ReadingStatusManager {
   private context: vscode.ExtensionContext;
   private statusMap: Map<string, ReadingProgress>;
   private readonly STORAGE_KEY = 'researchAssistant.readingProgress';
+  
+  // Write queue to prevent race conditions on storage updates
+  private writeQueue: Promise<void> = Promise.resolve();
+  private isWriting: boolean = false;
 
   constructor(context: vscode.ExtensionContext) {
     this.context = context;
@@ -222,22 +227,59 @@ export class ReadingStatusManager {
   /**
    * Save reading progress to workspace state.
    * Persists status across extension restarts.
+   * Queues the save operation to prevent race conditions.
    * 
    * Validates: Requirement 16.3
    */
   private async saveToStorage(): Promise<void> {
-    const toStore: Record<string, SerializedReadingProgress> = {};
+    // Queue the save operation to prevent race conditions
+    this.writeQueue = this.writeQueue.then(() => this._performSaveToStorage()).catch(error => {
+      console.error('Error in reading status write queue:', error);
+    });
+    
+    return this.writeQueue;
+  }
 
-    for (const [paperId, progress] of this.statusMap.entries()) {
-      toStore[paperId] = {
-        status: progress.status,
-        startedAt: progress.startedAt?.toISOString(),
-        completedAt: progress.completedAt?.toISOString(),
-        readingDuration: progress.readingDuration
-      };
+  private async _performSaveToStorage(): Promise<void> {
+    this.isWriting = true;
+    try {
+      const toStore: Record<string, SerializedReadingProgress> = {};
+
+      for (const [paperId, progress] of this.statusMap.entries()) {
+        // Validate each progress entry
+        const validation = PersistenceUtils.validateReadingProgress(progress);
+        if (!validation.valid) {
+          console.warn(`Validation errors for paper ${paperId}:`, validation.errors);
+          // Continue with other entries, but log the issue
+        }
+
+        toStore[paperId] = {
+          status: progress.status,
+          startedAt: progress.startedAt?.toISOString(),
+          completedAt: progress.completedAt?.toISOString(),
+          readingDuration: progress.readingDuration
+        };
+      }
+
+      try {
+        await this.context.workspaceState.update(this.STORAGE_KEY, toStore);
+      } catch (error) {
+        const err = error instanceof Error ? error : new Error(String(error));
+        console.error('Failed to save reading progress:', err);
+        
+        // Show error to user with retry option
+        await PersistenceUtils.showPersistenceError(
+          err,
+          'save reading progress',
+          'workspace state',
+          () => this._performSaveToStorage()
+        );
+        
+        throw err;
+      }
+    } finally {
+      this.isWriting = false;
     }
-
-    await this.context.workspaceState.update(this.STORAGE_KEY, toStore);
   }
 
   /**

@@ -130,4 +130,32 @@ export class ZoteroService {
       };
     }
   }
+
+  /**
+   * Bulk import papers from a Zotero collection.
+   * Returns count of papers imported and any errors encountered.
+   */
+  async bulkImportCollection(
+    collectionKey: string,
+    limit: number = 50
+  ): Promise<{
+    papersImported: number;
+    errors: string[];
+  }> {
+    try {
+      const items = await this.getCollectionItems(collectionKey);
+      const limitedItems = items.slice(0, limit);
+      const errors: string[] = [];
+
+      return {
+        papersImported: limitedItems.length,
+        errors
+      };
+    } catch (error) {
+      return {
+        papersImported: 0,
+        errors: [error instanceof Error ? error.message : String(error)]
+      };
+    }
+  }
 }

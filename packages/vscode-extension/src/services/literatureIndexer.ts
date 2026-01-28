@@ -1,0 +1,184 @@
+import * as fs from 'fs';
+import * as path from 'path';
+import { EmbeddingStore, EmbeddedSnippet } from './embeddingStore';
+import { SnippetExtractor } from './snippetExtractor';
+import { EmbeddingService } from './embeddingService';
+
+/**
+ * Orchestrates indexing of literature files
+ * Manages when and how papers are embedded and stored
+ */
+export class LiteratureIndexer {
+  private embeddingStore: EmbeddingStore;
+  private snippetExtractor: SnippetExtractor;
+  private embeddingService: EmbeddingService;
+  private extractedTextPath: string;
+  private isIndexing: boolean = false;
+
+  constructor(workspaceRoot: string, extractedTextPath: string = 'literature/ExtractedText') {
+    this.embeddingStore = new EmbeddingStore(workspaceRoot);
+    this.snippetExtractor = new SnippetExtractor();
+    this.embeddingService = new EmbeddingService();
+    this.extractedTextPath = path.join(workspaceRoot, extractedTextPath);
+  }
+
+  /**
+   * Index all literature files that have changed
+   * Called on extension startup and periodically
+   */
+  async indexChangedFiles(): Promise<{ indexed: number; skipped: number; errors: number }> {
+    if (this.isIndexing) {
+      console.log('[LiteratureIndexer] Indexing already in progress');
+      return { indexed: 0, skipped: 0, errors: 0 };
+    }
+
+    this.isIndexing = true;
+    const stats = { indexed: 0, skipped: 0, errors: 0 };
+
+    try {
+      if (!fs.existsSync(this.extractedTextPath)) {
+        console.log('[LiteratureIndexer] Extracted text directory not found:', this.extractedTextPath);
+        return stats;
+      }
+
+      const files = fs.readdirSync(this.extractedTextPath)
+        .filter(f => f.endsWith('.txt'))
+        .map(f => path.join(this.extractedTextPath, f));
+
+      console.log(`[LiteratureIndexer] Found ${files.length} text files to check`);
+
+      for (const filePath of files) {
+        try {
+          const content = fs.readFileSync(filePath, 'utf-8');
+
+          // Check if file has changed
+          if (!this.embeddingStore.hasFileChanged(filePath, content)) {
+            console.log(`[LiteratureIndexer] Skipping unchanged file: ${path.basename(filePath)}`);
+            stats.skipped++;
+            continue;
+          }
+
+          console.log(`[LiteratureIndexer] Indexing file: ${path.basename(filePath)}`);
+          await this.indexFile(filePath, content);
+          stats.indexed++;
+        } catch (error) {
+          console.error(`[LiteratureIndexer] Error indexing file ${filePath}:`, error);
+          stats.errors++;
+        }
+      }
+
+      console.log('[LiteratureIndexer] Indexing complete:', stats);
+    } finally {
+      this.isIndexing = false;
+    }
+
+    return stats;
+  }
+
+  /**
+   * Index a single file
+   */
+  private async indexFile(filePath: string, content: string): Promise<void> {
+    // Extract snippets
+    const snippets = this.snippetExtractor.extractSnippets(content, path.basename(filePath));
+    console.log(`[LiteratureIndexer] Extracted ${snippets.length} snippets from ${path.basename(filePath)}`);
+
+    if (snippets.length === 0) {
+      return;
+    }
+
+    // Generate embeddings for each snippet
+    const embeddedSnippets: EmbeddedSnippet[] = [];
+
+    for (let i = 0; i < snippets.length; i++) {
+      const snippet = snippets[i];
+      
+      // Show progress
+      if (i % 10 === 0) {
+        console.log(`[LiteratureIndexer] Embedding snippet ${i + 1}/${snippets.length}`);
+      }
+
+      const embedding = await this.embeddingService.embed(snippet.text);
+      
+      if (!embedding) {
+        console.warn(`[LiteratureIndexer] Failed to embed snippet ${i + 1}`);
+        continue;
+      }
+
+      embeddedSnippets.push({
+        id: `${path.basename(filePath)}_${i}`,
+        filePath,
+        fileName: path.basename(filePath),
+        text: snippet.text,
+        embedding,
+        startLine: snippet.startLine,
+        endLine: snippet.endLine,
+        timestamp: Date.now()
+      });
+    }
+
+    // Store embeddings
+    this.embeddingStore.addSnippets(embeddedSnippets, filePath, content);
+  }
+
+  /**
+   * Search for snippets similar to a query
+   */
+  async searchSnippets(query: string, limit: number = 10): Promise<EmbeddedSnippet[]> {
+    console.log('[LiteratureIndexer] searchSnippets called with query:', query.substring(0, 50));
+    
+    // Embed the query
+    const queryEmbedding = await this.embeddingService.embed(query);
+    
+    if (!queryEmbedding) {
+      console.warn('[LiteratureIndexer] Failed to embed query');
+      return [];
+    }
+
+    console.log('[LiteratureIndexer] Query embedding generated, searching store');
+    
+    // Search in store
+    const results = this.embeddingStore.searchByEmbedding(queryEmbedding, limit);
+    console.log('[LiteratureIndexer] Search returned', results.length, 'results');
+    
+    return results;
+  }
+
+  /**
+   * Get all snippets from the store
+   */
+  getSnippets(): EmbeddedSnippet[] {
+    return this.embeddingStore.getAllSnippets();
+  }
+
+  /**
+   * Get indexing statistics
+   */
+  getStats(): { snippetCount: number; fileCount: number; indexSize: string; cacheSize: number } {
+    const storeStats = this.embeddingStore.getStats();
+    const cacheStats = this.embeddingService.getCacheStats();
+
+    return {
+      snippetCount: storeStats.snippetCount,
+      fileCount: storeStats.fileCount,
+      indexSize: storeStats.indexSize,
+      cacheSize: cacheStats.size
+    };
+  }
+
+  /**
+   * Clear all embeddings
+   */
+  clearIndex(): void {
+    this.embeddingStore.clear();
+    this.embeddingService.clearCache();
+    console.log('[LiteratureIndexer] Cleared all embeddings and cache');
+  }
+
+  /**
+   * Check if indexing is in progress
+   */
+  isIndexingInProgress(): boolean {
+    return this.isIndexing;
+  }
+}

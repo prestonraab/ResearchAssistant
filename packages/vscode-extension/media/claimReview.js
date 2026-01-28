@@ -1,7 +1,5 @@
 // Claim Review Mode Script
 
-const vscode = acquireVsCodeApi();
-
 let currentClaim = null;
 let currentVerificationResults = [];
 let currentValidationResult = null;
@@ -176,8 +174,16 @@ function handleMessage(message) {
       updateQuoteVerification(message);
       break;
 
-    case 'newQuotesFound':
-      displayNewQuotes(message.quotes);
+    case 'newQuotesRound':
+      displayNewQuotesRound(message);
+      break;
+
+    case 'newQuotesComplete':
+      displayNewQuotesComplete(message);
+      break;
+
+    case 'snippetTextLoaded':
+      handleSnippetTextLoaded(message);
       break;
 
     case 'internetSearchResults':
@@ -190,6 +196,10 @@ function handleMessage(message) {
 
     case 'showHelp':
       toggleHelpOverlay();
+      break;
+
+    case 'memoryWarning':
+      showNotification(message.message, 'info');
       break;
 
     case 'error':
@@ -210,12 +220,21 @@ function displayClaim(message) {
   currentValidationResult = message.validationResult || {};
   currentUsageLocations = message.usageLocations || [];
 
+  console.log('[ClaimReview] Displaying claim:', currentClaim);
+
   // Display claim header
   const header = document.getElementById('claimHeader');
-  header.querySelector('.claim-id').textContent = currentClaim.id;
-  header.querySelector('.claim-text').textContent = currentClaim.text;
-  header.querySelector('.category').textContent = currentClaim.category;
-  header.querySelector('.source').textContent = `Source: ${currentClaim.source}`;
+  if (header) {
+    const idEl = header.querySelector('.claim-id');
+    const textEl = header.querySelector('.claim-text');
+    const categoryEl = header.querySelector('.category');
+    const sourceEl = header.querySelector('.source');
+    
+    if (idEl) idEl.textContent = currentClaim.id || '';
+    if (textEl) textEl.textContent = currentClaim.text || '';
+    if (categoryEl) categoryEl.textContent = currentClaim.category || 'Uncategorized';
+    if (sourceEl) sourceEl.textContent = currentClaim.source ? `Source: ${currentClaim.source}` : 'Source: (none)';
+  }
 
   // Display quotes
   displayQuotes();
@@ -239,21 +258,47 @@ function displayQuotes() {
   supportingContainer.innerHTML = '';
 
   // Display primary quote
-  if (currentClaim.primaryQuote) {
+  if (currentClaim.primaryQuote && currentClaim.primaryQuote.trim()) {
     const primaryResult = currentVerificationResults.find(r => r.type === 'primary');
     displayQuoteContainer(primaryContainer, currentClaim.primaryQuote, primaryResult, 'primary');
+    primaryContainer.style.display = 'block';
   } else {
-    primaryContainer.style.display = 'none';
+    // Show empty state with prompt to add quote
+    primaryContainer.innerHTML = `
+      <div class="quote-header">
+        <span class="quote-type">PRIMARY QUOTE</span>
+        <span class="status-icon not-checked">○</span>
+      </div>
+      <div class="quote-empty-state">
+        <div class="empty-state-icon">📝</div>
+        <div class="empty-state-text">No primary quote yet</div>
+        <div class="empty-state-hint">Search for supporting quotes below to add them</div>
+      </div>
+      <div class="quote-actions">
+        <button class="btn btn-secondary" data-action="findNewQuotes">Find Quotes</button>
+      </div>
+    `;
+    
+    // Attach event listener for Find Quotes button
+    const findBtn = primaryContainer.querySelector('[data-action="findNewQuotes"]');
+    if (findBtn) {
+      findBtn.addEventListener('click', () => {
+        findNewQuotes();
+      });
+    }
+    primaryContainer.style.display = 'block';
   }
 
   // Display supporting quotes
   if (currentClaim.supportingQuotes && currentClaim.supportingQuotes.length > 0) {
     currentClaim.supportingQuotes.forEach((quote, index) => {
-      const result = currentVerificationResults.find(r => r.quote === quote && r.type === 'supporting');
-      const container = document.createElement('div');
-      container.className = 'quote-container';
-      displayQuoteContainer(container, quote, result, 'supporting');
-      supportingContainer.appendChild(container);
+      if (quote && quote.trim()) {
+        const result = currentVerificationResults.find(r => r.quote === quote && r.type === 'supporting');
+        const container = document.createElement('div');
+        container.className = 'quote-container';
+        displayQuoteContainer(container, quote, result, 'supporting');
+        supportingContainer.appendChild(container);
+      }
     });
   }
 }
@@ -277,14 +322,43 @@ function displayQuoteContainer(container, quote, result, type) {
     <div class="quote-text">${escapeHtml(quote)}</div>
     <div class="verification-info ${getStatusClass(result)}">${verificationText}</div>
     <div class="quote-actions">
-      <button class="btn btn-citation" onclick="toggleQuoteCitation('${escapeHtml(quote)}')" title="${citationTitle}">
+      <button class="btn btn-citation" data-action="toggleCitation" data-quote="${escapeHtml(quote)}" title="${citationTitle}">
         ${citationStatus}
       </button>
-      <button class="btn btn-primary" onclick="acceptQuote('${escapeHtml(quote)}')">Accept</button>
-      <button class="btn btn-danger" onclick="deleteQuote('${escapeHtml(quote)}')">Delete</button>
-      <button class="btn btn-secondary" onclick="findNewQuotes()">Find New</button>
+      <button class="btn btn-primary" data-action="acceptQuote" data-quote="${escapeHtml(quote)}">Accept</button>
+      <button class="btn btn-danger" data-action="deleteQuote" data-quote="${escapeHtml(quote)}">Delete</button>
+      <button class="btn btn-secondary" data-action="findNewQuotes">Find New</button>
     </div>
   `;
+  
+  // Attach event listeners
+  const citationBtn = container.querySelector('[data-action="toggleCitation"]');
+  if (citationBtn) {
+    citationBtn.addEventListener('click', () => {
+      toggleQuoteCitation(quote);
+    });
+  }
+  
+  const acceptBtn = container.querySelector('[data-action="acceptQuote"]');
+  if (acceptBtn) {
+    acceptBtn.addEventListener('click', () => {
+      acceptQuote(quote);
+    });
+  }
+  
+  const deleteBtn = container.querySelector('[data-action="deleteQuote"]');
+  if (deleteBtn) {
+    deleteBtn.addEventListener('click', () => {
+      deleteQuote(quote);
+    });
+  }
+  
+  const findBtn = container.querySelector('[data-action="findNewQuotes"]');
+  if (findBtn) {
+    findBtn.addEventListener('click', () => {
+      findNewQuotes();
+    });
+  }
 }
 
 /**
@@ -617,22 +691,136 @@ function updateValidationResult(message) {
 }
 
 /**
- * Display new quotes
+ * Display new quotes from a round (streaming)
+ */
+function displayNewQuotesRound(message) {
+  const container = document.getElementById('newQuotesContainer');
+  
+  // Create container on first round
+  if (!container) {
+    const newContainer = document.createElement('div');
+    newContainer.id = 'newQuotesContainer';
+    newContainer.className = 'new-quotes-container';
+    newContainer.innerHTML = `
+      <div class="new-quotes-header">
+        <h3>Found Quotes</h3>
+        <button class="close-btn" data-action="closeNewQuotes">✕</button>
+      </div>
+      <div class="new-quotes-list"></div>
+      <div class="new-quotes-status">Searching round ${message.round}...</div>
+    `;
+    
+    // Attach close button listener
+    const closeBtn = newContainer.querySelector('[data-action="closeNewQuotes"]');
+    if (closeBtn) {
+      closeBtn.addEventListener('click', () => {
+        newContainer.remove();
+      });
+    }
+    
+    const mainPanel = document.querySelector('.main-panel');
+    if (mainPanel) {
+      mainPanel.insertBefore(newContainer, mainPanel.firstChild);
+    }
+  }
+
+  // Add quotes from this round
+  const list = document.getElementById('newQuotesContainer').querySelector('.new-quotes-list');
+  const status = document.getElementById('newQuotesContainer').querySelector('.new-quotes-status');
+  
+  message.quotes.forEach((q, i) => {
+    const item = document.createElement('div');
+    item.className = 'new-quote-item';
+    item.innerHTML = `
+      <div class="quote-number">${list.children.length + i + 1}</div>
+      <div class="quote-details">
+        <div class="quote-summary">"${escapeHtml(q.summary)}"</div>
+        <div class="quote-source">${escapeHtml(q.source)} (lines ${q.lineRange})</div>
+        <button class="btn btn-small btn-primary" data-action="addQuote" data-snippet-id="${escapeHtml(q.id)}" data-file-path="${escapeHtml(q.filePath)}">Add Quote</button>
+      </div>
+    `;
+    
+    // Attach add quote listener
+    const addBtn = item.querySelector('[data-action="addQuote"]');
+    if (addBtn) {
+      addBtn.addEventListener('click', () => {
+        const snippetId = addBtn.getAttribute('data-snippet-id');
+        const filePath = addBtn.getAttribute('data-file-path');
+        acceptNewQuote(snippetId, filePath);
+      });
+    }
+    
+    list.appendChild(item);
+  });
+  
+  status.textContent = `Searching round ${message.round}...`;
+}
+
+/**
+ * Display completion message
+ */
+function displayNewQuotesComplete(message) {
+  const container = document.getElementById('newQuotesContainer');
+  if (container) {
+    const status = container.querySelector('.new-quotes-status');
+    if (status) {
+      status.textContent = `Search complete: ${message.metadata.supportingFound} supporting quotes found across ${message.metadata.roundsCompleted} rounds`;
+    }
+  }
+}
+
+/**
+ * Display new quotes (legacy - kept for compatibility)
  */
 function displayNewQuotes(quotes) {
   if (!quotes || quotes.length === 0) {
-    alert('No new quotes found');
+    showNotification('No new quotes found', 'info');
     return;
   }
 
-  // Create a list of quotes to display
-  let message = `Found ${quotes.length} potential quotes:\n\n`;
-  quotes.forEach((q, i) => {
-    message += `${i + 1}. "${q.text}"\n   Source: ${q.source} (${Math.round(q.similarity * 100)}% match)\n\n`;
+  // Create a container for new quotes
+  const container = document.createElement('div');
+  container.className = 'new-quotes-container';
+  container.innerHTML = `
+    <div class="new-quotes-header">
+      <h3>Found ${quotes.length} Potential Quote${quotes.length !== 1 ? 's' : ''}</h3>
+      <button class="close-btn" data-action="closeQuotes">✕</button>
+    </div>
+    <div class="new-quotes-list">
+      ${quotes.map((q, i) => `
+        <div class="new-quote-item">
+          <div class="quote-number">${i + 1}</div>
+          <div class="quote-details">
+            <div class="quote-text">"${escapeHtml(q.text)}"</div>
+            <div class="quote-source">${escapeHtml(q.source)} (${Math.round(q.similarity * 100)}% match)</div>
+            <button class="btn btn-small btn-primary" data-action="addQuote" data-quote="${escapeHtml(q.text)}">Add Quote</button>
+          </div>
+        </div>
+      `).join('')}
+    </div>
+  `;
+
+  // Attach close button listener
+  const closeBtn = container.querySelector('[data-action="closeQuotes"]');
+  if (closeBtn) {
+    closeBtn.addEventListener('click', () => {
+      container.remove();
+    });
+  }
+
+  // Attach add quote listeners
+  container.querySelectorAll('[data-action="addQuote"]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const quote = btn.getAttribute('data-quote');
+      acceptNewQuote(quote);
+    });
   });
 
-  // Show in information message
-  vscode.window.showInformationMessage(message, { modal: true });
+  // Insert at top of main panel
+  const mainPanel = document.querySelector('.main-panel');
+  if (mainPanel) {
+    mainPanel.insertBefore(container, mainPanel.firstChild);
+  }
 }
 
 /**
@@ -640,25 +828,108 @@ function displayNewQuotes(quotes) {
  */
 function displayInternetResults(results) {
   if (!results || results.length === 0) {
-    alert('No internet results found');
+    showNotification('No internet results found', 'info');
     return;
   }
 
-  // Create a list of results to display
-  let message = `Found ${results.length} web results:\n\n`;
-  results.forEach((r, i) => {
-    message += `${i + 1}. ${r.title}\n   ${r.url}\n   ${r.snippet}\n\n`;
-  });
+  // Create a container for internet results
+  const container = document.createElement('div');
+  container.className = 'internet-results-container';
+  container.innerHTML = `
+    <div class="internet-results-header">
+      <h3>Found ${results.length} Web Result${results.length !== 1 ? 's' : ''}</h3>
+      <button class="close-btn" data-action="closeResults">✕</button>
+    </div>
+    <div class="internet-results-list">
+      ${results.map((r, i) => `
+        <div class="internet-result-item">
+          <div class="result-number">${i + 1}</div>
+          <div class="result-details">
+            <div class="result-title">${escapeHtml(r.title)}</div>
+            <div class="result-url"><a href="${escapeHtml(r.url)}" target="_blank">${escapeHtml(r.url)}</a></div>
+            <div class="result-snippet">${escapeHtml(r.snippet)}</div>
+          </div>
+        </div>
+      `).join('')}
+    </div>
+  `;
 
-  // Show in information message
-  vscode.window.showInformationMessage(message, { modal: true });
+  // Attach close button listener
+  const closeBtn = container.querySelector('[data-action="closeResults"]');
+  if (closeBtn) {
+    closeBtn.addEventListener('click', () => {
+      container.remove();
+    });
+  }
+
+  // Insert at top of main panel
+  const mainPanel = document.querySelector('.main-panel');
+  if (mainPanel) {
+    mainPanel.insertBefore(container, mainPanel.firstChild);
+  }
 }
 
 /**
  * Show error
  */
 function showError(message) {
-  alert(`Error: ${message}`);
+  showNotification(`Error: ${message}`, 'error');
+}
+
+/**
+ * Show notification
+ */
+function showNotification(message, type = 'info') {
+  const notification = document.createElement('div');
+  notification.className = `notification notification-${type}`;
+  notification.textContent = message;
+  
+  const container = document.querySelector('.main-panel');
+  if (container) {
+    container.insertBefore(notification, container.firstChild);
+    
+    // Auto-remove after 3 seconds
+    setTimeout(() => {
+      notification.remove();
+    }, 3000);
+  }
+}
+
+/**
+ * Handle snippet text loaded
+ */
+function handleSnippetTextLoaded(message) {
+  if (!currentClaim) return;
+  
+  const quote = message.text;
+  
+  // Send message to add quote to supporting quotes
+  vscode.postMessage({
+    type: 'addSupportingQuote',
+    claimId: currentClaim.id,
+    quote: quote,
+    source: message.source,
+    lineRange: message.lineRange
+  });
+  
+  showNotification('Adding quote to supporting quotes...', 'info');
+}
+
+/**
+ * Accept new quote
+ */
+function acceptNewQuote(snippetId, filePath) {
+  if (!currentClaim) return;
+  
+  // Request full text from extension
+  vscode.postMessage({
+    type: 'loadSnippetText',
+    snippetId: snippetId,
+    filePath: filePath
+  });
+  
+  // Show loading state
+  showNotification('Loading quote text...', 'info');
 }
 
 /**

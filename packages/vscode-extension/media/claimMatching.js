@@ -1,6 +1,5 @@
 // Claim Matching Mode - Client-side logic
-
-const vscode = acquireVsCodeApi();
+// Note: vscode is already declared in the HTML template
 
 let currentSentenceId = null;
 let currentSentenceText = null;
@@ -129,8 +128,11 @@ function renderClaimsGrid() {
     return;
   }
 
+  // Limit initial render to top 10 for memory efficiency
+  const maxInitialCards = Math.min(10, similarClaims.length);
+  
   // Create placeholder cards for lazy-loading
-  similarClaims.forEach((claim, index) => {
+  similarClaims.slice(0, maxInitialCards).forEach((claim, index) => {
     const card = document.createElement('div');
     card.className = 'claim-card claim-card-placeholder';
     card.dataset.index = index;
@@ -139,7 +141,38 @@ function renderClaimsGrid() {
     claimsGridEl.appendChild(card);
   });
 
+  // Add "Load More" button if there are more claims
+  if (similarClaims.length > maxInitialCards) {
+    const loadMoreBtn = document.createElement('button');
+    loadMoreBtn.className = 'load-more-btn';
+    loadMoreBtn.textContent = `Load ${similarClaims.length - maxInitialCards} more claims`;
+    loadMoreBtn.style.gridColumn = '1 / -1';
+    loadMoreBtn.addEventListener('click', () => {
+      loadMoreBtn.remove();
+      renderRemainingClaims(maxInitialCards);
+    });
+    claimsGridEl.appendChild(loadMoreBtn);
+  }
+
   // Setup lazy-loading with Intersection Observer
+  setupLazyLoading();
+}
+
+/**
+ * Render remaining claims
+ */
+function renderRemainingClaims(startIndex) {
+  similarClaims.slice(startIndex).forEach((claim, offset) => {
+    const index = startIndex + offset;
+    const card = document.createElement('div');
+    card.className = 'claim-card claim-card-placeholder';
+    card.dataset.index = index;
+    card.dataset.claimId = claim.id;
+    card.innerHTML = '<div class="claim-card-loading">Loading...</div>';
+    claimsGridEl.appendChild(card);
+  });
+  
+  // Re-setup lazy loading for new cards
   setupLazyLoading();
 }
 

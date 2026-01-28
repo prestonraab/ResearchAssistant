@@ -167,15 +167,17 @@ export class ClaimExtractor {
    * 
    * @param text The paper text to extract claims from
    * @param source The source identifier (e.g., "Smith2020")
+   * @param confidenceThreshold Optional minimum confidence threshold (0-1)
    * @returns Array of potential claims sorted by confidence (highest first)
    */
-  extractFromText(text: string, source: string): PotentialClaim[] {
+  extractFromText(text: string, source: string, confidenceThreshold?: number): PotentialClaim[] {
     if (!text || text.trim().length === 0) {
       return [];
     }
 
     const lines = text.split('\n');
     const potentialClaims: PotentialClaim[] = [];
+    const threshold = confidenceThreshold ?? 0;
 
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i].trim();
@@ -192,6 +194,11 @@ export class ClaimExtractor {
 
       // Calculate confidence score
       const confidence = this.calculateConfidence(line);
+
+      // Skip if below threshold
+      if (confidence < threshold) {
+        continue;
+      }
 
       // Categorize the claim
       const type = this.categorizeClaim(line);

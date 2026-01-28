@@ -102,7 +102,8 @@ export function registerClaimCommands(
       });
 
       if (selected) {
-        const msg = `**${selected.claim.id}** (${selected.claim.category})\n\n${selected.claim.text}\n\n**Source:** ${selected.claim.source}`;
+        const source = selected.claim.primaryQuote?.source || 'Unknown';
+        const msg = `**${selected.claim.id}** (${selected.claim.category})\n\n${selected.claim.text}\n\n**Source:** ${source}`;
         vscode.window.showInformationMessage(msg, { modal: true });
       }
     }),
@@ -151,16 +152,18 @@ export function registerClaimCommands(
       }
 
       let message = `**${claim.id}: ${claim.text}**\n\n`;
-      message += `**Source:** ${claim.source}\n\n`;
+      if (claim.primaryQuote && claim.primaryQuote.source) {
+        message += `**Source:** ${claim.primaryQuote.source}\n\n`;
+      }
 
-      if (claim.primaryQuote) {
-        message += `**Primary Quote:**\n> "${claim.primaryQuote}"\n\n`;
+      if (claim.primaryQuote && claim.primaryQuote.text) {
+        message += `**Primary Quote:**\n> "${claim.primaryQuote.text}"\n\n`;
       }
 
       if (claim.supportingQuotes && claim.supportingQuotes.length > 0) {
         message += `**Supporting Quotes (${claim.supportingQuotes.length}):**\n\n`;
         claim.supportingQuotes.forEach((quote, i) => {
-          message += `${i + 1}. "${quote}"\n\n`;
+          message += `${i + 1}. "${quote.text}"\n\n`;
         });
       }
 
@@ -189,7 +192,7 @@ export function registerClaimCommands(
 
       const claimItems = otherClaims.map(sc => ({
         label: sc.claim.id,
-        description: `${(sc.similarity * 100).toFixed(0)}% similar - ${sc.claim.category}`,
+        description: `${sc.similarity != null ? (sc.similarity * 100).toFixed(0) : 0}% similar - ${sc.claim.category}`,
         detail: sc.claim.text.substring(0, 100) + (sc.claim.text.length > 100 ? '...' : ''),
         claim: sc.claim
       }));
@@ -199,7 +202,9 @@ export function registerClaimCommands(
       });
 
       if (selected) {
-        const message = `**${selected.claim.id}** (${selected.claim.category})\n\n${selected.claim.text}\n\n**Source:** ${selected.claim.source}\n\n**Quote:** ${selected.claim.primaryQuote}`;
+        const source = selected.claim.primaryQuote?.source || 'Unknown';
+        const quote = selected.claim.primaryQuote?.text || '';
+        const message = `**${selected.claim.id}** (${selected.claim.category})\n\n${selected.claim.text}\n\n**Source:** ${source}\n\n**Quote:** ${quote}`;
         vscode.window.showInformationMessage(message, { modal: true });
       }
     }),
@@ -295,19 +300,20 @@ export function registerClaimCommands(
       }
 
       let textToInsert = '';
+      const source = claim.primaryQuote?.source || 'Unknown';
 
       switch (choice.value) {
         case 'reference':
           return;
 
         case 'full':
-          textToInsert = `${claim.text} (${claim.source})`;
+          textToInsert = `${claim.text} (${source})`;
           break;
 
         case 'quote':
-          textToInsert = `${claim.text} (${claim.source}). `;
-          if (claim.primaryQuote) {
-            textToInsert += `"${claim.primaryQuote}"`;
+          textToInsert = `${claim.text} (${source}). `;
+          if (claim.primaryQuote && claim.primaryQuote.text) {
+            textToInsert += `"${claim.primaryQuote.text}"`;
           }
           break;
       }

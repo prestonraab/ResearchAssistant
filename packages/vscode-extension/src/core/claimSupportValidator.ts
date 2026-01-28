@@ -45,8 +45,12 @@ export class ClaimSupportValidator {
    */
   async validateSupport(claim: Claim): Promise<SupportValidation> {
     try {
+      // Get the quote text and source from primaryQuote
+      const quoteText = claim.primaryQuote?.text || '';
+      const source = claim.primaryQuote?.source || '';
+      
       // Calculate similarity between claim text and primary quote
-      const similarity = await this.analyzeSimilarity(claim.text, claim.primaryQuote);
+      const similarity = await this.analyzeSimilarity(claim.text, quoteText);
       
       // Determine if claim is supported
       const supported = similarity >= this.WEAK_SUPPORT_THRESHOLD;
@@ -54,7 +58,7 @@ export class ClaimSupportValidator {
       // If weakly supported, try to find better quotes
       let suggestedQuotes: string[] | undefined;
       if (similarity < this.STRONG_SUPPORT_THRESHOLD) {
-        suggestedQuotes = await this.findBetterQuotes(claim.text, claim.source);
+        suggestedQuotes = await this.findBetterQuotes(claim.text, source);
       }
       
       // Generate analysis text
@@ -119,11 +123,17 @@ export class ClaimSupportValidator {
    */
   async findBetterQuotes(claimText: string, source: string): Promise<string[]> {
     try {
+      // Skip if no source provided
+      if (!source || source.trim().length === 0) {
+        console.debug('[ClaimSupportValidator] No source provided, skipping quote search');
+        return [];
+      }
+
       // Try to load the source text from extracted text directory
       const sourceText = await this.loadSourceText(source);
       
       if (!sourceText) {
-        console.warn(`Source text not found for ${source}`);
+        console.debug(`[ClaimSupportValidator] Source text not found for ${source}`);
         return [];
       }
 

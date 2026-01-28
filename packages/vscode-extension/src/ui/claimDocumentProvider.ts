@@ -28,13 +28,13 @@ export class ClaimDocumentProvider implements vscode.TextDocumentContentProvider
       `# ${claim.id}: ${claim.text}`,
       '',
       `**Category**: ${claim.category}`,
-      `**Source**: ${claim.source}`,
+      `**Source**: ${claim.primaryQuote?.source || 'Unknown'}`,
       `**Verified**: ${claim.verified ? 'Yes' : 'No'}`,
       '',
       claim.context ? `**Context**: ${claim.context}\n` : '',
-      claim.primaryQuote ? `## Primary Quote\n\n> ${claim.primaryQuote}\n` : '',
+      claim.primaryQuote ? `## Primary Quote\n\n> ${claim.primaryQuote.text}\n` : '',
       claim.supportingQuotes && claim.supportingQuotes.length > 0
-        ? `## Supporting Quotes\n\n${claim.supportingQuotes.map((q, i) => `${i + 1}. ${q}`).join('\n\n')}\n`
+        ? `## Supporting Quotes\n\n${claim.supportingQuotes.map((q, i) => `${i + 1}. ${q.text}`).join('\n\n')}\n`
         : '',
       claim.sections && claim.sections.length > 0
         ? `## Used in Sections\n\n${claim.sections.join(', ')}`

@@ -83,16 +83,16 @@ export class ExportService {
       // Get the quote text based on quote index
       let quoteText = '';
       if (citation.quoteIndex === 0) {
-        quoteText = claim.primaryQuote;
+        quoteText = claim.primaryQuote?.text || '';
       } else if (citation.quoteIndex - 1 < claim.supportingQuotes.length) {
-        quoteText = claim.supportingQuotes[citation.quoteIndex - 1];
+        quoteText = claim.supportingQuotes[citation.quoteIndex - 1]?.text || '';
       }
 
       if (quoteText) {
         citedQuotes.push({
           quoteText,
-          source: claim.source,
-          year: this.extractYear(claim.source),
+          source: claim.primaryQuote?.source || 'Unknown',
+          year: this.extractYear(claim.primaryQuote?.source || ''),
           claimId: claim.id,
           sentenceId,
           quoteIndex: citation.quoteIndex
@@ -338,7 +338,7 @@ export class ExportService {
 
     if (options.filterBySource) {
       filteredClaims = filteredClaims.filter(c => 
-        c.source.toLowerCase().includes(options.filterBySource!.toLowerCase())
+        (c.primaryQuote?.source || '').toLowerCase().includes(options.filterBySource!.toLowerCase())
       );
     }
 
@@ -523,7 +523,7 @@ export class ExportService {
       lines.push(`**Text**: ${claim.text}`);
       lines.push('');
       lines.push(`**Category**: ${claim.category}`);
-      lines.push(`**Source**: ${claim.source}`);
+      lines.push(`**Source**: ${claim.primaryQuote?.source || 'Unknown'}`);
       
       if (includeMetadata) {
         lines.push(`**Verified**: ${claim.verified ? 'Yes' : 'No'}`);
@@ -534,14 +534,14 @@ export class ExportService {
       lines.push('');
       lines.push('**Primary Quote**:');
       lines.push('');
-      lines.push(`> ${claim.primaryQuote}`);
+      lines.push(`> ${claim.primaryQuote?.text || ''}`);
       lines.push('');
 
       if (claim.supportingQuotes.length > 0) {
         lines.push('**Supporting Quotes**:');
         lines.push('');
         claim.supportingQuotes.forEach((quote, i) => {
-          lines.push(`${i + 1}. > ${quote}`);
+          lines.push(`${i + 1}. > ${quote.text}`);
           lines.push('');
         });
       }
@@ -568,10 +568,10 @@ export class ExportService {
         claim.id,
         this.escapeCsvField(claim.text),
         claim.category,
-        claim.source,
+        claim.primaryQuote?.source || 'Unknown',
         claim.verified ? 'Yes' : 'No',
         this.escapeCsvField(claim.sections.join('; ')),
-        this.escapeCsvField(claim.primaryQuote)
+        this.escapeCsvField(claim.primaryQuote?.text || '')
       ];
       lines.push(row.join(','));
     });

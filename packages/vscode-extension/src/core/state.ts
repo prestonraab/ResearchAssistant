@@ -151,24 +151,28 @@ export class ExtensionState {
   }
 
   async initialize(): Promise<void> {
-    // DON'T load data on startup - use lazy loading instead
-    // Just set up file watchers
+    // Set up file watchers first
     this.setupFileWatchers();
     
-    // Log when background loading starts
-    console.log('[ResearchAssistant] Starting background data load...');
+    console.log('[ResearchAssistant] Starting data load...');
     
-    // Parse outline in background (non-blocking)
-    this.outlineParser.parse()
-      .then(() => console.log('[ResearchAssistant] Outline parsed'))
-      .catch(error => console.error('Failed to parse outline:', error));
+    try {
+      // Load claims synchronously before setting up watchers
+      // This ensures UI components have data immediately
+      await this.claimsManager.loadClaims();
+      console.log('[ResearchAssistant] Claims loaded');
+    } catch (error) {
+      console.error('Failed to load claims:', error);
+    }
     
-    // Load claims in background (non-blocking) with delay
-    setTimeout(() => {
-      this.claimsManager.loadClaims()
-        .then(() => console.log('[ResearchAssistant] Claims loaded'))
-        .catch(error => console.error('Failed to load claims:', error));
-    }, 2000); // Delay claims loading by 2 seconds
+    try {
+      // Parse outline in background (non-blocking)
+      this.outlineParser.parse()
+        .then(() => console.log('[ResearchAssistant] Outline parsed'))
+        .catch(error => console.error('Failed to parse outline:', error));
+    } catch (error) {
+      console.error('Failed to parse outline:', error);
+    }
   }
 
   /**
@@ -241,9 +245,8 @@ export class ExtensionState {
       
       // Set new timer to reload after 500ms of inactivity
       const timer = setTimeout(() => {
-        this.claimsManager.loadClaims().catch(error => {
-          console.error('Error loading claims:', error);
-        });
+        // Use requestReload for consolidated reloads
+        this.claimsManager.requestReload();
         this.debounceTimers.delete('claims');
       }, 500);
       

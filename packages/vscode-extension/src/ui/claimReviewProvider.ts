@@ -8,6 +8,11 @@ import { getWebviewDisposalManager } from './webviewDisposalManager';
 import { CachingService } from '../services/cachingService';
 import { getBenchmark } from '../core/performanceBenchmark';
 import { getImmersiveModeManager } from './immersiveModeManager';
+import { ZoteroDirectService } from '../services/zoteroDirectService';
+import { LiteratureIndexer } from '../services/literatureIndexer';
+import { VerificationFeedbackLoop } from '../services/verificationFeedbackLoop';
+import { getModeContextManager } from '../core/modeContextManager';
+import { DataValidationService } from '../core/dataValidationService';
 
 /**
  * ClaimReviewProvider - Webview panel provider for claim review mode
@@ -25,12 +30,23 @@ export class ClaimReviewProvider {
   private quoteCitationStatus: Map<string, boolean> = new Map(); // Track citation status for quotes
   private benchmark = getBenchmark();
   private immersiveModeManager = getImmersiveModeManager();
+  private zoteroService: ZoteroDirectService;
+  private literatureIndexer: LiteratureIndexer;
+  private verificationFeedbackLoop: VerificationFeedbackLoop;
 
   constructor(
     private extensionState: ExtensionState,
     private context: vscode.ExtensionContext
   ) {
     this.claimDetailsCache = new CachingService(500, 1800000); // 500 items, 30 min TTL
+    this.zoteroService = new ZoteroDirectService();
+    
+    // Initialize literature indexer with workspace root
+    const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || '';
+    this.literatureIndexer = new LiteratureIndexer(workspaceRoot);
+    
+    // Initialize verification feedback loop
+    this.verificationFeedbackLoop = new VerificationFeedbackLoop(this.literatureIndexer);
   }
 
   /**
@@ -134,6 +150,22 @@ export class ClaimReviewProvider {
         return;
       }
 
+      // Auto-categorize the claim
+      let suggestedCategory = claim.category;
+      let availableCategories = [
+        'Method', 'Result', 'Conclusion', 'Background', 'Challenge',
+        'Data Source', 'Data Trend', 'Impact', 'Application', 'Phenomenon'
+      ];
+      
+      try {
+        const categorization = await this.extensionState.mcpClient.categorizeClaim(claim.text);
+        suggestedCategory = categorization.displayCategory;
+        availableCategories = categorization.availableCategories;
+      } catch (error) {
+        console.warn('Failed to auto-categorize claim:', error);
+        // Fall back to existing category
+      }
+
       // Auto-verify quotes on load
       const verificationResults = await this.verifyAllQuotes(claim);
 
@@ -143,19 +175,41 @@ export class ClaimReviewProvider {
       // Get manuscript usage locations
       const usageLocations = await this.getManuscriptUsageLocations(claimId);
 
+      // Sanitize claim data for webview transmission
+      const sanitizedClaim = DataValidationService.sanitizeClaimForWebview(claim);
+      if (!sanitizedClaim) {
+        this.panel.webview.postMessage({
+          type: 'error',
+          message: 'Invalid claim data'
+        });
+        return;
+      }
+
+      // Enhance with additional data
+      const claimData = {
+        ...sanitizedClaim,
+        suggestedCategory,
+        availableCategories,
+        supportingQuotes: (claim.supportingQuotes || []).map((q: any) => ({
+          text: q.text || q,
+          source: q.source || 'Unknown',
+          verified: q.verified ?? false
+        }))
+      };
+
       // Send claim data to webview
       this.panel.webview.postMessage({
         type: 'loadClaim',
-        claim: {
-          id: claim.id,
-          text: claim.text,
-          category: claim.category,
-          source: claim.source,
-          primaryQuote: claim.primaryQuote,
-          supportingQuotes: claim.supportingQuotes || [],
-          verified: claim.verified,
-          context: claim.context
-        },
+        claim: claimData,
+        verificationResults,
+        validationResult,
+        usageLocations
+      });
+
+      // Store in mode context for potential return to editing mode
+      getModeContextManager().setClaimReviewContext({
+        claimId,
+        claim: claimData,
         verificationResults,
         validationResult,
         usageLocations
@@ -173,14 +227,14 @@ export class ClaimReviewProvider {
       const results: any[] = [];
 
       // Verify primary quote
-      if (claim.primaryQuote) {
+      if (claim.primaryQuote && claim.primaryQuote.text) {
         const primaryResult = await this.extensionState.quoteVerificationService.verifyQuote(
-          claim.primaryQuote,
-          claim.source
+          claim.primaryQuote.text,
+          claim.primaryQuote.source
         );
 
         results.push({
-          quote: claim.primaryQuote,
+          quote: claim.primaryQuote.text,
           type: 'primary',
           verified: primaryResult.verified,
           similarity: primaryResult.similarity,
@@ -190,14 +244,14 @@ export class ClaimReviewProvider {
 
       // Verify supporting quotes
       if (claim.supportingQuotes && Array.isArray(claim.supportingQuotes)) {
-        for (const quote of claim.supportingQuotes) {
+        for (const quoteObj of claim.supportingQuotes) {
           const result = await this.extensionState.quoteVerificationService.verifyQuote(
-            quote,
-            claim.source
+            quoteObj.text,
+            quoteObj.source
           );
 
           results.push({
-            quote,
+            quote: quoteObj.text,
             type: 'supporting',
             verified: result.verified,
             similarity: result.similarity,
@@ -315,6 +369,14 @@ export class ClaimReviewProvider {
         await this.handleFindNewQuotes(message.claimId, message.query);
         break;
 
+      case 'loadSnippetText':
+        await this.handleLoadSnippetText(message.snippetId, message.filePath);
+        break;
+
+      case 'addSupportingQuote':
+        await this.handleAddSupportingQuote(message.claimId, message.quote, message.source, message.lineRange);
+        break;
+
       case 'searchInternet':
         await this.handleSearchInternet(message.query);
         break;
@@ -325,6 +387,10 @@ export class ClaimReviewProvider {
 
       case 'navigateToManuscript':
         await this.handleNavigateToManuscript(message.lineNumber);
+        break;
+
+      case 'updateCategory':
+        await this.handleUpdateCategory(message.claimId, message.category);
         break;
 
       case 'switchToEditingMode':
@@ -378,11 +444,13 @@ export class ClaimReviewProvider {
       }
 
       // Replace quote in claim
-      if (claim.primaryQuote === oldQuote) {
-        claim.primaryQuote = newQuote;
-      } else if (claim.supportingQuotes && claim.supportingQuotes.includes(oldQuote)) {
-        const index = claim.supportingQuotes.indexOf(oldQuote);
-        claim.supportingQuotes[index] = newQuote;
+      if (claim.primaryQuote && claim.primaryQuote.text === oldQuote) {
+        claim.primaryQuote.text = newQuote;
+      } else if (claim.supportingQuotes && claim.supportingQuotes.length > 0) {
+        const index = claim.supportingQuotes.findIndex((q: any) => q.text === oldQuote);
+        if (index >= 0) {
+          claim.supportingQuotes[index].text = newQuote;
+        }
       }
 
       // Update claim
@@ -410,10 +478,10 @@ export class ClaimReviewProvider {
       }
 
       // Remove quote from claim
-      if (claim.primaryQuote === quote) {
-        claim.primaryQuote = '';
-      } else if (claim.supportingQuotes && claim.supportingQuotes.includes(quote)) {
-        claim.supportingQuotes = claim.supportingQuotes.filter((q: string) => q !== quote);
+      if (claim.primaryQuote && claim.primaryQuote.text === quote) {
+        claim.primaryQuote = { text: '', source: '', verified: false };
+      } else if (claim.supportingQuotes && claim.supportingQuotes.length > 0) {
+        claim.supportingQuotes = claim.supportingQuotes.filter((q: any) => q.text !== quote);
       }
 
       // Update claim
@@ -460,42 +528,166 @@ export class ClaimReviewProvider {
   }
 
   /**
-   * Handle find new quotes message
+   * Handle load snippet text message
    */
-  private async handleFindNewQuotes(claimId: string, query: string): Promise<void> {
+  private async handleLoadSnippetText(snippetId: string, filePath: string): Promise<void> {
     try {
-      vscode.window.showInformationMessage('Searching for new quotes in literature...');
+      // Get snippet from embedding store
+      const allSnippets = this.literatureIndexer.getSnippets();
+      const snippet = allSnippets.find(s => s.id === snippetId);
 
-      const claim = this.extensionState.claimsManager.getClaim(claimId);
-      if (!claim) {
+      if (!snippet) {
+        console.warn('[ClaimReview] Snippet not found:', snippetId);
+        if (this.panel) {
+          this.panel.webview.postMessage({
+            type: 'error',
+            message: 'Snippet not found'
+          });
+        }
         return;
       }
 
-      // Search using Zotero semantic search
-      try {
-        const searchResults = await this.extensionState.mcpClient.zotero.semanticSearch(query, 5);
-        
-        if (this.panel) {
-          this.panel.webview.postMessage({
-            type: 'newQuotesFound',
-            quotes: searchResults.map((result: any) => ({
-              text: result.abstract || result.title || '',
-              source: `${result.authors?.[0] || 'Unknown'} ${result.year || ''}`,
-              similarity: 0.8
-            }))
-          });
-        }
-      } catch (searchError) {
-        console.error('Search failed:', searchError);
-        if (this.panel) {
-          this.panel.webview.postMessage({
-            type: 'newQuotesFound',
-            quotes: []
-          });
-        }
+      // Send full text to webview
+      if (this.panel) {
+        this.panel.webview.postMessage({
+          type: 'snippetTextLoaded',
+          snippetId: snippetId,
+          text: snippet.text,
+          source: snippet.fileName,
+          lineRange: `${snippet.startLine}-${snippet.endLine}`
+        });
       }
     } catch (error) {
-      vscode.window.showErrorMessage(`Failed to find new quotes: ${error}`);
+      console.error('[ClaimReview] Failed to load snippet text:', error);
+      if (this.panel) {
+        this.panel.webview.postMessage({
+          type: 'error',
+          message: `Failed to load snippet: ${error}`
+        });
+      }
+    }
+  }
+
+  /**
+   * Handle add supporting quote message
+   */
+  private async handleAddSupportingQuote(claimId: string, quote: string, source: string, lineRange: string): Promise<void> {
+    try {
+      const claim = this.extensionState.claimsManager.getClaim(claimId);
+
+      if (!claim) {
+        vscode.window.showErrorMessage('Claim not found');
+        return;
+      }
+
+      // Initialize supporting quotes array if needed
+      if (!claim.supportingQuotes) {
+        claim.supportingQuotes = [];
+      }
+
+      // Check if quote already exists
+      const quoteExists = claim.supportingQuotes.some((q: any) => q.text === quote);
+      if (quoteExists) {
+        vscode.window.showWarningMessage('This quote is already in supporting quotes');
+        return;
+      }
+
+      // Add quote to supporting quotes
+      claim.supportingQuotes.push({
+        text: quote,
+        source: source,
+        verified: false
+      });
+
+      // Update claim
+      await this.extensionState.claimsManager.updateClaim(claimId, claim);
+
+      // Reload claim display
+      await this.loadAndDisplayClaim(claimId);
+
+      vscode.window.showInformationMessage('Quote added to supporting quotes');
+    } catch (error) {
+      vscode.window.showErrorMessage(`Failed to add supporting quote: ${error}`);
+    }
+  }
+
+  private async handleFindNewQuotes(claimId: string, query: string): Promise<void> {
+    try {
+      console.log('[ClaimReview] Find quotes requested:', { claimId, query: query.substring(0, 50) + '...' });
+
+      
+      vscode.window.showInformationMessage('Searching literature with verification feedback loop...');
+
+      const claim = this.extensionState.claimsManager.getClaim(claimId);
+      if (!claim) {
+        console.warn('[ClaimReview] Claim not found:', claimId);
+        return;
+      }
+
+      // Run verification feedback loop with streaming callback
+      console.log('[ClaimReview] Starting verification feedback loop');
+      
+      let totalRounds = 0;
+      let totalSnippetsSearched = 0;
+      let totalSupportingFound = 0;
+
+      const rounds = await this.verificationFeedbackLoop.findSupportingEvidence(
+        query,
+        (round) => {
+          // Stream results as each round completes
+          console.log(`[ClaimReview] Round ${round.round} complete:`, {
+            snippetsSearched: round.snippets.length,
+            supportingFound: round.supportingSnippets.length
+          });
+
+          totalRounds = round.round;
+          totalSnippetsSearched += round.snippets.length;
+          totalSupportingFound += round.supportingSnippets.length;
+
+          // Send minimal data to webview (ID, summary, source, line range only)
+          if (this.panel && round.supportingSnippets.length > 0) {
+            this.panel.webview.postMessage({
+              type: 'newQuotesRound',
+              round: round.round,
+              quotes: round.supportingSnippets.map((snippet) => ({
+                id: snippet.id,
+                summary: snippet.text, // Send full text, not truncated
+                source: snippet.fileName,
+                lineRange: `${snippet.startLine}-${snippet.endLine}`,
+                filePath: snippet.filePath
+              }))
+            });
+          }
+        }
+      );
+      
+      console.log('[ClaimReview] Verification loop complete:', {
+        rounds: totalRounds,
+        totalSnippets: totalSnippetsSearched,
+        supportingSnippets: totalSupportingFound
+      });
+
+      // Send completion message with metadata
+      if (this.panel) {
+        this.panel.webview.postMessage({
+          type: 'newQuotesComplete',
+          metadata: {
+            roundsCompleted: totalRounds,
+            totalSearched: totalSnippetsSearched,
+            supportingFound: totalSupportingFound
+          }
+        });
+      }
+    } catch (error) {
+      console.error('[ClaimReview] Find quotes error:', error);
+      vscode.window.showErrorMessage(`Failed to find quotes: ${error}`);
+      
+      if (this.panel) {
+        this.panel.webview.postMessage({
+          type: 'error',
+          message: `Failed to search literature: ${error}`
+        });
+      }
     }
   }
 
@@ -504,11 +696,37 @@ export class ClaimReviewProvider {
    */
   private async handleSearchInternet(query: string): Promise<void> {
     try {
+      // Check if Zotero is configured (check both settings and environment)
+      const config = vscode.workspace.getConfiguration('researchAssistant');
+      const zoteroUserId = config.get<string>('zoteroUserId') || process.env.ZOTERO_USER_ID;
+      
+      if (!zoteroUserId) {
+        const selection = await vscode.window.showErrorMessage(
+          'Zotero User ID not configured. Add it in Extension Settings.',
+          'Open Settings',
+          'Zotero API Page'
+        );
+        
+        if (selection === 'Open Settings') {
+          await vscode.commands.executeCommand('workbench.action.openSettings', 'researchAssistant.zoteroUserId');
+        } else if (selection === 'Zotero API Page') {
+          vscode.env.openExternal(vscode.Uri.parse('https://www.zotero.org/settings/keys'));
+        }
+        
+        if (this.panel) {
+          this.panel.webview.postMessage({
+            type: 'error',
+            message: 'Zotero User ID not configured. Cannot search internet.'
+          });
+        }
+        return;
+      }
+
       vscode.window.showInformationMessage('Searching for related papers...');
 
-      // Search using Zotero semantic search for internet results
+      // Search using direct Zotero API
       try {
-        const searchResults = await this.extensionState.mcpClient.zotero.semanticSearch(query, 5);
+        const searchResults = await this.zoteroService.semanticSearch(query, 5);
         
         if (this.panel) {
           this.panel.webview.postMessage({
@@ -597,6 +815,39 @@ export class ClaimReviewProvider {
       this.panel.webview.postMessage({
         type: 'showHelp'
       });
+    }
+  }
+
+  /**
+   * Handle update category message
+   */
+  private async handleUpdateCategory(claimId: string, newCategory: string): Promise<void> {
+    try {
+      const claim = this.extensionState.claimsManager.getClaim(claimId);
+
+      if (!claim) {
+        vscode.window.showErrorMessage('Claim not found');
+        return;
+      }
+
+      // Update the claim with new category
+      await this.extensionState.claimsManager.updateClaim(claimId, {
+        category: newCategory
+      });
+
+      // Show success message
+      vscode.window.showInformationMessage(`Claim category updated to ${newCategory}`);
+
+      // Refresh the claims tree
+      if (this.panel) {
+        this.panel.webview.postMessage({
+          type: 'categoryUpdated',
+          claimId,
+          category: newCategory
+        });
+      }
+    } catch (error) {
+      vscode.window.showErrorMessage(`Failed to update category: ${error}`);
     }
   }
 
@@ -746,19 +997,20 @@ export class ClaimReviewProvider {
     const stats = this.disposalManager.getMemoryStats();
     console.warn(`High memory usage in claim review mode: ${stats.heapUsedMB}MB / ${stats.heapTotalMB}MB`);
 
-    // Trim caches
-    this.claimDetailsCache.trim(50);
+    // Aggressively trim caches when memory is high
+    this.claimDetailsCache.trim(25); // Reduce to 25 items instead of 50
+    this.quoteCitationStatus.clear(); // Clear citation status map
+
+    // Force garbage collection if available
+    this.disposalManager.forceGarbageCollection();
 
     // Notify webview to clear non-essential data
     if (this.panel) {
       this.panel.webview.postMessage({
         type: 'memoryWarning',
-        message: 'Memory usage is high. Clearing cache...'
+        message: 'Memory usage is high. Some cached data has been cleared.'
       });
     }
-
-    // Force garbage collection if available
-    this.disposalManager.forceGarbageCollection();
   }
 
   /**

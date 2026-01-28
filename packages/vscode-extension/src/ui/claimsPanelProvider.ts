@@ -176,8 +176,8 @@ export class ClaimsPanelProvider implements vscode.WebviewViewProvider {
     vscode.window.showInformationMessage('Quote verification feature coming soon');
     // TODO: Implement quote verification using Citation MCP
     // const result = await this._extensionState.quoteVerificationService.verifyQuote(
-    //   claim.primaryQuote,
-    //   claim.source
+    //   claim.primaryQuote?.text,
+    //   claim.primaryQuote?.source
     // );
   }
 

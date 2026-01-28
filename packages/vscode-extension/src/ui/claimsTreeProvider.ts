@@ -15,10 +15,10 @@ export class ClaimTreeItem extends vscode.TreeItem {
     const validationStatus = (claim as any).validationStatus; // 'valid', 'partial', 'invalid', or undefined
     
     // Build tooltip
-    let tooltip = `${claim.text}\n\nSource: ${claim.source}\nCategory: ${claim.category}\n`;
+    let tooltip = `${claim.text}\n\nSource: ${claim.primaryQuote?.source || 'Unknown'}\nCategory: ${claim.category}\n`;
     if (verified) {
       tooltip += 'Verification: ✓ Verified\n';
-    } else if (claim.primaryQuote && claim.source) {
+    } else if (claim.primaryQuote && claim.primaryQuote.source) {
       tooltip += 'Verification: ○ Not checked\n';
     } else {
       tooltip += 'Verification: ✗ No quote\n';
@@ -45,7 +45,7 @@ export class ClaimTreeItem extends vscode.TreeItem {
     // Green: Verified and validated
     // Orange: Verified but unsure/partial validation
     
-    if (verified === false && claim.primaryQuote && claim.source) {
+    if (verified === false && claim.primaryQuote && claim.primaryQuote.source) {
       // Quotes not yet checked - black circle
       this.iconPath = new vscode.ThemeIcon('circle-outline');
     } else if (verified === false && !claim.primaryQuote) {

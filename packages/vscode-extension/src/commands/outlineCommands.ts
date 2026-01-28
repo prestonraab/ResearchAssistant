@@ -70,7 +70,9 @@ export function registerOutlineCommands(
 
       if (selected) {
         const claim = selected.claim;
-        const message = `**${claim.id}** (${claim.category})\n\n${claim.text}\n\n**Source:** ${claim.source}\n\n**Quote:** ${claim.primaryQuote}`;
+        const source = claim.primaryQuote?.source || 'Unknown';
+        const quote = claim.primaryQuote?.text || '';
+        const message = `**${claim.id}** (${claim.category})\n\n${claim.text}\n\n**Source:** ${source}\n\n**Quote:** ${quote}`;
         vscode.window.showInformationMessage(message, { modal: true });
       }
     }),

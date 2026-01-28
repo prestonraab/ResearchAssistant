@@ -175,7 +175,7 @@ describe('Property-Based Tests', () => {
             expect(deserialized.id).toBe(claim.id);
             expect(deserialized.text).toBe(claim.text.trim());
             expect(deserialized.category).toBe(claim.category);
-            expect(deserialized.source).toBe(claim.source);
+            expect(deserialized.primaryQuote?.source).toBe(claim.primaryQuote?.source);
             
             return true;
           }

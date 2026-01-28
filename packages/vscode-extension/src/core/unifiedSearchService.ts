@@ -173,7 +173,7 @@ export class UnifiedSearchService {
         const keywordResults = claims
           .filter(claim => 
             claim.text.toLowerCase().includes(queryLower) ||
-            claim.primaryQuote.toLowerCase().includes(queryLower) ||
+            (claim.primaryQuote?.text && claim.primaryQuote.text.toLowerCase().includes(queryLower)) ||
             claim.category.toLowerCase().includes(queryLower)
           )
           .map(claim => ({ claim, score: 0.5 }));
@@ -199,7 +199,7 @@ export class UnifiedSearchService {
         relevanceScore: score,
         metadata: {
           category: claim.category,
-          source: claim.source,
+          source: claim.primaryQuote?.source || 'Unknown',
           verified: claim.verified
         }
       }));

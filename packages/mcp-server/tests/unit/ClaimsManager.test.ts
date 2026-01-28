@@ -62,16 +62,16 @@ describe('ClaimsManager', () => {
       expect(claims[0].id).toBe('C_01');
       expect(claims[0].text).toBe('Test claim about methods');
       expect(claims[0].category).toBe('Method');
-      expect(claims[0].source).toBe('Smith2020');
+      expect(claims[0].primaryQuote.source).toBe('Smith2020');
       expect(claims[0].context).toBe('Test context');
-      expect(claims[0].primaryQuote).toBe('This is a test quote from the abstract.');
+      expect(claims[0].primaryQuote.text).toBe('This is a test quote from the abstract.');
       expect(claims[0].supportingQuotes).toHaveLength(2);
-      expect(claims[0].supportingQuotes[0]).toContain('supporting quote from methods');
+      expect(claims[0].supportingQuotes[0].text).toContain('supporting quote from methods');
 
       expect(claims[1].id).toBe('C_02');
       expect(claims[1].text).toBe('Another test claim');
       expect(claims[1].category).toBe('Result');
-      expect(claims[1].source).toBe('Jones2021');
+      expect(claims[1].primaryQuote.source).toBe('Jones2021');
     });
 
     it('should fallback to claims_and_evidence.md when claims directory is empty', async () => {
@@ -98,7 +98,7 @@ describe('ClaimsManager', () => {
       expect(claims).toHaveLength(1);
       expect(claims[0].id).toBe('C_10');
       expect(claims[0].text).toBe('Fallback claim');
-      expect(claims[0].source).toBe('Brown2019');
+      expect(claims[0].primaryQuote.source).toBe('Brown2019');
     });
 
     it('should fallback to claims_and_evidence.md when claims directory does not exist', async () => {
@@ -123,7 +123,7 @@ describe('ClaimsManager', () => {
 
       expect(claims).toHaveLength(1);
       expect(claims[0].id).toBe('C_20');
-      expect(claims[0].source).toBe('Davis2022');
+      expect(claims[0].primaryQuote.source).toBe('Davis2022');
     });
 
     it('should return empty array when no claims files exist', async () => {
@@ -150,7 +150,7 @@ describe('ClaimsManager', () => {
       const claims = await claimsManager.loadClaims();
 
       expect(claims).toHaveLength(1);
-      expect(claims[0].source).toBe('Johnson2023');
+      expect(claims[0].primaryQuote.source).toBe('Johnson2023');
     });
 
     it('should handle multi-line quotes', async () => {
@@ -174,9 +174,9 @@ describe('ClaimsManager', () => {
       const claims = await claimsManager.loadClaims();
 
       expect(claims).toHaveLength(1);
-      expect(claims[0].primaryQuote).toContain('first line');
-      expect(claims[0].primaryQuote).toContain('second line');
-      expect(claims[0].primaryQuote).toContain('third line');
+      expect(claims[0].primaryQuote.text).toContain('first line');
+      expect(claims[0].primaryQuote.text).toContain('second line');
+      expect(claims[0].primaryQuote.text).toContain('third line');
     });
   });
 

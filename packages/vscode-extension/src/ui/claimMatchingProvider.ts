@@ -11,6 +11,9 @@ import { getWebviewDisposalManager } from './webviewDisposalManager';
 import { ClaimSimilarityCache } from '../services/cachingService';
 import { getBenchmark } from '../core/performanceBenchmark';
 import { getImmersiveModeManager } from './immersiveModeManager';
+import { getModeContextManager } from '../core/modeContextManager';
+import { DataValidationService } from '../core/dataValidationService';
+import type { Claim } from '@research-assistant/core';
 
 /**
  * ClaimMatchingProvider - Webview panel provider for claim matching mode
@@ -49,6 +52,7 @@ export class ClaimMatchingProvider {
    * Create and show claim matching panel
    */
   async show(sentenceId?: string, sentenceText?: string): Promise<void> {
+    console.log(`[ClaimMatching] show() called with sentenceId: ${sentenceId}, sentenceText: "${sentenceText}"`);
     this.currentSentenceId = sentenceId;
     this.currentSentenceText = sentenceText;
 
@@ -59,11 +63,16 @@ export class ClaimMatchingProvider {
   }
 
   private async _showInternal(): Promise<void> {
+    console.log(`[ClaimMatching] _showInternal() - currentSentenceId: ${this.currentSentenceId}, currentSentenceText: "${this.currentSentenceText}"`);
+    
     // If panel already exists and is not disposed, reveal it
     if (this.panel && !this.panelDisposed) {
       this.panel.reveal(vscode.ViewColumn.One);
       if (this.currentSentenceId && this.currentSentenceText) {
+        console.log(`[ClaimMatching] Panel exists, calling openForSentence`);
         await this.openForSentence(this.currentSentenceId, this.currentSentenceText);
+      } else {
+        console.log(`[ClaimMatching] Panel exists but no sentence data to display`);
       }
       return;
     }
@@ -120,16 +129,36 @@ export class ClaimMatchingProvider {
     });
 
     this.disposables.push(disposalListener);
+
+    // If we have sentence data, open it immediately after panel is ready
+    if (this.currentSentenceId && this.currentSentenceText) {
+      console.log(`[ClaimMatching] New panel created, calling openForSentence`);
+      await this.openForSentence(this.currentSentenceId, this.currentSentenceText);
+    } else {
+      console.log(`[ClaimMatching] New panel created but no sentence data to display`);
+    }
   }
 
   /**
    * Open claim matching mode for a sentence
    */
   async openForSentence(sentenceId: string, sentenceText: string): Promise<void> {
+    console.log(`[ClaimMatching] openForSentence() - sentenceId: ${sentenceId}, sentenceText: "${sentenceText}"`);
     this.currentSentenceId = sentenceId;
     this.currentSentenceText = sentenceText;
 
     if (!this.panel) {
+      console.log(`[ClaimMatching] No panel available`);
+      return;
+    }
+
+    // Guard against undefined or empty sentence text
+    if (!sentenceText || sentenceText.trim() === '') {
+      console.log(`[ClaimMatching] Empty sentence text, showing error`);
+      this.panel.webview.postMessage({
+        type: 'error',
+        message: 'No sentence text provided. Please select a sentence from editing mode.'
+      });
       return;
     }
 
@@ -143,23 +172,35 @@ export class ClaimMatchingProvider {
       // Find similar claims (top 20, sorted by similarity)
       const similarClaims = await this.claimMatchingService.findSimilarClaims(sentenceText);
 
+      // Validate and sanitize claims before sending
+      const sanitizedClaims = similarClaims
+        .filter(claim => DataValidationService.validateClaim({ id: claim.claimId, text: claim.text }))
+        .map(claim => ({
+          id: claim.claimId,
+          text: claim.text || '',
+          category: claim.category || 'Unknown',
+          source: claim.source || '',
+          similarity: claim.similarity != null ? Math.round(claim.similarity * 100) : 0
+        }));
+
       // Send data to webview
       this.panel.webview.postMessage({
         type: 'initialize',
         sentenceId,
         sentenceText,
-        claims: similarClaims.map(claim => ({
-          id: claim.claimId,
-          text: claim.text,
-          category: claim.category,
-          source: claim.source,
-          similarity: Math.round(claim.similarity * 100)
-        }))
+        claims: sanitizedClaims
       });
 
-      // Show the view
-      await vscode.commands.executeCommand('researchAssistant.claimMatching.focus');
+      // Store in mode context
+      getModeContextManager().setClaimMatchingContext({
+        sentenceId,
+        sentenceText,
+        similarClaims: sanitizedClaims
+      });
+
+      console.log(`[ClaimMatching] Sent ${sanitizedClaims.length} claims to webview`);
     } catch (error) {
+      console.error(`[ClaimMatching] Error finding similar claims:`, error);
       vscode.window.showErrorMessage(`Failed to find similar claims: ${error}`);
       this.panel.webview.postMessage({
         type: 'error',
@@ -255,14 +296,17 @@ export class ClaimMatchingProvider {
 
       // Create claim
       const claimId = `C_${Date.now()}`;
-      const claim = {
+      const claim: Claim = {
         id: claimId,
         text: this.currentSentenceText,
         category,
-        source,
-        sourceId: 0,
         context: this.currentSentenceText,
-        primaryQuote: this.currentSentenceText,
+        primaryQuote: {
+          text: this.currentSentenceText,
+          source: source,
+          sourceId: 0,
+          verified: false
+        },
         supportingQuotes: [],
         sections: [],
         verified: false,

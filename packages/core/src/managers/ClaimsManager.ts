@@ -1,6 +1,6 @@
 import * as fs from 'fs/promises';
 import * as path from 'path';
-import type { Claim } from '../types/index.js';
+import type { Claim, SourcedQuote } from '../types/index.js';
 
 /**
  * ClaimsManager handles loading and querying claims from the workspace.
@@ -133,6 +133,7 @@ export class ClaimsManager {
     let inSupportingQuotes = false;
     let inPrimaryQuote = false;
     let quoteBuffer = '';
+    let currentSource = '';
 
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i];
@@ -143,7 +144,7 @@ export class ClaimsManager {
       if (claimHeaderMatch) {
         // Save previous claim if exists
         if (currentClaim && currentClaim.id) {
-          claims.push(this.finalizeClaim(currentClaim));
+          claims.push(this.finalizeClaim(currentClaim, currentSource));
         }
 
         // Start new claim
@@ -151,12 +152,12 @@ export class ClaimsManager {
           id: claimHeaderMatch[1],
           text: claimHeaderMatch[2].trim(),
           category: '',
-          source: '',
           verified: false,
-          primaryQuote: '',
+          primaryQuote: { text: '', source: '', verified: false },
           supportingQuotes: [],
           sections: [],
         };
+        currentSource = '';
         inSupportingQuotes = false;
         inPrimaryQuote = false;
         quoteBuffer = '';
@@ -172,9 +173,16 @@ export class ClaimsManager {
         continue;
       }
 
-      const sourceMatch = trimmedLine.match(/^\*\*Source\*\*:\s*(.+?)(?:\s*\(Source ID:.*\))?$/);
+      const sourceMatch = trimmedLine.match(/^\*\*Source\*\*:\s*(.+?)(?:\s*\(Source ID:\s*(\d+)\))?$/);
       if (sourceMatch) {
-        currentClaim.source = sourceMatch[1].trim();
+        currentSource = sourceMatch[1].trim();
+        if (sourceMatch[2]) {
+          // Store sourceId to apply to primaryQuote later
+          if (!currentClaim.primaryQuote) {
+            currentClaim.primaryQuote = { text: '', source: currentSource, verified: false };
+          }
+          currentClaim.primaryQuote.sourceId = parseInt(sourceMatch[2], 10);
+        }
         continue;
       }
 
@@ -196,7 +204,12 @@ export class ClaimsManager {
       if (trimmedLine.match(/^\*\*Supporting Quotes\*\*/)) {
         // Save primary quote if we were collecting it
         if (inPrimaryQuote && quoteBuffer.trim()) {
-          currentClaim.primaryQuote = this.cleanQuote(quoteBuffer);
+          const cleanedQuote = this.cleanQuote(quoteBuffer);
+          currentClaim.primaryQuote = {
+            text: cleanedQuote,
+            source: currentSource,
+            verified: false
+          };
         }
         inSupportingQuotes = true;
         inPrimaryQuote = false;
@@ -217,7 +230,12 @@ export class ClaimsManager {
         if (trimmedLine.startsWith('-') || trimmedLine.startsWith('*')) {
           // Save previous supporting quote if exists
           if (quoteBuffer.trim()) {
-            currentClaim.supportingQuotes!.push(this.cleanQuote(quoteBuffer));
+            const cleanedQuote = this.cleanQuote(quoteBuffer);
+            currentClaim.supportingQuotes!.push({
+              text: cleanedQuote,
+              source: currentSource,
+              verified: false
+            });
             quoteBuffer = '';
           }
           // Start collecting new supporting quote
@@ -225,7 +243,11 @@ export class ClaimsManager {
           // Extract quote from list item - format: - (Location): "quote text"
           const quoteMatch = listContent.match(/\([^)]+\):\s*"([^"]+)"/);
           if (quoteMatch) {
-            currentClaim.supportingQuotes!.push(quoteMatch[1].trim());
+            currentClaim.supportingQuotes!.push({
+              text: quoteMatch[1].trim(),
+              source: currentSource,
+              verified: false
+            });
           } else if (listContent.startsWith('>')) {
             quoteBuffer = listContent.substring(1).trim() + ' ';
           }
@@ -239,9 +261,19 @@ export class ClaimsManager {
       if (trimmedLine === '---') {
         // Save any pending quote
         if (inPrimaryQuote && quoteBuffer.trim()) {
-          currentClaim.primaryQuote = this.cleanQuote(quoteBuffer);
+          const cleanedQuote = this.cleanQuote(quoteBuffer);
+          currentClaim.primaryQuote = {
+            text: cleanedQuote,
+            source: currentSource,
+            verified: false
+          };
         } else if (inSupportingQuotes && quoteBuffer.trim()) {
-          currentClaim.supportingQuotes!.push(this.cleanQuote(quoteBuffer));
+          const cleanedQuote = this.cleanQuote(quoteBuffer);
+          currentClaim.supportingQuotes!.push({
+            text: cleanedQuote,
+            source: currentSource,
+            verified: false
+          });
         }
         inPrimaryQuote = false;
         inSupportingQuotes = false;
@@ -253,11 +285,21 @@ export class ClaimsManager {
     if (currentClaim && currentClaim.id) {
       // Save any pending quote
       if (inPrimaryQuote && quoteBuffer.trim()) {
-        currentClaim.primaryQuote = this.cleanQuote(quoteBuffer);
+        const cleanedQuote = this.cleanQuote(quoteBuffer);
+        currentClaim.primaryQuote = {
+          text: cleanedQuote,
+          source: currentSource,
+          verified: false
+        };
       } else if (inSupportingQuotes && quoteBuffer.trim()) {
-        currentClaim.supportingQuotes!.push(this.cleanQuote(quoteBuffer));
+        const cleanedQuote = this.cleanQuote(quoteBuffer);
+        currentClaim.supportingQuotes!.push({
+          text: cleanedQuote,
+          source: currentSource,
+          verified: false
+        });
       }
-      claims.push(this.finalizeClaim(currentClaim));
+      claims.push(this.finalizeClaim(currentClaim, currentSource));
     }
 
     return claims;
@@ -283,20 +325,54 @@ export class ClaimsManager {
    * Finalize a claim by ensuring all required fields are present.
    * 
    * @param partial - Partial claim object from parsing
+   * @param source - The source for this claim
    * @returns Complete claim object with all required fields
    * @private
    */
-  private finalizeClaim(partial: Partial<Claim>): Claim {
+  private finalizeClaim(partial: Partial<Claim>, source: string): Claim {
+    // Ensure primaryQuote is a SourcedQuote
+    let primaryQuote: SourcedQuote;
+    if (typeof partial.primaryQuote === 'string') {
+      // Migration from old format
+      primaryQuote = {
+        text: partial.primaryQuote,
+        source: source,
+        verified: false
+      };
+    } else if (partial.primaryQuote && typeof partial.primaryQuote === 'object') {
+      primaryQuote = partial.primaryQuote as SourcedQuote;
+    } else {
+      primaryQuote = {
+        text: '',
+        source: source,
+        verified: false
+      };
+    }
+
+    // Ensure supportingQuotes are SourcedQuotes
+    let supportingQuotes: SourcedQuote[] = [];
+    if (partial.supportingQuotes && Array.isArray(partial.supportingQuotes)) {
+      supportingQuotes = partial.supportingQuotes.map(quote => {
+        if (typeof quote === 'string') {
+          // Migration from old format
+          return {
+            text: quote,
+            source: source,
+            verified: false
+          };
+        }
+        return quote as SourcedQuote;
+      });
+    }
+
     return {
       id: partial.id || '',
       text: partial.text || '',
       category: partial.category || 'Unknown',
-      source: partial.source || 'Unknown',
-      sourceId: partial.sourceId || 0,
       context: partial.context || '',
       verified: partial.verified || false,
-      primaryQuote: partial.primaryQuote || '',
-      supportingQuotes: partial.supportingQuotes || [],
+      primaryQuote,
+      supportingQuotes,
       sections: partial.sections || [],
       createdAt: partial.createdAt || new Date(),
       modifiedAt: partial.modifiedAt || new Date(),
@@ -315,11 +391,12 @@ export class ClaimsManager {
       // Index by ID
       this.claimsById.set(claim.id, claim);
 
-      // Index by source
-      if (!this.claimsBySource.has(claim.source)) {
-        this.claimsBySource.set(claim.source, []);
+      // Index by source (from primaryQuote)
+      const source = claim.primaryQuote.source;
+      if (!this.claimsBySource.has(source)) {
+        this.claimsBySource.set(source, []);
       }
-      this.claimsBySource.get(claim.source)!.push(claim);
+      this.claimsBySource.get(source)!.push(claim);
 
       // Index by section
       for (const section of claim.sections) {

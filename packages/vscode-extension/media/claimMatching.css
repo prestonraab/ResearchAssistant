@@ -246,6 +246,28 @@ body {
   background-color: #1565C0;
 }
 
+/* Load More Button */
+.load-more-btn {
+  background-color: var(--color-grey);
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  transition: background-color 0.2s;
+  margin: 8px auto;
+}
+
+.load-more-btn:hover {
+  background-color: #757575;
+}
+
+.load-more-btn:active {
+  background-color: #616161;
+}
+
 /* Empty State */
 .empty-state {
   display: flex;

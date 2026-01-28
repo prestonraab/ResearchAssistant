@@ -145,8 +145,8 @@ export class SynthesisEngine {
 
     // Sort claims by year for logical flow
     const sortedClaims = [...claims].sort((a, b) => {
-      const yearA = this.extractYear(a.source);
-      const yearB = this.extractYear(b.source);
+      const yearA = this.extractYear(a.primaryQuote?.source || '');
+      const yearB = this.extractYear(b.primaryQuote?.source || '');
       return yearA - yearB;
     });
 
@@ -341,7 +341,7 @@ export class SynthesisEngine {
 
       // Add citation if requested
       if (includeCitations) {
-        sentence = this.addCitation(sentence, claim.source);
+        sentence = this.addCitation(sentence, claim.primaryQuote?.source || '');
       }
 
       // Add transition for subsequent claims
@@ -373,7 +373,7 @@ export class SynthesisEngine {
 
       // Add citation if requested
       if (includeCitations) {
-        sentence = this.addCitation(sentence, claim.source);
+        sentence = this.addCitation(sentence, claim.primaryQuote?.source || '');
       }
 
       // Add transition for subsequent claims
@@ -407,7 +407,7 @@ export class SynthesisEngine {
 
       // Add citation if requested
       if (includeCitations) {
-        sentence = this.addCitation(sentence, claim.source);
+        sentence = this.addCitation(sentence, claim.primaryQuote?.source || '');
       }
 
       // Add transition for subsequent claims
@@ -470,7 +470,7 @@ export class SynthesisEngine {
     currClaim: Claim
   ): keyof typeof this.TRANSITIONS {
     // Check if claims are from same source
-    if (prevClaim.source === currClaim.source) {
+    if (prevClaim.primaryQuote?.source === currClaim.primaryQuote?.source) {
       return 'elaboration';
     }
 
@@ -480,8 +480,8 @@ export class SynthesisEngine {
     }
 
     // Check if claims are from different time periods
-    const prevYear = this.extractYear(prevClaim.source);
-    const currYear = this.extractYear(currClaim.source);
+    const prevYear = this.extractYear(prevClaim.primaryQuote?.source || '');
+    const currYear = this.extractYear(currClaim.primaryQuote?.source || '');
     if (Math.abs(currYear - prevYear) > 5) {
       return 'temporal';
     }

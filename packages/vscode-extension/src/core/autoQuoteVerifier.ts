@@ -36,8 +36,8 @@ export class AutoQuoteVerifier {
    * Requirement 43.1: Hook into claim save operation
    */
   verifyOnSave(claim: Claim): void {
-    // Only verify if claim has a quote
-    if (!claim.primaryQuote || !claim.source) {
+    // Only verify if claim has a quote and source
+    if (!claim.primaryQuote || !claim.primaryQuote.text || !claim.primaryQuote.source) {
       this.logger.debug(`Skipping verification for ${claim.id}: no quote or source`);
       return;
     }
@@ -149,8 +149,8 @@ export class AutoQuoteVerifier {
     try {
       // Call Citation MCP to verify quote
       const result = await this.mcpClient.citation.verifyQuote(
-        claim.primaryQuote,
-        claim.source
+        claim.primaryQuote.text,
+        claim.primaryQuote.source
       );
 
       // Update verification status
@@ -212,8 +212,9 @@ export class AutoQuoteVerifier {
     message += `**Similarity:** ${similarityPercent}%\n\n`;
     
     if (result.closestMatch) {
-      const quotePreview = claim.primaryQuote.substring(0, 150);
-      const quoteSuffix = claim.primaryQuote.length > 150 ? '...' : '';
+      const quoteText = claim.primaryQuote?.text || '';
+      const quotePreview = quoteText.substring(0, 150);
+      const quoteSuffix = quoteText.length > 150 ? '...' : '';
       message += `**Your quote:**\n"${quotePreview}${quoteSuffix}"\n\n`;
       
       const matchPreview = result.closestMatch.substring(0, 150);
@@ -278,7 +279,7 @@ export class AutoQuoteVerifier {
       return null;
     }
 
-    if (!claim.primaryQuote || !claim.source) {
+    if (!claim.primaryQuote || !claim.primaryQuote.text || !claim.primaryQuote.source) {
       this.logger.warn(`Cannot verify ${claimId}: missing quote or source`);
       return null;
     }
@@ -287,8 +288,8 @@ export class AutoQuoteVerifier {
       this.logger.info(`Manual verification requested for ${claimId}`);
       
       const result = await this.mcpClient.citation.verifyQuote(
-        claim.primaryQuote,
-        claim.source
+        claim.primaryQuote.text,
+        claim.primaryQuote.source
       );
 
       await this.updateVerificationStatus(claimId, result);
@@ -306,7 +307,7 @@ export class AutoQuoteVerifier {
    */
   async verifyAllUnverified(): Promise<void> {
     const claims = this.claimsManager.getClaims();
-    const unverified = claims.filter(c => !c.verified && c.primaryQuote && c.source);
+    const unverified = claims.filter(c => !c.verified && c.primaryQuote && c.primaryQuote.source);
 
     if (unverified.length === 0) {
       vscode.window.showInformationMessage('All claims with quotes are already verified');

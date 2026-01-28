@@ -49,10 +49,10 @@ export class ClaimHoverProvider implements vscode.HoverProvider {
       markdown.appendMarkdown(`**Category**: ${claim.category}  \n`);
     }
     
-    if (claim.source) {
-      markdown.appendMarkdown(`**Source**: ${claim.source}`);
-      if (claim.sourceId) {
-        markdown.appendMarkdown(` (Source ID: ${claim.sourceId})`);
+    if (claim.primaryQuote && claim.primaryQuote.source) {
+      markdown.appendMarkdown(`**Source**: ${claim.primaryQuote.source}`);
+      if (claim.primaryQuote.sourceId) {
+        markdown.appendMarkdown(` (Source ID: ${claim.primaryQuote.sourceId})`);
       }
       markdown.appendMarkdown(`  \n`);
     }
@@ -67,9 +67,9 @@ export class ClaimHoverProvider implements vscode.HoverProvider {
     markdown.appendMarkdown(`\n---\n\n`);
 
     // Primary quote
-    if (claim.primaryQuote) {
+    if (claim.primaryQuote && claim.primaryQuote.text) {
       markdown.appendMarkdown(`**Primary Quote**:\n`);
-      markdown.appendMarkdown(`> "${claim.primaryQuote}"\n\n`);
+      markdown.appendMarkdown(`> "${claim.primaryQuote.text}"\n\n`);
     }
 
     // Supporting quotes (show first 2 if multiple)
@@ -78,7 +78,7 @@ export class ClaimHoverProvider implements vscode.HoverProvider {
       markdown.appendMarkdown(`**Supporting Quotes** (${claim.supportingQuotes.length}):\n`);
       
       for (const quote of quotesToShow) {
-        markdown.appendMarkdown(`- "${quote}"\n`);
+        markdown.appendMarkdown(`- "${quote.text}"\n`);
       }
       
       if (claim.supportingQuotes.length > 2) {
@@ -104,9 +104,9 @@ export class ClaimHoverProvider implements vscode.HoverProvider {
     let actions = '';
 
     // Go to source action
-    if (claim.source) {
+    if (claim.primaryQuote && claim.primaryQuote.source) {
       const goToSourceCommand = vscode.Uri.parse(
-        `command:researchAssistant.goToSource?${encodeURIComponent(JSON.stringify([claim.source]))}`
+        `command:researchAssistant.goToSource?${encodeURIComponent(JSON.stringify([claim.primaryQuote.source]))}`
       );
       actions += `[📄 Go to source](${goToSourceCommand}) `;
     }

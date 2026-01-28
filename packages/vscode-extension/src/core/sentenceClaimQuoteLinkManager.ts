@@ -4,10 +4,13 @@ import { ClaimsManager } from './claimsManagerWrapper';
 /**
  * SentenceClaimQuoteLinkManager - Manages sentence-claim-quote relationships
  * Tracks which quotes from claims are marked for citation in specific sentences
- * Persists to claims database
+ * Persists to claims database with write queue protection
  */
 export class SentenceClaimQuoteLinkManager {
   private links: Map<string, SentenceClaimQuoteLink> = new Map();
+  
+  // Write queue to prevent race conditions on persistence
+  private writeQueue: Promise<void> = Promise.resolve();
 
   constructor(private claimsManager: ClaimsManager) {}
 
@@ -38,7 +41,7 @@ export class SentenceClaimQuoteLinkManager {
     };
 
     this.links.set(key, link);
-    await this.persistLinks();
+    await this.queuePersist();
   }
 
   /**
@@ -55,7 +58,7 @@ export class SentenceClaimQuoteLinkManager {
     if (link) {
       link.citedForFinal = false;
       link.updatedAt = new Date();
-      await this.persistLinks();
+      await this.queuePersist();
     }
   }
 
@@ -88,7 +91,7 @@ export class SentenceClaimQuoteLinkManager {
       link.updatedAt = new Date();
     }
 
-    await this.persistLinks();
+    await this.queuePersist();
     return link.citedForFinal;
   }
 
@@ -183,7 +186,7 @@ export class SentenceClaimQuoteLinkManager {
       this.links.delete(key);
     }
 
-    await this.persistLinks();
+    await this.queuePersist();
   }
 
   /**
@@ -203,7 +206,7 @@ export class SentenceClaimQuoteLinkManager {
       this.links.delete(key);
     }
 
-    await this.persistLinks();
+    await this.queuePersist();
   }
 
   /**
@@ -222,7 +225,7 @@ export class SentenceClaimQuoteLinkManager {
       this.links.delete(key);
     }
 
-    await this.persistLinks();
+    await this.queuePersist();
   }
 
   /**
@@ -251,7 +254,16 @@ export class SentenceClaimQuoteLinkManager {
   /**
    * Persist links to database
    * Currently stores in memory; can be extended to persist to file
+   * All persistence operations are queued to prevent race conditions
    */
+  private async queuePersist(): Promise<void> {
+    this.writeQueue = this.writeQueue.then(() => this.persistLinks()).catch(error => {
+      console.error('Error in sentence-claim-quote link write queue:', error);
+    });
+    
+    return this.writeQueue;
+  }
+
   private async persistLinks(): Promise<void> {
     // TODO: Implement persistence to claims database
     // This could store links in a separate metadata file or database

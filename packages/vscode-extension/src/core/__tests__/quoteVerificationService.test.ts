@@ -108,7 +108,7 @@ describe('QuoteVerificationService', () => {
       const result = await service.verifyClaim('C_01');
 
       expect(mockClaimsManager.getClaim).toHaveBeenCalledWith('C_01');
-      expect(mockMcpClient.verifyQuote).toHaveBeenCalledWith(claim.primaryQuote, claim.source);
+      expect(mockMcpClient.verifyQuote).toHaveBeenCalledWith(claim.primaryQuote.text, claim.primaryQuote.source);
       expect(mockClaimsManager.updateClaim).toHaveBeenCalledWith('C_01', { verified: true });
       expect(result.verified).toBe(true);
       expect(result.claimId).toBe('C_01');

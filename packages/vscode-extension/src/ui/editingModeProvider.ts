@@ -5,16 +5,21 @@ import { ExtensionState } from '../core/state';
 import { EditingModeManager } from '../core/editingModeManager';
 import { SentenceParser, Sentence } from '../core/sentenceParser';
 import { SentenceClaimMapper } from '../core/sentenceClaimMapper';
+import { QuestionAnswerParser } from '../core/questionAnswerParser';
 import { generateHelpOverlayHtml, getHelpOverlayCss, getHelpOverlayJs } from './keyboardShortcuts';
 import { generateBreadcrumb, getBreadcrumbCss, getModeSwitchingJs, modeStateManager } from './modeSwitching';
 import { getWebviewDisposalManager } from './webviewDisposalManager';
 import { SentenceParsingCache } from '../services/cachingService';
 import { getBenchmark } from '../core/performanceBenchmark';
 import { getImmersiveModeManager } from './immersiveModeManager';
+import { PersistenceUtils } from '../core/persistenceUtils';
+import { getModeContextManager } from '../core/modeContextManager';
+import { DataValidationService } from '../core/dataValidationService';
+import type { Claim } from '@research-assistant/core';
 
 /**
  * EditingModeProvider - Webview panel provider for editing mode
- * Displays sentences as editable boxes with nested claims in main editor area
+ * Displays sentences from manuscript answers with nested claims in main editor area
  * Includes virtual scrolling and lazy loading for memory efficiency
  */
 export class EditingModeProvider {
@@ -24,6 +29,7 @@ export class EditingModeProvider {
   private editingModeManager: EditingModeManager;
   private sentenceParser: SentenceParser;
   private sentenceClaimMapper: SentenceClaimMapper;
+  private questionAnswerParser: QuestionAnswerParser;
   private disposables: vscode.Disposable[] = [];
   private sentences: Sentence[] = [];
   private sentenceParsingCache: SentenceParsingCache;
@@ -31,6 +37,9 @@ export class EditingModeProvider {
   private citationStatus: Map<string, boolean> = new Map(); // Track citation status for sentence-claim pairs
   private benchmark = getBenchmark();
   private immersiveModeManager = getImmersiveModeManager();
+  
+  // Write queue to prevent race conditions on manuscript saves
+  private writeQueue: Promise<void> = Promise.resolve();
 
   constructor(
     private extensionState: ExtensionState,
@@ -39,6 +48,7 @@ export class EditingModeProvider {
     this.editingModeManager = new EditingModeManager();
     this.sentenceParser = new SentenceParser();
     this.sentenceClaimMapper = new SentenceClaimMapper(extensionState.claimsManager);
+    this.questionAnswerParser = new QuestionAnswerParser();
     this.sentenceParsingCache = new SentenceParsingCache(100);
   }
 
@@ -98,6 +108,12 @@ export class EditingModeProvider {
 
     this.disposalManager.registerDisposable(EditingModeProvider.viewType, messageListener);
 
+    // Listen for claim changes to refresh display
+    const claimChangeListener = this.extensionState.claimsManager.onDidChange(() => {
+      this.refreshSentencesDisplay();
+    });
+    this.disposables.push(claimChangeListener);
+
     // Handle panel disposal
     const disposalListener = this.panel.onDidDispose(() => {
       this.panelDisposed = true;
@@ -126,20 +142,35 @@ export class EditingModeProvider {
       const manuscript = await this.loadManuscript();
       const manuscriptPath = this.extensionState.getAbsolutePath('03_Drafting/manuscript.md');
 
-      // Try to get from cache first
-      let parsedSentences = this.sentenceParsingCache.getParsedSentences(manuscriptPath);
+      console.log(`[EditingMode] Manuscript length: ${manuscript.length} characters`);
 
-      if (!parsedSentences) {
-        // Parse sentences if not cached
-        this.sentences = this.sentenceParser.parseSentences(manuscript, 'default');
-        // Cache the parsed sentences
-        this.sentenceParsingCache.cacheParsedSentences(manuscriptPath, this.sentences);
-      } else {
-        this.sentences = parsedSentences;
+      // Parse manuscript into question-answer pairs
+      const questionAnswerPairs = this.questionAnswerParser.parseManuscript(manuscript);
+      console.log(`[EditingMode] Parsed ${questionAnswerPairs.length} question-answer pairs`);
+
+      // Extract sentences from answers and associate claims
+      this.sentences = [];
+      let sentenceIndex = 0;
+
+      for (const pair of questionAnswerPairs) {
+        // Parse answer text into sentences
+        const answerSentences = this.sentenceParser.parseSentences(pair.answer, `qa_${pair.id}`);
+        
+        // Associate claims from the Q&A pair with each sentence
+        for (const sentence of answerSentences) {
+          sentence.id = `S_${sentenceIndex}`;
+          sentence.claims = [...pair.claims]; // Copy claims from Q&A pair
+          sentence.outlineSection = pair.section;
+          this.sentences.push(sentence);
+          sentenceIndex++;
+        }
       }
 
-      // Load claims for each sentence
+      console.log(`[EditingMode] Extracted ${this.sentences.length} sentences from answers`);
+
+      // Load full claim details for each sentence
       const sentencesWithClaims = await this.loadClaimsForSentences();
+      console.log(`[EditingMode] Sending ${sentencesWithClaims.length} sentences to webview`);
 
       // Send initial data to webview with virtual scrolling enabled
       this.panel.webview.postMessage({
@@ -151,6 +182,7 @@ export class EditingModeProvider {
       });
     } catch (error) {
       vscode.window.showErrorMessage(`Failed to initialize editing mode: ${error}`);
+      console.error('[EditingMode] Initialization error:', error);
     }
   }
 
@@ -161,13 +193,19 @@ export class EditingModeProvider {
     try {
       const manuscriptPath = this.extensionState.getAbsolutePath('03_Drafting/manuscript.md');
 
+      console.log(`[EditingMode] Loading manuscript from: ${manuscriptPath}`);
+      console.log(`[EditingMode] File exists: ${fs.existsSync(manuscriptPath)}`);
+
       if (fs.existsSync(manuscriptPath)) {
-        return fs.readFileSync(manuscriptPath, 'utf-8');
+        const content = fs.readFileSync(manuscriptPath, 'utf-8');
+        console.log(`[EditingMode] Loaded ${content.length} characters`);
+        return content;
       }
 
+      console.log(`[EditingMode] File not found, returning empty string`);
       return '';
     } catch (error) {
-      console.error('Failed to load manuscript:', error);
+      console.error('[EditingMode] Failed to load manuscript:', error);
       return '';
     }
   }
@@ -179,24 +217,32 @@ export class EditingModeProvider {
     const sentencesWithClaims = [];
 
     for (const sentence of this.sentences) {
-      const claimIds = this.sentenceClaimMapper.getClaimsForSentence(sentence.id);
+      // Validate sentence before processing
+      if (!DataValidationService.validateSentence(sentence)) {
+        console.warn('[EditingMode] Skipping invalid sentence:', sentence);
+        continue;
+      }
+
       const claims = [];
 
-      for (const claimId of claimIds) {
+      // Load claim details from Knowledge Base for each claim ID
+      for (const claimId of sentence.claims) {
         try {
           const claim = this.extensionState.claimsManager.getClaim(claimId);
-          if (claim) {
+          if (claim && DataValidationService.validateClaim(claim)) {
             claims.push({
               id: claim.id,
               text: claim.text,
               originalText: claim.text,
               category: claim.category,
-              source: claim.source,
+              source: claim.primaryQuote?.source || 'Unknown',
               verified: claim.verified
             });
+          } else {
+            console.warn(`[EditingMode] Claim ${claimId} not found or invalid in Knowledge Base`);
           }
         } catch (error) {
-          console.error(`Failed to load claim ${claimId}:`, error);
+          console.error(`[EditingMode] Failed to load claim ${claimId}:`, error);
         }
       }
 
@@ -205,12 +251,48 @@ export class EditingModeProvider {
         text: sentence.text,
         originalText: sentence.originalText,
         position: sentence.position,
+        outlineSection: sentence.outlineSection,
         claims: claims,
         claimCount: claims.length
       });
     }
 
+    // Validate the entire array before returning
+    if (!DataValidationService.validateSentencesArray(sentencesWithClaims)) {
+      console.warn('[EditingMode] Sentences array validation failed, returning empty array');
+      return [];
+    }
+
     return sentencesWithClaims;
+  }
+
+  /**
+   * Refresh sentences display when claims change
+   */
+  private async refreshSentencesDisplay(): Promise<void> {
+    if (!this.panel || this.panelDisposed) {
+      return;
+    }
+
+    try {
+      const sentencesWithClaims = await this.loadClaimsForSentences();
+      
+      // Sanitize for webview transmission
+      const sanitizedSentences = DataValidationService.sanitizeSentencesForWebview(sentencesWithClaims);
+      
+      // Send updated sentences to webview
+      this.panel.webview.postMessage({
+        type: 'sentencesUpdated',
+        sentences: sanitizedSentences
+      });
+
+      // Store in mode context
+      getModeContextManager().setEditingModeContext({
+        sentences: sanitizedSentences
+      });
+    } catch (error) {
+      console.error('[EditingMode] Failed to refresh sentences display:', error);
+    }
   }
 
   /**
@@ -265,7 +347,11 @@ export class EditingModeProvider {
         break;
 
       case 'matchClaims':
-        await vscode.commands.executeCommand('researchAssistant.openClaimMatching', message.sentenceId);
+        // Find the sentence text from the stored sentences
+        const sentence = this.sentences.find(s => s.id === message.sentenceId);
+        const sentenceText = sentence ? sentence.text : '';
+        console.log(`[EditingMode] Match claims for sentence ${message.sentenceId}: "${sentenceText}"`);
+        await vscode.commands.executeCommand('researchAssistant.openClaimMatching', message.sentenceId, sentenceText);
         break;
 
       case 'openClaim':
@@ -369,34 +455,31 @@ export class EditingModeProvider {
         return;
       }
 
-      // Show quick input for category and source
-      const category = await vscode.window.showInputBox({
-        prompt: 'Claim category (e.g., Method, Result, Challenge)',
-        value: 'Result'
+      // Show input for claim text (defaults to sentence text, but editable)
+      const claimText = await vscode.window.showInputBox({
+        prompt: 'Claim text (edit if needed)',
+        value: sentence.text,
+        validateInput: (value) => {
+          return value.trim().length === 0 ? 'Claim text cannot be empty' : null;
+        }
       });
 
-      if (!category) {
+      if (!claimText) {
         return;
       }
 
-      const source = await vscode.window.showInputBox({
-        prompt: 'Claim source (e.g., Author2020)',
-        value: ''
-      });
-
-      if (!source) {
-        return;
-      }
-
-      // Create claim
-      const claim = {
-        id: `C_${Date.now()}`,
-        text: sentence.text,
-        category,
-        source,
-        sourceId: 0,
+      // Create claim with minimal defaults
+      const claimId = `C_${Date.now()}`;
+      const claim: Claim = {
+        id: claimId,
+        text: claimText.trim(),
+        category: 'Uncategorized',
         context: sentence.text,
-        primaryQuote: sentence.text,
+        primaryQuote: {
+          text: '',
+          source: '',
+          verified: false
+        },
         supportingQuotes: [],
         sections: [],
         verified: false,
@@ -404,27 +487,32 @@ export class EditingModeProvider {
         modifiedAt: new Date()
       };
 
-      // Add to claims manager
-      this.extensionState.claimsManager.updateClaim(claim.id, claim);
+      // Add to claims manager and ensure it's saved
+      await this.extensionState.claimsManager.saveClaim(claim);
 
       // Link sentence to claim
-      await this.sentenceClaimMapper.linkSentenceToClaim(sentenceId, claim.id);
+      await this.sentenceClaimMapper.linkSentenceToClaim(sentenceId, claimId);
 
-      // Reload and notify
-      const sentencesWithClaims = await this.loadClaimsForSentences();
+      // Notify webview of new claim
       if (this.panel) {
         this.panel.webview.postMessage({
           type: 'claimCreated',
           sentenceId,
           claim: {
-            id: claim.id,
+            id: claimId,
             text: claim.text,
             category: claim.category,
-            source: claim.source,
+            source: claim.primaryQuote?.source || 'Unknown',
             verified: claim.verified
           }
         });
       }
+
+      // Small delay to ensure claim is persisted before opening review
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      // Open claim review interface to search for supporting quotes
+      await vscode.commands.executeCommand('researchAssistant.openClaimReview', claimId);
     } catch (error) {
       vscode.window.showErrorMessage(`Failed to create claim: ${error}`);
     }
@@ -530,22 +618,39 @@ export class EditingModeProvider {
 
   /**
    * Save manuscript
+   * Queues the save operation to prevent race conditions
    */
   private async saveManuscript(): Promise<void> {
+    // Queue the save operation to prevent race conditions with file watchers
+    this.writeQueue = this.writeQueue.then(() => this._performManuscriptSave()).catch(error => {
+      console.error('Error in manuscript write queue:', error);
+      vscode.window.showErrorMessage(`Failed to save manuscript: ${error}`);
+    });
+    
+    return this.writeQueue;
+  }
+
+  private async _performManuscriptSave(): Promise<void> {
     try {
       const manuscriptPath = this.extensionState.getAbsolutePath('03_Drafting/manuscript.md');
 
       // Reconstruct manuscript from sentences
       const content = this.sentences.map(s => s.text).join('\n\n');
 
-      // Ensure directory exists
-      const dir = path.dirname(manuscriptPath);
-      if (!fs.existsSync(dir)) {
-        fs.mkdirSync(dir, { recursive: true });
+      // Validate content
+      if (!content || typeof content !== 'string') {
+        throw new Error('Invalid manuscript content generated');
       }
 
-      // Write file
-      fs.writeFileSync(manuscriptPath, content, 'utf-8');
+      // Use atomic write with retry logic
+      const result = await PersistenceUtils.writeFileAtomic(manuscriptPath, content, {
+        maxRetries: 3,
+        initialDelayMs: 100
+      });
+
+      if (!result.success) {
+        throw result.error || new Error('Unknown write error');
+      }
 
       // Notify webview
       if (this.panel) {
@@ -555,7 +660,18 @@ export class EditingModeProvider {
         });
       }
     } catch (error) {
-      vscode.window.showErrorMessage(`Failed to save manuscript: ${error}`);
+      const err = error instanceof Error ? error : new Error(String(error));
+      console.error('Failed to save manuscript:', err);
+      
+      // Show error to user with retry option
+      await PersistenceUtils.showPersistenceError(
+        err,
+        'save manuscript',
+        this.extensionState.getAbsolutePath('03_Drafting/manuscript.md'),
+        () => this._performManuscriptSave()
+      );
+      
+      throw err;
     }
   }
 

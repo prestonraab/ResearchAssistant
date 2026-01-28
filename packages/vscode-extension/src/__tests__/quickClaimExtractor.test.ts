@@ -287,7 +287,7 @@ describe('QuickClaimExtractor', () => {
       expect(mockClaimsManager.saveClaim).toHaveBeenCalled();
       const savedClaim = (mockClaimsManager.saveClaim as jest.Mock).mock.calls[0][0];
       expect(savedClaim.text).toBe(selectedText);
-      expect(savedClaim.source).toBe('Smith2023');
+      expect(savedClaim.primaryQuote?.source).toBe('Smith2023');
       expect(savedClaim.category).toBe('Method');
     });
   });

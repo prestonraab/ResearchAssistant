@@ -1,6 +1,5 @@
 // Editing Mode UI Script
-
-const vscode = acquireVsCodeApi();
+// Note: vscode is declared in the HTML inline script
 
 let sentences = [];
 let currentSentenceId = null;
@@ -21,12 +20,22 @@ let virtualScrollState = {
  * Initialize editing mode
  */
 function initialize(data) {
+  console.log('[EditingMode WebView] Received initialize message:', {
+    sentenceCount: data.sentences?.length || 0,
+    scrollPosition: data.scrollPosition,
+    virtualScrollingEnabled: data.virtualScrollingEnabled
+  });
+  
   sentences = data.sentences || [];
+  
+  console.log('[EditingMode WebView] Sentences array:', sentences.length);
   
   // Use virtual scrolling for large lists
   if (sentences.length > 50) {
+    console.log('[EditingMode WebView] Using virtual scrolling');
     initializeVirtualScrolling();
   } else {
+    console.log('[EditingMode WebView] Using regular rendering');
     renderSentences();
   }
   
@@ -453,14 +462,11 @@ function escapeHtml(text) {
  * Handle keyboard shortcuts
  */
 document.addEventListener('keydown', (e) => {
+  // Mode switching is handled by VS Code keybindings (Cmd/Ctrl+Alt+W/E/R)
+  // No Shift+letter shortcuts to avoid conflicts with typing
+  
   if (e.key === '?') {
     toggleHelpOverlay();
-  } else if (e.key === 'Shift' && e.code === 'KeyW') {
-    vscode.postMessage({ type: 'switchToWritingMode' });
-  } else if (e.key === 'Shift' && e.code === 'KeyE') {
-    // Already in editing mode
-  } else if (e.key === 'Shift' && e.code === 'KeyC') {
-    vscode.postMessage({ type: 'switchToClaimReview' });
   } else if (e.key === 'Escape') {
     const helpOverlay = document.getElementById('helpOverlay');
     if (!helpOverlay.classList.contains('hidden')) {
@@ -560,6 +566,16 @@ window.addEventListener('message', (event) => {
       const sentence = sentences.find(s => s.id === message.sentenceId);
       if (sentence) {
         sentence.text = message.text;
+        renderSentences();
+      }
+      break;
+
+    case 'sentencesUpdated':
+      // Update all sentences with new data (used when claims change)
+      sentences = message.sentences;
+      if (sentences.length > 50) {
+        updateVirtualScroll();
+      } else {
         renderSentences();
       }
       break;

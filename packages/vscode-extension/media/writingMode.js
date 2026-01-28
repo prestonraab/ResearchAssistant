@@ -1,23 +1,18 @@
 // Writing Mode JavaScript
-
-const vscode = acquireVsCodeApi();
+// Note: vscode is declared in the HTML inline script
 
 // State
 let state = {
-  outline: [],
-  manuscript: '',
-  currentSection: null,
-  scrollPosition: 0,
+  pairs: [],
   isDirty: false,
   autoSaveTimer: null
 };
 
 // DOM elements
-const outlineTree = document.getElementById('outlineTree');
-const manuscriptEditor = document.getElementById('manuscriptEditor');
-const helpOverlay = document.getElementById('helpOverlay');
+const pairsList = document.getElementById('pairsList');
 const helpBtn = document.getElementById('helpBtn');
 const editBtn = document.getElementById('editBtn');
+const addPairBtn = document.getElementById('addPairBtn');
 const exportMarkdownBtn = document.getElementById('exportMarkdownBtn');
 const exportWordBtn = document.getElementById('exportWordBtn');
 const saveStatus = document.getElementById('saveStatus');
@@ -25,35 +20,30 @@ const saveStatus = document.getElementById('saveStatus');
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
   setupEventListeners();
-  setupKeyboardShortcuts();
 });
 
 /**
  * Setup event listeners
  */
 function setupEventListeners() {
-  // Manuscript editor
-  manuscriptEditor.addEventListener('input', () => {
-    state.isDirty = true;
-    updateSaveStatus('Unsaved');
-    scheduleAutoSave();
-  });
-
-  manuscriptEditor.addEventListener('scroll', () => {
-    state.scrollPosition = manuscriptEditor.scrollTop;
-    vscode.postMessage({
-      type: 'saveScrollPosition',
-      position: state.scrollPosition
-    });
-  });
-
   // Help button
-  helpBtn.addEventListener('click', toggleHelpOverlay);
+  if (helpBtn) {
+    helpBtn.addEventListener('click', toggleHelpOverlay);
+  }
 
   // Edit button
-  editBtn.addEventListener('click', () => {
-    vscode.postMessage({ type: 'switchToEditingMode' });
-  });
+  if (editBtn) {
+    editBtn.addEventListener('click', () => {
+      vscode.postMessage({ type: 'switchToEditingMode' });
+    });
+  }
+
+  // Add pair button
+  if (addPairBtn) {
+    addPairBtn.addEventListener('click', () => {
+      vscode.postMessage({ type: 'addPair', section: 'New Section' });
+    });
+  }
 
   // Export buttons
   if (exportMarkdownBtn) {
@@ -68,46 +58,8 @@ function setupEventListeners() {
     });
   }
 
-  // Help overlay
-  helpOverlay.addEventListener('click', (e) => {
-    if (e.target === helpOverlay) {
-      toggleHelpOverlay();
-    }
-  });
-}
-
-/**
- * Setup keyboard shortcuts
- */
-function setupKeyboardShortcuts() {
+  // Keyboard shortcuts
   document.addEventListener('keydown', (e) => {
-    // Shift+E - Edit mode
-    if (e.shiftKey && e.key === 'E') {
-      e.preventDefault();
-      vscode.postMessage({ type: 'switchToEditingMode' });
-      return;
-    }
-
-    // Shift+C - Claim review mode
-    if (e.shiftKey && e.key === 'C') {
-      e.preventDefault();
-      vscode.postMessage({ type: 'switchToClaimReview' });
-      return;
-    }
-
-    // Shift+W - Already in writing mode
-    if (e.shiftKey && e.key === 'W') {
-      e.preventDefault();
-      return;
-    }
-
-    // Esc - Close writing mode
-    if (e.key === 'Escape') {
-      e.preventDefault();
-      // Could close the webview or return to previous view
-      return;
-    }
-
     // ? - Help overlay
     if (e.key === '?') {
       e.preventDefault();
@@ -119,20 +71,6 @@ function setupKeyboardShortcuts() {
     if ((e.ctrlKey || e.metaKey) && e.key === 's') {
       e.preventDefault();
       saveManuscript();
-      return;
-    }
-
-    // Ctrl+F - Find (let VS Code handle this)
-    if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
-      e.preventDefault();
-      // Could implement find UI here
-      return;
-    }
-
-    // Ctrl+H - Find and replace (let VS Code handle this)
-    if ((e.ctrlKey || e.metaKey) && e.key === 'h') {
-      e.preventDefault();
-      // Could implement find and replace UI here
       return;
     }
   });
@@ -158,126 +96,308 @@ window.addEventListener('message', (event) => {
       toggleHelpOverlay();
       break;
 
+    case 'pairAdded':
+      addNewPair(message.section);
+      break;
+
+    case 'pairDeleted':
+      deletePair(message.pairId);
+      break;
+
     default:
       console.warn('Unknown message type:', message.type);
   }
 });
 
 /**
- * Initialize UI with outline and manuscript
+ * Initialize UI with question-answer pairs
  */
 function initializeUI(message) {
-  state.outline = message.outline;
-  state.manuscript = message.manuscript;
-  state.currentSection = message.currentSection;
-  state.scrollPosition = message.scrollPosition;
-
-  // Render outline tree
-  renderOutlineTree(state.outline);
-
-  // Load manuscript
-  manuscriptEditor.value = state.manuscript;
-  manuscriptEditor.scrollTop = state.scrollPosition;
-
+  console.log('[WritingMode WebView] Received initialize message:', {
+    pairCount: message.pairs?.length || 0
+  });
+  
+  state.pairs = message.pairs || [];
+  
+  console.log('[WritingMode WebView] Pairs array:', state.pairs.length);
+  
+  renderPairs();
+  
   updateSaveStatus('Saved');
 }
 
 /**
- * Render outline tree
+ * Render all question-answer pairs
  */
-function renderOutlineTree(items, parentElement = null) {
-  const container = parentElement || outlineTree;
+function renderPairs() {
+  if (!pairsList) return;
+  
+  console.log('[WritingMode] renderPairs called, pairs:', state.pairs.length);
+  
+  if (state.pairs.length === 0) {
+    pairsList.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-state-icon">📝</div>
+        <div class="empty-state-text">No questions found</div>
+        <div class="empty-state-hint">Click + to add a question</div>
+      </div>
+    `;
+    return;
+  }
 
-  for (const item of items) {
-    const itemElement = createOutlineItem(item);
-    container.appendChild(itemElement);
+  // Log first pair to see structure
+  if (state.pairs.length > 0) {
+    console.log('[WritingMode] First pair structure:', {
+      keys: Object.keys(state.pairs[0]),
+      sample: state.pairs[0]
+    });
+  }
 
-    if (item.children && item.children.length > 0) {
-      const childrenContainer = document.createElement('div');
-      childrenContainer.className = 'outline-children';
-      childrenContainer.style.display = 'block';
-      container.appendChild(childrenContainer);
+  pairsList.innerHTML = state.pairs.map(pair => renderPair(pair)).join('');
+  
+  console.log('[WritingMode] Rendered HTML length:', pairsList.innerHTML.length);
+  
+  // Attach event listeners
+  attachPairListeners();
+}
 
-      renderOutlineTree(item.children, childrenContainer);
-    }
+/**
+ * Render a single question-answer pair
+ */
+function renderPair(pair) {
+  console.log('[WritingMode] Rendering pair:', {
+    id: pair.id,
+    question: pair.question?.substring(0, 50),
+    answerLength: pair.answer?.length || 0,
+    status: pair.status,
+    claimCount: pair.claims?.length || 0,
+    linkedSourcesCount: pair.linkedSources?.length || 0
+  });
+  
+  const statusClass = pair.status.toLowerCase().replace(/\s+/g, '-');
+  const statusColor = getStatusColor(pair.status);
+  
+  const claimsHtml = pair.claims.length > 0
+    ? `<div class="claims-list">
+         <div class="claims-label">Claims:</div>
+         ${pair.claims.map(c => `<span class="claim-badge">${c}</span>`).join('')}
+       </div>`
+    : '<div class="claims-empty">No claims yet</div>';
+
+  // Count cited sources
+  const citedCount = (pair.linkedSources || []).filter(s => s.cited).length;
+  const citationIndicator = citedCount > 0 
+    ? `<span class="citation-indicator">${citedCount} cited</span>`
+    : '';
+
+  // Render citation sidebar
+  const citationSidebarHtml = renderCitationSidebar(pair);
+
+  return `
+    <div class="pair-row" data-pair-id="${pair.id}">
+      <!-- Question column -->
+      <div class="question-column">
+        <div class="question-header">
+          <span class="status-badge status-${statusClass}" style="background-color: ${statusColor}">
+            ${pair.status}
+          </span>
+          ${citationIndicator}
+          <button class="delete-btn" data-pair-id="${pair.id}" title="Delete">🗑️</button>
+        </div>
+        <div class="question-text" contenteditable="true" data-pair-id="${pair.id}">
+          ${escapeHtml(pair.question)}
+        </div>
+        ${claimsHtml}
+        <div class="section-label">${escapeHtml(pair.section)}</div>
+      </div>
+      
+      <!-- Answer column -->
+      <div class="answer-column">
+        <textarea 
+          class="answer-editor" 
+          data-pair-id="${pair.id}"
+          placeholder="Write your answer here..."
+        >${escapeHtml(pair.answer || '')}</textarea>
+      </div>
+
+      <!-- Citation sidebar -->
+      ${citationSidebarHtml}
+    </div>
+  `;
+}
+
+/**
+ * Get status color
+ */
+function getStatusColor(status) {
+  switch (status.toUpperCase()) {
+    case 'ANSWERED':
+      return '#4caf50';
+    case 'RESEARCH NEEDED':
+      return '#ff9800';
+    case 'PARTIAL':
+      return '#2196f3';
+    default:
+      return '#9e9e9e';
   }
 }
 
 /**
- * Create outline item element
+ * Render citation sidebar for a pair
  */
-function createOutlineItem(item) {
-  const itemElement = document.createElement('div');
-  itemElement.className = `outline-item outline-item-level-${item.level}`;
-  itemElement.dataset.sectionId = item.id;
-
-  // Toggle button
-  const toggleBtn = document.createElement('div');
-  toggleBtn.className = 'outline-item-toggle';
-  if (item.children && item.children.length > 0) {
-    toggleBtn.classList.add('expanded');
-  } else {
-    toggleBtn.classList.add('no-children');
+function renderCitationSidebar(pair) {
+  const linkedSources = pair.linkedSources || [];
+  
+  if (linkedSources.length === 0) {
+    return `
+      <div class="citation-sidebar">
+        <div class="citation-sidebar-label">Citations</div>
+        <div class="citation-empty">No linked sources</div>
+      </div>
+    `;
   }
-  itemElement.appendChild(toggleBtn);
 
-  // Text
-  const textSpan = document.createElement('span');
-  textSpan.className = 'outline-item-text';
-  textSpan.textContent = item.title;
-  itemElement.appendChild(textSpan);
+  const citationItemsHtml = linkedSources.map((source, index) => {
+    const isChecked = source.cited ? 'checked' : '';
+    const quotePreview = escapeHtml(source.quote || '').substring(0, 150);
+    
+    return `
+      <div class="citation-item" data-pair-id="${pair.id}" data-source-index="${index}">
+        <input 
+          type="checkbox" 
+          class="citation-checkbox" 
+          ${isChecked}
+          data-pair-id="${pair.id}"
+          data-source-index="${index}"
+          title="Mark this source as cited"
+        />
+        <div class="citation-source">
+          <div class="citation-source-title">${escapeHtml(source.title || 'Unknown')}</div>
+          <div class="citation-source-meta">${escapeHtml(source.source || 'Unknown source')}</div>
+        </div>
+        <div class="citation-quote-preview">${quotePreview}${source.quote && source.quote.length > 150 ? '...' : ''}</div>
+      </div>
+    `;
+  }).join('');
 
-  // Click handler
-  itemElement.addEventListener('click', (e) => {
-    e.stopPropagation();
+  return `
+    <div class="citation-sidebar">
+      <div class="citation-sidebar-label">Citations (${linkedSources.length})</div>
+      ${citationItemsHtml}
+    </div>
+  `;
+}
 
-    // Toggle children visibility
-    if (item.children && item.children.length > 0) {
-      const nextElement = itemElement.nextElementSibling;
-      if (nextElement && nextElement.classList.contains('outline-children')) {
-        const isVisible = nextElement.style.display !== 'none';
-        nextElement.style.display = isVisible ? 'none' : 'block';
-        toggleBtn.classList.toggle('expanded');
-        toggleBtn.classList.toggle('collapsed');
+/**
+ * Attach event listeners to pairs
+ */
+function attachPairListeners() {
+  // Answer editors
+  document.querySelectorAll('.answer-editor').forEach(editor => {
+    editor.addEventListener('input', (e) => {
+      const pairId = e.target.dataset.pairId;
+      updatePairAnswer(pairId, e.target.value);
+    });
+  });
+
+  // Question editors
+  document.querySelectorAll('.question-text').forEach(editor => {
+    editor.addEventListener('input', (e) => {
+      const pairId = e.target.dataset.pairId;
+      updatePairQuestion(pairId, e.target.textContent);
+    });
+  });
+
+  // Delete buttons
+  document.querySelectorAll('.delete-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const pairId = e.target.dataset.pairId;
+      if (confirm('Delete this question-answer pair?')) {
+        deletePair(pairId);
       }
-    }
-
-    // Set current section
-    setCurrentSection(item.id);
+    });
   });
 
-  // Highlight if current section
-  if (item.id === state.currentSection) {
-    itemElement.classList.add('active');
-  }
+  // Citation checkboxes
+  document.querySelectorAll('.citation-checkbox').forEach(checkbox => {
+    checkbox.addEventListener('change', (e) => {
+      const pairId = e.target.dataset.pairId;
+      const sourceIndex = parseInt(e.target.dataset.sourceIndex);
+      const isChecked = e.target.checked;
+      
+      // Update local state
+      const pair = state.pairs.find(p => p.id === pairId);
+      if (pair && pair.linkedSources && pair.linkedSources[sourceIndex]) {
+        pair.linkedSources[sourceIndex].cited = isChecked;
+        state.isDirty = true;
+        scheduleAutoSave();
+      }
 
-  return itemElement;
+      // Notify extension
+      vscode.postMessage({
+        type: 'citationToggled',
+        pairId,
+        sourceIndex,
+        cited: isChecked
+      });
+    });
+  });
 }
 
 /**
- * Set current section
+ * Update pair answer
  */
-function setCurrentSection(sectionId) {
-  // Remove active class from all items
-  document.querySelectorAll('.outline-item.active').forEach(item => {
-    item.classList.remove('active');
-  });
-
-  // Add active class to selected item
-  const selectedItem = document.querySelector(`[data-section-id="${sectionId}"]`);
-  if (selectedItem) {
-    selectedItem.classList.add('active');
-    selectedItem.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+function updatePairAnswer(pairId, answer) {
+  const pair = state.pairs.find(p => p.id === pairId);
+  if (pair) {
+    pair.answer = answer;
+    state.isDirty = true;
+    updateSaveStatus('Unsaved');
+    scheduleAutoSave();
   }
+}
 
-  // Update state
-  state.currentSection = sectionId;
+/**
+ * Update pair question
+ */
+function updatePairQuestion(pairId, question) {
+  const pair = state.pairs.find(p => p.id === pairId);
+  if (pair) {
+    pair.question = question;
+    state.isDirty = true;
+    updateSaveStatus('Unsaved');
+    scheduleAutoSave();
+  }
+}
 
-  // Notify extension
-  vscode.postMessage({
-    type: 'setCurrentSection',
-    sectionId: sectionId
-  });
+/**
+ * Add new pair
+ */
+function addNewPair(section) {
+  const newPair = {
+    id: `QA_${state.pairs.length}`,
+    question: 'New question?',
+    status: 'RESEARCH NEEDED',
+    answer: '',
+    claims: [],
+    section: section || 'New Section',
+    position: state.pairs.length
+  };
+  
+  state.pairs.push(newPair);
+  renderPairs();
+  state.isDirty = true;
+  scheduleAutoSave();
+}
+
+/**
+ * Delete pair
+ */
+function deletePair(pairId) {
+  state.pairs = state.pairs.filter(p => p.id !== pairId);
+  renderPairs();
+  state.isDirty = true;
+  scheduleAutoSave();
 }
 
 /**
@@ -305,7 +425,7 @@ function saveManuscript() {
 
   vscode.postMessage({
     type: 'saveManuscript',
-    content: manuscriptEditor.value
+    pairs: state.pairs
   });
 }
 
@@ -313,12 +433,8 @@ function saveManuscript() {
  * Update save status
  */
 function updateSaveStatus(status) {
-  saveStatus.textContent = status;
-
-  if (status === 'Saving...') {
-    saveStatus.parentElement.classList.add('saving');
-  } else {
-    saveStatus.parentElement.classList.remove('saving');
+  if (saveStatus) {
+    saveStatus.textContent = status;
   }
 }
 
@@ -326,5 +442,17 @@ function updateSaveStatus(status) {
  * Toggle help overlay
  */
 function toggleHelpOverlay() {
-  helpOverlay.classList.toggle('hidden');
+  const helpOverlay = document.getElementById('helpOverlay');
+  if (helpOverlay) {
+    helpOverlay.classList.toggle('hidden');
+  }
+}
+
+/**
+ * Escape HTML
+ */
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
 }

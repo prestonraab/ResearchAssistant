@@ -3,7 +3,7 @@ import * as path from 'path';
 import { ClaimExtractor } from './claimExtractor';
 import { ReadingStatusManager } from './readingStatusManager';
 import { ClaimsManager } from './claimsManagerWrapper';
-import type { PotentialClaim } from '@research-assistant/core';
+import type { PotentialClaim, Claim } from '@research-assistant/core';
 
 /**
  * ReadingAssistant provides assistance during active reading of papers.
@@ -234,14 +234,17 @@ export class ReadingAssistant {
     }
 
     // Create claim object
-    const claim = {
+    const claim: Claim = {
       id: claimId,
       text: claimText,
       category: this.formatCategory(potentialClaim.type),
-      source: paperId,
-      sourceId: sourceId,
       context: potentialClaim.context,
-      primaryQuote: potentialClaim.text,
+      primaryQuote: {
+        text: potentialClaim.text,
+        source: paperId,
+        sourceId: sourceId,
+        verified: false
+      },
       supportingQuotes: [],
       sections: sections,
       verified: false,

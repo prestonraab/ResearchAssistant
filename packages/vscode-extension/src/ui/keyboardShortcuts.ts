@@ -21,9 +21,9 @@ export const GLOBAL_SHORTCUTS: ShortcutGroup = {
   title: 'NAVIGATION',
   shortcuts: [
     { key: '?', description: 'Toggle help overlay' },
-    { key: 'Shift+W', description: 'Switch to writing mode' },
-    { key: 'Shift+E', description: 'Switch to editing mode' },
-    { key: 'Shift+C', description: 'Switch to claim review mode' },
+    { key: 'Cmd/Ctrl+Alt+W', description: 'Switch to writing mode' },
+    { key: 'Cmd/Ctrl+Alt+E', description: 'Switch to editing mode' },
+    { key: 'Cmd/Ctrl+Alt+R', description: 'Switch to claim review mode' },
     { key: 'Esc', description: 'Close current mode' }
   ]
 };

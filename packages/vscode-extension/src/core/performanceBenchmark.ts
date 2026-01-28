@@ -51,7 +51,16 @@ export class PerformanceBenchmark {
       const duration = performance.now() - startTime;
       const memoryAfter = this.getMemoryUsage();
 
-      const threshold = this.targets[`${modeName}ModeLoad` as keyof typeof this.targets] as number;
+      // Map mode names to target keys
+      const targetKeyMap: Record<string, keyof typeof this.targets> = {
+        'writing': 'writingModeLoad',
+        'editing': 'editingModeLoad',
+        'matching': 'claimMatchingLoad',
+        'review': 'claimReviewLoad'
+      };
+
+      const thresholdKey = targetKeyMap[modeName];
+      const threshold = (this.targets[thresholdKey] as number) || 2000;
       const passed = duration <= threshold;
 
       const result: BenchmarkResult = {
