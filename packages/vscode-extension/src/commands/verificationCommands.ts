@@ -167,7 +167,7 @@ export function registerVerificationCommands(
             cancellable: false
           },
           async () => {
-            const validation = await extensionState!.claimSupportValidator.validateSupport(claim);
+            const validation = await extensionState!.verificationFeedbackLoop.validateSupport(claim);
 
             let message = `**${claimId} Support Validation**\n\n`;
             message += `${validation.analysis}\n\n`;
@@ -271,7 +271,7 @@ export function registerVerificationCommands(
             cancellable: false
           },
           async (progress) => {
-            const validations = await extensionState!.claimSupportValidator.batchValidate(
+            const validations = await extensionState!.verificationFeedbackLoop.batchValidate(
               verifiedClaims,
               (current, total) => {
                 progress.report({
@@ -348,7 +348,7 @@ export function registerVerificationCommands(
             cancellable: false
           },
           async () => {
-            const weakClaims = await extensionState!.claimSupportValidator.flagWeakSupport(claims);
+            const weakClaims = await extensionState!.verificationFeedbackLoop.flagWeakSupport(claims);
 
             if (weakClaims.length === 0) {
               vscode.window.showInformationMessage('All claims have adequate support!');

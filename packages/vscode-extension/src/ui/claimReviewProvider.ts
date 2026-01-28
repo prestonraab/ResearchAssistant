@@ -290,7 +290,7 @@ export class ClaimReviewProvider {
    */
   private async validateClaim(claim: any): Promise<any> {
     try {
-      const validation = await this.extensionState.claimSupportValidator.validateSupport(claim);
+      const validation = await this.extensionState.verificationFeedbackLoop.validateSupport(claim);
 
       return {
         supported: validation.supported,
@@ -392,7 +392,7 @@ export class ClaimReviewProvider {
         break;
 
       case 'addSupportingQuote':
-        await this.handleAddSupportingQuote(message.claimId, message.quote, message.source, message.lineRange);
+        await this.handleAddSupportingQuote(message.claimId, message.quote, message.source, message.lineRange, message.confidence);
         break;
 
       case 'searchInternet':
@@ -655,7 +655,7 @@ export class ClaimReviewProvider {
   /**
    * Handle add supporting quote message
    */
-  private async handleAddSupportingQuote(claimId: string, quote: string, source: string, lineRange: string): Promise<void> {
+  private async handleAddSupportingQuote(claimId: string, quote: string, source: string, lineRange: string, confidence: number = 0): Promise<void> {
     try {
       const claim = this.extensionState.claimsManager.getClaim(claimId);
 
@@ -674,7 +674,8 @@ export class ClaimReviewProvider {
         claim.primaryQuote = {
           text: quote,
           source: authorYear,
-          verified: false
+          verified: false,
+          confidence: confidence > 0 ? confidence : undefined
         };
       } else {
         // Initialize supporting quotes array if needed
@@ -693,7 +694,8 @@ export class ClaimReviewProvider {
         claim.supportingQuotes.push({
           text: quote,
           source: authorYear,
-          verified: false
+          verified: false,
+          confidence: confidence > 0 ? confidence : undefined
         });
       }
 
@@ -883,7 +885,7 @@ export class ClaimReviewProvider {
 
       vscode.window.showInformationMessage('Validating claim support...');
 
-      const validation = await this.extensionState.claimSupportValidator.validateSupport(claim);
+      const validation = await this.extensionState.verificationFeedbackLoop.validateSupport(claim);
 
       if (this.panel) {
         this.panel.webview.postMessage({
@@ -1054,20 +1056,6 @@ export class ClaimReviewProvider {
 
           <!-- Supporting quotes -->
           <div id="supportingQuotesContainer" class="supporting-quotes"></div>
-        </div>
-
-        <!-- Validation section -->
-        <div id="validationSection" class="validation-section">
-          <h2>VALIDATION</h2>
-          <div class="validation-gauge">
-            <div class="gauge-label">Support Strength</div>
-            <div class="gauge-bar">
-              <div id="gaugeProgress" class="gauge-progress"></div>
-            </div>
-            <div id="gaugePercentage" class="gauge-percentage">0%</div>
-          </div>
-          <div id="validationStatus" class="validation-status"></div>
-          <button id="validateBtn" class="btn btn-primary" data-action="validateSupport">Validate</button>
         </div>
 
         <!-- Action buttons -->

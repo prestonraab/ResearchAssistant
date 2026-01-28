@@ -129,6 +129,7 @@ export class DataValidationService {
 
   /**
    * Sanitize claim for webview transmission
+   * Preserves full quote objects with metadata instead of flattening to strings
    */
   static sanitizeClaimForWebview(claim: any): any {
     if (!this.validateClaim(claim)) {
@@ -140,9 +141,23 @@ export class DataValidationService {
       text: claim.text || '',
       category: claim.category || 'Uncategorized',
       source: claim.primaryQuote?.source || 'Unknown',
-      primaryQuote: claim.primaryQuote?.text || '',
+      primaryQuote: claim.primaryQuote ? {
+        text: claim.primaryQuote.text || '',
+        source: claim.primaryQuote.source || '',
+        verified: claim.primaryQuote.verified ?? false,
+        confidence: claim.primaryQuote.confidence,
+        sourceId: claim.primaryQuote.sourceId,
+        pageNumber: claim.primaryQuote.pageNumber
+      } : null,
       supportingQuotes: Array.isArray(claim.supportingQuotes) 
-        ? claim.supportingQuotes.map((q: any) => q.text || q)
+        ? claim.supportingQuotes.map((q: any) => ({
+            text: q.text || q,
+            source: q.source || '',
+            verified: q.verified ?? false,
+            confidence: q.confidence,
+            sourceId: q.sourceId,
+            pageNumber: q.pageNumber
+          }))
         : [],
       verified: claim.verified ?? false,
       context: claim.context || ''

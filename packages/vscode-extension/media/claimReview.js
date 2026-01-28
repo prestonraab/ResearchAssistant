@@ -57,157 +57,70 @@ function setupEventListeners() {
  * Setup keyboard shortcuts
  */
 function setupKeyboardShortcuts() {
+  const shortcuts = {
+    '?': { handler: toggleHelpOverlay, modifiers: [] },
+    'Escape': { handler: () => vscode.postMessage({ type: 'switchToEditingMode' }), modifiers: [] },
+    'v': { handler: verifyCurrentQuote, modifiers: [] },
+    'a': { handler: acceptCurrentQuote, modifiers: [] },
+    'd': { handler: deleteCurrentQuote, modifiers: [] },
+    '*': { handler: toggleCurrentQuoteCitation, modifiers: [] },
+    'f': { handler: findNewQuotes, modifiers: [] },
+    'i': { handler: searchInternet, modifiers: [] },
+    'V': { handler: validateSupport, modifiers: ['shift'] },
+    'M': { handler: toggleSidebar, modifiers: ['shift'] },
+    'n': { handler: nextClaim, modifiers: [] },
+    'p': { handler: previousClaim, modifiers: [] },
+    'w': { handler: () => vscode.postMessage({ type: 'switchToWritingMode' }), modifiers: ['shift'] },
+    'e': { handler: () => vscode.postMessage({ type: 'switchToEditingMode' }), modifiers: ['shift'] }
+  };
+
+  function matchesModifiers(e, modifiers) {
+    const hasShift = modifiers.includes('shift');
+    const hasCtrl = modifiers.includes('ctrl');
+    const hasMeta = modifiers.includes('meta');
+    
+    return e.shiftKey === hasShift && e.ctrlKey === hasCtrl && e.metaKey === hasMeta;
+  }
+
   document.addEventListener('keydown', (e) => {
     // Don't trigger shortcuts if typing in an input
     if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
       return;
     }
 
-    switch (e.key) {
-      case '?':
-        e.preventDefault();
-        toggleHelpOverlay();
-        break;
-
-      case 'Escape':
-        e.preventDefault();
-        vscode.postMessage({ type: 'switchToEditingMode' });
-        break;
-
-      case 'v':
-        if (!e.shiftKey && !e.ctrlKey && !e.metaKey) {
-          e.preventDefault();
-          verifyCurrentQuote();
-        }
-        break;
-
-      case 'a':
-        if (!e.shiftKey && !e.ctrlKey && !e.metaKey) {
-          e.preventDefault();
-          acceptCurrentQuote();
-        }
-        break;
-
-      case 'd':
-        if (!e.shiftKey && !e.ctrlKey && !e.metaKey) {
-          e.preventDefault();
-          deleteCurrentQuote();
-        }
-        break;
-
-      case '*':
-        if (!e.shiftKey && !e.ctrlKey && !e.metaKey) {
-          e.preventDefault();
-          toggleCurrentQuoteCitation();
-        }
-        break;
-
-      case 'f':
-        if (!e.shiftKey && !e.ctrlKey && !e.metaKey) {
-          e.preventDefault();
-          findNewQuotes();
-        }
-        break;
-
-      case 'i':
-        if (!e.shiftKey && !e.ctrlKey && !e.metaKey) {
-          e.preventDefault();
-          searchInternet();
-        }
-        break;
-
-      case 'V':
-        if (e.shiftKey && !e.ctrlKey && !e.metaKey) {
-          e.preventDefault();
-          validateSupport();
-        }
-        break;
-
-      case 'M':
-        if (e.shiftKey && !e.ctrlKey && !e.metaKey) {
-          e.preventDefault();
-          toggleSidebar();
-        }
-        break;
-
-      case 'n':
-        if (!e.shiftKey && !e.ctrlKey && !e.metaKey) {
-          e.preventDefault();
-          nextClaim();
-        }
-        break;
-
-      case 'p':
-        if (!e.shiftKey && !e.ctrlKey && !e.metaKey) {
-          e.preventDefault();
-          previousClaim();
-        }
-        break;
-
-      case 'w':
-        if (e.shiftKey && !e.ctrlKey && !e.metaKey) {
-          e.preventDefault();
-          vscode.postMessage({ type: 'switchToWritingMode' });
-        }
-        break;
-
-      case 'e':
-        if (e.shiftKey && !e.ctrlKey && !e.metaKey) {
-          e.preventDefault();
-          vscode.postMessage({ type: 'switchToEditingMode' });
-        }
-        break;
+    const shortcut = shortcuts[e.key];
+    if (shortcut && matchesModifiers(e, shortcut.modifiers)) {
+      e.preventDefault();
+      shortcut.handler();
     }
   });
 }
 
 /**
+ * Message handler dispatcher
+ */
+const messageHandlers = {
+  'loadClaim': (msg) => displayClaim(msg),
+  'quoteVerified': (msg) => updateQuoteVerification(msg),
+  'newQuotesRound': (msg) => displayNewQuotesRound(msg),
+  'newQuotesComplete': (msg) => displayNewQuotesComplete(msg),
+  'snippetTextLoaded': (msg) => handleSnippetTextLoaded(msg),
+  'internetSearchResults': (msg) => displayInternetResults(msg.results),
+  'supportValidated': (msg) => updateValidationResult(msg),
+  'showHelp': () => toggleHelpOverlay(),
+  'memoryWarning': (msg) => showNotification(msg.message, 'info'),
+  'error': (msg) => showError(msg.message)
+};
+
+/**
  * Handle messages from extension
  */
 function handleMessage(message) {
-  switch (message.type) {
-    case 'loadClaim':
-      displayClaim(message);
-      break;
-
-    case 'quoteVerified':
-      updateQuoteVerification(message);
-      break;
-
-    case 'newQuotesRound':
-      displayNewQuotesRound(message);
-      break;
-
-    case 'newQuotesComplete':
-      displayNewQuotesComplete(message);
-      break;
-
-    case 'snippetTextLoaded':
-      handleSnippetTextLoaded(message);
-      break;
-
-    case 'internetSearchResults':
-      displayInternetResults(message.results);
-      break;
-
-    case 'supportValidated':
-      updateValidationResult(message);
-      break;
-
-    case 'showHelp':
-      toggleHelpOverlay();
-      break;
-
-    case 'memoryWarning':
-      showNotification(message.message, 'info');
-      break;
-
-    case 'error':
-      showError(message.message);
-      break;
-
-    default:
-      console.warn('Unknown message type:', message.type);
+  const handler = messageHandlers[message.type];
+  if (handler) {
+    handler(message);
+  } else {
+    console.warn('Unknown message type:', message.type);
   }
 }
 
@@ -258,9 +171,14 @@ function displayQuotes() {
   supportingContainer.innerHTML = '';
 
   // Display primary quote
-  if (currentClaim.primaryQuote && currentClaim.primaryQuote.trim()) {
+  if (currentClaim.primaryQuote && currentClaim.primaryQuote.text) {
     const primaryResult = currentVerificationResults.find(r => r.type === 'primary');
-    displayQuoteContainer(primaryContainer, currentClaim.primaryQuote, primaryResult, 'primary');
+    // Merge quote object with verification result
+    const quoteWithVerification = {
+      ...currentClaim.primaryQuote,
+      ...primaryResult
+    };
+    displayQuoteContainer(primaryContainer, currentClaim.primaryQuote.text, quoteWithVerification, 'primary');
     primaryContainer.style.display = 'block';
   } else {
     // Show empty state with prompt to add quote
@@ -291,12 +209,17 @@ function displayQuotes() {
 
   // Display supporting quotes
   if (currentClaim.supportingQuotes && currentClaim.supportingQuotes.length > 0) {
-    currentClaim.supportingQuotes.forEach((quote, index) => {
-      if (quote && quote.trim()) {
-        const result = currentVerificationResults.find(r => r.quote === quote && r.type === 'supporting');
+    currentClaim.supportingQuotes.forEach((quoteObj, index) => {
+      if (quoteObj && quoteObj.text) {
+        const result = currentVerificationResults.find(r => r.quote === quoteObj.text && r.type === 'supporting');
+        // Merge quote object with verification result
+        const quoteWithVerification = {
+          ...quoteObj,
+          ...result
+        };
         const container = document.createElement('div');
         container.className = 'quote-container';
-        displayQuoteContainer(container, quote, result, 'supporting');
+        displayQuoteContainer(container, quoteObj.text, quoteWithVerification, 'supporting');
         supportingContainer.appendChild(container);
       }
     });
@@ -313,6 +236,30 @@ function displayQuoteContainer(container, quote, result, type) {
   const citationTitle = result?.citedForFinal 
     ? 'Quote marked for citation (click to unmark)' 
     : 'Quote not marked for citation (click to mark)';
+  
+  // Determine if we should show "Fix Quote" button
+  const similarity = result?.similarity || 0;
+  const showFixQuote = result && similarity < 1.0 && result.closestMatch;
+  
+  // Build buttons HTML
+  let buttonsHtml = `
+    <button class="btn btn-citation" data-action="toggleCitation" data-quote="${escapeHtml(quote)}" title="${citationTitle}">
+      ${citationStatus}
+    </button>
+    <button class="btn btn-primary" data-action="editQuote" data-quote="${escapeHtml(quote)}">Edit Quote</button>
+  `;
+  
+  // Add Fix Quote button if verification < 100%
+  if (showFixQuote) {
+    buttonsHtml += `
+      <button class="btn btn-secondary" data-action="fixQuote" data-quote="${escapeHtml(quote)}" data-closest-match="${escapeHtml(result.closestMatch)}">Fix Quote</button>
+    `;
+  }
+  
+  buttonsHtml += `
+    <button class="btn btn-danger" data-action="deleteQuote" data-quote="${escapeHtml(quote)}">Delete</button>
+    <button class="btn btn-secondary" data-action="findNewQuotes">Find New</button>
+  `;
 
   container.innerHTML = `
     <div class="quote-header">
@@ -322,12 +269,7 @@ function displayQuoteContainer(container, quote, result, type) {
     <div class="quote-text">${escapeHtml(quote)}</div>
     <div class="verification-info ${getStatusClass(result)}">${verificationText}</div>
     <div class="quote-actions">
-      <button class="btn btn-citation" data-action="toggleCitation" data-quote="${escapeHtml(quote)}" title="${citationTitle}">
-        ${citationStatus}
-      </button>
-      <button class="btn btn-primary" data-action="acceptQuote" data-quote="${escapeHtml(quote)}">Accept</button>
-      <button class="btn btn-danger" data-action="deleteQuote" data-quote="${escapeHtml(quote)}">Delete</button>
-      <button class="btn btn-secondary" data-action="findNewQuotes">Find New</button>
+      ${buttonsHtml}
     </div>
   `;
   
@@ -339,10 +281,18 @@ function displayQuoteContainer(container, quote, result, type) {
     });
   }
   
-  const acceptBtn = container.querySelector('[data-action="acceptQuote"]');
-  if (acceptBtn) {
-    acceptBtn.addEventListener('click', () => {
-      acceptQuote(quote);
+  const editBtn = container.querySelector('[data-action="editQuote"]');
+  if (editBtn) {
+    editBtn.addEventListener('click', () => {
+      editQuote(quote);
+    });
+  }
+  
+  const fixBtn = container.querySelector('[data-action="fixQuote"]');
+  if (fixBtn) {
+    fixBtn.addEventListener('click', () => {
+      const closestMatch = fixBtn.getAttribute('data-closest-match');
+      fixQuote(quote, closestMatch);
     });
   }
   
@@ -386,25 +336,35 @@ function getStatusClass(result) {
  */
 function getVerificationText(result) {
   if (!result) return 'Not verified';
-  if (result.verified) return `Verified in source (${Math.round(result.similarity * 100)}% match)`;
-  if (result.nearestMatch) return `Not verified (nearest: ${Math.round(result.similarity * 100)}% match)`;
-  return 'Not found in sources';
+  
+  const similarity = Math.round(result.similarity * 100);
+  
+  let baseText = '';
+  if (result.verified) {
+    baseText = `Verified in source (${similarity}% match)`;
+  } else if (result.nearestMatch) {
+    baseText = `Not verified (nearest: ${similarity}% match)`;
+  } else {
+    baseText = 'Not found in sources';
+  }
+  
+  // Add support confidence if available (from Find Quotes workflow)
+  if (result.confidence !== undefined && result.confidence > 0) {
+    const stars = Math.round(result.confidence * 5);
+    const starDisplay = '★'.repeat(stars) + '☆'.repeat(5 - stars);
+    const confidencePercentage = Math.round(result.confidence * 100);
+    return `${baseText} • Support: ${starDisplay} ${confidencePercentage}%`;
+  }
+  
+  return baseText;
 }
 
 /**
- * Display validation
+ * Display validation (hidden - kept for compatibility)
  */
 function displayValidation() {
-  const gaugeProgress = document.getElementById('gaugeProgress');
-  const gaugePercentage = document.getElementById('gaugePercentage');
-  const validationStatus = document.getElementById('validationStatus');
-
-  if (currentValidationResult) {
-    const percentage = Math.round(currentValidationResult.similarity * 100) || 0;
-    gaugeProgress.style.width = `${percentage}%`;
-    gaugePercentage.textContent = `${percentage}%`;
-    validationStatus.textContent = currentValidationResult.analysis || 'Validation pending';
-  }
+  // Validation section is now hidden
+  // Support information is shown inline with each quote
 }
 
 /**
@@ -475,42 +435,163 @@ function verifyCurrentQuote() {
 }
 
 /**
+ * Show modal dialog for editing text
+ */
+function showEditModal(title, initialText, onConfirm) {
+  // Create modal overlay
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay';
+  
+  // Create modal dialog
+  const dialog = document.createElement('div');
+  dialog.className = 'modal-dialog';
+  
+  dialog.innerHTML = `
+    <h3>${escapeHtml(title)}</h3>
+    <textarea id="modalTextarea">${escapeHtml(initialText)}</textarea>
+    <div class="modal-buttons">
+      <button class="btn btn-secondary" id="modalCancel">Cancel</button>
+      <button class="btn btn-primary" id="modalConfirm">Confirm</button>
+    </div>
+  `;
+  
+  overlay.appendChild(dialog);
+  document.body.appendChild(overlay);
+  
+  // Focus textarea
+  const textarea = dialog.querySelector('#modalTextarea');
+  textarea.focus();
+  textarea.select();
+  
+  // Handle confirm
+  const confirmBtn = dialog.querySelector('#modalConfirm');
+  confirmBtn.addEventListener('click', () => {
+    const newText = textarea.value;
+    overlay.remove();
+    onConfirm(newText);
+  });
+  
+  // Handle cancel
+  const cancelBtn = dialog.querySelector('#modalCancel');
+  cancelBtn.addEventListener('click', () => {
+    overlay.remove();
+  });
+  
+  // Handle escape key
+  overlay.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      overlay.remove();
+    }
+  });
+  
+  // Close on overlay click
+  overlay.addEventListener('click', (e) => {
+    if (e.target === overlay) {
+      overlay.remove();
+    }
+  });
+}
+
+/**
+ * Show confirmation modal dialog
+ */
+function showConfirmModal(title, message, onConfirm) {
+  // Create modal overlay
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay';
+  
+  // Create modal dialog
+  const dialog = document.createElement('div');
+  dialog.className = 'modal-dialog';
+  
+  dialog.innerHTML = `
+    <h3>${escapeHtml(title)}</h3>
+    <p>${escapeHtml(message)}</p>
+    <div class="modal-buttons">
+      <button class="btn btn-secondary" id="modalCancel">Cancel</button>
+      <button class="btn btn-danger" id="modalConfirm">Confirm</button>
+    </div>
+  `;
+  
+  overlay.appendChild(dialog);
+  document.body.appendChild(overlay);
+  
+  // Handle confirm
+  const confirmBtn = dialog.querySelector('#modalConfirm');
+  confirmBtn.addEventListener('click', () => {
+    overlay.remove();
+    onConfirm(true);
+  });
+  
+  // Handle cancel
+  const cancelBtn = dialog.querySelector('#modalCancel');
+  cancelBtn.addEventListener('click', () => {
+    overlay.remove();
+    onConfirm(false);
+  });
+  
+  // Handle escape key
+  overlay.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      overlay.remove();
+      onConfirm(false);
+    }
+  });
+  
+  // Close on overlay click
+  overlay.addEventListener('click', (e) => {
+    if (e.target === overlay) {
+      overlay.remove();
+      onConfirm(false);
+    }
+  });
+}
+
+/**
  * Accept current quote
  */
 function acceptCurrentQuote() {
   if (!currentClaim || !currentClaim.primaryQuote) return;
-  const newQuote = prompt('Enter new quote:', currentClaim.primaryQuote);
-  if (newQuote) {
-    vscode.postMessage({
-      type: 'acceptQuote',
-      claimId: currentClaim.id,
-      quote: currentClaim.primaryQuote,
-      newQuote: newQuote
-    });
-  }
+  editQuote(currentClaim.primaryQuote);
 }
 
 /**
- * Toggle current quote citation
+ * Edit quote
  */
-function toggleCurrentQuoteCitation() {
-  if (!currentClaim || !currentClaim.primaryQuote) return;
-  toggleQuoteCitation(currentClaim.primaryQuote);
+function editQuote(quote) {
+  showEditModal('Edit Quote', quote, (newQuote) => {
+    if (newQuote && newQuote.trim()) {
+      vscode.postMessage({
+        type: 'acceptQuote',
+        claimId: currentClaim.id,
+        quote: quote,
+        newQuote: newQuote
+      });
+    }
+  });
 }
 
 /**
- * Accept quote
+ * Fix quote - replace with verified text from source
+ */
+function fixQuote(quote, closestMatch) {
+  showEditModal('Fix Quote', closestMatch, (newQuote) => {
+    if (newQuote && newQuote.trim()) {
+      vscode.postMessage({
+        type: 'acceptQuote',
+        claimId: currentClaim.id,
+        quote: quote,
+        newQuote: newQuote
+      });
+    }
+  });
+}
+
+/**
+ * Accept quote (legacy - kept for compatibility)
  */
 function acceptQuote(quote) {
-  const newQuote = prompt('Enter new quote:', quote);
-  if (newQuote) {
-    vscode.postMessage({
-      type: 'acceptQuote',
-      claimId: currentClaim.id,
-      quote: quote,
-      newQuote: newQuote
-    });
-  }
+  editQuote(quote);
 }
 
 /**
@@ -531,26 +612,22 @@ function toggleQuoteCitation(quote) {
  */
 function deleteCurrentQuote() {
   if (!currentClaim || !currentClaim.primaryQuote) return;
-  if (confirm('Delete this quote?')) {
-    vscode.postMessage({
-      type: 'deleteQuote',
-      claimId: currentClaim.id,
-      quote: currentClaim.primaryQuote
-    });
-  }
+  deleteQuote(currentClaim.primaryQuote);
 }
 
 /**
  * Delete quote
  */
 function deleteQuote(quote) {
-  if (confirm('Delete this quote?')) {
-    vscode.postMessage({
-      type: 'deleteQuote',
-      claimId: currentClaim.id,
-      quote: quote
-    });
-  }
+  showConfirmModal('Delete Quote', 'Are you sure you want to delete this quote?', (confirmed) => {
+    if (confirmed) {
+      vscode.postMessage({
+        type: 'deleteQuote',
+        claimId: currentClaim.id,
+        quote: quote
+      });
+    }
+  });
 }
 
 /**
@@ -747,7 +824,7 @@ function displayNewQuotesRound(message) {
         <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid #ccc; display: flex; align-items: center; gap: 12px; font-size: 12px; color: #000;">
           Support: ${starDisplay} ${percentage}%
         </div>
-        <button class="btn btn-small btn-primary" data-action="addQuote" data-snippet-id="${escapeHtml(q.id)}" data-file-path="${escapeHtml(q.filePath)}">Add Quote</button>
+        <button class="btn btn-small btn-primary" data-action="addQuote" data-snippet-id="${escapeHtml(q.id)}" data-file-path="${escapeHtml(q.filePath)}" data-confidence="${confidence}">Add Quote</button>
       </div>
     `;
     
@@ -757,7 +834,8 @@ function displayNewQuotesRound(message) {
       addBtn.addEventListener('click', () => {
         const snippetId = addBtn.getAttribute('data-snippet-id');
         const filePath = addBtn.getAttribute('data-file-path');
-        acceptNewQuote(snippetId, filePath);
+        const confidence = parseFloat(addBtn.getAttribute('data-confidence')) || 0;
+        acceptNewQuote(snippetId, filePath, confidence);
       });
     }
     
@@ -920,7 +998,8 @@ function handleSnippetTextLoaded(message) {
     claimId: currentClaim.id,
     quote: quote,
     source: message.source,
-    lineRange: message.lineRange
+    lineRange: message.lineRange,
+    confidence: message.confidence || 0
   });
   
   showNotification('Adding quote to supporting quotes...', 'info');
@@ -929,14 +1008,15 @@ function handleSnippetTextLoaded(message) {
 /**
  * Accept new quote
  */
-function acceptNewQuote(snippetId, filePath) {
+function acceptNewQuote(snippetId, filePath, confidence = 0) {
   if (!currentClaim) return;
   
   // Request full text from extension
   vscode.postMessage({
     type: 'loadSnippetText',
     snippetId: snippetId,
-    filePath: filePath
+    filePath: filePath,
+    confidence: confidence
   });
   
   // Show loading state

@@ -18,6 +18,7 @@ export interface SourcedQuote {
   sourceId?: number;             // Numeric source identifier
   pageNumber?: number;           // Page number in source
   verified: boolean;             // Whether quote verified in source
+  confidence?: number;           // Confidence score (0-1) from verification feedback loop
 }
 
 /**

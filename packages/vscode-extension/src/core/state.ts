@@ -18,7 +18,8 @@ import { QuoteVerificationService } from './quoteVerificationService';
 import { AutoQuoteVerifier } from './autoQuoteVerifier';
 import { FulltextStatusManager } from './fulltextStatusManager';
 import { ManuscriptContextDetector } from './manuscriptContextDetector';
-import { ClaimSupportValidator } from './claimSupportValidator';
+import { VerificationFeedbackLoop } from '../services/verificationFeedbackLoop';
+import { LiteratureIndexer } from '../services/literatureIndexer';
 
 export interface ExtensionConfig {
   outlinePath: string;
@@ -48,6 +49,7 @@ export class ExtensionState {
   public readingStatusManager: ReadingStatusManager;
   public claimExtractor: ClaimExtractor;
   public positionMapper?: PositionMapper;
+  public literatureIndexer: LiteratureIndexer;
   public pdfExtractionService: PDFExtractionService;
   public citationNetworkAnalyzer: CitationNetworkAnalyzer;
   public batchOperationHandler: BatchOperationHandler;
@@ -58,7 +60,7 @@ export class ExtensionState {
   public autoQuoteVerifier: AutoQuoteVerifier;
   public fulltextStatusManager: FulltextStatusManager;
   public manuscriptContextDetector: ManuscriptContextDetector;
-  public claimSupportValidator: ClaimSupportValidator;
+  public verificationFeedbackLoop: VerificationFeedbackLoop;
 
   constructor(context: vscode.ExtensionContext) {
     this.context = context;
@@ -127,6 +129,7 @@ export class ExtensionState {
       this.embeddingService,
       this.workspaceRoot
     );
+    this.literatureIndexer = new LiteratureIndexer(this.workspaceRoot, this.config.extractedTextPath);
     this.fulltextStatusManager = new FulltextStatusManager(
       this.mcpClient,
       this.pdfExtractionService,
@@ -138,9 +141,10 @@ export class ExtensionState {
       this.claimsManager,
       this.config.coverageThresholds
     );
-    this.claimSupportValidator = new ClaimSupportValidator(
-      this.embeddingService,
+    this.verificationFeedbackLoop = new VerificationFeedbackLoop(
+      this.literatureIndexer,
       this.mcpClient,
+      apiKey || '',
       this.getAbsolutePath(this.config.extractedTextPath)
     );
     
