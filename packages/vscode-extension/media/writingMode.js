@@ -61,8 +61,8 @@ function setupEventListeners() {
 
   // Keyboard shortcuts
   document.addEventListener('keydown', (e) => {
-    // ? - Help overlay
-    if (e.key === '?') {
+    // Ctrl+? - Help overlay
+    if ((e.ctrlKey || e.metaKey) && e.key === '?') {
       e.preventDefault();
       toggleHelpOverlay();
       return;

@@ -131,14 +131,6 @@ This file contains all **Result** claims with their supporting evidence.
 > "PhenoGMM resulted in moderate to highly correlated a-diversity estimations and showed a better correspondence to the predefined community compositions compared to PhenoGrid. Estimations were just above the significance level ( P =0.05) for the latter. The performance mainly depended on the sensitivity parameter q . Estimations resulted in higher correlations for PhenoGMM when q . 0, i.e., when more weight was given to more abundant strains. This means that PhenoGMM captured the structure rather than the identity of a microbial community."
 
 
----
-
-
-## C_61: PhenoGMM successfully quantified the community structure of most natural freshwater microbial communities
-
-**Category**: Result  
-**Context**: Performance varied by ecosystem but was successful for most considered natural communities.
-
 
 ---
 

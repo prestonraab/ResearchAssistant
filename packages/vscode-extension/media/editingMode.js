@@ -588,7 +588,7 @@ document.addEventListener('keydown', (e) => {
   // Mode switching is handled by VS Code keybindings (Cmd/Ctrl+Alt+W/E/R)
   // No Shift+letter shortcuts to avoid conflicts with typing
   
-  if (e.key === '?') {
+  if (e.key === '?' && !editingSentenceId && !editingClaimId) {
     toggleHelpOverlay();
   } else if (e.key === 'Escape') {
     const helpOverlay = document.getElementById('helpOverlay');
