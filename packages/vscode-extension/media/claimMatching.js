@@ -344,7 +344,7 @@ function handleClaimCreated(message) {
  */
 function handleKeydown(event) {
   // Don't handle if help is visible
-  if (helpVisible && event.key !== '?') {
+  if (helpVisible) {
     if (event.key === 'Escape' || event.key === '?') {
       toggleHelp();
     }
@@ -353,6 +353,7 @@ function handleKeydown(event) {
 
   switch (event.key) {
     case '?':
+      if (!(event.ctrlKey || event.metaKey)) return;
       event.preventDefault();
       toggleHelp();
       break;

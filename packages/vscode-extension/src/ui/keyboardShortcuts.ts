@@ -253,7 +253,7 @@ export function getHelpOverlayJs(): string {
 
       // Toggle help overlay with ? key
       document.addEventListener('keydown', (e) => {
-        if (e.key === '?' || (e.shiftKey && e.key === '/')) {
+        if (e.key === '?' && (e.ctrlKey || e.metaKey)) {
           e.preventDefault();
           helpOverlay.classList.toggle('hidden');
         }
