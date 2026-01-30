@@ -5,7 +5,7 @@ import { ExtensionState } from '../core/state';
 import { EditingModeManager } from '../core/editingModeManager';
 import { SentenceParser, Sentence } from '../core/sentenceParser';
 import { SentenceClaimMapper } from '../core/sentenceClaimMapper';
-import { QuestionAnswerParser } from '../core/questionAnswerParser';
+import { QuestionAnswerParser, QuestionAnswerPair } from '../core/questionAnswerParser';
 import { generateHelpOverlayHtml, getHelpOverlayCss, getHelpOverlayJs } from './keyboardShortcuts';
 import { generateBreadcrumb, getBreadcrumbCss, getModeSwitchingJs, modeStateManager } from './modeSwitching';
 import { getWebviewDisposalManager } from './webviewDisposalManager';
@@ -32,6 +32,7 @@ export class EditingModeProvider {
   private questionAnswerParser: QuestionAnswerParser;
   private disposables: vscode.Disposable[] = [];
   private sentences: Sentence[] = [];
+  private questionAnswerPairs: QuestionAnswerPair[] = []; // Store original pairs for saving
   private sentenceParsingCache: SentenceParsingCache;
   private disposalManager = getWebviewDisposalManager();
   private benchmark = getBenchmark();
@@ -161,19 +162,22 @@ export class EditingModeProvider {
       const questionAnswerPairs = this.questionAnswerParser.parseManuscript(manuscript);
       console.log(`[EditingMode] Parsed ${questionAnswerPairs.length} question-answer pairs`);
 
+      // Store original pairs for saving (preserves Source comments)
+      this.questionAnswerPairs = questionAnswerPairs;
+
       // Store pairs as "sentences" for compatibility with existing code
       // Each Q&A pair becomes one item in the list
       this.sentences = [];
       let itemIndex = 0;
 
       for (const pair of questionAnswerPairs) {
-        // Clean the answer text (remove Source comments for display)
+        // Clean the answer text (remove Source comments for display only)
         const cleanAnswer = pair.answer.replace(/<!--\s*Source:[^>]+?-->/g, '').trim();
         
         const item = {
           id: `S_${itemIndex}`,
           text: cleanAnswer,
-          originalText: cleanAnswer,
+          originalText: pair.answer, // Keep original with Source comments
           position: pair.position,
           outlineSection: pair.section,
           claims: pair.claims || [],
@@ -729,8 +733,28 @@ export class EditingModeProvider {
     try {
       const manuscriptPath = this.extensionState.getAbsolutePath('03_Drafting/manuscript.md');
 
-      // Reconstruct manuscript from sentences
-      const content = this.sentences.map(s => s.text).join('\n\n');
+      // Sync any edits from sentences back to questionAnswerPairs
+      for (let i = 0; i < this.sentences.length && i < this.questionAnswerPairs.length; i++) {
+        const sentence = this.sentences[i];
+        const pair = this.questionAnswerPairs[i];
+        
+        // If the display text was edited, update the pair's answer
+        // Preserve Source comments from originalText if they exist
+        if (sentence.text !== sentence.originalText.replace(/<!--\s*Source:[^>]+?-->/g, '').trim()) {
+          // Text was edited - need to reconstruct with Source comments
+          const sourceMatch = sentence.originalText.match(/<!--\s*Source:[^>]+?-->/g);
+          if (sourceMatch && sourceMatch.length > 0) {
+            // Append Source comments to the edited text
+            pair.answer = sentence.text + ' ' + sourceMatch.join(' ');
+          } else {
+            pair.answer = sentence.text;
+          }
+        }
+        // Otherwise keep pair.answer as-is (preserves Source comments)
+      }
+
+      // Reconstruct manuscript using the parser (preserves structure and Source comments)
+      const content = this.questionAnswerParser.reconstructManuscript(this.questionAnswerPairs);
 
       // Validate content
       if (!content || typeof content !== 'string') {
@@ -897,6 +921,7 @@ export class EditingModeProvider {
 
     // Clear sentences
     this.sentences = [];
+    this.questionAnswerPairs = [];
 
     // Clear view reference
     this.panel = undefined;
