@@ -1,23 +1,23 @@
-## Abstract
+## Precision Medicine Using Data From Multiple Studies
 
-**To what extent is combining datasets necessary for precision medicine?** <!-- [undefined] --> The integration of genomic datasets is a cornerstone of modern precision medicine, necessitated by the need for increased statistical power and the validation of biological patterns across diverse populations.  
-
-**
-            How does combining datasets help researchers?** <!-- [undefined] --> By aggregating data from independent cohorts, researchers can move beyond the limitations of small sample sizes to build more robust machine learning classifiers. Combining datasets becomes useful when individual studies have limited sample sizes, when validation across independent cohorts is needed, or when meta-analyses can reveal consistent patterns across diverse populations.  Larger sample sizes increase statistical power to detect biological phenomena, enable more robust classifier training, and improve generalizability of findings.
+**To what extent is combining datasets necessary for precision medicine?** <!-- [undefined] --> The integration of genomic datasets is a cornerstone of modern precision medicine, necessitated by the need for increased statistical power and the validation of biological patterns across diverse populations.
 
 **
-            What is the central challenge to combining datasets?
-          ** <!-- [undefined] --> This potential is frequently undermined by "batch effects"—systematic technical variations that can lead a classifier to learn how to distinguish between experimental batches rather than meaningful biological conditions.  Batch effects can substantially degrade classifier performance when applied to new batches, and even when batch labels are known, they can inflate performance estimates obtained through cross-validation within a single study while simultaneously causing poor performance on independent datasets.
+            How much data does precision medicine require?** <!-- [DRAFT] --> Precision medicine relies on accurate predictions for patients across the spectrum of human diversity. This diversity is best captured and accounted for using large datasets aquired at great cost. 
 
-**
-            What is the chapter's scope in addressing these challenges?** <!-- [undefined] --> This chapter examines how batch effects degrade predictor performance and explores statistical adjustment methods designed to mitigate these artifacts while preserving biological signal.
+**New question?** <!-- [DRAFT] --> Dataset size can be increased by adding data from independent cohorts. 
+
+**How does combining datasets help researchers?** <!-- [undefined] --> By aggregating data from independent cohorts, researchers can move beyond the limitations of small sample sizes to build more robust machine learning classifiers. Combining datasets becomes useful when individual studies have limited sample sizes, when validation across independent cohorts is needed, or when meta-analyses can reveal consistent patterns across diverse populations.  Larger sample sizes increase statistical power to detect biological phenomena, enable more robust classifier training, and improve generalizability of findings.
+
+**What is the central challenge to combining datasets?** <!-- [undefined] --> This potential is frequently undermined by "batch effects"—systematic technical variations that can lead a classifier to learn how to distinguish between experimental batches rather than meaningful biological conditions.  Batch effects can substantially degrade classifier performance when applied to new batches, and even when batch labels are known, they can inflate performance estimates obtained through cross-validation within a single study while simultaneously causing poor performance on independent datasets.
+
+**What is the chapter's scope in addressing these challenges?** <!-- [undefined] --> This chapter examines how batch effects degrade predictor performance and explores statistical adjustment methods designed to mitigate these artifacts while preserving biological signal.
 
 
 
 ## Classification in Precision Medicine
 
-**
-            To what extent is classification relevant to medicine?** <!-- [undefined] --> Classification—the task of assigning observations to predefined categories based on their features—is a cornerstone of modern biomedical research and is increasingly vital for the implementation of precision medicine.
+**To what extent is classification relevant to medicine?** <!-- [undefined] --> Classification—the task of assigning observations to predefined categories based on their features—is vital to biomedical research and the implementation of precision medicine.
 
 **What is classification?** <!-- [undefined] --> Classification is the task of assigning observations to predefined categories based on their features.
 
