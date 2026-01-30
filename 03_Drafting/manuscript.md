@@ -16,9 +16,9 @@
 
 **To what extent is classification relevant to precision medicine, and what is it?** <!-- [undefined] --> Classification—the task of assigning observations to predefined categories based on their features—is vital to biomedical research and the implementation of precision medicine.
 
-**Why is classification useful for biomedical tasks?** <!-- [undefined] --> Machine learning classifiers have demonstrated strong performance for cancer classification tasks using gene expression data.  In precision medicine, molecular profiling enables tailored treatment decisions, with multi-gene prognostic signatures guiding therapeutic interventions for individual patients.
+**Why is classification useful for biomedical tasks?** <!-- [undefined] --> For instance, machine learning classifiers have demonstrated strong performance for cancer classification tasks using gene expression data.
 
-**What are some specific examples of clinically used classifiers?** <!-- [undefined] --> For example, multi-gene prognostic signatures including Oncotype DX, EndoPredict, and Prosigna are widely used clinically to predict recurrence risk in ER+ breast cancer and guide chemotherapy decisions. <!-- Source: C_05 -->
+**What are some specific examples of clinically used classifiers?** <!-- [undefined] --> Multi-gene prognostic signatures that have been approved and implemented clinically include Oncotype DX, EndoPredict, and Prosigna, which are used to predict personalized recurrence risk in ER+ breast cancer and guide chemotherapy decisions. <!-- Source: C_05 -->
 
 **What data is used for biomedical classification?** <!-- [undefined] --> Biomedical classification tasks utilize diverse data types, including gene expression profiles, protein abundance measurements, genomic sequences, clinical variables, and imaging data.  Each of these data modalities provides complementary information about biological systems and disease mechanisms. <!-- Source: C_05 -->
 
@@ -26,7 +26,7 @@
 
 ## The Clinical Stakes
 
-**Why does batch effect mitigation matter clinically?** <!-- [undefined] --> In precision medicine, even modest drops in classifier performance due to batch effects can mean the difference between accurate diagnosis and misclassification.  Multi-gene prognostic signatures including Oncotype DX, EndoPredict, and Prosigna are widely used clinically to estimate recurrence risk and guide treatment decisions in breast cancer patients, guiding which patients receive chemotherapy in addition to endocrine therapy.  If batch effects go undetected, predictors developed for clinical outcomes may produce results that are more variable than expected, with batch effects having strong adverse effects on predictors and resulting in lower-than-expected classification rates that might put patients at risk.  Single-patient data processing is vital to the translation of molecular assays, as patient samples in clinical settings are typically collected in small numbers, often one at a time, making batch effect correction essential for clinical translation.
+**Why does batch effect mitigation matter clinically?** <!-- [undefined] --> In precision medicine, even modest drops in classifier performance due to batch effects can mean the difference between accurate diagnosis and misclassification. If batch effects go undetected, predictors developed for clinical outcomes may produce results that are more variable than expected, with batch effects having strong adverse effects on predictors and resulting in lower-than-expected classification rates that might put patients at risk.  Single-patient data processing is vital to the translation of molecular assays, as patient samples in clinical settings are typically collected in small numbers, often one at a time, making batch effect correction essential for clinical translation.
 
 
 
