@@ -74,12 +74,13 @@ export class PDFExtractionService {
     const terminal = vscode.window.createTerminal('Docling Installation');
     terminal.show();
 
-    // Use uv for faster installation
-    terminal.sendText('uv pip install docling');
+    // Use uv tool install for isolated, globally available CLI installation
+    // This is the recommended best practice for installing Python CLI tools with uv
+    terminal.sendText('uv tool install docling');
 
     // Notify user
     await vscode.window.showInformationMessage(
-      'Installing Docling via uv... Please wait for the terminal command to finish, then try extracting again.'
+      'Installing Docling via uv tool... Please wait for the terminal command to finish, then try extracting again.'
     );
   }
 

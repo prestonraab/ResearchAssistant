@@ -207,8 +207,43 @@ export function registerManuscriptCommands(
       }
     }),
 
-    vscode.commands.registerCommand('researchAssistant.extractPdf', async (pdfPath: string) => {
+    // # Pending, might fix "argument must be string" error. 
+    // Argument can be a Uri (context menu), string (manual call), or undefined (command palette).
+    vscode.commands.registerCommand('researchAssistant.extractPdf', async (arg: any) => {
       if (!extensionState) {
+        return;
+      }
+
+      let pdfPath: string | undefined;
+
+      // 1. Handle String Argument (direct call)
+      if (typeof arg === 'string') {
+        pdfPath = arg;
+      }
+      // 2. Handle URI Argument (context menu)
+      else if (arg instanceof vscode.Uri) {
+        pdfPath = arg.fsPath;
+      }
+      // 3. Handle Object with fsPath (rare edge cases)
+      else if (arg && typeof arg.fsPath === 'string') {
+        pdfPath = arg.fsPath;
+      }
+
+      // 4. Fallback: Prompt user if no path provided (command palette)
+      if (!pdfPath) {
+        const uris = await vscode.window.showOpenDialog({
+          canSelectFiles: true,
+          filters: { 'PDF Files': ['pdf'] },
+          title: 'Select PDF to Extract'
+        });
+
+        if (uris && uris.length > 0) {
+          pdfPath = uris[0].fsPath;
+        }
+      }
+
+      if (!pdfPath) {
+        // User cancelled dialog
         return;
       }
 
@@ -220,11 +255,12 @@ export function registerManuscriptCommands(
             cancellable: false
           },
           async () => {
-            const result = await extensionState!.pdfExtractionService.extractText(pdfPath);
+            // ! assertion is safe because we checked extensionState at start of function
+            const result = await extensionState!.pdfExtractionService.extractText(pdfPath!);
 
             if (result.success) {
               vscode.window.showInformationMessage(
-                `Extracted ${path.basename(pdfPath)} successfully!`,
+                `Extracted ${path.basename(pdfPath!)} successfully!`,
                 'Open Text'
               ).then(action => {
                 if (action === 'Open Text' && result.outputPath) {
@@ -279,7 +315,7 @@ export function registerManuscriptCommands(
           const report = tagger.getSectionUsageReport(manuscriptText);
 
           let preview = `Found ${analysis.claimsTagged} claims used in ${analysis.sectionsFound} sections:\n\n`;
-          
+
           for (const [section, claims] of report.entries()) {
             preview += `## ${section}\n`;
             preview += `${claims.length} claims: ${claims.join(', ')}\n\n`;
