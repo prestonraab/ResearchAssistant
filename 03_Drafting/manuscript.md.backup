@@ -20,33 +20,19 @@
 
 **What are some specific examples of clinically used classifiers?** <!-- [undefined] --> Multi-gene prognostic signatures that have been approved and implemented clinically include Oncotype DX, EndoPredict, and Prosigna, which are used to predict personalized recurrence risk in ER+ breast cancer and guide chemotherapy decisions. <!-- Source: C_05 -->
 
+
+
+## Batch Effect Sources Across Data Types
+
 **What data is used for biomedical classification?** <!-- [undefined] --> Biomedical classification tasks are not limited to gene expression, but can utilize diverse data types, including protein abundance measurements, genomic sequences, clinical variables, and imaging data.  Each of these data modalities provides complementary information about biological systems and disease mechanisms. <!-- Source: C_05 -->
 
+**How do batch effects sources vary by data type?** <!-- [undefined] --> No modality is immune to batch effects. Batch effects arise from differences in experimental protocols, equipment type and condition, reagent lots, environmental conditions, and other technical factors that vary between studies or even within studies over time. TASK: detail specific types of data, explain similarities and differences. <!-- Source: C_01, C_02 -->
 
+**Why does batch effect mitigation matter clinically?** <!-- [undefined] --> If batch effects go undetected, predictors developed for clinical outcomes may produce results that are more variable than expected, resulting in lower-than-expected classification rates that might put patients at risk.  Even modest drops in classifier performance due to batch effects can mean the difference between accurate diagnosis and misclassification.
 
-## Batch Effect Sources Across Data Types
+**How important is single-patient data?** <!-- [DRAFT] --> Single-patient data processing is vital to the translation of molecular assays, as patient samples in clinical settings are typically collected in small numbers, often one at a time, making batch effect correction essential for clinical translation.
 
-**What data is used for biomedical classification?** <!-- [DRAFT] --> Biomedical classification tasks are not limited to gene expression, but can utilize diverse data types, including protein abundance measurements, genomic sequences, clinical variables, and imaging data.  Each of these data modalities provides complementary information about biological systems and disease mechanisms. <!-- Source: C_05 -->
-
-**How do batch effects sources vary by data type?** <!-- [undefined] --> No modality is immune to batch effects. Batch effects arise from differences in experimental protocols, equipment, reagent lots, processing dates, and other technical factors that vary between studies or even within studies over time. TASK: detail specific types of data, explain similarities and differences. <!-- Source: C_01, C_02 -->
-
-**Why does batch effect mitigation matter clinically?** <!-- [undefined] --> In precision medicine, even modest drops in classifier performance due to batch effects can mean the difference between accurate diagnosis and misclassification. If batch effects go undetected, predictors developed for clinical outcomes may produce results that are more variable than expected, with batch effects having strong adverse effects on predictors and resulting in lower-than-expected classification rates that might put patients at risk.  Single-patient data processing is vital to the translation of molecular assays, as patient samples in clinical settings are typically collected in small numbers, often one at a time, making batch effect correction essential for clinical translation.
-
-
-
-## The Imperative to Combine Datasets
-
-**How should GEO be introduced?** <!-- [undefined] --> With over 200,000 studies and 6.5 million samples, GEO facilitates the generation of consistently computed RNA-seq count matrices.
-
-**What is the key insight about data reuse?** <!-- [undefined] --> This wealth of data is widely reused for diverse applications, including identifying novel gene expression patterns, finding disease predictors, and developing computational methods.  Yet the utility of this data is contingent upon our ability to mitigate technical noise. <!-- Source: C_35 -->
-
-
-
-## Batch Effect Sources Across Data Types
-
-**Where do batch effects come from?** <!-- [undefined] --> The source of batch effects varies by data type, but there are common patterns.
-
-**Are predictors on any of these types of data impacted by batch effects?** <!-- [undefined] --> Yes, batch effects impact classifiers across all these data types, leading to overly optimistic performance estimates when using cross-validation within a single batch, while simultaneously causing poor generalization to independent datasets. <!-- Source: C_03 -->
+**New question?** <!-- [DRAFT] --> However, many correction techniques rely on several samples to characterize the distribution of the new batch.
 
 **How can batch effects can be remedied?** <!-- [undefined] --> Statistical adjustment methods, commonly referred to as adjusters or batch correction methods, aim to remove technical variation while preserving biological signal.  The balance between these objectives varies across methods and contexts. <!-- Source: C_01, C_02 -->
 
@@ -57,6 +43,10 @@
 **What type of data will this chapter focus on?** <!-- [undefined] --> For our purposes, and without loss of generality, we will focus on RNA sequencing (RNA-seq) data, which has become the dominant technology for measuring gene expression in modern genomics research.
 
 **How is gene expression data generated and used within biological/biomedical research?** <!-- [undefined] --> Gene expression data are generated through high-throughput sequencing technologies that quantify the abundance of RNA transcripts in biological samples.  These measurements provide a snapshot of cellular activity, reflecting which genes are actively transcribed under specific conditions, disease states, or in response to treatments.  Within biological and biomedical research, gene expression data enable the identification of disease-associated pathways, the discovery of therapeutic targets, and the development of diagnostic and prognostic biomarkers. <!-- Source: C_02 -->
+
+**How available is gene expression data?** <!-- [DRAFT] --> Large quantities of gene expression data are publically available. With over 200,000 studies and 6.5 million samples, GEO facilitates the generation of consistently computed RNA-seq count matrices.
+
+**How is public gene expression data used?** <!-- [DRAFT] --> This wealth of data is widely reused for diverse applications, including identifying novel gene expression patterns, finding disease predictors, and developing computational methods.  Yet the utility of this data is contingent upon our ability to mitigate technical noise. <!-- Source: C_35 -->
 
 **When is classification for gene expression useful in the context of precision medicine?** <!-- [undefined] --> The application of machine learning methods to gene expression data has shown strong performance for cancer classification tasks.  Clinical gene expression classifiers are already used to guide treatment decisions, with tests like Oncotype DX, EndoPredict, and Prosigna estimating recurrence risk and determining which breast cancer patients should receive chemotherapy in addition to endocrine therapy. <!-- Source: C_05 -->
 
