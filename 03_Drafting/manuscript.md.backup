@@ -20,19 +20,21 @@
 
 **What are some specific examples of clinically used classifiers?** <!-- [undefined] --> Multi-gene prognostic signatures that have been approved and implemented clinically include Oncotype DX, EndoPredict, and Prosigna, which are used to predict personalized recurrence risk in ER+ breast cancer and guide chemotherapy decisions. <!-- Source: C_05 -->
 
-**What data is used for biomedical classification?** <!-- [undefined] --> Biomedical classification tasks utilize diverse data types, including gene expression profiles, protein abundance measurements, genomic sequences, clinical variables, and imaging data.  Each of these data modalities provides complementary information about biological systems and disease mechanisms. <!-- Source: C_05 -->
+**What data is used for biomedical classification?** <!-- [undefined] --> Biomedical classification tasks are not limited to gene expression, but can utilize diverse data types, including protein abundance measurements, genomic sequences, clinical variables, and imaging data.  Each of these data modalities provides complementary information about biological systems and disease mechanisms. <!-- Source: C_05 -->
 
 
 
-## The Clinical Stakes
+## Batch Effect Sources Across Data Types
 
-**Why does batch effect mitigation matter clinically?** <!-- [undefined] --> In precision medicine, even modest drops in classifier performance due to batch effects can mean the difference between accurate diagnosis and misclassification.  Multi-gene prognostic signatures including Oncotype DX, EndoPredict, and Prosigna are widely used clinically to estimate recurrence risk and guide treatment decisions in breast cancer patients, guiding which patients receive chemotherapy in addition to endocrine therapy.  If batch effects go undetected, predictors developed for clinical outcomes may produce results that are more variable than expected, with batch effects having strong adverse effects on predictors and resulting in lower-than-expected classification rates that might put patients at risk.  Single-patient data processing is vital to the translation of molecular assays, as patient samples in clinical settings are typically collected in small numbers, often one at a time, making batch effect correction essential for clinical translation.
+**What data is used for biomedical classification?** <!-- [DRAFT] --> Biomedical classification tasks are not limited to gene expression, but can utilize diverse data types, including protein abundance measurements, genomic sequences, clinical variables, and imaging data.  Each of these data modalities provides complementary information about biological systems and disease mechanisms. <!-- Source: C_05 -->
+
+**How do batch effects sources vary by data type?** <!-- [undefined] --> No modality is immune to batch effects. Batch effects arise from differences in experimental protocols, equipment, reagent lots, processing dates, and other technical factors that vary between studies or even within studies over time. TASK: detail specific types of data, explain similarities and differences. <!-- Source: C_01, C_02 -->
+
+**Why does batch effect mitigation matter clinically?** <!-- [undefined] --> In precision medicine, even modest drops in classifier performance due to batch effects can mean the difference between accurate diagnosis and misclassification. If batch effects go undetected, predictors developed for clinical outcomes may produce results that are more variable than expected, with batch effects having strong adverse effects on predictors and resulting in lower-than-expected classification rates that might put patients at risk.  Single-patient data processing is vital to the translation of molecular assays, as patient samples in clinical settings are typically collected in small numbers, often one at a time, making batch effect correction essential for clinical translation.
 
 
 
 ## The Imperative to Combine Datasets
-
-**When is it useful/necessary to combine datasets?** <!-- [undefined] --> Combining datasets is useful when logistical considerations restrict sample size, when sequential data collection is required, or when validation across independent cohorts is needed.  Larger sample sizes increase statistical power, enable validation across independent cohorts, and improve the generalizability of findings. <!-- Source: C_03, C_01 -->
 
 **How should GEO be introduced?** <!-- [undefined] --> With over 200,000 studies and 6.5 million samples, GEO facilitates the generation of consistently computed RNA-seq count matrices.
 
@@ -40,11 +42,9 @@
 
 
 
-## The Challenge of Batch Effects
+## Batch Effect Sources Across Data Types
 
 **Where do batch effects come from?** <!-- [undefined] --> The source of batch effects varies by data type, but there are common patterns.
-
-**How do batch effects sources vary by data type?** <!-- [undefined] --> Batch effects arise from differences in experimental protocols, equipment, reagent lots, processing dates, and other technical factors that vary between studies or even within studies over time. TASK: detail specific types of data, explain similarities and differences. <!-- Source: C_01, C_02 -->
 
 **Are predictors on any of these types of data impacted by batch effects?** <!-- [undefined] --> Yes, batch effects impact classifiers across all these data types, leading to overly optimistic performance estimates when using cross-validation within a single batch, while simultaneously causing poor generalization to independent datasets. <!-- Source: C_03 -->
 
