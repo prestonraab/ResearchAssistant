@@ -10,15 +10,15 @@
 
 **Leftover sentences:** <!-- [undefined] --> Also helpful when validation across independent cohorts is needed.
 
-**New question?** <!-- [DRAFT] --> 
-
 
 
 ## Classification in Precision Medicine
 
-**Why is classification useful for biomedical tasks?** <!-- [undefined] --> Machine learning classifiers have demonstrated strong performance for cancer classification tasks using gene expression data.  In precision medicine, molecular profiling enables tailored treatment decisions, with multi-gene prognostic signatures guiding therapeutic interventions for individual patients. 
+**To what extent is classification relevant to precision medicine, and what is it?** <!-- [undefined] --> Classification—the task of assigning observations to predefined categories based on their features—is vital to biomedical research and the implementation of precision medicine.
 
-** What are some specific examples of clinically used classifiers?** <!-- [DRAFT] --> For example, multi-gene prognostic signatures including Oncotype DX, EndoPredict, and Prosigna are widely used clinically to predict recurrence risk in ER+ breast cancer and guide chemotherapy decisions. <!-- Source: C_05 -->
+**Why is classification useful for biomedical tasks?** <!-- [undefined] --> Machine learning classifiers have demonstrated strong performance for cancer classification tasks using gene expression data.  In precision medicine, molecular profiling enables tailored treatment decisions, with multi-gene prognostic signatures guiding therapeutic interventions for individual patients.
+
+**What are some specific examples of clinically used classifiers?** <!-- [undefined] --> For example, multi-gene prognostic signatures including Oncotype DX, EndoPredict, and Prosigna are widely used clinically to predict recurrence risk in ER+ breast cancer and guide chemotherapy decisions. <!-- Source: C_05 -->
 
 **What data is used for biomedical classification?** <!-- [undefined] --> Biomedical classification tasks utilize diverse data types, including gene expression profiles, protein abundance measurements, genomic sequences, clinical variables, and imaging data.  Each of these data modalities provides complementary information about biological systems and disease mechanisms. <!-- Source: C_05 -->
 
