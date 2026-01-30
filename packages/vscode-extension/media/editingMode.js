@@ -427,7 +427,27 @@ function attachSentenceListeners() {
   document.querySelectorAll('.claim-id.clickable').forEach(el => {
     el.addEventListener('click', (e) => {
       const claimId = e.target.dataset.claimId;
-      vscode.postMessage({ type: 'openClaim', claimId });
+      const sentenceBox = e.target.closest('.sentence-box');
+      const sentenceId = sentenceBox ? sentenceBox.dataset.sentenceId : null;
+      
+      // Save current position before switching
+      const currentCenterItem = getCenterItem();
+      if (currentCenterItem) {
+        vscode.postMessage({ 
+          type: 'saveCenterItem', 
+          itemId: currentCenterItem.id,
+          position: currentCenterItem.position
+        });
+      }
+      
+      // Small delay to ensure message is processed
+      setTimeout(() => {
+        vscode.postMessage({ 
+          type: 'openClaim', 
+          claimId,
+          sentenceId // Pass sentence ID so we can return to it
+        });
+      }, 50);
     });
   });
 
@@ -766,7 +786,20 @@ document.addEventListener('DOMContentLoaded', () => {
   const writeBtn = document.getElementById('writeBtn');
   if (writeBtn) {
     writeBtn.addEventListener('click', () => {
-      vscode.postMessage({ type: 'switchToWritingMode' });
+      // Save current position before switching
+      const currentCenterItem = getCenterItem();
+      if (currentCenterItem) {
+        vscode.postMessage({ 
+          type: 'saveCenterItem', 
+          itemId: currentCenterItem.id,
+          position: currentCenterItem.position
+        });
+      }
+      
+      // Small delay to ensure message is processed
+      setTimeout(() => {
+        vscode.postMessage({ type: 'switchToWritingMode' });
+      }, 50);
     });
   }
 

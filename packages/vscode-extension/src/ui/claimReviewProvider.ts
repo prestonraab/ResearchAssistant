@@ -334,7 +334,7 @@ export class ClaimReviewProvider {
               alternativeSources = embeddingResults;
             }
             
-            // Auto-update metadata and source if we found a better match
+            // Auto-update metadata, source, and verification status if we found a match
             const existingMetadata = claim.primaryQuote.metadata;
             if (alternativeSources.length > 0) {
               const topMatch = alternativeSources[0];
@@ -343,8 +343,13 @@ export class ClaimReviewProvider {
                                   existingMetadata.startLine !== topMatch.metadata.startLine ||
                                   existingMetadata.endLine !== topMatch.metadata.endLine;
               
-              if (needsUpdate) {
+              // Determine if verified based on similarity threshold
+              const isVerified = topMatch.similarity >= 0.9;
+              const verificationChanged = claim.primaryQuote.verified !== isVerified;
+              
+              if (needsUpdate || verificationChanged) {
                 claim.primaryQuote.metadata = topMatch.metadata;
+                claim.primaryQuote.verified = isVerified;
                 
                 // Update source to match actual file
                 const sourceFileName = topMatch.metadata.sourceFile.replace(/\.txt$/, '');
@@ -355,10 +360,11 @@ export class ClaimReviewProvider {
                 }
                 
                 await this.extensionState.claimsManager.updateClaim(claim.id, claim);
-                console.log('[ClaimReview] Auto-updated primary quote metadata and source:', {
+                console.log('[ClaimReview] Auto-updated primary quote metadata, source, and verification:', {
                   metadata: topMatch.metadata,
                   source: claim.primaryQuote.source,
-                  similarity: topMatch.similarity.toFixed(3)
+                  similarity: topMatch.similarity.toFixed(3),
+                  verified: isVerified
                 });
               }
             }
@@ -453,7 +459,7 @@ export class ClaimReviewProvider {
               alternativeSources = embeddingResults;
             }
             
-            // Auto-update metadata and source if we found a better match
+            // Auto-update metadata, source, and verification status if we found a match
             const existingMetadata = quoteObj.metadata;
             if (alternativeSources.length > 0) {
               const topMatch = alternativeSources[0];
@@ -462,8 +468,13 @@ export class ClaimReviewProvider {
                                   existingMetadata.startLine !== topMatch.metadata.startLine ||
                                   existingMetadata.endLine !== topMatch.metadata.endLine;
               
-              if (needsUpdate) {
+              // Determine if verified based on similarity threshold
+              const isVerified = topMatch.similarity >= 0.9;
+              const verificationChanged = claim.supportingQuotes[i].verified !== isVerified;
+              
+              if (needsUpdate || verificationChanged) {
                 claim.supportingQuotes[i].metadata = topMatch.metadata;
+                claim.supportingQuotes[i].verified = isVerified;
                 
                 // Update source to match actual file
                 const sourceFileName = topMatch.metadata.sourceFile.replace(/\.txt$/, '');
@@ -474,9 +485,10 @@ export class ClaimReviewProvider {
                 }
                 
                 await this.extensionState.claimsManager.updateClaim(claim.id, claim);
-                console.log('[ClaimReview] Auto-updated supporting quote metadata and source:', {
+                console.log('[ClaimReview] Auto-updated supporting quote metadata, source, and verification:', {
                   metadata: topMatch.metadata,
-                  source: claim.supportingQuotes[i].source
+                  source: claim.supportingQuotes[i].source,
+                  verified: isVerified
                 });
               }
             }

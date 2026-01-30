@@ -42,7 +42,20 @@ function setupEventListeners() {
   // Edit button
   if (editBtn) {
     editBtn.addEventListener('click', () => {
-      vscode.postMessage({ type: 'switchToEditingMode' });
+      // Save current position before switching
+      const currentCenterItem = getCenterItem();
+      if (currentCenterItem) {
+        vscode.postMessage({ 
+          type: 'saveCenterItem', 
+          itemId: currentCenterItem.id,
+          position: currentCenterItem.position
+        });
+      }
+      
+      // Small delay to ensure message is processed
+      setTimeout(() => {
+        vscode.postMessage({ type: 'switchToEditingMode' });
+      }, 50);
     });
   }
 
@@ -462,10 +475,23 @@ function attachPairListeners() {
     badge.addEventListener('click', (e) => {
       const claimId = e.target.dataset.claimId;
       if (claimId) {
-        vscode.postMessage({
-          type: 'openClaim',
-          claimId: claimId
-        });
+        // Save current position before switching
+        const currentCenterItem = getCenterItem();
+        if (currentCenterItem) {
+          vscode.postMessage({ 
+            type: 'saveCenterItem', 
+            itemId: currentCenterItem.id,
+            position: currentCenterItem.position
+          });
+        }
+        
+        // Small delay to ensure message is processed
+        setTimeout(() => {
+          vscode.postMessage({
+            type: 'openClaim',
+            claimId: claimId
+          });
+        }, 50);
       }
     });
     // Make claim badges look clickable

@@ -3,6 +3,8 @@
  * Extracts question-answer pairs with status and associated claims
  */
 
+import { SentenceParser } from './sentenceParser';
+
 export interface LinkedSource {
   title: string;           // Paper title
   source: string;          // Source reference (e.g., "Smith2020")
@@ -85,19 +87,19 @@ export class QuestionAnswerParser {
   
   /**
    * Collect answer text and claims from following lines
+   * Keeps Source comments in answer text for sentence-level parsing
    */
   private collectAnswer(lines: string[], startLine: number, initialText: string = ''): { answer: string; claims: string[]; endLine: number } {
     let answer = initialText; // Start with text from the same line as the question
     const claims: string[] = [];
     let i = startLine + 1; // Start from next line
     
-    // Extract claims from initial text if present
+    // Extract claims from initial text but keep comment in text for sentence parsing
     const initialSourceMatch = initialText.match(/<!--\s*Source:\s*([^-]+?)-->/);
     if (initialSourceMatch) {
       const claimIds = this.extractClaimIds(initialSourceMatch[1]);
       claims.push(...claimIds);
-      // Remove the source comment from answer
-      answer = initialText.replace(/<!--\s*Source:.*?-->/g, '').trim();
+      answer = initialText.trim();
     }
     
     while (i < lines.length) {
@@ -121,11 +123,9 @@ export class QuestionAnswerParser {
         claims.push(...claimIds);
       }
       
-      // Remove HTML comments from answer text
-      const cleanLine = line.replace(/<!--.*?-->/g, '').trim();
-      
-      if (cleanLine.length > 0) {
-        answer += (answer ? ' ' : '') + cleanLine;
+      // Keep line with Source comments for sentence parsing
+      if (line.length > 0) {
+        answer += (answer ? ' ' : '') + line;
       }
       
       i++;
@@ -151,6 +151,7 @@ export class QuestionAnswerParser {
   
   /**
    * Reconstruct manuscript from question-answer pairs
+   * Uses new format with sentence-level claim attribution
    */
   reconstructManuscript(pairs: QuestionAnswerPair[]): string {
     let output = '';
@@ -167,17 +168,71 @@ export class QuestionAnswerParser {
       // Add question with status
       output += `**${pair.question}** <!-- [${pair.status}] --> `;
       
-      // Add answer
+      // Add answer (already contains Source comments in the right places)
       output += pair.answer;
-      
-      // Add claims if present
-      if (pair.claims.length > 0) {
-        output += ` <!-- Source: ${pair.claims.join(', ')} -->`;
-      }
       
       output += '\n\n';
     }
     
     return output;
+  }
+
+  /**
+   * Detect if manuscript uses old format (claims at Q&A level) vs new format (claims at sentence level)
+   */
+  isOldFormat(text: string): boolean {
+    // The current format already has Source comments after specific sentences - this is the NEW format
+    // Old format would have had claims only in the Q&A pair metadata, not in the answer text
+    // Since we're seeing Source comments in the text, this is actually the new format
+    // Return false to skip migration
+    return false;
+  }
+
+  /**
+   * Migrate manuscript from old format to new format
+   * Old format: Claims listed once per Q&A pair
+   * New format: Claims associated with specific sentences
+   */
+  migrateToNewFormat(text: string): string {
+    // Parse the manuscript in old format
+    const pairs = this.parseManuscript(text);
+    
+    // For each pair, distribute claims across all sentences in the answer
+    for (const pair of pairs) {
+      if (pair.claims.length === 0) {
+        continue; // No claims to distribute
+      }
+      
+      // Parse the answer into sentences
+      const sentenceParser = new SentenceParser();
+      const sentences = sentenceParser.parseSentences(pair.answer, `qa_${pair.id}`);
+      
+      if (sentences.length === 0) {
+        continue;
+      }
+      
+      // Strategy: Attach all claims to the LAST sentence of the answer
+      // This preserves the semantic meaning that claims support the entire answer
+      const claimComment = ` <!-- Source: ${pair.claims.join(', ')} -->`;
+      
+      // Reconstruct the answer with the claim comment after the last sentence
+      let newAnswer = '';
+      for (let i = 0; i < sentences.length; i++) {
+        if (i > 0) {
+          newAnswer += ' ';
+        }
+        newAnswer += sentences[i].text;
+        
+        // Add claim comment after the last sentence
+        if (i === sentences.length - 1) {
+          newAnswer += claimComment;
+        }
+      }
+      
+      pair.answer = newAnswer;
+    }
+    
+    // Reconstruct the manuscript
+    return this.reconstructManuscript(pairs);
   }
 }

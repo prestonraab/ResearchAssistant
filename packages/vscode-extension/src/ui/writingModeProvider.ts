@@ -175,10 +175,31 @@ export class WritingModeProvider {
       
       // If no saved position in writing mode but editing mode has one, find matching pair by position
       if (!centerItemId && editingContext.centerItemPosition !== undefined) {
-        const matchingPair = sanitizedPairs.find(p => p.position === editingContext.centerItemPosition);
+        // Find the Q&A pair that contains this position
+        const matchingPair = sanitizedPairs.find(p => {
+          // Check if the position falls within this Q&A pair's answer
+          // We need to be more flexible here since positions might not match exactly
+          return Math.abs(p.position - editingContext.centerItemPosition) < 5;
+        });
+        
         if (matchingPair) {
           centerItemId = matchingPair.id;
-          console.log(`[WritingMode] Found matching pair at position ${editingContext.centerItemPosition}: ${centerItemId}`);
+          console.log(`[WritingMode] Found matching pair near position ${editingContext.centerItemPosition}: ${centerItemId}`);
+        } else {
+          // If no exact match, find the closest pair
+          let closestPair = sanitizedPairs[0];
+          let minDistance = Math.abs(sanitizedPairs[0].position - editingContext.centerItemPosition);
+          
+          for (const pair of sanitizedPairs) {
+            const distance = Math.abs(pair.position - editingContext.centerItemPosition);
+            if (distance < minDistance) {
+              minDistance = distance;
+              closestPair = pair;
+            }
+          }
+          
+          centerItemId = closestPair.id;
+          console.log(`[WritingMode] Using closest pair at position ${closestPair.position} for target ${editingContext.centerItemPosition}: ${centerItemId}`);
         }
       }
 
@@ -207,6 +228,9 @@ export class WritingModeProvider {
       for (const pair of pairs) {
         const linkedSources: any[] = [];
         const seenSources = new Set<string>();
+
+        // Remove Source comments from answer text for display
+        pair.answer = pair.answer.replace(/<!--\s*Source:[^>]+?-->/g, '').trim();
 
         // Process each claim ID in the pair
         for (const claimId of pair.claims || []) {

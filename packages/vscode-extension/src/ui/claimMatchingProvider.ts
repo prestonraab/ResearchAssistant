@@ -236,7 +236,7 @@ export class ClaimMatchingProvider {
   }
 
   /**
-   * Link claim to sentence
+   * Link claim to sentence/answer and persist to manuscript
    */
   private async linkClaimToSentence(claimId: string): Promise<void> {
     if (!this.currentSentenceId) {
@@ -244,8 +244,11 @@ export class ClaimMatchingProvider {
     }
 
     try {
-      // Link sentence to claim
+      // Link sentence to claim in memory
       await this.sentenceClaimMapper.linkSentenceToClaim(this.currentSentenceId, claimId);
+
+      // Also persist to manuscript.md
+      await this.persistClaimLinkToManuscript(this.currentSentenceId, claimId);
 
       // Get claim details
       const claim = this.extensionState.claimsManager.getClaim(claimId);
@@ -260,9 +263,72 @@ export class ClaimMatchingProvider {
       }
 
       // Show success message
-      vscode.window.showInformationMessage(`Claim linked to sentence`);
+      vscode.window.showInformationMessage(`Claim ${claimId} linked to answer`);
     } catch (error) {
       vscode.window.showErrorMessage(`Failed to link claim: ${error}`);
+    }
+  }
+
+  /**
+   * Persist claim link to manuscript.md
+   */
+  private async persistClaimLinkToManuscript(sentenceId: string, claimId: string): Promise<void> {
+    try {
+      const manuscriptPath = this.extensionState.getAbsolutePath('03_Drafting/manuscript.md');
+      
+      // Read current manuscript
+      const fs = await import('fs');
+      if (!fs.existsSync(manuscriptPath)) {
+        console.error('[ClaimMatching] Manuscript not found');
+        return;
+      }
+      
+      let content = fs.readFileSync(manuscriptPath, 'utf-8');
+      
+      // Parse to find the Q&A pair
+      const { QuestionAnswerParser } = await import('../core/questionAnswerParser');
+      const parser = new QuestionAnswerParser();
+      const pairs = parser.parseManuscript(content);
+      
+      // Find the pair by sentence ID (S_0 -> QA_0, etc.)
+      const pairIndex = parseInt(sentenceId.replace('S_', ''));
+      if (isNaN(pairIndex) || pairIndex >= pairs.length) {
+        console.error(`[ClaimMatching] Invalid sentence ID: ${sentenceId}`);
+        return;
+      }
+      
+      const pair = pairs[pairIndex];
+      
+      // Check if claim is already linked
+      if (pair.claims.includes(claimId)) {
+        console.log(`[ClaimMatching] Claim ${claimId} already linked to answer`);
+        return;
+      }
+      
+      // Add claim to the pair
+      pair.claims.push(claimId);
+      
+      // Update the answer text with the new claim
+      // Check if there's already a Source comment
+      const sourceMatch = pair.answer.match(/<!--\s*Source:\s*([^-]+?)-->/);
+      if (sourceMatch) {
+        // Add to existing Source comment
+        const existingClaims = sourceMatch[1].trim();
+        const newSourceComment = `<!-- Source: ${existingClaims}, ${claimId} -->`;
+        pair.answer = pair.answer.replace(/<!--\s*Source:[^>]+?-->/, newSourceComment);
+      } else {
+        // Add new Source comment at the end
+        pair.answer = pair.answer.trim() + ` <!-- Source: ${claimId} -->`;
+      }
+      
+      // Reconstruct and save manuscript
+      const newContent = parser.reconstructManuscript(pairs);
+      fs.writeFileSync(manuscriptPath, newContent, 'utf-8');
+      
+      console.log(`[ClaimMatching] Persisted claim ${claimId} to manuscript for answer ${pairIndex}`);
+    } catch (error) {
+      console.error('[ClaimMatching] Failed to persist claim link:', error);
+      throw error;
     }
   }
 

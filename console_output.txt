@@ -1,34 +1,313 @@
-
-workbench.desktop.main.js:523 [Extension Host] [QuoteVerificationService] Cache hit for quote from Soneson2014
-workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Primary quote verification result: {verified: false, similarity: 0.7306666666666667}
-workbench.desktop.main.js:523 [Extension Host] [LiteratureIndexer] searchSnippetsWithSimilarity called with query: The Gene Expression Omnibus (GEO) is an internatio
-workbench.desktop.main.js:523 [Extension Host] [LiteratureIndexer] Query embedding generated, searching store
-workbench.desktop.main.js:523 [Extension Host] [EmbeddingStore] searchByEmbeddingWithSimilarity called with 9117 total snippets
-workbench.desktop.main.js:523 [Extension Host] [EmbeddingStore] Returning 5 results with similarity scores
-workbench.desktop.main.js:523 [Extension Host] [LiteratureIndexer] Search returned 5 results with similarity scores
-workbench.desktop.main.js:523 [Extension Host] [PersistenceUtils] ✓ write applications.md (2ms)
-workbench.desktop.main.js:523 [Extension Host] [PersistenceUtils] ✓ write challenges.md (1ms)
-workbench.desktop.main.js:523 [Extension Host] [PersistenceUtils] ✓ write methods_batch_correction.md (2ms)
-workbench.desktop.main.js:523 [Extension Host] [PersistenceUtils] ✓ write results.md (1ms)
-workbench.desktop.main.js:523 [Extension Host] [PersistenceUtils] ✓ write data_sources.md (1ms)
-workbench.desktop.main.js:523 [Extension Host] [PersistenceUtils] ✓ write data_trends.md (1ms)
-workbench.desktop.main.js:523 [Extension Host] [PersistenceUtils] ✓ write impacts.md (1ms)
-workbench.desktop.main.js:523 [Extension Host] [PersistenceUtils] ✓ write phenomena.md (1ms)
-workbench.desktop.main.js:523 [Extension Host] [PersistenceUtils] ✓ write uncategorized.md (1ms)
-workbench.desktop.main.js:523 [Extension Host] Persisted 167 claims across 9 file(s)
-workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Auto-updated primary quote metadata and source: {metadata: {…}, source: 'Soneson2014'}
-workbench.desktop.main.js:523 [Extension Host] [VerificationFeedbackLoop] Cache hit for validation of claim C_31
-workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Stored context: {claimId: 'C_31'}
-claimReview.js:158 [ClaimReview] Displaying claim: {id: 'C_31', text: 'The Gene Expression Omnibus (GEO) is an internatio…ry archiving gene expression and epigenomics data', category: 'Data Source', source: 'Soneson2014', primaryQuote: {…}, …}
-workbench.desktop.main.js:523 [Extension Host] [QuoteVerificationCache] Saved 128 entries to /Users/phr23/Writing/Chapter/.cache/quote-verification.json
-workbench.desktop.main.js:523 [Extension Host] [ZoteroDirectService] Zotero API response: {isArray: true, count: 0, type: 'object'}
-workbench.desktop.main.js:523 [Extension Host] [ZoteroDirectService] Parsed results: 0 items
-workbench.desktop.main.js:523 [Extension Host] [ZoteroDirectService] Searching Zotero with URL: https://api.zotero.org/users/***/items/top?q=Chen%20et%20al.%20-%202024%20-%20Population-Level%20Cell%20Trajectory%20Inference%20Based%20on%20Gaussian%20Distributions&limit=1&format=json
-workbench.desktop.main.js:523 [Extension Host] [ZoteroDirectService] Zotero API response: {isArray: true, count: 0, type: 'object'}
-workbench.desktop.main.js:523 [Extension Host] [ZoteroDirectService] Parsed results: 0 items
-workbench.desktop.main.js:523 [Extension Host] [ZoteroDirectService] Searching Zotero with URL: https://api.zotero.org/users/***/items/top?q=Clough%20et%20al.%20-%202023%20-%20NCBI%20GEO%20archive%20for%20gene%20expression%20and%20epigenomics%20data%20sets%2023-year%20update&limit=1&format=json
-workbench.desktop.main.js:523 [Extension Host] [ZoteroDirectService] Zotero API response: {isArray: true, count: 0, type: 'object'}
-workbench.desktop.main.js:523 [Extension Host] [ZoteroDirectService] Parsed results: 0 items
-workbench.desktop.main.js:523 [Extension Host] [ZoteroDirectService] Searching Zotero with URL: https://api.zotero.org/users/***/items/top?q=Collins%20and%20Varmus%20-%202015%20-%20A%20New%20Initiative%20on%20Precision%20Medicine&limit=1&format=json
-workbench.desktop.main.js:523 [Extension Host] [ZoteroDirectService] Zotero API response: {isArray: true, count: 0, type: 'object'}
-workbench.desktop.main.js:523 [Extension Host] [ZoteroDirectService] Parsed results: 0 items
+workbench.desktop.main.js:11682 An iframe which has both allow-scripts and allow-same-origin for its sandbox attribute can escape its sandboxing.
+mountTo @ workbench.desktop.main.js:11682
+workbench.desktop.main.js:523 [Extension Host] Writing mode disposed
+workbench.desktop.main.js:523 [Extension Host] [EditingMode] Loading manuscript from: /Users/phr23/Writing/Chapter/03_Drafting/manuscript.md
+workbench.desktop.main.js:523 [Extension Host] [EditingMode] File exists: true
+workbench.desktop.main.js:523 [Extension Host] [EditingMode] Loaded 91763 characters
+workbench.desktop.main.js:523 [Extension Host] [EditingMode] Manuscript length: 91763 characters
+workbench.desktop.main.js:523 [Extension Host] [EditingMode] Parsed 143 question-answer pairs
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Processing text with 1 Source comments
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Parsed 1 sentences, 0 with claims
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Processing text with 0 Source comments
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Parsed 3 sentences, 0 with claims
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Processing text with 1 Source comments
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Parsed 2 sentences, 0 with claims
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Processing text with 0 Source comments
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Parsed 1 sentences, 0 with claims
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Processing text with 0 Source comments
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Parsed 1 sentences, 0 with claims
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Processing text with 0 Source comments
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Parsed 1 sentences, 0 with claims
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Processing text with 1 Source comments
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Parsed 3 sentences, 0 with claims
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Processing text with 1 Source comments
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Parsed 2 sentences, 0 with claims
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Processing text with 0 Source comments
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Parsed 4 sentences, 0 with claims
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Processing text with 1 Source comments
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Parsed 2 sentences, 0 with claims
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Processing text with 0 Source comments
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Parsed 2 sentences, 0 with claims
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Processing text with 1 Source comments
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Parsed 2 sentences, 0 with claims
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Processing text with 0 Source comments
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Parsed 1 sentences, 0 with claims
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Processing text with 1 Source comments
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Parsed 2 sentences, 0 with claims
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Processing text with 1 Source comments
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Parsed 1 sentences, 0 with claims
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Processing text with 1 Source comments
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Parsed 2 sentences, 0 with claims
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Processing text with 0 Source comments
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Parsed 1 sentences, 0 with claims
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Processing text with 1 Source comments
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Parsed 3 sentences, 0 with claims
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Processing text with 1 Source comments
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Parsed 2 sentences, 0 with claims
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Processing text with 1 Source comments
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Parsed 5 sentences, 0 with claims
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Processing text with 1 Source comments
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Parsed 1 sentences, 0 with claims
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Processing text with 0 Source comments
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Parsed 2 sentences, 0 with claims
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Processing text with 1 Source comments
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Parsed 1 sentences, 0 with claims
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Processing text with 1 Source comments
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Parsed 3 sentences, 0 with claims
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Processing text with 0 Source comments
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Parsed 1 sentences, 0 with claims
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Processing text with 0 Source comments
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Parsed 6 sentences, 0 with claims
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Processing text with 0 Source comments
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Parsed 1 sentences, 0 with claims
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Processing text with 0 Source comments
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Parsed 2 sentences, 0 with claims
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Processing text with 0 Source comments
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Parsed 1 sentences, 0 with claims
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Processing text with 1 Source comments
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Parsed 2 sentences, 0 with claims
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Processing text with 1 Source comments
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Parsed 2 sentences, 0 with claims
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Processing text with 0 Source comments
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Parsed 2 sentences, 0 with claims
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Processing text with 1 Source comments
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Parsed 3 sentences, 0 with claims
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Processing text with 0 Source comments
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Parsed 1 sentences, 0 with claims
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Processing text with 1 Source comments
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Final sentence has 2 claims: C_79, C_80
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Parsed 6 sentences, 1 with claims
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Processing text with 0 Source comments
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Parsed 3 sentences, 0 with claims
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Processing text with 1 Source comments
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Final sentence has 2 claims: C_84, C_83
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Parsed 7 sentences, 1 with claims
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Processing text with 1 Source comments
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Final sentence has 1 claims: C_81
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Parsed 3 sentences, 1 with claims
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Processing text with 1 Source comments
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Final sentence has 3 claims: C_86, C_87, C_88
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Parsed 10 sentences, 1 with claims
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Processing text with 0 Source comments
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Parsed 1 sentences, 0 with claims
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Processing text with 1 Source comments
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Parsed 6 sentences, 0 with claims
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Processing text with 0 Source comments
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Parsed 1 sentences, 0 with claims
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Processing text with 1 Source comments
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Final sentence has 2 claims: C_87, C_88
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Parsed 4 sentences, 1 with claims
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Processing text with 1 Source comments
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Parsed 1 sentences, 0 with claims
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Processing text with 0 Source comments
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Parsed 1 sentences, 0 with claims
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Processing text with 1 Source comments
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Parsed 2 sentences, 0 with claims
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Processing text with 0 Source comments
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Parsed 11 sentences, 0 with claims
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Processing text with 0 Source comments
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Parsed 3 sentences, 0 with claims
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Processing text with 0 Source comments
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Parsed 5 sentences, 0 with claims
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Processing text with 0 Source comments
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Parsed 3 sentences, 0 with claims
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Processing text with 1 Source comments
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Parsed 6 sentences, 0 with claims
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Processing text with 0 Source comments
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Parsed 8 sentences, 0 with claims
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Processing text with 0 Source comments
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Parsed 6 sentences, 0 with claims
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Processing text with 0 Source comments
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Parsed 8 sentences, 0 with claims
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Processing text with 0 Source comments
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Parsed 2 sentences, 0 with claims
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Processing text with 0 Source comments
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Parsed 2 sentences, 0 with claims
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Processing text with 0 Source comments
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Parsed 3 sentences, 0 with claims
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Processing text with 1 Source comments
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Parsed 6 sentences, 0 with claims
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Processing text with 1 Source comments
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Parsed 3 sentences, 0 with claims
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Processing text with 1 Source comments
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Parsed 4 sentences, 0 with claims
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Processing text with 1 Source comments
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Parsed 4 sentences, 0 with claims
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Processing text with 0 Source comments
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Parsed 1 sentences, 0 with claims
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Processing text with 0 Source comments
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Parsed 3 sentences, 0 with claims
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Processing text with 0 Source comments
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Parsed 3 sentences, 0 with claims
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Processing text with 1 Source comments
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Parsed 3 sentences, 0 with claims
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Processing text with 1 Source comments
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Final sentence has 5 claims: C_69, C_70, C_68, C_71, C_73
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Parsed 7 sentences, 1 with claims
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Processing text with 1 Source comments
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Parsed 2 sentences, 0 with claims
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Processing text with 0 Source comments
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Parsed 3 sentences, 0 with claims
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Processing text with 0 Source comments
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Parsed 1 sentences, 0 with claims
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Processing text with 0 Source comments
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Parsed 1 sentences, 0 with claims
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Processing text with 0 Source comments
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Parsed 5 sentences, 0 with claims
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Processing text with 0 Source comments
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Parsed 5 sentences, 0 with claims
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Processing text with 0 Source comments
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Parsed 3 sentences, 0 with claims
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Processing text with 1 Source comments
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Parsed 5 sentences, 0 with claims
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Processing text with 1 Source comments
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Parsed 3 sentences, 0 with claims
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Processing text with 0 Source comments
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Parsed 10 sentences, 0 with claims
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Processing text with 0 Source comments
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Parsed 2 sentences, 0 with claims
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Processing text with 0 Source comments
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Parsed 3 sentences, 0 with claims
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Processing text with 0 Source comments
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Parsed 9 sentences, 0 with claims
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Processing text with 0 Source comments
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Parsed 2 sentences, 0 with claims
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Processing text with 0 Source comments
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Parsed 2 sentences, 0 with claims
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Processing text with 0 Source comments
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Parsed 7 sentences, 0 with claims
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Processing text with 0 Source comments
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Parsed 7 sentences, 0 with claims
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Processing text with 0 Source comments
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Parsed 6 sentences, 0 with claims
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Processing text with 0 Source comments
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Parsed 2 sentences, 0 with claims
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Processing text with 0 Source comments
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Parsed 2 sentences, 0 with claims
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Processing text with 0 Source comments
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Parsed 2 sentences, 0 with claims
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Processing text with 0 Source comments
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Parsed 8 sentences, 0 with claims
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Processing text with 0 Source comments
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Parsed 3 sentences, 0 with claims
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Processing text with 0 Source comments
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Parsed 9 sentences, 0 with claims
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Processing text with 0 Source comments
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Parsed 2 sentences, 0 with claims
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Processing text with 0 Source comments
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Parsed 4 sentences, 0 with claims
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Processing text with 0 Source comments
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Parsed 4 sentences, 0 with claims
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Processing text with 0 Source comments
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Parsed 15 sentences, 0 with claims
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Processing text with 0 Source comments
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Parsed 13 sentences, 0 with claims
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Processing text with 1 Source comments
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Parsed 1 sentences, 0 with claims
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Processing text with 1 Source comments
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Parsed 3 sentences, 0 with claims
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Processing text with 0 Source comments
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Parsed 8 sentences, 0 with claims
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Processing text with 1 Source comments
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Parsed 3 sentences, 0 with claims
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Processing text with 0 Source comments
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Parsed 2 sentences, 0 with claims
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Processing text with 1 Source comments
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Parsed 2 sentences, 0 with claims
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Processing text with 1 Source comments
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Parsed 7 sentences, 0 with claims
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Processing text with 0 Source comments
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Parsed 1 sentences, 0 with claims
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Processing text with 0 Source comments
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Parsed 2 sentences, 0 with claims
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Processing text with 1 Source comments
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Final sentence has 10 claims: C_02, C_79, C_80, C_02, C_79, C_80, C_87, C_88, C_11, C_11
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Parsed 15 sentences, 1 with claims
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Processing text with 0 Source comments
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Parsed 2 sentences, 0 with claims
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Processing text with 0 Source comments
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Parsed 1 sentences, 0 with claims
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Processing text with 0 Source comments
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Parsed 1 sentences, 0 with claims
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Processing text with 0 Source comments
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Parsed 1 sentences, 0 with claims
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Processing text with 0 Source comments
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Parsed 6 sentences, 0 with claims
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Processing text with 0 Source comments
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Parsed 2 sentences, 0 with claims
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Processing text with 0 Source comments
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Parsed 2 sentences, 0 with claims
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Processing text with 0 Source comments
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Parsed 3 sentences, 0 with claims
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Processing text with 0 Source comments
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Parsed 3 sentences, 0 with claims
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Processing text with 1 Source comments
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Final sentence has 1 claims: C_101
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Parsed 5 sentences, 1 with claims
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Processing text with 0 Source comments
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Parsed 3 sentences, 0 with claims
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Processing text with 0 Source comments
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Parsed 3 sentences, 0 with claims
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Processing text with 0 Source comments
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Parsed 3 sentences, 0 with claims
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Processing text with 0 Source comments
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Parsed 4 sentences, 0 with claims
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Processing text with 1 Source comments
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Final sentence has 1 claims: C_103
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Parsed 6 sentences, 1 with claims
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Processing text with 0 Source comments
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Parsed 2 sentences, 0 with claims
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Processing text with 0 Source comments
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Parsed 3 sentences, 0 with claims
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Processing text with 0 Source comments
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Parsed 2 sentences, 0 with claims
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Processing text with 0 Source comments
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Parsed 1 sentences, 0 with claims
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Processing text with 1 Source comments
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Parsed 3 sentences, 0 with claims
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Processing text with 1 Source comments
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Final sentence has 1 claims: C_93
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Parsed 6 sentences, 1 with claims
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Processing text with 1 Source comments
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Final sentence has 1 claims: C_96
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Parsed 4 sentences, 1 with claims
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Processing text with 0 Source comments
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Parsed 3 sentences, 0 with claims
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Processing text with 0 Source comments
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Parsed 1 sentences, 0 with claims
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Processing text with 0 Source comments
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Parsed 4 sentences, 0 with claims
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Processing text with 0 Source comments
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Parsed 4 sentences, 0 with claims
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Processing text with 0 Source comments
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Parsed 2 sentences, 0 with claims
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Processing text with 0 Source comments
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Parsed 3 sentences, 0 with claims
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Processing text with 0 Source comments
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Parsed 3 sentences, 0 with claims
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Processing text with 1 Source comments
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Final sentence has 3 claims: C_75, C_76, C_85
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Parsed 7 sentences, 1 with claims
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Processing text with 0 Source comments
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Parsed 0 sentences, 0 with claims
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Processing text with 0 Source comments
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Parsed 2 sentences, 0 with claims
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Processing text with 0 Source comments
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Parsed 2 sentences, 0 with claims
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Processing text with 0 Source comments
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Parsed 3 sentences, 0 with claims
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Processing text with 0 Source comments
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Parsed 1 sentences, 0 with claims
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Processing text with 1 Source comments
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Parsed 5 sentences, 0 with claims
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Processing text with 0 Source comments
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Parsed 4 sentences, 0 with claims
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Processing text with 0 Source comments
+workbench.desktop.main.js:523 [Extension Host] [SentenceParser] Parsed 5 sentences, 0 with claims
+workbench.desktop.main.js:523 [Extension Host] [EditingMode] Extracted 504 sentences from answers
+workbench.desktop.main.js:523 [Extension Host] [EditingMode] Sending 504 sentences to webview
+workbench.desktop.main.js:523 [Extension Host] Unable to log remote console arguments Output omitted for a large object that exceeds the limits
+workbench.desktop.main.js:523 [Extension Host] [EditingMode] Final centerItemId: undefined
+editingMode.js:28 [EditingMode WebView] Received initialize message: {sentenceCount: 504, centerItemId: undefined, virtualScrollingEnabled: true}
+editingMode.js:37 [EditingMode WebView] Sentences array: 504
+editingMode.js:41 [EditingMode WebView] Using virtual scrolling

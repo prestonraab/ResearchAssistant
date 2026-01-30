@@ -143,9 +143,6 @@ This file contains all **Result** claims with their supporting evidence.
 **Primary Quote**:
 > "In the second experiment, we evaluated whether and to what extent it was possible to quantify the diversity of natural freshwater microbial communities using FCM in combination with PhenoGMM."
 
-**Supporting Quotes**:
-- "Diversity estimations were highly significant for the cooling water microbiome for both approaches. The α-diversity of the microbial communities in Muskegon Lake could be successfully retrieved as well."
-
 
 ---
 

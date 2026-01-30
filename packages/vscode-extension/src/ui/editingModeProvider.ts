@@ -62,12 +62,13 @@ export class EditingModeProvider {
   }
 
   private async _showInternal(): Promise<void> {
-    // If panel already exists and is not disposed, reveal it
+    // If panel already exists and is not disposed, reveal it and reload data
     if (this.panel && !this.panelDisposed) {
       this.panel.reveal(vscode.ViewColumn.One);
       
-      // Refresh sentences display to pick up any claim changes (e.g., verification status)
-      await this.refreshSentencesDisplay();
+      // Always reinitialize to pick up changes from Writing Mode
+      console.log('[EditingMode] Reloading data from manuscript...');
+      await this.initializeEditingMode();
       
       // Check if we need to navigate to a specific sentence (e.g., returning from claim review)
       const claimReviewContext = getModeContextManager().getClaimReviewContext();
@@ -140,7 +141,7 @@ export class EditingModeProvider {
   }
 
   /**
-   * Initialize editing mode with sentences and claims
+   * Initialize editing mode with answers and claims
    */
   private async initializeEditingMode(): Promise<void> {
     if (!this.panel) {
@@ -153,7 +154,6 @@ export class EditingModeProvider {
 
       // Load manuscript
       const manuscript = await this.loadManuscript();
-      const manuscriptPath = this.extensionState.getAbsolutePath('03_Drafting/manuscript.md');
 
       console.log(`[EditingMode] Manuscript length: ${manuscript.length} characters`);
 
@@ -161,29 +161,38 @@ export class EditingModeProvider {
       const questionAnswerPairs = this.questionAnswerParser.parseManuscript(manuscript);
       console.log(`[EditingMode] Parsed ${questionAnswerPairs.length} question-answer pairs`);
 
-      // Extract sentences from answers and associate claims
+      // Store pairs as "sentences" for compatibility with existing code
+      // Each Q&A pair becomes one item in the list
       this.sentences = [];
-      let sentenceIndex = 0;
+      let itemIndex = 0;
 
       for (const pair of questionAnswerPairs) {
-        // Parse answer text into sentences
-        const answerSentences = this.sentenceParser.parseSentences(pair.answer, `qa_${pair.id}`);
+        // Clean the answer text (remove Source comments for display)
+        const cleanAnswer = pair.answer.replace(/<!--\s*Source:[^>]+?-->/g, '').trim();
         
-        // Associate claims from the Q&A pair with each sentence
-        for (const sentence of answerSentences) {
-          sentence.id = `S_${sentenceIndex}`;
-          sentence.claims = [...pair.claims]; // Copy claims from Q&A pair
-          sentence.outlineSection = pair.section;
-          this.sentences.push(sentence);
-          sentenceIndex++;
-        }
+        const item = {
+          id: `S_${itemIndex}`,
+          text: cleanAnswer,
+          originalText: cleanAnswer,
+          position: pair.position,
+          outlineSection: pair.section,
+          claims: pair.claims || [],
+          question: pair.question,
+          pairId: pair.id,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        };
+        
+        this.sentences.push(item as any);
+        itemIndex++;
       }
 
-      console.log(`[EditingMode] Extracted ${this.sentences.length} sentences from answers`);
+      console.log(`[EditingMode] Created ${this.sentences.length} answer items`);
+      console.log(`[EditingMode] Items with claims: ${this.sentences.filter(s => s.claims && s.claims.length > 0).length}`);
 
-      // Load full claim details for each sentence
-      const sentencesWithClaims = await this.loadClaimsForSentences();
-      console.log(`[EditingMode] Sending ${sentencesWithClaims.length} sentences to webview`);
+      // Load full claim details for each answer
+      const itemsWithClaims = await this.loadClaimsForSentences();
+      console.log(`[EditingMode] Sending ${itemsWithClaims.length} items to webview`);
 
       // Check if we should restore from cross-mode context
       let centerItemId = this.editingModeManager.getCenterItemId();
@@ -196,17 +205,17 @@ export class EditingModeProvider {
         writingContext: writingContext
       });
       
-      // If returning from claim review, navigate to the sentence
+      // If returning from claim review, navigate to the item
       if (claimReviewContext?.returnToSentenceId) {
         centerItemId = claimReviewContext.returnToSentenceId;
-        console.log(`[EditingMode] Returning to sentence from claim review: ${centerItemId}`);
+        console.log(`[EditingMode] Returning to item from claim review: ${centerItemId}`);
       }
-      // If no saved position in editing mode but writing mode has one, find matching sentence by position
+      // If no saved position in editing mode but writing mode has one, find matching item by position
       else if (!centerItemId && writingContext.centerItemPosition !== undefined) {
-        const matchingSentence = sentencesWithClaims.find(s => s.position === writingContext.centerItemPosition);
-        if (matchingSentence) {
-          centerItemId = matchingSentence.id;
-          console.log(`[EditingMode] Found matching sentence at position ${writingContext.centerItemPosition}: ${centerItemId}`);
+        const matchingItem = itemsWithClaims.find(s => s.position === writingContext.centerItemPosition);
+        if (matchingItem) {
+          centerItemId = matchingItem.id;
+          console.log(`[EditingMode] Found matching item at position ${writingContext.centerItemPosition}: ${centerItemId}`);
         }
       }
       
@@ -215,10 +224,10 @@ export class EditingModeProvider {
       // Send initial data to webview with virtual scrolling enabled
       this.panel.webview.postMessage({
         type: 'initialize',
-        sentences: sentencesWithClaims,
+        sentences: itemsWithClaims,
         centerItemId: centerItemId,
         virtualScrollingEnabled: true,
-        itemHeight: 120 // Height of each sentence box in pixels
+        itemHeight: 120
       });
     } catch (error) {
       vscode.window.showErrorMessage(`Failed to initialize editing mode: ${error}`);
@@ -400,9 +409,12 @@ export class EditingModeProvider {
 
       case 'openClaim':
         // Store the sentence ID so we can return to it from claim review
-        getModeContextManager().setClaimReviewContext({
-          returnToSentenceId: message.sentenceId
-        });
+        const sentenceId = message.sentenceId || message.sentenceId;
+        if (sentenceId) {
+          getModeContextManager().setClaimReviewContext({
+            returnToSentenceId: sentenceId
+          });
+        }
         await vscode.commands.executeCommand('researchAssistant.openClaimReview', message.claimId);
         break;
 
@@ -614,7 +626,7 @@ export class EditingModeProvider {
   private async deleteClaimFromSentence(sentenceId: string, claimId: string): Promise<void> {
     try {
       const confirmed = await vscode.window.showWarningMessage(
-        'Remove claim from sentence?',
+        'Remove claim from answer?',
         'Remove',
         'Cancel'
       );
@@ -623,8 +635,11 @@ export class EditingModeProvider {
         return;
       }
 
-      // Unlink claim from sentence
+      // Unlink claim from sentence in memory
       await this.sentenceClaimMapper.unlinkSentenceFromClaim(sentenceId, claimId);
+
+      // Persist removal to manuscript.md
+      await this.removeClaimFromManuscript(sentenceId, claimId);
 
       // Notify webview
       if (this.panel) {
@@ -636,6 +651,63 @@ export class EditingModeProvider {
       }
     } catch (error) {
       vscode.window.showErrorMessage(`Failed to delete claim: ${error}`);
+    }
+  }
+
+  /**
+   * Remove claim link from manuscript.md
+   */
+  private async removeClaimFromManuscript(sentenceId: string, claimId: string): Promise<void> {
+    try {
+      const manuscriptPath = this.extensionState.getAbsolutePath('03_Drafting/manuscript.md');
+      
+      if (!fs.existsSync(manuscriptPath)) {
+        console.error('[EditingMode] Manuscript not found');
+        return;
+      }
+      
+      let content = fs.readFileSync(manuscriptPath, 'utf-8');
+      
+      // Parse to find the Q&A pair
+      const pairs = this.questionAnswerParser.parseManuscript(content);
+      
+      // Find the pair by sentence ID (S_0 -> QA_0, etc.)
+      const pairIndex = parseInt(sentenceId.replace('S_', ''));
+      if (isNaN(pairIndex) || pairIndex >= pairs.length) {
+        console.error(`[EditingMode] Invalid sentence ID: ${sentenceId}`);
+        return;
+      }
+      
+      const pair = pairs[pairIndex];
+      
+      // Remove claim from the pair's claims array
+      pair.claims = pair.claims.filter(c => c !== claimId);
+      
+      // Update the Source comment in the answer text
+      const sourceMatch = pair.answer.match(/<!--\s*Source:\s*([^-]+?)-->/);
+      if (sourceMatch) {
+        const existingClaims = sourceMatch[1].trim();
+        // Remove the claim ID from the list
+        const claimList = existingClaims.split(/,\s*/).filter(c => c.trim() !== claimId);
+        
+        if (claimList.length > 0) {
+          // Update with remaining claims
+          const newSourceComment = `<!-- Source: ${claimList.join(', ')} -->`;
+          pair.answer = pair.answer.replace(/<!--\s*Source:[^>]+?-->/, newSourceComment);
+        } else {
+          // Remove the Source comment entirely
+          pair.answer = pair.answer.replace(/\s*<!--\s*Source:[^>]+?-->/, '').trim();
+        }
+      }
+      
+      // Reconstruct and save manuscript
+      const newContent = this.questionAnswerParser.reconstructManuscript(pairs);
+      fs.writeFileSync(manuscriptPath, newContent, 'utf-8');
+      
+      console.log(`[EditingMode] Removed claim ${claimId} from manuscript for answer ${pairIndex}`);
+    } catch (error) {
+      console.error('[EditingMode] Failed to remove claim from manuscript:', error);
+      throw error;
     }
   }
 

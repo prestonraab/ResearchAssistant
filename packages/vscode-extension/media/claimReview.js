@@ -262,6 +262,18 @@ function displayQuoteContainer(container, quote, result, type) {
   const hasClosestMatch = result && !result.verified && result.closestMatch;
   const bestMatch = hasAlternativeSources ? result.alternativeSources[0].matchedText : (hasClosestMatch ? result.closestMatch : null);
   
+  // Get source paper name for display
+  let sourcePaperHtml = '';
+  if (hasAlternativeSources) {
+    const topSource = result.alternativeSources[0];
+    const sourceName = topSource.source;
+    const sourceFile = topSource.metadata?.sourceFile || '';
+    const lineRange = topSource.context || '';
+    sourcePaperHtml = `<div class="quote-source-paper">📄 <strong>${escapeHtml(sourceName)}</strong> ${lineRange ? `(${lineRange})` : ''}</div>`;
+  } else if (result?.source) {
+    sourcePaperHtml = `<div class="quote-source-paper">📄 <strong>${escapeHtml(result.source)}</strong></div>`;
+  }
+  
   // Build buttons HTML
   let buttonsHtml = `
     <button class="btn btn-danger" data-action="deleteQuote" data-quote="${escapeHtml(quote)}">Delete</button>
@@ -343,6 +355,7 @@ function displayQuoteContainer(container, quote, result, type) {
       <span class="quote-type">${type === 'primary' ? 'PRIMARY' : 'SUPPORTING'}</span>
       <span class="status-icon ${getStatusClass(result)}">${statusIcon}</span>
     </div>
+    ${sourcePaperHtml}
     ${quoteDisplayHtml}
     ${infoHtml}
     <div class="quote-actions">
@@ -500,21 +513,29 @@ function getVerificationText(result) {
   
   const similarity = Math.round(result.similarity * 100);
   
-  // If verified in claimed source, show that
+  // If verified in claimed source, show that with source name
   if (result.verified) {
-    return `Verified in source (${similarity}% match)`;
+    // Try to get source name from alternativeSources or from the quote's source
+    if (result.alternativeSources && result.alternativeSources.length > 0) {
+      const sourceName = result.alternativeSources[0].source;
+      return `✓ Verified in ${escapeHtml(sourceName)} (${similarity}% match)`;
+    }
+    return `✓ Verified in source (${similarity}% match)`;
   }
   
-  // If we found it in alternative sources, show that
+  // If we found it in alternative sources, show that prominently
   if (result.alternativeSources && result.alternativeSources.length > 0) {
     const topMatch = result.alternativeSources[0];
     const matchSimilarity = Math.round(topMatch.similarity * 100);
+    if (matchSimilarity >= 90) {
+      return `✓ Found in ${escapeHtml(topMatch.source)} (${matchSimilarity}% match)`;
+    }
     return `Found in ${escapeHtml(topMatch.source)} (${matchSimilarity}% match)`;
   }
   
   // Only show "not found" if we truly couldn't find it anywhere
   if (result.searchStatus === 'not_found') {
-    return 'Not found in any source';
+    return '✗ Not found in any source';
   }
   
   // Default fallback
