@@ -94,7 +94,7 @@ This file contains all **Challenge** claims with their supporting evidence.
 ## C_96: Mass spectrometry-based proteomics data are inherently biased due to sample handling and instrumentation differences
 
 **Category**: Challenge  
-**Source**: Valikangas2018  
+**Source**: Välikangas2016  
 **Context**: Batch effects in proteomics manifest as systematic shifts in ionization efficiency and instrument sensitivity.
 
 **Primary Quote**:
