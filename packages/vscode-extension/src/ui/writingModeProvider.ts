@@ -229,8 +229,11 @@ export class WritingModeProvider {
         const linkedSources: any[] = [];
         const seenSources = new Set<string>();
 
-        // Remove Source comments from answer text for display
-        pair.answer = pair.answer.replace(/<!--\s*Source:[^>]+?-->/g, '').trim();
+        // Store original answer with Source comments for saving
+        pair.originalAnswer = pair.answer;
+        
+        // Create display version without Source comments (don't modify pair.answer)
+        pair.displayAnswer = pair.answer.replace(/<!--\s*Source:[^>]+?-->/g, '').trim();
 
         // Process each claim ID in the pair
         for (const claimId of pair.claims || []) {
@@ -386,6 +389,27 @@ export class WritingModeProvider {
   private async _performManuscriptSave(pairs: QuestionAnswerPair[]): Promise<void> {
     try {
       const manuscriptPath = this.extensionState.getAbsolutePath('03_Drafting/manuscript.md');
+
+      // Restore original answers with Source comments before saving
+      // If the display answer was edited, we need to merge the edit with the Source comments
+      for (const pair of pairs as any[]) {
+        if (pair.originalAnswer && pair.displayAnswer !== undefined) {
+          // Check if the answer was edited (compare with displayAnswer)
+          const currentDisplayAnswer = pair.answer.replace(/<!--\s*Source:[^>]+?-->/g, '').trim();
+          
+          if (currentDisplayAnswer !== pair.displayAnswer) {
+            // Answer was edited - use the new answer but preserve Source comments from original
+            const sourceComments = pair.originalAnswer.match(/<!--\s*Source:[^>]+?-->/g) || [];
+            if (sourceComments.length > 0) {
+              // Append Source comments to the edited answer
+              pair.answer = pair.answer + ' ' + sourceComments.join(' ');
+            }
+          } else {
+            // Answer wasn't edited - restore original with Source comments
+            pair.answer = pair.originalAnswer;
+          }
+        }
+      }
 
       // Reconstruct manuscript from pairs
       const content = this.questionAnswerParser.reconstructManuscript(pairs);

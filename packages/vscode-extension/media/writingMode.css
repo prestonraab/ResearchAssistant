@@ -171,6 +171,36 @@ body[data-vscode-theme-kind="vscode-high-contrast-light"] {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
+.pair-wrapper.dragging {
+  opacity: 0.5;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.pair-wrapper.drag-over {
+  border-top: 3px solid var(--vscode-focusBorder);
+}
+
+/* Drag Handle */
+.drag-handle {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background-color: transparent;
+  cursor: grab;
+  transition: background-color 0.2s;
+  border-radius: 0;
+}
+
+.drag-handle:hover {
+  background-color: var(--vscode-focusBorder);
+}
+
+.drag-handle:active {
+  cursor: grabbing;
+}
+
 /* Insert Zone - Appears between items */
 .insert-zone {
   position: relative;
@@ -266,6 +296,7 @@ body[data-vscode-theme-kind="vscode-high-contrast-light"] {
   gap: 0 8px;
   align-items: start;
   padding: 0;
+  padding-left: 8px;
 }
 
 /* Left Column - Question */

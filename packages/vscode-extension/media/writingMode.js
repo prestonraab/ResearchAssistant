@@ -297,6 +297,7 @@ function renderPair(pair) {
     id: pair.id,
     question: pair.question?.substring(0, 50),
     answerLength: pair.answer?.length || 0,
+    displayAnswerLength: pair.displayAnswer?.length || 0,
     status: pair.status,
     claimCount: pair.claims?.length || 0,
     linkedSourcesCount: pair.linkedSources?.length || 0
@@ -319,8 +320,14 @@ function renderPair(pair) {
   // Render citation sidebar
   const citationSidebarHtml = renderCitationSidebar(pair);
 
+  // Use displayAnswer for rendering (without Source comments), fall back to answer
+  const displayText = pair.displayAnswer !== undefined ? pair.displayAnswer : pair.answer;
+
   return `
-    <div class="pair-wrapper" data-pair-id="${pair.id}">
+    <div class="pair-wrapper" data-pair-id="${pair.id}" draggable="true">
+      <!-- Drag Handle -->
+      <div class="drag-handle" title="Drag to reorder"></div>
+      
       <!-- Three-column content row -->
       <div class="pair-row" data-pair-id="${pair.id}">
         <!-- Left column: Question -->
@@ -336,7 +343,7 @@ function renderPair(pair) {
             class="answer-editor" 
             data-pair-id="${pair.id}"
             placeholder="Write your answer here..."
-          >${escapeHtml(pair.answer || '')}</textarea>
+          >${escapeHtml(displayText || '')}</textarea>
           
           <!-- Citations section (expandable within middle column) -->
           <div class="citations-section" data-pair-id="${pair.id}" style="display: none;">
@@ -414,9 +421,97 @@ function renderCitationSidebar(pair) {
 }
 
 /**
+ * Attach drag and drop listeners for reordering
+ */
+function attachDragAndDropListeners() {
+  let draggedElement = null;
+  let draggedPairId = null;
+
+  document.querySelectorAll('.pair-wrapper').forEach(wrapper => {
+    wrapper.addEventListener('dragstart', (e) => {
+      // Only allow dragging from the drag handle
+      if (!e.target.classList.contains('drag-handle') && e.target !== wrapper) {
+        e.preventDefault();
+        return;
+      }
+
+      draggedElement = wrapper;
+      draggedPairId = wrapper.dataset.pairId;
+      wrapper.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/html', wrapper.innerHTML);
+      
+      console.log('[WritingMode] Started dragging pair:', draggedPairId);
+    });
+
+    wrapper.addEventListener('dragend', (e) => {
+      wrapper.classList.remove('dragging');
+      document.querySelectorAll('.pair-wrapper').forEach(w => {
+        w.classList.remove('drag-over');
+      });
+      draggedElement = null;
+      draggedPairId = null;
+    });
+
+    wrapper.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+
+      if (draggedElement && draggedElement !== wrapper) {
+        wrapper.classList.add('drag-over');
+      }
+    });
+
+    wrapper.addEventListener('dragleave', (e) => {
+      wrapper.classList.remove('drag-over');
+    });
+
+    wrapper.addEventListener('drop', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+
+      if (!draggedElement || draggedElement === wrapper) {
+        return;
+      }
+
+      wrapper.classList.remove('drag-over');
+
+      // Find indices
+      const draggedIndex = state.pairs.findIndex(p => p.id === draggedPairId);
+      const targetIndex = state.pairs.findIndex(p => p.id === wrapper.dataset.pairId);
+
+      if (draggedIndex < 0 || targetIndex < 0 || draggedIndex === targetIndex) {
+        return;
+      }
+
+      // Reorder pairs
+      saveStateToUndo();
+      const [draggedPair] = state.pairs.splice(draggedIndex, 1);
+      state.pairs.splice(targetIndex, 0, draggedPair);
+
+      // Update positions
+      state.pairs.forEach((pair, index) => {
+        pair.position = index;
+      });
+
+      console.log('[WritingMode] Reordered pair from index', draggedIndex, 'to', targetIndex);
+
+      renderPairs();
+      state.isDirty = true;
+      scheduleAutoSave();
+
+      showTemporaryNotification('Reordered. Press Ctrl+Z to undo', 'info');
+    });
+  });
+}
+
+/**
  * Attach event listeners to pairs
  */
 function attachPairListeners() {
+  // Drag and drop handlers
+  attachDragAndDropListeners();
+
   // Answer editors - with auto-expand
   document.querySelectorAll('.answer-editor').forEach(editor => {
     editor.addEventListener('input', (e) => {
@@ -586,6 +681,9 @@ function toggleCitationsSection(pairId) {
 function updatePairAnswer(pairId, answer) {
   const pair = state.pairs.find(p => p.id === pairId);
   if (pair) {
+    // Update displayAnswer (what user sees/edits)
+    pair.displayAnswer = answer;
+    // Also update answer for backward compatibility, but the server will restore Source comments
     pair.answer = answer;
     state.isDirty = true;
     updateSaveStatus('Unsaved');
