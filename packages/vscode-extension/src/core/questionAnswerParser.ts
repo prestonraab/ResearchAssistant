@@ -158,6 +158,10 @@ export class QuestionAnswerParser {
     let currentSection = '';
     
     for (const pair of pairs) {
+      // Trim variables to remove leading/trailing whitespace
+      const trimmedQuestion = pair.question.trim();
+      const trimmedAnswer = pair.answer.trim();
+
       // Add section header if changed
       if (pair.section !== currentSection) {
         if (output) output += '\n\n';
@@ -166,10 +170,10 @@ export class QuestionAnswerParser {
       }
       
       // Add question with status
-      output += `**${pair.question}** <!-- [${pair.status}] --> `;
+      output += `**${trimmedQuestion}** <!-- [${pair.status}] --> `;
       
       // Add answer (already contains Source comments in the right places)
-      output += pair.answer;
+      output += trimmedAnswer;
       
       output += '\n\n';
     }
