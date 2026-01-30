@@ -670,7 +670,7 @@ This file contains all **Method - Batch Correction** claims with their supportin
 ## C_91: Reference-based normalization adjusts a single sample against a pre-computed reference distribution from training data
 
 **Category**: Method  
-**Source**: McCall2010  
+**Source**: Breiman2001  
 **Context**: Critical for clinical deployment where each patient sample may constitute its own "batch."
 
 **Primary Quote**:

@@ -39,7 +39,7 @@ export class ExtensionState {
   private workspaceRoot: string;
   private fileWatchers: vscode.FileSystemWatcher[] = [];
   private debounceTimers: Map<string, NodeJS.Timeout> = new Map();
-  
+
   public outlineParser: OutlineParser;
   public claimsManager: ClaimsManager;
   public mcpClient: MCPClientManager;
@@ -64,7 +64,7 @@ export class ExtensionState {
 
   constructor(context: vscode.ExtensionContext) {
     this.context = context;
-    
+
     // Get workspace root
     const workspaceFolders = vscode.workspace.workspaceFolders;
     if (!workspaceFolders || workspaceFolders.length === 0) {
@@ -79,11 +79,11 @@ export class ExtensionState {
     this.outlineParser = new OutlineParser(this.getAbsolutePath(this.config.outlinePath));
     this.claimsManager = new ClaimsManager(this.getAbsolutePath(this.config.claimsDatabasePath));
     this.mcpClient = new MCPClientManager();
-    
+
     // Initialize EmbeddingService with OpenAI API key from settings
     const config = vscode.workspace.getConfiguration('researchAssistant');
     const apiKey = config.get<string>('openaiApiKey');
-    
+
     if (!apiKey) {
       vscode.window.showErrorMessage(
         'OpenAI API key not configured. Please set researchAssistant.openaiApiKey in settings.',
@@ -97,11 +97,11 @@ export class ExtensionState {
         }
       });
     }
-    
+
     const cacheDir = path.join(this.workspaceRoot, '.cache', 'embeddings');
     const embeddingModel = config.get<string>('embeddingModel') || 'text-embedding-3-small';
     const maxCacheSize = config.get<number>('embeddingCacheSize') || 1000;
-    
+
     this.embeddingService = new EmbeddingService(
       apiKey || '',
       cacheDir,
@@ -115,7 +115,10 @@ export class ExtensionState {
     this.configurationManager = new ConfigurationManager(context);
     this.quoteVerificationService = new QuoteVerificationService(this.mcpClient, this.claimsManager, this.workspaceRoot);
     this.autoQuoteVerifier = new AutoQuoteVerifier(this.claimsManager, this.mcpClient);
-    this.pdfExtractionService = new PDFExtractionService(this.mcpClient, this.workspaceRoot);
+
+    // Updated constructor call: removed mcpClient as it's no longer used
+    this.pdfExtractionService = new PDFExtractionService(this.workspaceRoot);
+
     this.citationNetworkAnalyzer = new CitationNetworkAnalyzer();
     this.batchOperationHandler = new BatchOperationHandler(
       this.claimsManager,
@@ -148,7 +151,7 @@ export class ExtensionState {
       this.getAbsolutePath(this.config.extractedTextPath),
       this.workspaceRoot
     );
-    
+
     // Hook up auto-verification to claim save events (Requirement 43.1)
     this.claimsManager.onClaimSaved((claim) => {
       this.autoQuoteVerifier.verifyOnSave(claim);
@@ -158,9 +161,9 @@ export class ExtensionState {
   async initialize(): Promise<void> {
     // Set up file watchers first
     this.setupFileWatchers();
-    
+
     console.log('[ResearchAssistant] Starting data load...');
-    
+
     try {
       // Load claims synchronously before setting up watchers
       // This ensures UI components have data immediately
@@ -169,7 +172,7 @@ export class ExtensionState {
     } catch (error) {
       console.error('Failed to load claims:', error);
     }
-    
+
     try {
       // Parse outline in background (non-blocking)
       this.outlineParser.parse()
@@ -217,14 +220,14 @@ export class ExtensionState {
     const outlineWatcher = vscode.workspace.createFileSystemWatcher(
       new vscode.RelativePattern(this.workspaceRoot, this.config.outlinePath)
     );
-    
+
     outlineWatcher.onDidChange(() => {
       // Clear existing timer
       const existingTimer = this.debounceTimers.get('outline');
       if (existingTimer) {
         clearTimeout(existingTimer);
       }
-      
+
       // Set new timer to parse after 500ms of inactivity
       const timer = setTimeout(() => {
         this.outlineParser.parse().catch(error => {
@@ -232,7 +235,7 @@ export class ExtensionState {
         });
         this.debounceTimers.delete('outline');
       }, 500);
-      
+
       this.debounceTimers.set('outline', timer);
     });
 
@@ -240,21 +243,21 @@ export class ExtensionState {
     const claimsWatcher = vscode.workspace.createFileSystemWatcher(
       new vscode.RelativePattern(this.workspaceRoot, this.config.claimsDatabasePath)
     );
-    
+
     claimsWatcher.onDidChange(() => {
       // Clear existing timer
       const existingTimer = this.debounceTimers.get('claims');
       if (existingTimer) {
         clearTimeout(existingTimer);
       }
-      
+
       // Set new timer to reload after 500ms of inactivity
       const timer = setTimeout(() => {
         // Use requestReload for consolidated reloads
         this.claimsManager.requestReload();
         this.debounceTimers.delete('claims');
       }, 500);
-      
+
       this.debounceTimers.set('claims', timer);
     });
 
@@ -286,13 +289,13 @@ export class ExtensionState {
       clearTimeout(timer);
     }
     this.debounceTimers.clear();
-    
+
     // Dispose file watchers
     for (const watcher of this.fileWatchers) {
       watcher.dispose();
     }
     this.fileWatchers = [];
-    
+
     // Cleanup resources
     this.mcpClient.dispose();
     this.embeddingService.clearCache();

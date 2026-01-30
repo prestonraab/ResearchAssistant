@@ -131,6 +131,21 @@ This file contains all **Result** claims with their supporting evidence.
 > "PhenoGMM resulted in moderate to highly correlated a-diversity estimations and showed a better correspondence to the predefined community compositions compared to PhenoGrid. Estimations were just above the significance level ( P =0.05) for the latter. The performance mainly depended on the sensitivity parameter q . Estimations resulted in higher correlations for PhenoGMM when q . 0, i.e., when more weight was given to more abundant strains. This means that PhenoGMM captured the structure rather than the identity of a microbial community."
 
 
+---
+
+
+## C_61: PhenoGMM successfully quantified the community structure of most natural freshwater microbial communities
+
+**Category**: Result  
+**Source**: Rubbens2021  
+**Context**: Its ability depended on the ecosystem of study and its specific implementation.
+
+**Primary Quote**:
+> "In the second experiment, we evaluated whether and to what extent it was possible to quantify the diversity of natural freshwater microbial communities using FCM in combination with PhenoGMM."
+
+**Supporting Quotes**:
+- "Diversity estimations were highly significant for the cooling water microbiome for both approaches. The α-diversity of the microbial communities in Muskegon Lake could be successfully retrieved as well."
+
 
 ---
 

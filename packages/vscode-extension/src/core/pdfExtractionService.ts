@@ -1,20 +1,24 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
-import { MCPClientManager } from '../mcp/mcpClient';
+import * as cp from 'child_process';
+import * as util from 'util';
+
+const execFile = util.promisify(cp.execFile);
+const exec = util.promisify(cp.exec);
 
 export interface ExtractionResult {
   success: boolean;
   outputPath?: string;
-  documentKey?: string;
   error?: string;
 }
 
 export class PDFExtractionService {
+  private debug: boolean = true; // Set to false in production
+
   constructor(
-    private readonly mcpClient: MCPClientManager,
     private readonly workspaceRoot: string
-  ) {}
+  ) { }
 
   /**
    * Check if extracted text exists for a PDF file
@@ -34,29 +38,78 @@ export class PDFExtractionService {
   }
 
   /**
-   * Extract text from a PDF using Docling MCP
+   * Check if docling is installed, prompt user if missing
+   */
+  public async ensureDoclingInstalled(): Promise<boolean> {
+    try {
+      if (this.debug) console.log('DEBUG: Checking for docling availability...');
+      // Try to run docling --version to check availability
+      await exec('docling --version');
+      return true;
+    } catch (error) {
+      if (this.debug) console.log(`DEBUG: Docling check failed: ${error}`);
+
+      // If command fails, prompt the user
+      const choice = await vscode.window.showErrorMessage(
+        'The "docling" tool is required to extract text from PDFs but was not found in your environment.',
+        'Install Docling (uv)',
+        'Cancel'
+      );
+
+      if (choice === 'Install Docling (uv)') {
+        await this.installDocling();
+        // Return false here because the user needs to wait for install to finish
+        return false;
+      }
+
+      return false;
+    }
+  }
+
+  /**
+   * Open terminal to install docling via uv
+   */
+  private async installDocling(): Promise<void> {
+    // Create a terminal to show the installation process to the user
+    const terminal = vscode.window.createTerminal('Docling Installation');
+    terminal.show();
+
+    // Use uv for faster installation
+    terminal.sendText('uv pip install docling');
+
+    // Notify user
+    await vscode.window.showInformationMessage(
+      'Installing Docling via uv... Please wait for the terminal command to finish, then try extracting again.'
+    );
+  }
+
+  /**
+   * Extract text from a PDF using the local Docling CLI
    */
   public async extractText(pdfPath: string): Promise<ExtractionResult> {
     try {
-      // Check if Docling MCP is available
-      if (!this.mcpClient.isConnected('docling')) {
+      // 1. Dependency Check
+      const isInstalled = await this.ensureDoclingInstalled();
+      if (!isInstalled) {
         return {
           success: false,
-          error: 'Docling MCP server is not connected. Please check your MCP configuration.'
+          error: 'Docling is not installed or installation is pending.'
         };
       }
 
-      // Check if file exists
+      // 2. File Validation
       if (!fs.existsSync(pdfPath)) {
+        if (this.debug) console.log(`DEBUG: PDF not found at ${pdfPath}`);
         return {
           success: false,
           error: `PDF file not found: ${pdfPath}`
         };
       }
 
-      // Check if already extracted
+      // 3. Check if already extracted
       const extractedPath = this.getExtractedTextPath(pdfPath);
       if (fs.existsSync(extractedPath)) {
+        if (this.debug) console.log(`DEBUG: Skipping extraction. File exists at ${extractedPath}`);
         return {
           success: true,
           outputPath: extractedPath,
@@ -64,44 +117,55 @@ export class PDFExtractionService {
         };
       }
 
-      // Convert document using Docling MCP
-      const convertResult = await this.mcpClient.convertDocument(pdfPath);
+      if (this.debug) console.log(`DEBUG: Starting extraction for ${pdfPath}`);
 
-      if (!convertResult) {
+      // 4. Ensure Output Directory Exists
+      const outputDir = path.dirname(extractedPath);
+      if (!fs.existsSync(outputDir)) {
+        fs.mkdirSync(outputDir, { recursive: true });
+      }
+
+      // 5. Construct Docling Command
+      // Command: docling <input_path> --output <output_dir> --to md
+      const command = 'docling';
+      const args = [
+        pdfPath,
+        '--output', outputDir,
+        '--to', 'md' // Export format
+      ];
+
+      if (this.debug) console.log(`DEBUG: Running command: ${command} ${args.join(' ')}`);
+
+      // 6. Execute Python Process
+      const { stdout, stderr } = await execFile(command, args, {
+        maxBuffer: 10 * 1024 * 1024,
+        shell: process.platform === 'win32' // Needed on Windows to resolve .cmd/.exe shims
+      });
+
+      if (this.debug && stderr) console.log(`DEBUG: CLI Stderr: ${stderr}`);
+
+      // 7. Verification
+      if (fs.existsSync(extractedPath)) {
+        if (this.debug) console.log(`DEBUG: Extraction successful. Created: ${extractedPath}`);
+        return {
+          success: true,
+          outputPath: extractedPath
+        };
+      } else {
+        if (this.debug) console.error(`DEBUG: Expected output file missing. CLI Output: ${stdout}`);
         return {
           success: false,
-          error: 'Failed to convert document: No document key returned'
+          error: 'Docling ran but the output file was not found. Check if the PDF is valid.'
         };
       }
 
-      // Export to markdown
-      const markdown = await this.mcpClient.exportToMarkdown(convertResult);
-
-      if (!markdown) {
-        return {
-          success: false,
-          error: 'Failed to export document to markdown'
-        };
-      }
-
-      // Ensure output directory exists
-      const extractedTextDir = path.dirname(extractedPath);
-      if (!fs.existsSync(extractedTextDir)) {
-        fs.mkdirSync(extractedTextDir, { recursive: true });
-      }
-
-      // Write extracted text to file
-      fs.writeFileSync(extractedPath, markdown, 'utf-8');
-
-      return {
-        success: true,
-        outputPath: extractedPath,
-        documentKey: convertResult
-      };
     } catch (error) {
+      const msg = error instanceof Error ? error.message : String(error);
+      if (this.debug) console.error(`DEBUG: Extraction exception: ${msg}`);
+
       return {
         success: false,
-        error: `Extraction failed: ${error instanceof Error ? error.message : String(error)}`
+        error: `Extraction failed: ${msg}`
       };
     }
   }
@@ -115,9 +179,10 @@ export class PDFExtractionService {
   ): Promise<Map<string, ExtractionResult>> {
     const results = new Map<string, ExtractionResult>();
 
+    // Process sequentially to avoid spawning too many Python processes (CPU/RAM heavy)
     for (let i = 0; i < pdfPaths.length; i++) {
       const pdfPath = pdfPaths[i];
-      
+
       if (progressCallback) {
         progressCallback(i + 1, pdfPaths.length, path.basename(pdfPath));
       }
@@ -125,9 +190,9 @@ export class PDFExtractionService {
       const result = await this.extractText(pdfPath);
       results.set(pdfPath, result);
 
-      // Small delay to avoid overwhelming the MCP server
+      // Brief pause to let system I/O settle
       if (i < pdfPaths.length - 1) {
-        await new Promise(resolve => setTimeout(resolve, 500));
+        await new Promise(resolve => setTimeout(resolve, 200));
       }
     }
 

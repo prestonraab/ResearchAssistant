@@ -46,7 +46,7 @@ This file contains all **Impact** claims with their supporting evidence.
 ## C_99: The Precision Medicine Initiative aims to enable prevention and treatment strategies that account for individual variability
 
 **Category**: Impact  
-**Source**: Collins and Varmus 2015 A New Initiative on Precision Medicine  
+**Source**: Collins2015  
 **Context**: Launched in 2015 to accelerate biomedical discoveries and provide clinicians with new tools.
 
 **Primary Quote**:
