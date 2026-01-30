@@ -26,37 +26,37 @@
 
 **What data is used for biomedical classification?** <!-- [undefined] --> Biomedical classification tasks are not limited to gene expression, but can utilize diverse data types, including protein abundance measurements, genomic sequences, clinical variables, and imaging data.  Each of these data modalities provides complementary information about biological systems and disease mechanisms. <!-- Source: C_05 -->
 
-**How do batch effects sources vary by data type?** <!-- [undefined] --> No modality is immune to batch effects. Batch effects arise from differences in experimental protocols, equipment type and condition, reagent lots, environmental conditions, and other technical factors that vary between studies or even within studies over time. TASK: detail specific types of data, explain similarities and differences. <!-- Source: C_01, C_02 -->
+**How do batch effects sources vary by data type?** <!-- [undefined] --> No modality is immune to batch effects, though many clinical variables are resilient. Batch effects arise from differences in experimental protocols, equipment type and condition, reagent lots, environmental conditions, and other technical factors that vary between studies or even within studies over time. TASK: detail specific types of data, explain similarities and differences. <!-- Source: C_01, C_02 -->
 
-**Why does batch effect mitigation matter clinically?** <!-- [undefined] --> If batch effects go undetected, predictors developed for clinical outcomes may produce results that are more variable than expected, resulting in lower-than-expected classification rates that might put patients at risk.  Even modest drops in classifier performance due to batch effects can mean the difference between accurate diagnosis and misclassification.
+**What type of data will this chapter focus on?** <!-- [DRAFT] --> For our purposes, and without loss of generality, we will focus on RNA sequencing (RNA-seq) data, which has become the dominant technology for measuring gene expression. <!-- Source: C_31 -->
 
-**How important is single-patient data?** <!-- [DRAFT] --> Single-patient data processing is vital to the translation of molecular assays, as patient samples in clinical settings are typically collected in small numbers, often one at a time, making batch effect correction essential for clinical translation.
-
-**New question?** <!-- [DRAFT] --> However, many correction techniques rely on several samples to characterize the distribution of the new batch.
-
-**How can batch effects can be remedied?** <!-- [undefined] --> Statistical adjustment methods, commonly referred to as adjusters or batch correction methods, aim to remove technical variation while preserving biological signal.  The balance between these objectives varies across methods and contexts. <!-- Source: C_01, C_02 -->
+**Why gene expression?** <!-- [PARTIAL] --> Gene expression data provide an excellent context for understanding how batch effects can be modeled and removed, as the technical variation introduced by sequencing technologies is well-characterized and substantial. Insights from gene expression are extensible to other modalities. <!-- Source: C_07 -->
 
 
 
 ## Focus on Gene Expression Data
 
-**What type of data will this chapter focus on?** <!-- [undefined] --> For our purposes, and without loss of generality, we will focus on RNA sequencing (RNA-seq) data, which has become the dominant technology for measuring gene expression in modern genomics research.
+**How are gene expression data generated and used within biological/biomedical research?** <!-- [undefined] --> Gene expression data are generated through high-throughput sequencing technologies that quantify the abundance of RNA transcripts in biological samples.  These measurements provide a snapshot of cellular activity, reflecting which genes are actively transcribed under specific conditions, disease states, or in response to treatments.  Within biological and biomedical research, gene expression data enable the identification of disease-associated pathways, the discovery of therapeutic targets, and the development of diagnostic and prognostic biomarkers. <!-- Source: C_02 -->
 
-**How is gene expression data generated and used within biological/biomedical research?** <!-- [undefined] --> Gene expression data are generated through high-throughput sequencing technologies that quantify the abundance of RNA transcripts in biological samples.  These measurements provide a snapshot of cellular activity, reflecting which genes are actively transcribed under specific conditions, disease states, or in response to treatments.  Within biological and biomedical research, gene expression data enable the identification of disease-associated pathways, the discovery of therapeutic targets, and the development of diagnostic and prognostic biomarkers. <!-- Source: C_02 -->
+**Define RNA-seq and GEO ONCE** <!-- [undefined] --> The Gene Expression Omnibus (GEO) serves as a critical international public repository for such data, with over 200,000 studies and 6.5 million samples. GEO enables broad access to vast collections of gene expression and epigenomics data  in addition to relevant clinical variables. <!-- Source: C_31 -->
 
-**How available is gene expression data?** <!-- [DRAFT] --> Large quantities of gene expression data are publically available. With over 200,000 studies and 6.5 million samples, GEO facilitates the generation of consistently computed RNA-seq count matrices.
+**Microarrays too** <!-- [DRAFT] --> GEO stores data collected using both RNA-seq microarrays, an older technology which ...
 
-**How is public gene expression data used?** <!-- [DRAFT] --> This wealth of data is widely reused for diverse applications, including identifying novel gene expression patterns, finding disease predictors, and developing computational methods.  Yet the utility of this data is contingent upon our ability to mitigate technical noise. <!-- Source: C_35 -->
-
-**Define RNA-seq and GEO ONCE** <!-- [undefined] --> The Gene Expression Omnibus (GEO) serves as a critical international public repository for such data, archiving vast collections of gene expression and epigenomics data from both next-generation sequencing and microarray technologies.  With over 200,000 studies and 6.5 million samples, GEO facilitates the generation of consistently computed RNA-seq count matrices and offers web-based tools like GEO2R for differential gene expression analysis.  The repository has seen a significant shift towards next-generation sequencing, with NGS comprising 85% of submissions and RNA-seq representing over half of all studies since 2018, while single-cell RNA-seq studies have grown to 21% of all RNA-seq studies by 2022.  This wealth of data is widely reused for diverse applications, including identifying novel gene expression patterns, finding disease predictors, and developing computational methods. <!-- Source: C_31 -->
-
-**What is the key framing about gene expression and batch effects?** <!-- [undefined] --> Gene expression data provide an excellent context for understanding how batch effects can be modeled and removed, as the technical variation introduced by sequencing technologies is well-characterized and substantial. <!-- Source: C_07 -->
+**How is public gene expression data used?** <!-- [undefined] --> This wealth of data is widely reused for diverse applications, including identifying novel gene expression patterns, finding disease predictors, and developing computational methods.  Yet the utility of this data is contingent upon our ability to mitigate technical noise. <!-- Source: C_35 -->
 
 **How should dataset integration be revisited for gene expression?** <!-- [undefined] --> Integrating gene expression data across multiple studies offers substantial benefits: increased sample sizes improve the robustness of classifiers, independent validation cohorts provide evidence of generalizability, and meta-analyses can reveal consistent patterns across diverse populations.  However, batch effects pose particular challenges for gene expression data due to the sensitivity of sequencing technologies to technical variation.
 
 **What is the key insight about batch effect magnitude?** <!-- [undefined] --> These technical artifacts can be substantial—often comparable to or larger than the biological signals of interest—making them a primary concern when combining datasets. <!-- Source: C_07 -->
 
 **What specific effects do batches have on gene expression?** <!-- [undefined] --> Batch effects manifest in gene expression data as systematic shifts in expression levels between batches, differences in variance structure, and alterations in the relationships between genes.  For RNA-seq count data specifically, the data are typically skewed and over-dispersed, which complicates batch correction methods that assume Gaussian distributions.  This phenomenon, where batch effects confound performance estimates, represents a critical challenge in developing generalizable classifiers. <!-- Source: C_07 -->
+
+**Why does batch effect mitigation matter clinically?** <!-- [undefined] --> If batch effects go undetected, predictors developed for clinical outcomes may produce results that are more variable than expected, resulting in lower-than-expected classification rates that might put patients at risk.  Even modest drops in classifier performance due to batch effects can mean the difference between accurate diagnosis and misclassification.
+
+**How important is single-patient data?** <!-- [undefined] --> Single-patient data processing is vital to the translation of molecular assays, as patient samples in clinical settings are typically collected in small numbers, often one at a time, making batch effect correction essential for clinical translation.
+
+**New question?** <!-- [undefined] --> However, many correction techniques rely on several samples to characterize the distribution of the new batch.
+
+**How can batch effects can be remedied?** <!-- [undefined] --> Statistical adjustment methods, commonly referred to as adjusters or batch correction methods, aim to remove technical variation while preserving biological signal.  The balance between these objectives varies across methods and contexts. <!-- Source: C_01, C_02 -->
 
 
 
