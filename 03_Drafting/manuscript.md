@@ -55,7 +55,7 @@
 
 **How do adjusters work?** <!-- [undefined] --> Adjusters work by modeling and removing systematic technical variation introduced by batch effects, thereby improving the ability of downstream classifiers to distinguish true biological differences from artifacts.  These methods operate under the assumption that the underlying biological signal is consistent across batches, and that technical variation can be separated from biological variation.  
 
-**What are some common approaches?** <!-- [undefined] --> Common approaches include ComBat, which uses empirical Bayes methods to adjust for batch effects by modeling batch-specific shifts and scaling factors
+**What are some common approaches?** <!-- [undefined] --> Common approaches include ComBat, which uses empirical Bayes methods to adjust for batch effects by modeling batch-specific shifts and scaling factors. <!-- Source: C_01 -->
 
 
 ## Confounding

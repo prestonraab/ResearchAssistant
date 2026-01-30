@@ -586,7 +586,7 @@ export class EditingModeProvider {
       }
 
       // Small delay to ensure claim is persisted before opening review
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise(resolve => setTimeout(resolve, 50));
 
       // Open claim review interface to search for supporting quotes
       await vscode.commands.executeCommand('researchAssistant.openClaimReview', claimId);
