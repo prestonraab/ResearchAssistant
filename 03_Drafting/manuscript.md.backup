@@ -28,9 +28,9 @@
 
 **How do batch effects sources vary by data type?** <!-- [undefined] --> No modality is immune to batch effects, though many clinical variables are resilient. Batch effects arise from differences in experimental protocols, equipment type and condition, reagent lots, environmental conditions, and other technical factors that vary between studies or even within studies over time. TASK: detail specific types of data, explain similarities and differences. <!-- Source: C_01, C_02 -->
 
-**What type of data will this chapter focus on?** <!-- [DRAFT] --> For our purposes, and without loss of generality, we will focus on RNA sequencing (RNA-seq) data, which has become the dominant technology for measuring gene expression. <!-- Source: C_31 -->
+**What type of data will this chapter focus on?** <!-- [undefined] --> For our purposes, and without loss of generality, we will focus on RNA sequencing (RNA-seq) data, which has become the dominant technology for measuring gene expression. <!-- Source: C_31 -->
 
-**Why gene expression?** <!-- [PARTIAL] --> Gene expression data provide an excellent context for understanding how batch effects can be modeled and removed, as the technical variation introduced by sequencing technologies is well-characterized and substantial. Insights from gene expression are extensible to other modalities. <!-- Source: C_07 -->
+**Why gene expression?** <!-- [undefined] --> Gene expression data provide an excellent context for understanding how batch effects can be modeled and removed, as the technical variation introduced by sequencing technologies is well-characterized and substantial. Insights from gene expression are extensible to other modalities. <!-- Source: C_07 -->
 
 
 
@@ -40,19 +40,45 @@
 
 **How can researchers access gene expression data?** <!-- [undefined] --> The Gene Expression Omnibus (GEO) serves as a critical international public repository for such data, with over 200,000 studies and 6.5 million samples. GEO enables broad access to vast collections of gene expression and epigenomics data  in addition to relevant clinical variables. <!-- Source: C_31 -->
 
-**Microarrays too** <!-- [DRAFT] --> GEO stores data collected using both RNA-seq microarrays, an older technology which ...
+**What are microarrays?** <!-- [undefined] --> GEO stores data collected using both RNA-seq microarrays, an older technology which ...
 
 **How is public gene expression data used?** <!-- [undefined] --> This wealth of data is widely reused for diverse applications, including identifying novel gene expression patterns, finding disease predictors, and developing computational methods.  <!-- Source: C_35 -->
 
-**How should dataset integration be revisited for gene expression?** <!-- [undefined] --> Integrating gene expression data across multiple studies offers substantial benefits: increased sample sizes improve the robustness of classifiers, independent validation cohorts provide evidence of generalizability, and meta-analyses can reveal consistent patterns across diverse populations.
+**Why integrate gene expression datasets?** <!-- [undefined] --> Integrating gene expression data across multiple studies offers substantial benefits: increased sample sizes improve the robustness of classifiers, independent validation cohorts provide evidence of generalizability, and meta-analyses can reveal consistent patterns across diverse populations.
 
-**What is the key insight about batch effect magnitude?** <!-- [undefined] --> However, batch effects pose particular challenges for gene expression data due to the sensitivity of sequencing technologies to technical variation. These technical artifacts can be substantial—often comparable to or larger than the biological signals of interest—making them a primary concern when combining datasets. <!-- Source: C_07 -->
+**How sensitive is gene expression to batch effects?** <!-- [undefined] --> However, batch effects pose particular challenges for gene expression data due to the sensitivity of sequencing technologies to technical variation. These technical artifacts can be substantial—often comparable to or larger than the biological signals of interest—making them a primary concern when combining datasets. <!-- Source: C_07 -->
 
 **What specific effects do batches have on gene expression?** <!-- [undefined] --> Batch effects manifest in gene expression data as systematic shifts in expression levels between batches, differences in variance structure, and alterations in the relationships between genes. <!-- Source: C_07 -->
 
-**What is confounding?** <!-- [DRAFT] --> These batch effects mimic real differences in expression levels and covariance structures between batches. Removing all differences can erase true differences between datasets. For example, one study might have a higher proportion of females than another study. It might be difficult to determine whether the differences in gene expression are technical artifact that should be removed, or true differences due to the sex imbalance between datasets. We might say that the batch effect is "confounded" with sex—the effect of the batch is somewhat tied to the effect of the sex imbalance on gene expression.
 
-**How can confounding be resolved?** <!-- [DRAFT] --> Confounding can often be removed if the batches are known and the values of the confounding variables are known. If these other variables are not known, population differences can masquerade as
+
+## Adjusters for Gene Expression
+
+**How do adjusters work?** <!-- [undefined] --> Adjusters work by modeling and removing systematic technical variation introduced by batch effects, thereby improving the ability of downstream classifiers to distinguish true biological differences from artifacts.  These methods operate under the assumption that the underlying biological signal is consistent across batches, and that technical variation can be separated from biological variation.
+
+**What are some common approaches?** <!-- [undefined] --> Common approaches include ComBat, which uses empirical Bayes methods to adjust for batch effects by modeling batch-specific shifts and scaling factors. <!-- Source: C_01 -->
+
+
+
+## Confounding
+
+**What is confounding?** <!-- [undefined] --> These batch effects mimic real differences in expression levels and covariance structures between batches. Removing all differences can erase true differences between datasets. For example, one study might have a higher proportion of females than another study. It might be difficult to determine whether the differences in gene expression are technical artifact that should be removed, or true differences due to the sex imbalance between datasets. We might say that the batch effect is "confounded" with sex—the effect of the batch is somewhat tied to the effect of the sex imbalance on gene expression.
+
+**How can confounding be resolved?** <!-- [undefined] --> Confounding can often be removed if the batches are known and the values of the confounding variables are known.
+
+**How specifically does Combat account for confounding?** <!-- [undefined] --> 
+
+**When is confounding difficult to overcome?** <!-- [undefined] --> If these other variables are not known, population differences can masquerade as technical artifacts.
+
+**How should unknown batch effects be positioned?** <!-- [undefined] --> Briefly acknowledge unknown batch effects and SVA, but clearly scope them as beyond the chapter's focus on known batch correction.
+
+**First mention of SVA: Define the problem** <!-- [undefined] --> In some cases, batch labels may be unknown or only partially known, particularly when working with publicly available data where experimental metadata may be incomplete.  Sometimes we don't know the batch labels—especially with public data where complete experimental metadata may not be provided.  Methods such as surrogate variable analysis (SVA) can identify and adjust for unknown batch effects by extracting surrogate variables from high-dimensional data that capture unwanted effects.  SVA was introduced by Leek and Storey (2007) to model unknown, latent sources of variation in genomics data, and is available in the Bioconductor sva package.  This topic extends beyond the scope of the present chapter, which focuses on supervised batch correction methods where batch labels are known.  A second discussion of SVA appears in "The Horizon" section, where we examine how SVA is being integrated into modern automated pipelines for advanced applications.
+
+**Transition to classifiers** <!-- [undefined] --> We now transition to examining the classifiers themselves, followed by the adjustment methods designed to address batch effects, and finally the interaction between these two components in determining overall classification performance.
+
+
+
+## Extras
 
 **Why does batch effect mitigation matter clinically?** <!-- [undefined] --> If batch effects go undetected, predictors developed for clinical outcomes may produce results that are more variable than expected, resulting in lower-than-expected classification rates that might put patients at risk.  Even modest drops in classifier performance due to batch effects can mean the difference between accurate diagnosis and misclassification.
 
@@ -61,16 +87,6 @@
 **New question?** <!-- [undefined] --> However, many correction techniques rely on several samples to characterize the distribution of the new batch.
 
 **How can batch effects can be remedied?** <!-- [undefined] --> Statistical adjustment methods, commonly referred to as adjusters or batch correction methods, aim to remove technical variation while preserving biological signal.  The balance between these objectives varies across methods and contexts. <!-- Source: C_01, C_02 -->
-
-
-
-## Unknown Batch Effects
-
-**How should unknown batch effects be positioned?** <!-- [undefined] --> Briefly acknowledge unknown batch effects and SVA, but clearly scope them as beyond the chapter's focus on known batch correction.
-
-**First mention of SVA: Define the problem** <!-- [undefined] --> In some cases, batch labels may be unknown or only partially known, particularly when working with publicly available data where experimental metadata may be incomplete.  Sometimes we don't know the batch labels—especially with public data where complete experimental metadata may not be provided.  Methods such as surrogate variable analysis (SVA) can identify and adjust for unknown batch effects by extracting surrogate variables from high-dimensional data that capture unwanted effects.  SVA was introduced by Leek and Storey (2007) to model unknown, latent sources of variation in genomics data, and is available in the Bioconductor sva package.  This topic extends beyond the scope of the present chapter, which focuses on supervised batch correction methods where batch labels are known.  A second discussion of SVA appears in "The Horizon" section, where we examine how SVA is being integrated into modern automated pipelines for advanced applications.
-
-**Transition to classifiers** <!-- [undefined] --> We now transition to examining the classifiers themselves, followed by the adjustment methods designed to address batch effects, and finally the interaction between these two components in determining overall classification performance.
 
 
 
