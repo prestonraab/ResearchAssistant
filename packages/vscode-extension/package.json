@@ -15,12 +15,7 @@
   "categories": [
     "Other"
   ],
-  "activationEvents": [
-    "onCommand:researchAssistant.activate",
-    "onCommand:researchAssistant.openWritingMode",
-    "onCommand:researchAssistant.openEditingMode",
-    "onView:researchAssistant.outline"
-  ],
+  "activationEvents": [],
   "main": "./dist/extension.js",
   "contributes": {
     "commands": [
@@ -533,7 +528,7 @@
     "build": "npm run compile && npm run bundle",
     "compile": "tsc -p ./",
     "watch": "tsc -watch -p ./",
-    "bundle": "NODE_OPTIONS='--max-old-space-size=4096' esbuild src/extension.ts --bundle --outfile=dist/extension.js --external:vscode --format=cjs --platform=node --minify",
+    "bundle": "NODE_OPTIONS='--max-old-space-size=4096' esbuild src/extension.ts --bundle --outfile=dist/extension.js --external:vscode --external:openai --format=cjs --platform=node --minify --tree-shaking=true",
     "bundle:watch": "npm run bundle -- --watch",
     "test": "NODE_OPTIONS='--max-old-space-size=4096 --experimental-vm-modules' jest",
     "test:watch": "NODE_OPTIONS='--experimental-vm-modules' jest --watch",

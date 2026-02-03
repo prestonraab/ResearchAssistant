@@ -16,3 +16,13 @@ tsconfig.json
 **/.DS_Store
 __tests__/**
 .cache/**
+coverage/**
+*.vsix
+*.tsbuildinfo
+.kiro/**
+*.test.ts
+*.test.js
+**/__tests__/**
+**/__mocks__/**
+.eslintignore
+media/**/*.backup

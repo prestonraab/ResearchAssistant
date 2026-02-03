@@ -2,6 +2,14 @@ import * as vscode from 'vscode';
 import { ExtensionState } from '../core/state';
 import type { Claim } from '@research-assistant/core';
 import type { OutlineSection } from '@research-assistant/core';
+import {
+  shouldTriggerCompletion,
+  sortClaimsBySection,
+  generateCompletionData,
+  findSectionAtLine,
+  extractHeaderFromLine,
+  findSectionByTitle
+} from '../core/claimCompletionLogic';
 
 export class ClaimCompletionProvider implements vscode.CompletionItemProvider {
   constructor(private state: ExtensionState) {}
@@ -15,8 +23,8 @@ export class ClaimCompletionProvider implements vscode.CompletionItemProvider {
     // Get the line text up to the cursor position
     const linePrefix = document.lineAt(position).text.substring(0, position.character);
     
-    // Check if we should trigger completion (looking for "C_" pattern)
-    if (!linePrefix.endsWith('C_')) {
+    // Check if we should trigger completion (using pure function)
+    if (!shouldTriggerCompletion(linePrefix)) {
       return undefined;
     }
 
@@ -30,10 +38,10 @@ export class ClaimCompletionProvider implements vscode.CompletionItemProvider {
     // Determine current section context
     const currentSection = await this.getCurrentSection(document, position);
     
-    // Sort claims by relevance to current section
-    const sortedClaims = await this.sortClaimsByRelevance(claims, currentSection);
+    // Sort claims by relevance to current section (using pure function)
+    const sortedClaims = sortClaimsBySection(claims, currentSection?.id || null);
 
-    // Create completion items
+    // Create completion items (using pure function for data generation)
     const completionItems = sortedClaims.map(claim => 
       this.createCompletionItem(claim, currentSection)
     );
@@ -49,9 +57,9 @@ export class ClaimCompletionProvider implements vscode.CompletionItemProvider {
     const outlinePath = this.state.getAbsolutePath(this.state.getConfig().outlinePath);
     
     if (document.uri.fsPath === outlinePath) {
-      // Get section at cursor position
+      // Get section at cursor position (using pure function)
       const sections = await this.state.outlineParser.parse();
-      return this.findSectionAtLine(sections, position.line);
+      return findSectionAtLine(sections, position.line);
     }
 
     // For other files, try to detect section from nearby headers
