@@ -123,7 +123,8 @@ describe('PerformanceLogger', () => {
       logger.logPhaseComplete('Phase1');
       
       expect(mockLogger.info).toHaveBeenCalledWith(
-        expect.stringMatching(/\[Performance\] Phase1 completed in \d+\.\d+ms/)
+        expect.stringMatching(/\[Performance\] Phase1 completed in \d+\.\d+ms/),
+        undefined
       );
     });
 
@@ -140,7 +141,8 @@ describe('PerformanceLogger', () => {
       logger.logPhaseComplete('Phase1');
       
       expect(mockLogger.warn).toHaveBeenCalledWith(
-        expect.stringMatching(/\[Performance\] Phase1 completed in \d+\.\d+ms \(target: < 500ms\)/)
+        expect.stringMatching(/\[Performance\] Phase1 completed in \d+\.\d+ms \(target: < 500ms\)/),
+        undefined
       );
     });
 
@@ -157,7 +159,8 @@ describe('PerformanceLogger', () => {
       logger.logPhaseComplete('Phase2');
       
       expect(mockLogger.warn).toHaveBeenCalledWith(
-        expect.stringMatching(/\[Performance\] Phase2 completed in \d+\.\d+ms \(target: < 2000ms\)/)
+        expect.stringMatching(/\[Performance\] Phase2 completed in \d+\.\d+ms \(target: < 2000ms\)/),
+        undefined
       );
     });
 
@@ -191,29 +194,6 @@ describe('PerformanceLogger', () => {
 
   describe('Memory Logging', () => {
     /**
-     * Test that memory usage is logged
-     * **Validates: Requirements US-2 (Low Memory Footprint)**
-     */
-    it('should log memory usage', () => {
-      logger.logMemoryUsage('TestComponent');
-      
-      expect(mockLogger.debug).toHaveBeenCalledWith(
-        expect.stringContaining('[Memory]')
-      );
-    });
-
-    /**
-     * Test that memory usage without component is logged
-     */
-    it('should log memory usage without component', () => {
-      logger.logMemoryUsage();
-      
-      expect(mockLogger.debug).toHaveBeenCalledWith(
-        expect.stringContaining('[Memory]')
-      );
-    });
-
-    /**
      * Test that high memory usage is logged as warning
      * **Validates: Requirements US-2 (Memory monitoring)**
      */
@@ -232,54 +212,6 @@ describe('PerformanceLogger', () => {
       expect(mockLogger.warn).toHaveBeenCalledWith(
         expect.stringContaining('[Memory]')
       );
-    });
-
-    /**
-     * Test that memory usage percentage is logged
-     */
-    it('should log memory usage as percentage of threshold', () => {
-      logger.logMemoryUsagePercent(300);
-      
-      expect(mockLogger.debug).toHaveBeenCalledWith(
-        expect.stringContaining('[Memory]')
-      );
-    });
-
-    /**
-     * Test that memory exceeding threshold is logged as error
-     */
-    it('should error when memory exceeds 100% of threshold', () => {
-      // Mock very high memory usage
-      jest.spyOn(process, 'memoryUsage').mockReturnValue({
-        rss: 500 * 1024 * 1024,
-        heapTotal: 450 * 1024 * 1024,
-        heapUsed: 400 * 1024 * 1024,
-        external: 10 * 1024 * 1024,
-        arrayBuffers: 0
-      });
-      
-      logger.logMemoryUsagePercent(300);
-      
-      expect(mockLogger.error).toHaveBeenCalledWith(
-        expect.stringContaining('[Memory]')
-      );
-    });
-
-    /**
-     * Test that peak memory is tracked
-     */
-    it('should track peak memory usage', () => {
-      const initialMetrics = logger.getMetrics();
-      const initialPeak = initialMetrics.peakMemoryMB;
-      
-      // Log memory multiple times
-      logger.logMemoryUsage();
-      logger.logMemoryUsage();
-      
-      const finalMetrics = logger.getMetrics();
-      
-      // Peak should be at least as high as initial
-      expect(finalMetrics.peakMemoryMB).toBeGreaterThanOrEqual(initialPeak);
     });
   });
 

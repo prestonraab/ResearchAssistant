@@ -61,6 +61,7 @@ describe('ManuscriptContextDetector', () => {
   const coverageThresholds = { low: 3, moderate: 6, strong: 7 };
 
   beforeEach(() => {
+    setupFsMock();
     // Create mock claims manager
     mockClaimsManager = {
       getClaims: jest.fn().mockReturnValue([]),

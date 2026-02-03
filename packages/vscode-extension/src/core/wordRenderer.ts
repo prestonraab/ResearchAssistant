@@ -3,6 +3,11 @@
  * 
  * This module provides a renderer that transforms a DocumentModel into
  * a valid Microsoft Word document (.docx) using the docx library.
+ * 
+ * This is a facade that coordinates the rendering of different document elements:
+ * - Tables (via WordTableRenderer)
+ * - Images (via WordImageRenderer)
+ * - Formatting (via wordFormattingUtils)
  */
 
 import {
@@ -18,8 +23,7 @@ import {
   TableRow,
   TableCell,
   WidthType,
-  BorderStyle,
-  AlignmentType
+  BorderStyle
 } from 'docx';
 
 import type {
@@ -33,50 +37,33 @@ import type {
   DocumentTable
 } from './documentModel';
 
-import * as fs from 'fs';
+import { WordTableRenderer } from './exporters/wordTableRenderer';
+import { WordImageRenderer } from './exporters/wordImageRenderer';
+import {
+  WORD_STYLES,
+  getHeadingStyle,
+  mapHeadingLevel,
+  formatFootnoteContent,
+  formatBibliographyEntry
+} from './exporters/wordFormattingUtils';
+
+import * as fs from 'fs/promises';
 import * as path from 'path';
 
 /**
- * Configuration for Word document styles
- */
-const WORD_STYLES = {
-  body: {
-    font: 'Times New Roman',
-    size: 24 // 12pt in half-points
-  },
-  heading1: {
-    font: 'Times New Roman',
-    size: 32, // 16pt
-    bold: true
-  },
-  heading2: {
-    font: 'Times New Roman',
-    size: 28, // 14pt
-    bold: true
-  },
-  heading3: {
-    font: 'Times New Roman',
-    size: 26, // 13pt
-    bold: true
-  },
-  footnote: {
-    font: 'Times New Roman',
-    size: 20 // 10pt
-  },
-  bibliography: {
-    font: 'Times New Roman',
-    size: 24 // 12pt
-  }
-};
-
-/**
  * Renders a DocumentModel to a Word document buffer
+ * 
+ * This is a facade that coordinates rendering of different document elements.
  */
 export class WordRenderer {
   private footnoteMap: Map<number, DocumentFootnote>;
+  private tableRenderer: WordTableRenderer;
+  private imageRenderer: WordImageRenderer;
 
   constructor(model?: DocumentModel) {
     this.footnoteMap = new Map();
+    this.tableRenderer = new WordTableRenderer();
+    this.imageRenderer = new WordImageRenderer();
     if (model) {
       for (const footnote of model.metadata.footnotes) {
         this.footnoteMap.set(footnote.id, footnote);
@@ -168,18 +155,8 @@ export class WordRenderer {
    * @returns A Word Paragraph object
    */
   private createHeadingParagraph(text: string, level: number): Paragraph {
-    // Map heading level to Word HeadingLevel enum
-    const headingLevels = [
-      HeadingLevel.HEADING_1,
-      HeadingLevel.HEADING_2,
-      HeadingLevel.HEADING_3,
-      HeadingLevel.HEADING_4,
-      HeadingLevel.HEADING_5,
-      HeadingLevel.HEADING_6
-    ];
-
-    const headingLevel = headingLevels[Math.min(level - 1, 5)] || HeadingLevel.HEADING_1;
-    const style = this.getHeadingStyle(level);
+    const headingLevel = mapHeadingLevel(level);
+    const style = getHeadingStyle(level);
 
     return new Paragraph({
       text,
@@ -194,25 +171,6 @@ export class WordRenderer {
   }
 
   /**
-   * Get the style configuration for a heading level (6.2)
-   * 
-   * @param level The heading level
-   * @returns Style configuration object
-   */
-  private getHeadingStyle(level: number): { font: string; size: number; bold: boolean } {
-    switch (level) {
-      case 1:
-        return WORD_STYLES.heading1;
-      case 2:
-        return WORD_STYLES.heading2;
-      case 3:
-        return WORD_STYLES.heading3;
-      default:
-        return WORD_STYLES.heading1;
-    }
-  }
-
-  /**
    * Create body content from a paragraph (may include text, images, or tables)
    * 
    * @param paragraph The document paragraph
@@ -221,41 +179,45 @@ export class WordRenderer {
   private createBodyContent(paragraph: DocumentParagraph): Paragraph | Table | Array<Paragraph | Table> {
     // Check if this is a table paragraph
     if (paragraph.runs.length === 1 && paragraph.runs[0].type === 'table') {
-      return this.createTable(paragraph.runs[0].table!);
+      return this.tableRenderer.createTable(paragraph.runs[0].table!);
     }
-    
+
     // Check if paragraph contains images
     const hasImages = paragraph.runs.some(run => run.type === 'image');
-    
+
     if (hasImages) {
       // Split into multiple paragraphs if needed
       const content: Array<Paragraph | Table> = [];
       let currentRuns: (TextRun | FootnoteReferenceRun | ImageRun)[] = [];
-      
+
       for (const run of paragraph.runs) {
         if (run.type === 'image') {
           // Flush current runs as a paragraph
           if (currentRuns.length > 0) {
-            content.push(new Paragraph({
-              children: currentRuns,
-              spacing: {
-                line: 480,
-                lineRule: 'auto'
-              }
-            }));
+            content.push(
+              new Paragraph({
+                children: currentRuns,
+                spacing: {
+                  line: 480,
+                  lineRule: 'auto'
+                }
+              })
+            );
             currentRuns = [];
           }
-          
+
           // Add image as its own paragraph
-          const imageRun = this.createImageRun(run.image!);
+          const imageRun = this.imageRenderer.createImageRun(run.image!);
           if (imageRun) {
-            content.push(new Paragraph({
-              children: [imageRun],
-              spacing: {
-                before: 200,
-                after: 200
-              }
-            }));
+            content.push(
+              new Paragraph({
+                children: [imageRun],
+                spacing: {
+                  before: 200,
+                  after: 200
+                }
+              })
+            );
           }
         } else if (run.type === 'text') {
           currentRuns.push(
@@ -269,117 +231,25 @@ export class WordRenderer {
           currentRuns.push(new FootnoteReferenceRun(run.footnoteId));
         }
       }
-      
+
       // Flush remaining runs
       if (currentRuns.length > 0) {
-        content.push(new Paragraph({
-          children: currentRuns,
-          spacing: {
-            line: 480,
-            lineRule: 'auto'
-          }
-        }));
+        content.push(
+          new Paragraph({
+            children: currentRuns,
+            spacing: {
+              line: 480,
+              lineRule: 'auto'
+            }
+          })
+        );
       }
-      
+
       return content;
     }
-    
+
     // Regular paragraph with text and footnotes
     return this.createBodyParagraph(paragraph);
-  }
-
-  /**
-   * Create an image run from DocumentImage
-   * 
-   * @param image The image data
-   * @returns ImageRun or null if image file not found
-   */
-  private createImageRun(image: DocumentImage): ImageRun | null {
-    try {
-      // Check if file exists
-      if (!fs.existsSync(image.path)) {
-        console.warn(`Image file not found: ${image.path}`);
-        return null;
-      }
-      
-      // Read image data
-      const imageData = fs.readFileSync(image.path);
-      
-      // Determine image dimensions (use provided or default)
-      const width = image.width || 600;
-      const height = image.height || 400;
-      
-      // Determine image type from extension
-      const ext = path.extname(image.path).toLowerCase();
-      const imageType = ext === '.png' ? 'png' : 'jpg';
-      
-      return new ImageRun({
-        data: imageData,
-        transformation: {
-          width,
-          height
-        },
-        type: imageType
-      });
-    } catch (error) {
-      console.error(`Error loading image ${image.path}:`, error);
-      return null;
-    }
-  }
-
-  /**
-   * Create a Word table from DocumentTable
-   * 
-   * @param table The table data
-   * @returns Table object
-   */
-  private createTable(table: DocumentTable): Table {
-    const rows: TableRow[] = [];
-    
-    for (let i = 0; i < table.rows.length; i++) {
-      const rowData = table.rows[i];
-      const isHeader = table.hasHeader && i === 0;
-      
-      const cells = rowData.map(cellText => 
-        new TableCell({
-          children: [
-            new Paragraph({
-              children: [
-                new TextRun({
-                  text: cellText,
-                  font: WORD_STYLES.body.font,
-                  size: WORD_STYLES.body.size,
-                  bold: isHeader
-                })
-              ]
-            })
-          ],
-          shading: isHeader ? {
-            fill: 'D9D9D9' // Light gray for header
-          } : undefined
-        })
-      );
-      
-      rows.push(new TableRow({
-        children: cells
-      }));
-    }
-    
-    return new Table({
-      rows,
-      width: {
-        size: 100,
-        type: WidthType.PERCENTAGE
-      },
-      borders: {
-        top: { style: BorderStyle.SINGLE, size: 1 },
-        bottom: { style: BorderStyle.SINGLE, size: 1 },
-        left: { style: BorderStyle.SINGLE, size: 1 },
-        right: { style: BorderStyle.SINGLE, size: 1 },
-        insideHorizontal: { style: BorderStyle.SINGLE, size: 1 },
-        insideVertical: { style: BorderStyle.SINGLE, size: 1 }
-      }
-    });
   }
 
   /**
@@ -428,7 +298,7 @@ export class WordRenderer {
     const footnotesObj: Record<number, { children: Paragraph[] }> = {};
 
     for (const footnote of footnotes) {
-      const content = this.buildFootnoteContent(footnote);
+      const content = formatFootnoteContent(footnote.quoteText, footnote.source, footnote.year);
       footnotesObj[footnote.id] = {
         children: [
           new Paragraph({
@@ -445,31 +315,6 @@ export class WordRenderer {
     }
 
     return footnotesObj;
-  }
-
-  /**
-   * Build the content of a footnote from quote text and source (6.4)
-   * 
-   * @param footnote The footnote to format
-   * @returns Formatted footnote content string
-   */
-  private buildFootnoteContent(footnote: DocumentFootnote): string {
-    const parts: string[] = [];
-
-    // Add quote text
-    if (footnote.quoteText) {
-      parts.push(footnote.quoteText);
-    }
-
-    // Add source and year
-    if (footnote.source) {
-      const sourceStr = footnote.year
-        ? `${footnote.source}, ${footnote.year}`
-        : footnote.source;
-      parts.push(sourceStr);
-    }
-
-    return parts.join(' --- ');
   }
 
   /**
@@ -497,8 +342,7 @@ export class WordRenderer {
 
     // Add each bibliography entry (6.5)
     for (const entry of entries) {
-      const year = entry.year ? ` (${entry.year})` : '';
-      const formattedEntry = `${entry.source}${year}`;
+      const formattedEntry = formatBibliographyEntry(entry.source, entry.year);
 
       paragraphs.push(
         new Paragraph({

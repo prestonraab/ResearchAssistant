@@ -4,14 +4,14 @@ import { ZoteroClient, ZoteroItem } from '@research-assistant/core';
 import { ManuscriptContextDetector } from '../core/manuscriptContextDetector';
 import * as vscode from 'vscode';
 import * as fs from 'fs';
-import { 
+import {  
   setupTest, 
   aZoteroItem,
   aDocumentSection,
   createMockZoteroItem,
   createMockZoteroApiService,
   createMockManuscriptContextDetector
-} from './helpers';
+, setupFsMock } from './helpers';
 
 // Mock modules
 jest.mock('fs');
@@ -46,6 +46,7 @@ describe('InstantSearchHandler', () => {
     .build();
 
   beforeEach(() => {
+    setupFsMock();
     mockZoteroApiService = createMockZoteroApiService();
     mockManuscriptContextDetector = createMockManuscriptContextDetector();
 

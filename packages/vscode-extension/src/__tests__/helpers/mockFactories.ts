@@ -134,7 +134,7 @@ export const createMockExtensionState = (overrides?: {
   claimsManager?: Partial<any>;
   quoteManager?: any;
   [key: string]: any;
-}) => {
+}): any => {
   const defaultClaimsManager = createMockClaimsManager();
   
   return {
@@ -148,7 +148,7 @@ export const createMockExtensionState = (overrides?: {
       ...overrides?.quoteManager
     },
     ...overrides
-  };
+  } as any; // Cast to any to allow partial mock in tests
 };
 
 // ============================================================================
@@ -396,6 +396,7 @@ export const createMockOutlineParser = () => {
     parse: jest.fn<(content: string) => any[]>().mockReturnValue([]),
     getSections: jest.fn<() => any[]>().mockReturnValue([]),
     getSection: jest.fn<(id: string) => any | null>().mockReturnValue(null),
+    getSectionById: jest.fn<(id: string) => any | null>().mockReturnValue(null),
     findSectionByTitle: jest.fn<(title: string) => any | null>().mockReturnValue(null)
   };
 };

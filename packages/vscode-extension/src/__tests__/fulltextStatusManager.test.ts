@@ -4,11 +4,11 @@ import { PDFExtractionService } from '../core/pdfExtractionService';
 import { OutlineParser } from '../core/outlineParserWrapper';
 import * as fs from 'fs';
 import * as path from 'path';
-import { 
+import {  
   setupTest, 
   createMockPdfExtractionService, 
   createMockOutlineParser 
-} from './helpers';
+, setupFsMock } from './helpers';
 
 jest.mock('fs');
 
@@ -21,6 +21,7 @@ describe('FulltextStatusManager', () => {
   const workspaceRoot = '/test/workspace';
 
   beforeEach(() => {
+    setupFsMock();
     mockPdfService = createMockPdfExtractionService();
     mockOutlineParser = createMockOutlineParser();
 
@@ -387,11 +388,11 @@ describe('FulltextStatusManager', () => {
      */
     test('should clear cached statuses and reset scan time', async () => {
       // Mock PDF directory with files
-      (fs.existsSync as jest.Mock).mockImplementation((dirPath: string) => {
+      (fs.existsSync as jest.Mock<boolean>).mockImplementation((dirPath: string) => {
         return dirPath.includes('PDFs') || dirPath.includes('ExtractedText');
       });
 
-      (fs.readdirSync as jest.Mock).mockImplementation((dirPath: string) => {
+      (fs.readdirSync as jest.Mock<string[]>).mockImplementation((dirPath: string) => {
         if (dirPath.includes('PDFs')) {
           return ['Smith2023.pdf'];
         }

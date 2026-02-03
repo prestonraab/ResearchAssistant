@@ -1,0 +1,55 @@
+/**
+ * Word Image Renderer
+ * 
+ * Handles rendering of images in Word documents.
+ */
+
+import { ImageRun } from 'docx';
+import * as fs from 'fs';
+import * as path from 'path';
+
+import type { DocumentImage } from '../documentModel';
+
+/**
+ * Renders images in Word documents
+ */
+export class WordImageRenderer {
+  /**
+   * Create an image run from DocumentImage
+   * 
+   * @param image The image data
+   * @returns ImageRun or null if image file not found
+   */
+  public createImageRun(image: DocumentImage): ImageRun | null {
+    try {
+      // Check if file exists
+      if (!fs.existsSync(image.path)) {
+        console.warn(`Image file not found: ${image.path}`);
+        return null;
+      }
+
+      // Read image data
+      const imageData = fs.readFileSync(image.path);
+
+      // Determine image dimensions (use provided or default)
+      const width = image.width || 600;
+      const height = image.height || 400;
+
+      // Determine image type from extension
+      const ext = path.extname(image.path).toLowerCase();
+      const imageType = ext === '.png' ? 'png' : 'jpg';
+
+      return new ImageRun({
+        data: imageData,
+        transformation: {
+          width,
+          height
+        },
+        type: imageType
+      });
+    } catch (error) {
+      console.error(`Error loading image ${image.path}:`, error);
+      return null;
+    }
+  }
+}

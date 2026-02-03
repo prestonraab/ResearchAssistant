@@ -1,10 +1,13 @@
 import * as vscode from 'vscode';
 import { ExtensionState } from '../core/state';
 import type { Claim } from '@research-assistant/core';
+import { renderClaimHover } from '../core/claimHoverLogic';
 
 /**
  * HoverProvider for claim references in markdown files
  * Detects C_XX patterns and displays rich hover information
+ * 
+ * This is a thin VSCode integration layer - all logic is in claimHoverLogic.ts
  */
 export class ClaimHoverProvider implements vscode.HoverProvider {
   constructor(private extensionState: ExtensionState) {}
@@ -30,109 +33,13 @@ export class ClaimHoverProvider implements vscode.HoverProvider {
       return null;
     }
 
-    // Render rich markdown hover
-    const markdown = this.buildHoverContent(claim);
+    // Render using pure logic (fully tested, no mocks needed)
+    const markdownText = renderClaimHover(claim);
     
-    return new vscode.Hover(markdown, range);
-  }
-
-  private buildHoverContent(claim: Claim): vscode.MarkdownString {
-    const markdown = new vscode.MarkdownString();
+    const markdown = new vscode.MarkdownString(markdownText);
     markdown.isTrusted = true;
     markdown.supportHtml = true;
-
-    // Header with claim ID and text
-    markdown.appendMarkdown(`### ${claim.id}: ${claim.text}\n\n`);
-
-    // Category and source
-    if (claim.category) {
-      markdown.appendMarkdown(`**Category**: ${claim.category}  \n`);
-    }
     
-    if (claim.primaryQuote && claim.primaryQuote.source) {
-      markdown.appendMarkdown(`**Source**: ${claim.primaryQuote.source}`);
-      if (claim.primaryQuote.sourceId) {
-        markdown.appendMarkdown(` (Source ID: ${claim.primaryQuote.sourceId})`);
-      }
-      markdown.appendMarkdown(`  \n`);
-    }
-
-    // Verification status
-    if (claim.verified) {
-      markdown.appendMarkdown(`**Verification**: ✅ Verified  \n`);
-    } else {
-      markdown.appendMarkdown(`**Verification**: ⚪ Not verified  \n`);
-    }
-
-    markdown.appendMarkdown(`\n---\n\n`);
-
-    // Primary quote
-    if (claim.primaryQuote && claim.primaryQuote.text) {
-      markdown.appendMarkdown(`**Primary Quote**:\n`);
-      markdown.appendMarkdown(`> "${claim.primaryQuote.text}"\n\n`);
-    }
-
-    // Supporting quotes (show first 2 if multiple)
-    if (claim.supportingQuotes && claim.supportingQuotes.length > 0) {
-      const quotesToShow = claim.supportingQuotes.slice(0, 2);
-      markdown.appendMarkdown(`**Supporting Quotes** (${claim.supportingQuotes.length}):\n`);
-      
-      for (const quote of quotesToShow) {
-        markdown.appendMarkdown(`- "${quote.text}"\n`);
-      }
-      
-      if (claim.supportingQuotes.length > 2) {
-        markdown.appendMarkdown(`\n*...and ${claim.supportingQuotes.length - 2} more*\n`);
-      }
-      markdown.appendMarkdown(`\n`);
-    }
-
-    // Context
-    if (claim.context) {
-      markdown.appendMarkdown(`---\n\n`);
-      markdown.appendMarkdown(`*Context: ${claim.context}*\n\n`);
-    }
-
-    // Quick action links
-    markdown.appendMarkdown(`---\n\n`);
-    markdown.appendMarkdown(this.buildQuickActions(claim));
-
-    return markdown;
-  }
-
-  private buildQuickActions(claim: Claim): string {
-    let actions = '';
-
-    // Go to source action
-    if (claim.primaryQuote && claim.primaryQuote.source) {
-      const goToSourceCommand = vscode.Uri.parse(
-        `command:researchAssistant.goToSource?${encodeURIComponent(JSON.stringify([claim.primaryQuote.source]))}`
-      );
-      actions += `[📄 Go to source](${goToSourceCommand}) `;
-    }
-
-    // View all quotes action
-    if (claim.supportingQuotes && claim.supportingQuotes.length > 0) {
-      const viewQuotesCommand = vscode.Uri.parse(
-        `command:researchAssistant.viewAllQuotes?${encodeURIComponent(JSON.stringify([claim.id]))}`
-      );
-      actions += `[📋 View all quotes](${viewQuotesCommand}) `;
-    }
-
-    // Find similar claims action
-    const findSimilarCommand = vscode.Uri.parse(
-      `command:researchAssistant.findSimilarClaims?${encodeURIComponent(JSON.stringify([claim.id]))}`
-    );
-    actions += `[🔍 Find similar claims](${findSimilarCommand}) `;
-
-    // Show sections where claim is used
-    if (claim.sections && claim.sections.length > 0) {
-      const showSectionsCommand = vscode.Uri.parse(
-        `command:researchAssistant.showClaimSections?${encodeURIComponent(JSON.stringify([claim.id]))}`
-      );
-      actions += `[📑 Show sections (${claim.sections.length})](${showSectionsCommand})`;
-    }
-
-    return actions;
+    return new vscode.Hover(markdown, range);
   }
 }

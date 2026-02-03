@@ -2,7 +2,7 @@ import { jest } from '@jest/globals';
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 import { WorkspaceDetector } from '../core/workspaceDetector';
-import { setupTest, createMockWorkspaceFolder, createMockExtensionContext } from './helpers';
+import {  setupTest, createMockWorkspaceFolder, createMockExtensionContext , setupFsMock } from './helpers';
 
 jest.mock('fs');
 
@@ -12,6 +12,7 @@ describe('WorkspaceDetector', () => {
   let mockContext: ReturnType<typeof createMockExtensionContext>;
 
   beforeEach(() => {
+    setupFsMock();
     mockContext = createMockExtensionContext();
   });
 

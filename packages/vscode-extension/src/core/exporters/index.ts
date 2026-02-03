@@ -3,3 +3,7 @@ export { WordExporter } from './WordExporter';
 export { LaTeXExporter } from './LaTeXExporter';
 export { TableImageRenderer } from './TableImageRenderer';
 export { CSVExporter } from './CSVExporter';
+export { DocumentBuilder } from './DocumentBuilder';
+export { ManuscriptParser } from './ManuscriptParser';
+export { CitationCollector } from './CitationCollector';
+export { ReportGenerator } from './ReportGenerator';

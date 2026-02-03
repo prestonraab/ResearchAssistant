@@ -647,3 +647,68 @@ export const expectFirstArgEquals = (mock: jest.Mock, value: number) => {
   expect(typeof firstArg).toBe('number');
   expect(firstArg).toBe(value);
 };
+
+
+// ============================================================================
+// File System Mocking Helpers
+// ============================================================================
+
+/**
+ * Setup fs/promises mock with default implementations
+ * Call this in beforeEach to ensure fs methods are jest.fn()
+ * 
+ * @example
+ * beforeEach(() => {
+ *   setupFsMock();
+ * });
+ */
+export const setupFsMock = () => {
+  const fs = require('fs/promises');
+  
+  if (!jest.isMockFunction(fs.readFile)) {
+    jest.spyOn(fs, 'readFile').mockResolvedValue('');
+  }
+  if (!jest.isMockFunction(fs.writeFile)) {
+    jest.spyOn(fs, 'writeFile').mockResolvedValue(undefined);
+  }
+  if (!jest.isMockFunction(fs.readdir)) {
+    jest.spyOn(fs, 'readdir').mockResolvedValue([]);
+  }
+  if (!jest.isMockFunction(fs.stat)) {
+    jest.spyOn(fs, 'stat').mockResolvedValue({} as any);
+  }
+  if (!jest.isMockFunction(fs.mkdir)) {
+    jest.spyOn(fs, 'mkdir').mockResolvedValue(undefined);
+  }
+  if (!jest.isMockFunction(fs.unlink)) {
+    jest.spyOn(fs, 'unlink').mockResolvedValue(undefined);
+  }
+};
+
+/**
+ * Setup vscode.window mocks for UI tests
+ * 
+ * @example
+ * beforeEach(() => {
+ *   setupVscodeMocks();
+ * });
+ */
+export const setupVscodeMocks = () => {
+  const vscode = require('vscode');
+  
+  if (!jest.isMockFunction(vscode.window.showInformationMessage)) {
+    jest.spyOn(vscode.window, 'showInformationMessage').mockResolvedValue(undefined);
+  }
+  if (!jest.isMockFunction(vscode.window.showErrorMessage)) {
+    jest.spyOn(vscode.window, 'showErrorMessage').mockResolvedValue(undefined);
+  }
+  if (!jest.isMockFunction(vscode.window.showWarningMessage)) {
+    jest.spyOn(vscode.window, 'showWarningMessage').mockResolvedValue(undefined);
+  }
+  if (!jest.isMockFunction(vscode.workspace.getConfiguration)) {
+    jest.spyOn(vscode.workspace, 'getConfiguration').mockReturnValue({
+      get: jest.fn(),
+      update: jest.fn()
+    } as any);
+  }
+};

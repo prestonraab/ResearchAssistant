@@ -306,8 +306,8 @@ describe('ClaimCompletionProvider', () => {
     test('should fall back to ID sorting when no section context', async () => {
       mockDocument = {
         uri: { fsPath: '/test/workspace/03_Drafting/notes.md' },
-        lineAt: jest.fn().mockReturnValue({ text: 'Some text C_' })
-      };
+        lineAt: jest.fn<any>().mockReturnValue({ text: 'Some text C_' })
+      } as any;
 
       const result = await provider.provideCompletionItems(
         mockDocument,
@@ -325,7 +325,7 @@ describe('ClaimCompletionProvider', () => {
     });
 
     test('should handle embedding service errors gracefully', async () => {
-      mockState.embeddingService.generateEmbedding = jest.fn().mockRejectedValue(
+      (mockState.embeddingService.generateEmbedding as jest.Mock).mockRejectedValue(
         new Error('Embedding service unavailable')
       );
 

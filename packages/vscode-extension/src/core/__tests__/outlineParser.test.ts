@@ -1,4 +1,5 @@
 import { jest } from '@jest/globals';
+import { setupFsMock } from '../helpers';
 import { OutlineParser } from '../outlineParserWrapper';
 import * as fs from 'fs/promises';
 import * as path from 'path';
@@ -12,6 +13,7 @@ describe('OutlineParser', () => {
   const testFilePath = '/test/outline.md';
 
   beforeEach(() => {
+    setupFsMock();
     parser = new OutlineParser(testFilePath);
     jest.clearAllMocks();
   });
