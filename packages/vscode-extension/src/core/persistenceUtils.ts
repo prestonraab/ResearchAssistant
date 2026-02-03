@@ -139,7 +139,7 @@ export class PersistenceUtils {
         // Verify temp file was written correctly
         const writtenContent = await fs.readFile(tempPath, 'utf-8');
         if (writtenContent !== content) {
-          throw new Error('Written content does not match input (data corruption detected)');
+          throw new Error('Data corruption detected while writing file. The file may not have been saved correctly. Please check your disk space and try again.');
         }
 
         // Create backup of existing file if it exists
@@ -158,7 +158,7 @@ export class PersistenceUtils {
         const verifyHash = this.computeHash(verifyContent);
         
         if (verifyHash !== contentHash) {
-          throw new Error('Consistency verification failed: written content hash mismatch');
+          throw new Error('Consistency verification failed: written content does not match expected content. Please check your disk space and try again.');
         }
 
         const duration = performance.now() - startTime;

@@ -132,12 +132,12 @@ export class SentenceClaimQuoteLinkManager {
   ): Promise<void> {
     const claim = this.claimsManager.getClaim(claimId);
     if (!claim) {
-      throw new Error(`Claim ${claimId} not found`);
+      throw new Error(`Claim "${claimId}" not found. It may have been deleted or the claims database needs to be reloaded.`);
     }
 
     const quoteText = this.getQuoteText(claim, quoteIndex);
     if (!quoteText) {
-      throw new Error(`Quote at index ${quoteIndex} not found in claim ${claimId}`);
+      throw new Error(`Quote at index ${quoteIndex} not found in claim "${claimId}". The quote may have been deleted.`);
     }
 
     const key = this.generateKey(sentenceId, claimId, quoteIndex);

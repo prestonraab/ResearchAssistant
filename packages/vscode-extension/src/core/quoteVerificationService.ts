@@ -78,7 +78,7 @@ export class QuoteVerificationService {
    */
   async verifyQuote(quote: string, authorYear: string): Promise<VerificationResult> {
     if (!quote || !authorYear) {
-      throw new Error('Quote and authorYear are required');
+      throw new Error('Quote and author/year are required. Please provide both a quote and its source.');
     }
 
     // Ensure cache is loaded before checking
@@ -340,11 +340,11 @@ export class QuoteVerificationService {
   async updateSupportingQuoteVerificationStatus(claimId: string, quoteIndex: number, verified: boolean): Promise<void> {
     const claim = this.claimsManager.getClaim(claimId);
     if (!claim) {
-      throw new Error(`Claim ${claimId} not found`);
+      throw new Error(`Claim "${claimId}" not found. It may have been deleted or the claims database needs to be reloaded.`);
     }
 
     if (!claim.supportingQuotes || quoteIndex < 0 || quoteIndex >= claim.supportingQuotes.length) {
-      throw new Error(`Supporting quote at index ${quoteIndex} not found in claim ${claimId}`);
+      throw new Error(`Supporting quote at index ${quoteIndex} not found in claim "${claimId}". The quote may have been deleted.`);
     }
 
     // Update the verification status of the quote
@@ -373,11 +373,11 @@ export class QuoteVerificationService {
   async updatePrimaryQuoteVerificationStatus(claimId: string, verified: boolean): Promise<void> {
     const claim = this.claimsManager.getClaim(claimId);
     if (!claim) {
-      throw new Error(`Claim ${claimId} not found`);
+      throw new Error(`Claim "${claimId}" not found. It may have been deleted or the claims database needs to be reloaded.`);
     }
 
     if (!claim.primaryQuote) {
-      throw new Error(`Primary quote not found in claim ${claimId}`);
+      throw new Error(`Primary quote not found in claim "${claimId}". The quote may have been deleted.`);
     }
 
     // Update the verification status

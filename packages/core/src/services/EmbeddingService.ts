@@ -155,7 +155,7 @@ export class EmbeddingService {
         return embedding;
       } catch (error) {
         throw new Error(
-          `Failed to generate embedding: ${error instanceof Error ? error.message : String(error)}`
+          `Failed to generate embedding. Check your OpenAI API key and internet connection. ${error instanceof Error ? error.message : String(error)}`
         );
       }
     });
@@ -243,7 +243,7 @@ export class EmbeddingService {
           }
         } catch (error) {
           throw new Error(
-            `Failed to generate batch embeddings: ${error instanceof Error ? error.message : String(error)}`
+            `Failed to generate batch embeddings. Check your OpenAI API key and internet connection. ${error instanceof Error ? error.message : String(error)}`
           );
         }
       });
@@ -389,7 +389,7 @@ export class EmbeddingService {
    */
   cosineSimilarity(vec1: number[], vec2: number[]): number {
     if (vec1.length !== vec2.length) {
-      throw new Error('Vectors must have the same length');
+      throw new Error('Vectors must have the same length. This is an internal error - please report it.');
     }
 
     let dotProduct = 0;

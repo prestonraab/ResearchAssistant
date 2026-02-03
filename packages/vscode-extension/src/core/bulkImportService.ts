@@ -261,7 +261,7 @@ export class BulkImportService {
       const path = require('path');
 
       if (!fs.existsSync(pdfDirectory)) {
-        throw new Error(`PDF directory not found: ${pdfDirectory}`);
+        throw new Error(`PDF directory not found: ${pdfDirectory}. Please check that the path is correct in your settings.`);
       }
 
       const files = fs.readdirSync(pdfDirectory);

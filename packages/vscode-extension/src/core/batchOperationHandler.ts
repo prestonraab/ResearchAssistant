@@ -102,7 +102,7 @@ export class BatchOperationHandler {
       try {
         const claim = claims.find(c => c.id === claimId);
         if (!claim) {
-          throw new Error(`Claim ${claimId} not found`);
+          throw new Error(`Claim "${claimId}" not found. It may have been deleted or the claims database needs to be reloaded.`);
         }
 
         const verificationResult = await this.quoteVerificationService.verifyQuote(
@@ -115,7 +115,7 @@ export class BatchOperationHandler {
           result.successful.push(claimId);
           result.successCount++;
         } else {
-          throw new Error(`Quote verification failed: similarity ${verificationResult.similarity}`);
+          throw new Error(`Quote verification failed for "${claimId}": similarity ${(verificationResult.similarity * 100).toFixed(1)}%. The quote may not match the source document.`);
         }
       } catch (error) {
         result.failed.push({

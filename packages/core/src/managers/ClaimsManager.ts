@@ -484,7 +484,7 @@ export class ClaimsManager {
    */
   getAllClaims(): Claim[] {
     if (!this.loaded) {
-      throw new Error('Claims not loaded. Call loadClaims() first.');
+      throw new Error('Claims not loaded. Call loadClaims() first. This is an internal error - please report it.');
     }
     return [...this.claims];
   }

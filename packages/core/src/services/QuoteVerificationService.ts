@@ -65,7 +65,7 @@ export class QuoteVerificationService {
 
   async verifyQuote(quote: string, source: string): Promise<VerificationResult> {
     if (!quote || !source) {
-      throw new Error('Quote and source are required');
+      throw new Error('Quote and source are required. Please provide both a quote and its source document.');
     }
 
     // Check cache first
@@ -94,7 +94,7 @@ export class QuoteVerificationService {
       return result;
     } catch (error) {
       console.error('Error verifying quote:', error);
-      throw new Error(`Failed to verify quote: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(`Failed to verify quote. Check that your source document is accessible and readable. ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 

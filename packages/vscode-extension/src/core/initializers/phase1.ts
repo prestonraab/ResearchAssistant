@@ -103,7 +103,7 @@ export class Phase1Initializer {
     papers: PapersTreeProvider;
   } {
     if (!this.outlineProvider || !this.claimsProvider || !this.papersProvider) {
-      throw new Error('Phase 1 not initialized - providers not available');
+      throw new Error('Phase 1 not initialized - providers not available. This is an internal error - please report it.');
     }
 
     return {
@@ -118,7 +118,7 @@ export class Phase1Initializer {
    */
   getStatusBarItem(): vscode.StatusBarItem {
     if (!this.statusBarItem) {
-      throw new Error('Phase 1 not initialized - status bar not available');
+      throw new Error('Phase 1 not initialized - status bar not available. This is an internal error - please report it.');
     }
     return this.statusBarItem;
   }
