@@ -66,8 +66,9 @@ export class FeatureManager {
     try {
       return await operation();
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      logger.error(`Feature ${feature} failed:`, error);
+      const err = error instanceof Error ? error : new Error(String(error));
+      const errorMessage = err.message;
+      logger.error(`Feature ${feature} failed:`, err);
       this.disable(feature, errorMessage);
       return fallback();
     }
@@ -92,8 +93,9 @@ export class FeatureManager {
     try {
       return operation();
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      logger.error(`Feature ${feature} failed:`, error);
+      const err = error instanceof Error ? error : new Error(String(error));
+      const errorMessage = err.message;
+      logger.error(`Feature ${feature} failed:`, err);
       this.disable(feature, errorMessage);
       return fallback();
     }

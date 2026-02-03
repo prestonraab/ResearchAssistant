@@ -299,54 +299,42 @@ describe('WorkspaceDetector', () => {
   });
 
   describe('Edge Cases', () => {
-    test('should handle multiple workspace folders by using the first one', () => {
+    it('should handle multiple workspace folders by using the first one', () => {
       (vscode.workspace as any).workspaceFolders = [
-        {
-          uri: { fsPath: '/workspace1' },
-          name: 'workspace1',
-          index: 0,
-        },
-        {
-          uri: { fsPath: '/workspace2' },
-          name: 'workspace2',
-          index: 1,
-        },
+        createMockWorkspaceFolder({ uri: vscode.Uri.file('/workspace1'), name: 'workspace1', index: 0 }),
+        createMockWorkspaceFolder({ uri: vscode.Uri.file('/workspace2'), name: 'workspace2', index: 1 }),
       ];
-      (fs.existsSync as any).mockReturnValue(false);
+      (fs.existsSync as jest.MockedFunction<typeof fs.existsSync>).mockReturnValue(false);
 
       WorkspaceDetector.isResearchWorkspace();
       
-      const calls = (fs.existsSync as any).mock.calls;
+      const calls = (fs.existsSync as jest.MockedFunction<typeof fs.existsSync>).mock.calls;
       calls.forEach((call: any) => {
         expect(call[0]).toContain('/workspace1');
         expect(call[0]).not.toContain('/workspace2');
       });
     });
 
-    test('should handle workspace path with special characters', () => {
+    it('should handle workspace path with special characters', () => {
       const specialPath = '/test/workspace with spaces/and-dashes';
       (vscode.workspace as any).workspaceFolders = [
-        {
-          uri: { fsPath: specialPath },
-          name: 'special-workspace',
-          index: 0,
-        },
+        createMockWorkspaceFolder({ uri: vscode.Uri.file(specialPath), name: 'special-workspace' })
       ];
-      (fs.existsSync as any).mockImplementation((checkPath: string) => {
+      (fs.existsSync as jest.MockedFunction<typeof fs.existsSync>).mockImplementation((checkPath: any) => {
         return checkPath.includes('01_Knowledge_Base');
       });
 
       const result = WorkspaceDetector.isResearchWorkspace();
       
       expect(result).toBe(true);
-      const calls = (fs.existsSync as any).mock.calls;
+      const calls = (fs.existsSync as jest.MockedFunction<typeof fs.existsSync>).mock.calls;
       expect(calls[0][0]).toContain(specialPath);
     });
 
-    test('should handle activation command that returns a value', async () => {
-      (fs.existsSync as any).mockReturnValue(true);
-      (vscode.window.showInformationMessage as any).mockResolvedValue('OK');
-      (vscode.commands.executeCommand as any).mockResolvedValue({ success: true });
+    it('should handle activation command that returns a value', async () => {
+      (fs.existsSync as jest.MockedFunction<typeof fs.existsSync>).mockReturnValue(true);
+      (vscode.window.showInformationMessage as jest.Mock).mockResolvedValue('OK');
+      (vscode.commands.executeCommand as jest.Mock).mockResolvedValue({ success: true });
 
       await WorkspaceDetector.autoActivateIfNeeded(mockContext);
       

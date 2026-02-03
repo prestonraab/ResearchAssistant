@@ -1,9 +1,8 @@
 import { ClaimSupportValidator } from '../core/claimSupportValidator';
 import type { Claim, EmbeddingService } from '@research-assistant/core';
 import * as fs from 'fs/promises';
-import { setupTest, createMockClaim } from './helpers';
+import { setupTest, createMockClaim, aClaim } from './helpers';
 
-// Mock fs/promises
 jest.mock('fs/promises');
 
 describe('ClaimSupportValidator', () => {
@@ -14,13 +13,12 @@ describe('ClaimSupportValidator', () => {
   const extractedTextPath = '/test/literature/ExtractedText';
 
   beforeEach(() => {
-    // Create fresh mocks for each test
     mockEmbeddingService = {
-      generateEmbedding: jest.fn(),
-      generateBatch: jest.fn(),
-      cosineSimilarity: jest.fn(),
-      cacheEmbedding: jest.fn(),
-      getCachedEmbedding: jest.fn()
+      generateEmbedding: jest.fn<() => Promise<number[]>>(),
+      generateBatch: jest.fn<() => Promise<number[][]>>(),
+      cosineSimilarity: jest.fn<() => number>(),
+      cacheEmbedding: jest.fn<() => void>(),
+      getCachedEmbedding: jest.fn<() => number[] | null>()
     } as any;
 
     validator = new ClaimSupportValidator(
@@ -89,18 +87,12 @@ describe('ClaimSupportValidator', () => {
     let testClaim: Claim;
 
     beforeEach(() => {
-      // Create fresh test claim for each test
-      testClaim = createMockClaim({
-        id: 'C_01',
-        text: 'Batch correction improves data quality',
-        category: 'Method',
-        primaryQuote: {
-          text: 'Our method significantly improves data quality through batch correction',
-          source: 'Author2020',
-          sourceId: 1,
-          verified: false
-        }
-      });
+      testClaim = aClaim()
+        .withId('C_01')
+        .withText('Batch correction improves data quality')
+        .withCategory('Method')
+        .withPrimaryQuote('Our method significantly improves data quality through batch correction', 'Author2020')
+        .build();
     });
 
     it('should validate claim with strong support', async () => {
@@ -144,7 +136,6 @@ describe('ClaimSupportValidator', () => {
       
       mockEmbeddingService.cosineSimilarity.mockReturnValue(0.45);
 
-      // Mock file reading for finding better quotes
       (fs.readFile as jest.Mock).mockResolvedValue('Some paper text with sentences.');
       mockEmbeddingService.generateBatch.mockResolvedValue([[0.1], [0.2]]);
 
@@ -165,7 +156,6 @@ describe('ClaimSupportValidator', () => {
       expect(validation.claimId).toBe('C_01');
       expect(validation.similarity).toBe(0);
       expect(validation.supported).toBe(false);
-      // When similarity is 0, it generates "Weak support" analysis
       expect(validation.analysis).toContain('Weak support');
     });
   });
@@ -251,30 +241,19 @@ describe('ClaimSupportValidator', () => {
     let claims: Claim[];
 
     beforeEach(() => {
-      // Create fresh test claims for each test
       claims = [
-        createMockClaim({
-          id: 'C_01',
-          text: 'Claim 1',
-          category: 'Method',
-          primaryQuote: {
-            text: 'Quote 1',
-            source: 'Author2020',
-            sourceId: 1,
-            verified: false
-          }
-        }),
-        createMockClaim({
-          id: 'C_02',
-          text: 'Claim 2',
-          category: 'Result',
-          primaryQuote: {
-            text: 'Quote 2',
-            source: 'Author2021',
-            sourceId: 2,
-            verified: false
-          }
-        })
+        aClaim()
+          .withId('C_01')
+          .withText('Claim 1')
+          .withCategory('Method')
+          .withPrimaryQuote('Quote 1', 'Author2020')
+          .build(),
+        aClaim()
+          .withId('C_02')
+          .withText('Claim 2')
+          .withCategory('Result')
+          .withPrimaryQuote('Quote 2', 'Author2021')
+          .build()
       ];
     });
 
@@ -305,38 +284,25 @@ describe('ClaimSupportValidator', () => {
     let claims: Claim[];
 
     beforeEach(() => {
-      // Create fresh test claims for each test
       claims = [
-        createMockClaim({
-          id: 'C_01',
-          text: 'Strong claim',
-          category: 'Method',
-          primaryQuote: {
-            text: 'Strong supporting quote',
-            source: 'Author2020',
-            sourceId: 1,
-            verified: false
-          }
-        }),
-        createMockClaim({
-          id: 'C_02',
-          text: 'Weak claim',
-          category: 'Result',
-          primaryQuote: {
-            text: 'Unrelated quote',
-            source: 'Author2021',
-            sourceId: 2,
-            verified: false
-          }
-        })
+        aClaim()
+          .withId('C_01')
+          .withText('Strong claim')
+          .withCategory('Method')
+          .withPrimaryQuote('Strong supporting quote', 'Author2020')
+          .build(),
+        aClaim()
+          .withId('C_02')
+          .withText('Weak claim')
+          .withCategory('Result')
+          .withPrimaryQuote('Unrelated quote', 'Author2021')
+          .build()
       ];
     });
 
     it('should flag only claims with weak support', async () => {
       mockEmbeddingService.generateEmbedding.mockResolvedValue([0.5, 0.5]);
       
-      // First claim: strong support (0.85)
-      // Second claim: weak support (0.45)
       mockEmbeddingService.cosineSimilarity
         .mockReturnValueOnce(0.85)
         .mockReturnValueOnce(0.45);
@@ -354,7 +320,6 @@ describe('ClaimSupportValidator', () => {
         .mockReturnValueOnce(0.75)
         .mockReturnValueOnce(0.65);
 
-      // With threshold 0.7, both should be flagged
       const weakClaims = await validator.flagWeakSupport(claims, 0.7);
 
       expect(weakClaims).toHaveLength(1);
@@ -378,7 +343,6 @@ describe('ClaimSupportValidator', () => {
       const newPath = '/new/path/to/extracted/text';
       validator.updateExtractedTextPath(newPath);
       
-      // Path is updated (tested indirectly through file operations)
       expect(validator).toBeDefined();
     });
   });

@@ -37,7 +37,7 @@ class LRUCache<K, V> {
 
     // Evict oldest if over capacity
     if (this.cache.size > this.maxSize) {
-      const firstKey = this.cache.keys().next().value;
+      const firstKey = this.cache.keys().next().value as K;
       this.cache.delete(firstKey);
     }
   }
@@ -167,7 +167,7 @@ export class TieredEmbeddingCache {
   /**
    * Get embedding from cache, checking tiers in order
    */
-  async get(key: string): Promise<number[] | null> {
+  async get(key: string): Promise<number[] | undefined> {
     // Check hot cache first (fastest)
     let value = this.hotCache.get(key);
     if (value) {
@@ -185,16 +185,16 @@ export class TieredEmbeddingCache {
     }
 
     // Check cold cache (disk)
-    value = await this.coldCache.get(key);
-    if (value) {
+    const coldValue = await this.coldCache.get(key);
+    if (coldValue) {
       this.stats.coldHits++;
       // Promote to warm cache
-      this.warmCache.set(key, value);
-      return value;
+      this.warmCache.set(key, coldValue);
+      return coldValue;
     }
 
     this.stats.misses++;
-    return null;
+    return undefined;
   }
 
   /**
