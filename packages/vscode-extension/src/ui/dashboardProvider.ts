@@ -227,7 +227,14 @@ export class DashboardProvider implements vscode.WebviewViewProvider {
       vscode.window.showInformationMessage('Benchmarks completed!');
       await this._updateView();
     } catch (error) {
-      vscode.window.showErrorMessage(`Benchmark failed: ${error}`);
+      vscode.window.showErrorMessage(
+        'Unable to run benchmarks. Please try again.',
+        'Retry'
+      ).then(action => {
+        if (action === 'Retry') {
+          this._runBenchmarks();
+        }
+      });
     }
   }
 
@@ -255,7 +262,14 @@ export class DashboardProvider implements vscode.WebviewViewProvider {
         await vscode.window.showTextDocument(doc);
       }
     } catch (error) {
-      vscode.window.showErrorMessage(`Export failed: ${error}`);
+      vscode.window.showErrorMessage(
+        'Unable to export benchmark results. Please try again.',
+        'Retry'
+      ).then(action => {
+        if (action === 'Retry') {
+          this._exportBenchmarks();
+        }
+      });
     }
   }
 

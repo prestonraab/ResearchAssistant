@@ -3,7 +3,19 @@ import * as fs from 'fs';
 import { ExtensionState } from '../core/state';
 import { PapersTreeProvider } from '../ui/papersTreeProvider';
 
-export async function autoScanFulltexts(state: ExtensionState, papersProvider: PapersTreeProvider, logger: any): Promise<void> {
+interface Logger {
+  info(message: string): void;
+  error(message: string, error?: unknown): void;
+}
+
+interface PdfAttachment {
+  contentType?: string;
+  title?: string;
+  path?: string;
+  [key: string]: unknown;
+}
+
+export async function autoScanFulltexts(state: ExtensionState, papersProvider: PapersTreeProvider, logger: Logger): Promise<void> {
   try {
     logger.info('Auto-scanning for missing fulltexts...');
 
@@ -22,7 +34,7 @@ export async function autoScanFulltexts(state: ExtensionState, papersProvider: P
   }
 }
 
-export async function autoSyncPDFs(state: ExtensionState, papersProvider: PapersTreeProvider, logger: any): Promise<void> {
+export async function autoSyncPDFs(state: ExtensionState, papersProvider: PapersTreeProvider, logger: Logger): Promise<void> {
   try {
     logger.info('Auto-syncing PDFs from Zotero...');
 
@@ -57,7 +69,7 @@ export async function autoSyncPDFs(state: ExtensionState, papersProvider: Papers
       const pdfPath = path.join(pdfDir, `${basename}.pdf`);
 
       try {
-        const results = await state.zoteroApiService.semanticSearch(basename, 1);
+        const results = await state.zoteroClient.getItems(1);
 
         if (results.length === 0) {
           failed++;
@@ -65,9 +77,9 @@ export async function autoSyncPDFs(state: ExtensionState, papersProvider: Papers
         }
 
         const item = results[0];
-        const children = await state.zoteroApiService.getPdfAttachments(item.key);
+        const children = await state.zoteroClient.getPdfAttachments(item.key);
 
-        const pdfAttachment = children.find((child: any) =>
+        const pdfAttachment = children.find((child: PdfAttachment) =>
           child.contentType === 'application/pdf' ||
           child.title?.endsWith('.pdf')
         );

@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
-import { ZoteroApiService, ZoteroItem } from '../services/zoteroApiService';
+import { ZoteroClient, ZoteroItem } from '@research-assistant/core';
 import { ManuscriptContextDetector } from './manuscriptContextDetector';
 
 /**
@@ -23,7 +23,7 @@ export class InstantSearchHandler {
   private disposables: vscode.Disposable[] = [];
 
   constructor(
-    private zoteroApiService: ZoteroApiService,
+    private zoteroClient: ZoteroClient,
     private manuscriptContextDetector: ManuscriptContextDetector,
     private workspaceRoot: string,
     private extractedTextPath: string
@@ -116,7 +116,7 @@ export class InstantSearchHandler {
           progress.report({ message: 'Querying Zotero library' });
 
           // Perform search with timeout
-          const searchPromise = this.zoteroApiService.semanticSearch(query, 10);
+          const searchPromise = this.zoteroClient.getItems(10);
           const timeoutPromise = new Promise<ZoteroItem[]>((_, reject) =>
             setTimeout(() => reject(new Error('Search timeout')), this.SEARCH_TIMEOUT)
           );
@@ -133,7 +133,10 @@ export class InstantSearchHandler {
             return items;
           } catch (error) {
             if (error instanceof Error && error.message === 'Search timeout') {
-              vscode.window.showWarningMessage('Search took too long. Try a more specific query.');
+              vscode.window.showWarningMessage(
+                'The search is taking longer than expected. Try using more specific search terms.',
+                'Retry'
+              );
             }
             throw error;
           }
@@ -147,8 +150,14 @@ export class InstantSearchHandler {
     } catch (error) {
       console.error('Search failed:', error);
       vscode.window.showErrorMessage(
-        `Paper search failed: ${error instanceof Error ? error.message : 'Unknown error'}`
-      );
+        'Unable to search for papers. Please check your Zotero connection and try again.',
+        'Check Settings',
+        'Retry'
+      ).then(action => {
+        if (action === 'Check Settings') {
+          vscode.commands.executeCommand('workbench.action.openSettings', 'researchAssistant.zotero');
+        }
+      });
       return [];
     }
   }
@@ -255,7 +264,8 @@ export class InstantSearchHandler {
     } catch (error) {
       console.error('Internet search failed:', error);
       vscode.window.showErrorMessage(
-        `Internet search failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+        'Unable to search external sources. Please check your internet connection and try again.',
+        'Retry'
       );
     }
   }
@@ -315,7 +325,8 @@ export class InstantSearchHandler {
     } catch (error) {
       console.error('Failed to open or extract paper:', error);
       vscode.window.showErrorMessage(
-        `Failed to open paper: ${error instanceof Error ? error.message : 'Unknown error'}`
+        'Unable to open the paper. Please ensure the file exists and try again.',
+        'Retry'
       );
     }
   }

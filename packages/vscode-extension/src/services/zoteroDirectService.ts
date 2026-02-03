@@ -1,6 +1,7 @@
 import * as https from 'https';
 import * as http from 'http';
 import * as vscode from 'vscode';
+import type { ZoteroItemResponse, ZoteroCreator, HttpResponse } from '../types';
 
 export interface ZoteroItem {
   id: string;
@@ -13,6 +14,11 @@ export interface ZoteroItem {
   doi?: string;
 }
 
+interface CacheEntry<T> {
+  data: T;
+  timestamp: number;
+}
+
 /**
  * Direct Zotero API service - bypasses MCP to avoid token overhead
  * Uses Zotero's public API for semantic search and item retrieval
@@ -21,7 +27,7 @@ export class ZoteroDirectService {
   private apiKey: string;
   private userId: string;
   private baseUrl = 'https://api.zotero.org';
-  private cache: Map<string, { data: any; timestamp: number }> = new Map();
+  private cache: Map<string, CacheEntry<ZoteroItem[]>> = new Map();
   private readonly CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
   constructor(apiKey?: string, userId?: string) {
@@ -166,10 +172,10 @@ export class ZoteroDirectService {
         return [];
       }
 
-      const results = collections.map((col: any) => ({
+      const results = collections.map((col: ZoteroItemResponse) => ({
         key: col.key || col.data?.key || '',
-        name: col.data?.name || col.name || 'Unnamed Collection',
-        parentCollection: col.data?.parentCollection || col.parentCollection
+        name: col.data?.name || (col as Record<string, unknown>).name || 'Unnamed Collection',
+        parentCollection: col.data?.parentCollection || (col as Record<string, unknown>).parentCollection
       }));
 
       this.setCache(cacheKey, results);
@@ -183,7 +189,7 @@ export class ZoteroDirectService {
   /**
    * Get items from a specific collection
    */
-  async getCollectionItems(collectionKey: string, limit?: number): Promise<any[]> {
+  async getCollectionItems(collectionKey: string, limit?: number): Promise<ZoteroItem[]> {
     if (!this.userId) {
       return [];
     }
@@ -204,7 +210,7 @@ export class ZoteroDirectService {
         return [];
       }
 
-      const results = items.map(item => this.parseZoteroItem(item)).filter(Boolean);
+      const results = items.map(item => this.parseZoteroItem(item)).filter((item): item is ZoteroItem => item !== null);
       this.setCache(cacheKey, results);
       return results;
     } catch (error) {
@@ -216,7 +222,14 @@ export class ZoteroDirectService {
   /**
    * Get children (attachments, notes) of an item
    */
-  async getItemChildren(itemKey: string): Promise<any[]> {
+  async getItemChildren(itemKey: string): Promise<Array<{
+    key: string;
+    itemType: string;
+    contentType?: string;
+    filename?: string;
+    title?: string;
+    data: Record<string, unknown>;
+  }>> {
     if (!this.userId) {
       return [];
     }
@@ -237,14 +250,14 @@ export class ZoteroDirectService {
       }
 
       // Parse children to extract useful info
-      const results = children.map((child: any) => {
-        const data = child.data || child;
+      const results = children.map((child: ZoteroItemResponse) => {
+        const data = (child.data || child) as Record<string, unknown>;
         return {
-          key: child.key || data.key,
-          itemType: data.itemType,
-          contentType: data.contentType,
-          filename: data.filename,
-          title: data.title,
+          key: child.key || data.key || '',
+          itemType: (data.itemType as string) || '',
+          contentType: (data.contentType as string) || undefined,
+          filename: (data.filename as string) || undefined,
+          title: (data.title as string) || undefined,
           data: data
         };
       });
@@ -276,13 +289,13 @@ export class ZoteroDirectService {
       
       const response = await this.makeRequest(url);
       
-      const fulltext = response?.content || '';
+      const fulltext = (response as Record<string, unknown>)?.content || '';
       
       if (fulltext) {
         this.setCache(cacheKey, fulltext);
       }
       
-      return fulltext;
+      return fulltext as string;
     } catch (error) {
       console.error('Failed to get item fulltext:', error);
       return '';
@@ -292,9 +305,9 @@ export class ZoteroDirectService {
   /**
    * Parse Zotero API response into ZoteroItem
    */
-  private parseZoteroItem(item: any): ZoteroItem | null {
+  private parseZoteroItem(item: ZoteroItemResponse): ZoteroItem | null {
     try {
-      const data = item.data || item;
+      const data = (item.data || item) as Record<string, unknown>;
       
       if (!data.title) {
         return null;
@@ -302,23 +315,27 @@ export class ZoteroDirectService {
 
       // Extract authors from creators array
       const authors: string[] = [];
-      if (data.creators && Array.isArray(data.creators)) {
-        data.creators.forEach((creator: any) => {
+      const creators = data.creators as ZoteroCreator[] | undefined;
+      if (creators && Array.isArray(creators)) {
+        creators.forEach((creator: ZoteroCreator) => {
           if (creator.lastName) {
             authors.push(creator.lastName);
           }
         });
       }
 
+      const dateStr = data.date as string | undefined;
+      const year = dateStr ? parseInt(dateStr.split('-')[0]) : undefined;
+
       return {
-        id: item.key || data.key || '',
-        itemKey: item.key || data.key || '',
-        title: data.title || '',
+        id: item.key || (data.key as string) || '',
+        itemKey: item.key || (data.key as string) || '',
+        title: (data.title as string) || '',
         authors: authors.length > 0 ? authors : ['Unknown'],
-        year: data.date ? parseInt(data.date.split('-')[0]) : undefined,
-        abstract: data.abstractNote || data.abstract || undefined,
-        url: data.url || undefined,
-        doi: data.DOI || data.doi || undefined
+        year: isNaN(year || 0) ? undefined : year,
+        abstract: (data.abstractNote as string) || (data.abstract as string) || undefined,
+        url: (data.url as string) || undefined,
+        doi: (data.DOI as string) || (data.doi as string) || undefined
       };
     } catch (error) {
       console.error('Failed to parse Zotero item:', error);
@@ -329,11 +346,11 @@ export class ZoteroDirectService {
   /**
    * Make HTTP request to Zotero API
    */
-  private makeRequest(url: string): Promise<any> {
+  private makeRequest(url: string): Promise<unknown> {
     return new Promise((resolve, reject) => {
       const protocol = url.startsWith('https') ? https : http;
       
-      const options: any = {
+      const options: Record<string, Record<string, string>> = {
         headers: {
           'User-Agent': 'VSCode-Research-Assistant'
         }
@@ -371,7 +388,7 @@ export class ZoteroDirectService {
   /**
    * Get from cache
    */
-  private getFromCache(key: string): any | null {
+  private getFromCache(key: string): ZoteroItem[] | null {
     const entry = this.cache.get(key);
     if (!entry) {
       return null;
@@ -388,7 +405,7 @@ export class ZoteroDirectService {
   /**
    * Set cache
    */
-  private setCache(key: string, data: any): void {
+  private setCache(key: string, data: ZoteroItem[]): void {
     this.cache.set(key, {
       data,
       timestamp: Date.now()

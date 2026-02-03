@@ -1,7 +1,7 @@
 import { jest } from '@jest/globals';
 import * as vscode from 'vscode';
 import { DeepLinkHandler } from '../services/deepLinkHandler';
-import { setupTest } from './helpers';
+import { setupTest, expectErrorMessage, expectCalledWith } from './helpers';
 
 describe('DeepLinkHandler', () => {
   setupTest();
@@ -110,16 +110,16 @@ describe('DeepLinkHandler', () => {
 
     test('should return false and show error when annotationKey is empty', async () => {
       const result = await handler.openAnnotation('', 'ITEM456');
-      
+
       expect(result).toBe(false);
-      expect(vscode.window.showErrorMessage).toHaveBeenCalledWith('Invalid annotation or item key');
+      expectErrorMessage('Invalid annotation or item key');
     });
 
     test('should return false and show error when itemKey is empty', async () => {
       const result = await handler.openAnnotation('ANNO123', '');
-      
+
       expect(result).toBe(false);
-      expect(vscode.window.showErrorMessage).toHaveBeenCalledWith('Invalid annotation or item key');
+      expectErrorMessage('Invalid annotation or item key');
     });
 
     test('should show Zotero not running error when openExternal fails', async () => {
@@ -128,12 +128,9 @@ describe('DeepLinkHandler', () => {
       );
 
       const result = await handler.openAnnotation('ANNO123', 'ITEM456');
-      
+
       expect(result).toBe(false);
-      expect(vscode.window.showErrorMessage).toHaveBeenCalledWith(
-        'Failed to open PDF in Zotero. Make sure Zotero is running.',
-        'Open Zotero'
-      );
+      expectErrorMessage('Failed to open PDF in Zotero');
     });
 
     test('should handle Zotero launch when user clicks "Open Zotero" button', async () => {
@@ -179,16 +176,16 @@ describe('DeepLinkHandler', () => {
 
     test('should return false and show error when itemKey is empty', async () => {
       const result = await handler.openPage('', 5);
-      
+
       expect(result).toBe(false);
-      expect(vscode.window.showErrorMessage).toHaveBeenCalledWith('Invalid item key or page number');
+      expectErrorMessage('Invalid item key or page number');
     });
 
     test('should return false and show error when pageNumber is invalid', async () => {
       const result = await handler.openPage('ITEM123', 0);
-      
+
       expect(result).toBe(false);
-      expect(vscode.window.showErrorMessage).toHaveBeenCalledWith('Invalid item key or page number');
+      expectErrorMessage('Invalid item key or page number');
     });
 
     test('should show Zotero not running error when openExternal fails', async () => {
@@ -197,12 +194,9 @@ describe('DeepLinkHandler', () => {
       );
 
       const result = await handler.openPage('ITEM123', 5);
-      
+
       expect(result).toBe(false);
-      expect(vscode.window.showErrorMessage).toHaveBeenCalledWith(
-        'Failed to open PDF in Zotero. Make sure Zotero is running.',
-        'Open Zotero'
-      );
+      expectErrorMessage('Failed to open PDF in Zotero');
     });
 
     test('should handle Zotero launch when user clicks "Open Zotero" button', async () => {

@@ -15,7 +15,7 @@ export default {
   moduleFileExtensions: ['ts', 'js', 'json'],
   moduleNameMapper: {
     '^@research-assistant/core$': '<rootDir>/../../packages/core/dist/index.js',
-    '^vscode$': '<rootDir>/src/__tests__/jest.setup.ts'
+    '^vscode$': '<rootDir>/src/__tests__/__mocks__/vscode.ts'
   },
   transform: {
     '^.+\\.tsx?$': ['ts-jest', {

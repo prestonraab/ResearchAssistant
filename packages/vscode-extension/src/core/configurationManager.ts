@@ -362,7 +362,7 @@ export class ConfigurationManager {
   /**
    * Get MCP configuration
    */
-  public getMCPConfig(): any {
+  public getMCPConfig(): Record<string, unknown> {
     if (!this.workspaceConfig) {
       throw new Error('Configuration not initialized');
     }
@@ -372,6 +372,6 @@ export class ConfigurationManager {
     }
 
     const content = fs.readFileSync(this.workspaceConfig.mcpConfigPath, 'utf-8');
-    return JSON.parse(content);
+    return JSON.parse(content) as Record<string, unknown>;
   }
 }

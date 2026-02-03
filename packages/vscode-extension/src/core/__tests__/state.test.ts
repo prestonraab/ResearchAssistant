@@ -2,6 +2,8 @@ import * as vscode from 'vscode';
 import { ExtensionState } from '../state';
 import { OutlineParser } from '../outlineParserWrapper';
 import { ClaimsManager } from '../claimsManagerWrapper';
+import { setupTest, setupConfiguration, setupWorkspaceFolders } from '../../__tests__/helpers';
+import { createMockExtensionContext, createMockFileSystemWatcher } from '../../__tests__/helpers/mockFactories';
 
 // Mock OutlineParser
 jest.mock('../outlineParserWrapper');
@@ -10,14 +12,6 @@ const MockOutlineParser = OutlineParser as jest.MockedClass<typeof OutlineParser
 // Mock ClaimsManager
 jest.mock('../claimsManagerWrapper');
 const MockClaimsManager = ClaimsManager as jest.MockedClass<typeof ClaimsManager>;
-
-// Setup ClaimsManager mock with onClaimSaved event emitter
-Object.defineProperty(MockClaimsManager.prototype, 'onClaimSaved', {
-  get: jest.fn(() => jest.fn((callback: any) => {
-    return { dispose: jest.fn() };
-  })),
-  configurable: true
-});
 
 // Mock ReadingStatusManager
 jest.mock('../readingStatusManager', () => ({
@@ -33,102 +27,70 @@ jest.mock('../readingStatusManager', () => ({
 }));
 
 describe('ExtensionState', () => {
+  setupTest();
+
   let mockContext: vscode.ExtensionContext;
   let outlineChangeCallbacks: Array<() => void> = [];
   let claimsChangeCallbacks: Array<() => void> = [];
 
   beforeEach(() => {
-    jest.clearAllMocks();
     jest.useFakeTimers();
-    
     outlineChangeCallbacks = [];
     claimsChangeCallbacks = [];
 
-    // Setup mock workspace
-    (vscode.workspace as any).workspaceFolders = [
-      {
-        uri: { fsPath: '/test/workspace' },
-        name: 'test-workspace',
-        index: 0
-      }
-    ];
-
-    (vscode.workspace as any).getConfiguration = jest.fn().mockReturnValue({
-      get: jest.fn((key: string, defaultValue?: any) => {
-        const config: Record<string, any> = {
-          'outlinePath': '03_Drafting/outline.md',
-          'claimsDatabasePath': '01_Knowledge_Base/claims_and_evidence.md',
-          'extractedTextPath': 'literature/ExtractedText',
-          'coverageThresholds': { low: 3, moderate: 6, strong: 7 },
-          'embeddingCacheSize': 1000
-        };
-        return config[key] ?? defaultValue;
-      })
+    // Setup workspace configuration
+    setupConfiguration({
+      'outlinePath': '03_Drafting/outline.md',
+      'claimsDatabasePath': '01_Knowledge_Base/claims_and_evidence.md',
+      'extractedTextPath': 'literature/ExtractedText',
+      'coverageThresholds': { low: 3, moderate: 6, strong: 7 },
+      'embeddingCacheSize': 1000
     });
 
-    // Mock RelativePattern to return an object with the pattern
+    // Setup workspace folders
+    setupWorkspaceFolders();
+
+    // Mock RelativePattern
     (vscode.RelativePattern as jest.Mock).mockImplementation((base: any, pattern: string) => {
       return { base, pattern };
     });
 
-    // Setup mock file watcher with callback tracking
+    // Setup file watcher with callback tracking
     (vscode.workspace as any).createFileSystemWatcher = jest.fn().mockImplementation((pattern: any) => {
-      // Extract pattern string from RelativePattern or use directly if string
       const patternStr = typeof pattern === 'string' ? pattern : (pattern?.pattern || '');
       const isOutlineWatcher = patternStr.includes('outline.md');
       const isClaimsWatcher = patternStr.includes('claims_and_evidence.md');
-      
-      const watcher = {
+
+      return {
         onDidChange: jest.fn((callback: () => void) => {
           if (isOutlineWatcher) {
             outlineChangeCallbacks.push(callback);
           } else if (isClaimsWatcher) {
             claimsChangeCallbacks.push(callback);
           }
-          // Manuscript watcher callbacks are not tracked
           return { dispose: jest.fn() };
         }),
         onDidCreate: jest.fn(() => ({ dispose: jest.fn() })),
         onDidDelete: jest.fn(() => ({ dispose: jest.fn() })),
         dispose: jest.fn()
       };
-      
-      return watcher;
     });
 
-    // Setup mock context
-    mockContext = {
-      subscriptions: [],
-      extensionPath: '/test/extension',
-      globalState: {} as any,
-      workspaceState: {} as any,
-      extensionUri: {} as any,
-      environmentVariableCollection: {} as any,
-      storagePath: '/test/storage',
-      globalStoragePath: '/test/global-storage',
-      logPath: '/test/logs',
-      extensionMode: 1,
-      asAbsolutePath: jest.fn(),
-      storageUri: {} as any,
-      globalStorageUri: {} as any,
-      logUri: {} as any,
-      extension: {} as any,
-      secrets: {} as any,
-      languageModelAccessInformation: {} as any
-    };
+    // Create mock context
+    mockContext = createMockExtensionContext();
 
-    // Mock OutlineParser methods
+    // Setup OutlineParser mock
     MockOutlineParser.prototype.parse = jest.fn().mockResolvedValue([]);
     MockOutlineParser.prototype.updatePath = jest.fn();
 
-    // Mock ClaimsManager methods
+    // Setup ClaimsManager mock
     MockClaimsManager.prototype.loadClaims = jest.fn().mockResolvedValue([]);
     MockClaimsManager.prototype.updatePath = jest.fn();
   });
 
   afterEach(() => {
     jest.useRealTimers();
-  });
+  })
 
   describe('File Watcher Setup', () => {
     test('should create file watchers for outline and claims files', async () => {

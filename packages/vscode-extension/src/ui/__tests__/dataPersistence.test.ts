@@ -1,4 +1,4 @@
-import { SentenceParser } from '../../core/sentenceParser';
+import { SentenceParser } from '@research-assistant/core';
 
 describe('Data Persistence Integration', () => {
   let parser: SentenceParser;

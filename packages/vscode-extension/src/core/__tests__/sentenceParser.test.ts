@@ -1,6 +1,9 @@
-import { SentenceParser } from '../sentenceParser';
+import { SentenceParser } from '@research-assistant/core';
+import { setupTest } from '../../__tests__/helpers';
 
 describe('SentenceParser', () => {
+  setupTest();
+  
   let parser: SentenceParser;
 
   beforeEach(() => {

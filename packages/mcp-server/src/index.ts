@@ -34,7 +34,7 @@ import {
   SearchQueryGenerator,
   LiteratureIndexer,
 } from '@research-assistant/core';
-import { ZoteroService } from './services/ZoteroService.js';
+import { ZoteroClient } from '@research-assistant/core';
 import { DoclingService } from './services/DoclingService.js';
 
 // Load and validate configuration
@@ -68,14 +68,15 @@ const literatureIndexer = new LiteratureIndexer(
   embeddingService
 );
 
-// Initialize Zotero service if credentials are available
-let zoteroService: ZoteroService | undefined;
+// Initialize Zotero client if credentials are available
+let zoteroClient: ZoteroClient | undefined;
 const zoteroApiKey = config.zoteroApiKey;
 const zoteroUserId = config.zoteroUserId;
 
 if (zoteroApiKey && zoteroUserId) {
-  zoteroService = new ZoteroService(zoteroApiKey, zoteroUserId);
-  console.error('✓ Zotero service initialized');
+  zoteroClient = new ZoteroClient();
+  zoteroClient.initialize(zoteroApiKey, zoteroUserId);
+  console.error('✓ Zotero client initialized');
 } else {
   console.error('⚠ Zotero credentials not found in .env. Set ZOTERO_API_KEY and ZOTERO_USER_ID to enable Zotero tools');
 }
@@ -96,7 +97,7 @@ const services: Services = {
   synthesisEngine: new SynthesisEngine(embeddingService),
   searchQueryGenerator: new SearchQueryGenerator(outlineParser),
   literatureIndexer,
-  zoteroService,
+  zoteroClient,
   doclingService,
   workspaceRoot: config.workspaceRoot,
 };

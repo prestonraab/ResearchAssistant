@@ -35,12 +35,12 @@ export class InternetPaperSearcher {
   // - CrossRef: 1 req/sec (public pool) or 3 req/sec (polite pool with mailto)
   // - PubMed: 3 req/sec (unauthenticated) or 10 req/sec (with API key)
   // - arXiv: ~1 req/sec (conservative, no official limit but 429 errors reported)
-  // - Semantic Scholar: 100 req/5min = 0.33 req/sec (very strict)
+  // - Semantic Scholar: 100 req/5min = 0.33 req/sec (very strict, often rate limits anyway)
   private readonly RATE_LIMITS = {
-    crossref: 1000,        // 1 request per second (conservative for public pool)
-    pubmed: 333,           // ~3 requests per second (unauthenticated)
-    arxiv: 1000,           // 1 request per second (conservative)
-    semanticscholar: 3000, // 0.33 requests per second (100 per 5 minutes)
+    crossref: 1000,        // 1 request per second
+    pubmed: 333,           // ~3 requests per second
+    arxiv: 1000,           // 1 request per second
+    semanticscholar: 5000, // 0.2 requests per second (very conservative, still may rate limit)
   };
   
   // Last request timestamps for rate limiting

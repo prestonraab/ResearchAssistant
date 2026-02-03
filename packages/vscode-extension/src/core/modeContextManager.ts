@@ -1,4 +1,11 @@
 import * as vscode from 'vscode';
+import type {
+  EditingModeContext,
+  WritingModeContext,
+  ClaimReviewContext,
+  ClaimMatchingContext,
+  ModeContextChangeEvent
+} from '../types';
 
 /**
  * ModeContextManager - Manages context and data passing between modes
@@ -7,12 +14,12 @@ import * as vscode from 'vscode';
 export class ModeContextManager {
   private static instance: ModeContextManager;
   
-  private editingModeContext: any = {};
-  private writingModeContext: any = {};
-  private claimReviewContext: any = {};
-  private claimMatchingContext: any = {};
+  private editingModeContext: EditingModeContext = {};
+  private writingModeContext: WritingModeContext = {};
+  private claimReviewContext: ClaimReviewContext = {};
+  private claimMatchingContext: ClaimMatchingContext = {};
   
-  private onContextChangeEmitter = new vscode.EventEmitter<{ mode: string; context: any }>();
+  private onContextChangeEmitter = new vscode.EventEmitter<ModeContextChangeEvent>();
   public readonly onContextChange = this.onContextChangeEmitter.event;
 
   private constructor() {}
@@ -27,13 +34,7 @@ export class ModeContextManager {
   /**
    * Set editing mode context
    */
-  setEditingModeContext(context: {
-    sentences?: any[];
-    centerItemId?: string;
-    centerItemPosition?: number;
-    selectedSentenceId?: string;
-    lastModifiedClaimId?: string;
-  }): void {
+  setEditingModeContext(context: EditingModeContext): void {
     this.editingModeContext = { ...this.editingModeContext, ...context };
     this.onContextChangeEmitter.fire({ mode: 'editing', context: this.editingModeContext });
   }
@@ -41,19 +42,14 @@ export class ModeContextManager {
   /**
    * Get editing mode context
    */
-  getEditingModeContext(): any {
+  getEditingModeContext(): EditingModeContext {
     return { ...this.editingModeContext };
   }
 
   /**
    * Set writing mode context
    */
-  setWritingModeContext(context: {
-    pairs?: any[];
-    centerItemId?: string;
-    centerItemPosition?: number;
-    selectedPairId?: string;
-  }): void {
+  setWritingModeContext(context: WritingModeContext): void {
     this.writingModeContext = { ...this.writingModeContext, ...context };
     this.onContextChangeEmitter.fire({ mode: 'writing', context: this.writingModeContext });
   }
@@ -61,21 +57,14 @@ export class ModeContextManager {
   /**
    * Get writing mode context
    */
-  getWritingModeContext(): any {
+  getWritingModeContext(): WritingModeContext {
     return { ...this.writingModeContext };
   }
 
   /**
    * Set claim review context
    */
-  setClaimReviewContext(context: {
-    claimId?: string;
-    claim?: any;
-    verificationResults?: any[];
-    validationResult?: any;
-    usageLocations?: any[];
-    returnToSentenceId?: string;
-  }): void {
+  setClaimReviewContext(context: ClaimReviewContext): void {
     this.claimReviewContext = { ...this.claimReviewContext, ...context };
     this.onContextChangeEmitter.fire({ mode: 'claimReview', context: this.claimReviewContext });
   }
@@ -83,19 +72,14 @@ export class ModeContextManager {
   /**
    * Get claim review context
    */
-  getClaimReviewContext(): any {
+  getClaimReviewContext(): ClaimReviewContext {
     return { ...this.claimReviewContext };
   }
 
   /**
    * Set claim matching context
    */
-  setClaimMatchingContext(context: {
-    sentenceId?: string;
-    sentenceText?: string;
-    similarClaims?: any[];
-    linkedClaimId?: string;
-  }): void {
+  setClaimMatchingContext(context: ClaimMatchingContext): void {
     this.claimMatchingContext = { ...this.claimMatchingContext, ...context };
     this.onContextChangeEmitter.fire({ mode: 'claimMatching', context: this.claimMatchingContext });
   }
@@ -103,7 +87,7 @@ export class ModeContextManager {
   /**
    * Get claim matching context
    */
-  getClaimMatchingContext(): any {
+  getClaimMatchingContext(): ClaimMatchingContext {
     return { ...this.claimMatchingContext };
   }
 

@@ -7,7 +7,7 @@ import { SentenceClaimQuoteLinkManager } from './sentenceClaimQuoteLinkManager';
 import { ClaimsManager } from './claimsManagerWrapper';
 import { WordRenderer } from './wordRenderer';
 import { LaTeXRenderer } from './latexRenderer';
-import { SentenceParser, Sentence } from './sentenceParser';
+import { SentenceParser, Sentence } from '@research-assistant/core';
 import type {
   DocumentModel,
   DocumentSection,
@@ -927,7 +927,7 @@ export class ExportService {
    * Export reading progress report
    */
   public async exportReadingProgress(
-    readingStatuses: any[],
+    readingStatuses: unknown[],
     options: ExportOptions
   ): Promise<void> {
     const content = this.generateReadingProgressReport(readingStatuses, options.format);
@@ -1154,7 +1154,7 @@ export class ExportService {
    * Generate reading progress report
    */
   private generateReadingProgressReport(
-    statuses: any[],
+    statuses: unknown[],
     format: ExportFormat
   ): string {
     switch (format) {
@@ -1172,7 +1172,7 @@ export class ExportService {
   /**
    * Generate reading progress report as markdown
    */
-  private generateReadingProgressMarkdown(statuses: any[]): string {
+  private generateReadingProgressMarkdown(statuses: unknown[]): string {
     const lines: string[] = [];
     
     lines.push('# Reading Progress Report');
@@ -1222,7 +1222,7 @@ export class ExportService {
   /**
    * Generate reading progress report as CSV
    */
-  private generateReadingProgressCSV(statuses: any[]): string {
+  private generateReadingProgressCSV(statuses: unknown[]): string {
     const lines: string[] = [];
     
     // Header

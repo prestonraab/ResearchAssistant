@@ -1,7 +1,7 @@
 import { ClaimSupportValidator } from '../core/claimSupportValidator';
 import type { Claim, EmbeddingService } from '@research-assistant/core';
 import * as fs from 'fs/promises';
-import { setupTest, createMockClaim, aClaim } from './helpers';
+import { setupTest, createMockEmbeddingService, aClaim } from './helpers';
 
 jest.mock('fs/promises');
 
@@ -13,13 +13,8 @@ describe('ClaimSupportValidator', () => {
   const extractedTextPath = '/test/literature/ExtractedText';
 
   beforeEach(() => {
-    mockEmbeddingService = {
-      generateEmbedding: jest.fn<() => Promise<number[]>>(),
-      generateBatch: jest.fn<() => Promise<number[][]>>(),
-      cosineSimilarity: jest.fn<() => number>(),
-      cacheEmbedding: jest.fn<() => void>(),
-      getCachedEmbedding: jest.fn<() => number[] | null>()
-    } as any;
+    // Use factory function for consistent, complete mock
+    mockEmbeddingService = createMockEmbeddingService();
 
     validator = new ClaimSupportValidator(
       mockEmbeddingService,

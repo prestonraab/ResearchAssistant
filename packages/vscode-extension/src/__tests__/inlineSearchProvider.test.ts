@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { InlineSearchProvider } from '../ui/inlineSearchProvider';
-import { ZoteroApiService, ZoteroItem } from '../services/zoteroApiService';
+import { ZoteroClient, ZoteroItem } from '@research-assistant/core';
 import { ManuscriptContextDetector } from '../core/manuscriptContextDetector';
 import { setupTest, createMockZoteroItem } from './helpers';
 
@@ -40,7 +40,8 @@ describe('InlineSearchProvider', () => {
       ],
       date: '2023',
       abstractNote: 'This is a test abstract for the paper.',
-      DOI: '10.1234/test'
+      DOI: '10.1234/test',
+      itemType: 'journalArticle'
     });
 
     // Create mock ZoteroApiService with proper jest mock functions
@@ -286,9 +287,9 @@ describe('InlineSearchProvider', () => {
   describe('Keyboard Navigation (Requirement 45.3)', () => {
     test('should return completion list with multiple items', async () => {
       const multipleItems: ZoteroItem[] = [
-        { ...mockZoteroItem, itemKey: 'ITEM1', key: 'ITEM1', title: 'Paper 1' },
-        { ...mockZoteroItem, itemKey: 'ITEM2', key: 'ITEM2', title: 'Paper 2' },
-        { ...mockZoteroItem, itemKey: 'ITEM3', key: 'ITEM3', title: 'Paper 3' },
+        { ...mockZoteroItem, key: 'ITEM1', title: 'Paper 1' },
+        { ...mockZoteroItem, key: 'ITEM2', title: 'Paper 2' },
+        { ...mockZoteroItem, key: 'ITEM3', title: 'Paper 3' },
       ];
 
       (mockZoteroApiService.semanticSearch as jest.Mock).mockResolvedValue(multipleItems);
@@ -360,8 +361,8 @@ describe('InlineSearchProvider', () => {
 
     test('should format citation as Author (Year)', async () => {
       // This is tested by the implementation creating proper citation format
-      expect(mockZoteroItem.authors[0]).toBe('Smith');
-      expect(mockZoteroItem.year).toBe(2023);
+      expect(mockZoteroItem.creators?.[0]?.lastName).toBe('Smith');
+      expect(mockZoteroItem.date).toBe('2023');
       // Citation should be "Smith et al. (2023)"
     });
 

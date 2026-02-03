@@ -1,5 +1,6 @@
 import { EmbeddingService } from '@research-assistant/core';
 import type { OutlineSection } from '@research-assistant/core';
+import type { DatabaseClaim } from '../types';
 
 export interface PotentialClaim {
   text: string;
@@ -251,7 +252,7 @@ export class ClaimExtractor {
       sourceId: number;
       sections: string[];
     }
-  ): any {
+  ): DatabaseClaim {
     return {
       id: metadata.claimId,
       text: claim.text,

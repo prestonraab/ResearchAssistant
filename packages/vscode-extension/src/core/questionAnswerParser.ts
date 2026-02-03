@@ -8,7 +8,7 @@
  *                     > Answer [source:: C_01]
  */
 
-import { SentenceParser } from './sentenceParser';
+import { SentenceParser } from '@research-assistant/core';
 
 export interface LinkedSource {
   title: string;           // Paper title

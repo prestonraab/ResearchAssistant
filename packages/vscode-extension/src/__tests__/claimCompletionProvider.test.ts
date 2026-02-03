@@ -4,16 +4,35 @@ import { ExtensionState } from '../core/state';
 import { ClaimsManager } from '../core/claimsManagerWrapper';
 import type { Claim, OutlineSection } from '@research-assistant/core';
 import { OutlineParser } from '../core/outlineParserWrapper';
-import { setupTest, aClaim, aZoteroItem } from './helpers';
+import { setupTest, aClaim, aZoteroItem, createMockEmbeddingService } from './helpers';
+
+// Type definitions for mocks
+type MockClaimsManager = {
+  getClaims: jest.Mock;
+  getClaim: jest.Mock;
+  loadClaims: jest.Mock;
+};
+
+type MockOutlineParser = {
+  parse: jest.Mock;
+};
+
+type MockExtensionState = {
+  claimsManager: MockClaimsManager;
+  outlineParser: MockOutlineParser;
+  embeddingService: ReturnType<typeof createMockEmbeddingService>;
+  getAbsolutePath: jest.Mock;
+  getConfig: jest.Mock;
+};
 
 describe('ClaimCompletionProvider', () => {
   setupTest();
 
   let provider: ClaimCompletionProvider;
-  let mockState: jest.Mocked<ExtensionState>;
-  let mockClaimsManager: jest.Mocked<ClaimsManager>;
-  let mockOutlineParser: jest.Mocked<OutlineParser>;
-  let mockDocument: any;
+  let mockState: MockExtensionState;
+  let mockClaimsManager: MockClaimsManager;
+  let mockOutlineParser: MockOutlineParser;
+  let mockDocument: vscode.TextDocument;
   let mockPosition: vscode.Position;
 
   const mockClaims: Claim[] = [
@@ -62,39 +81,37 @@ describe('ClaimCompletionProvider', () => {
   ];
 
   beforeEach(() => {
-    // Create mock claims manager
+    // Create mock claims manager with typed methods
     mockClaimsManager = {
-      getClaims: jest.fn().mockReturnValue(mockClaims),
-      getClaim: jest.fn((id: string) => mockClaims.find(c => c.id === id) || null),
-      loadClaims: jest.fn().mockResolvedValue(mockClaims)
-    } as any;
+      getClaims: jest.fn<() => Claim[]>().mockReturnValue(mockClaims),
+      getClaim: jest.fn<(id: string) => Claim | null>((id: string) => mockClaims.find(c => c.id === id) || null),
+      loadClaims: jest.fn<() => Promise<Claim[]>>().mockResolvedValue(mockClaims)
+    };
 
     // Create mock outline parser
     mockOutlineParser = {
-      parse: jest.fn().mockResolvedValue(mockSections)
-    } as any;
+      parse: jest.fn<() => Promise<OutlineSection[]>>().mockResolvedValue(mockSections)
+    };
 
-    // Create mock extension state
+    // Create mock extension state using factory for embedding service
+    const mockEmbeddingService = createMockEmbeddingService();
     mockState = {
       claimsManager: mockClaimsManager,
       outlineParser: mockOutlineParser,
-      embeddingService: {
-        generateEmbedding: jest.fn().mockResolvedValue([0.1, 0.2, 0.3]),
-        cosineSimilarity: jest.fn().mockReturnValue(0.8)
-      },
-      getAbsolutePath: jest.fn((path: string) => `/test/workspace/${path}`),
+      embeddingService: mockEmbeddingService,
+      getAbsolutePath: jest.fn<(path: string) => string>((path: string) => `/test/workspace/${path}`),
       getConfig: jest.fn().mockReturnValue({
         outlinePath: '03_Drafting/outline.md'
       })
-    } as any;
+    };
 
-    provider = new ClaimCompletionProvider(mockState);
+    provider = new ClaimCompletionProvider(mockState as any);
 
-    // Create mock document
+    // Create mock document with proper typing
     mockDocument = {
       uri: { fsPath: '/test/workspace/03_Drafting/manuscript.md' },
       lineAt: jest.fn().mockReturnValue({ text: 'Some text C_' })
-    } as any;
+    } as unknown as vscode.TextDocument;
 
     mockPosition = new vscode.Position(5, 12);
   });

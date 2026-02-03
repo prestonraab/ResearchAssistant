@@ -18,8 +18,8 @@ describe('ClaimHoverProvider', () => {
 
   let hoverProvider: ClaimHoverProvider;
   let mockExtensionState: any;
-  let mockDocument: jest.Mocked<vscode.TextDocument>;
-  let mockCancellationToken: jest.Mocked<vscode.CancellationToken>;
+  let mockDocument: any;
+  let mockCancellationToken: any;
 
   beforeEach(() => {
     mockExtensionState = createMockExtensionState();

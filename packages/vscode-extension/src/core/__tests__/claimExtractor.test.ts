@@ -1,24 +1,17 @@
-import { describe, test, expect, beforeEach, jest } from '@jest/globals';
+import { describe, test, expect, beforeEach } from '@jest/globals';
 import { ClaimExtractor, PotentialClaim } from '../claimExtractor';
 import type { OutlineSection } from '@research-assistant/core';
-
-// Create a mock embedding service
-const mockEmbeddingService: any = {
-  generateEmbedding: jest.fn<() => Promise<number[]>>().mockResolvedValue(new Array(1536).fill(0).map(() => Math.random())),
-  generateBatch: jest.fn<() => Promise<number[][]>>().mockResolvedValue([
-    new Array(1536).fill(0).map(() => Math.random()),
-    new Array(1536).fill(0).map(() => Math.random())
-  ]),
-  cosineSimilarity: jest.fn((a: number[], b: number[]) => {
-    return 0.5 + Math.random() * 0.3;
-  })
-};
+import { setupTest } from '../../__tests__/helpers';
+import { createMockEmbeddingService } from '../../__tests__/helpers/mockFactories';
 
 describe('ClaimExtractor', () => {
+  setupTest();
+
   let extractor: ClaimExtractor;
+  let mockEmbeddingService: ReturnType<typeof createMockEmbeddingService>;
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    mockEmbeddingService = createMockEmbeddingService();
     extractor = new ClaimExtractor(mockEmbeddingService);
   });
 

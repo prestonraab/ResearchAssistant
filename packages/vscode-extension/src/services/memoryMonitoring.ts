@@ -1,6 +1,11 @@
 import { ExtensionState } from '../core/state';
 
-export function startMemoryMonitoring(state: ExtensionState, logger: any): NodeJS.Timeout {
+interface Logger {
+  info(message: string): void;
+  warn(message: string): void;
+}
+
+export function startMemoryMonitoring(state: ExtensionState, logger: Logger): NodeJS.Timeout {
   const memoryMonitorInterval = setInterval(() => {
     const usage = process.memoryUsage();
     const heapUsedMB = Math.round(usage.heapUsed / 1024 / 1024);

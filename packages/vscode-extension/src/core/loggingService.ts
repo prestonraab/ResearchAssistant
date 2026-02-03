@@ -8,6 +8,11 @@ export enum LogLevel {
 }
 
 /**
+ * Logger interface for type compatibility
+ */
+export type Logger = LoggingService;
+
+/**
  * Centralized logging service for the extension
  */
 export class LoggingService {
@@ -19,25 +24,25 @@ export class LoggingService {
     this.logLevel = logLevel;
   }
 
-  debug(message: string, ...args: any[]): void {
+  debug(message: string, ...args: unknown[]): void {
     if (this.logLevel <= LogLevel.DEBUG) {
       this.log('DEBUG', message, ...args);
     }
   }
 
-  info(message: string, ...args: any[]): void {
+  info(message: string, ...args: unknown[]): void {
     if (this.logLevel <= LogLevel.INFO) {
       this.log('INFO', message, ...args);
     }
   }
 
-  warn(message: string, ...args: any[]): void {
+  warn(message: string, ...args: unknown[]): void {
     if (this.logLevel <= LogLevel.WARN) {
       this.log('WARN', message, ...args);
     }
   }
 
-  error(message: string, error?: Error, ...args: any[]): void {
+  error(message: string, error?: Error, ...args: unknown[]): void {
     if (this.logLevel <= LogLevel.ERROR) {
       this.log('ERROR', message, error, ...args);
       if (error) {

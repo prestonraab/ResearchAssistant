@@ -1,7 +1,7 @@
 import { AutoQuoteVerifier } from '../core/autoQuoteVerifier';
 import { ClaimsManager } from '../core/claimsManagerWrapper';
 import type { Claim } from '@research-assistant/core';
-import { setupTest, createMockClaim, aClaim } from './helpers';
+import { setupTest, createMockClaimsManager, aClaim } from './helpers';
 
 interface VerificationResult {
   verified: boolean;
@@ -17,18 +17,14 @@ describe('AutoQuoteVerifier', () => {
   let mockClaimsManager: jest.Mocked<ClaimsManager>;
 
   beforeEach(() => {
-    // Create mock ClaimsManager
-    mockClaimsManager = {
-      getClaim: jest.fn(),
-      updateClaim: jest.fn(),
-      onClaimSaved: jest.fn()
-    } as any;
+    // Use factory function for consistent, complete mock
+    mockClaimsManager = createMockClaimsManager();
 
     verifier = new AutoQuoteVerifier(mockClaimsManager);
     
     // Spy on processVerificationQueue to prevent automatic processing in tests
     jest.spyOn(verifier as any, 'processVerificationQueue').mockImplementation(() => Promise.resolve());
-  });
+  }));
 
   afterEach(() => {
     verifier.dispose();

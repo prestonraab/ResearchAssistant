@@ -57,8 +57,8 @@ export class InternetPaperSearcher extends CoreInternetPaperSearcher {
         async (progress) => {
           progress.report({ message: 'Creating Zotero item...' });
 
-          // Get ZoteroApiService instance
-          const { ZoteroApiService } = await import('../services/zoteroApiService');
+          // Get ZoteroClient instance
+          const { ZoteroClient } = await import('@research-assistant/core');
           const config = vscode.workspace.getConfiguration('researchAssistant');
           const apiKey = config.get<string>('zoteroApiKey') || '';
           const userId = config.get<string>('zoteroUserId') || '';
@@ -67,7 +67,7 @@ export class InternetPaperSearcher extends CoreInternetPaperSearcher {
             throw new Error('Zotero API credentials not configured. Please set zoteroApiKey and zoteroUserId in settings.');
           }
 
-          const zoteroService = new ZoteroApiService();
+          const zoteroService = new ZoteroClient();
           zoteroService.initialize(apiKey, userId);
 
           // Parse authors into Zotero creator format
@@ -100,7 +100,7 @@ export class InternetPaperSearcher extends CoreInternetPaperSearcher {
           });
 
           // Prepare item data
-          const itemData: any = {
+          const itemData: Record<string, unknown> = {
             itemType: 'journalArticle',
             title: paper.title,
             creators,
@@ -139,9 +139,18 @@ export class InternetPaperSearcher extends CoreInternetPaperSearcher {
       );
     } catch (error) {
       console.error('Failed to import to Zotero:', error);
+      const errorMsg = error instanceof Error ? error.message : 'Unknown error';
       vscode.window.showErrorMessage(
-        `Failed to import paper: ${error instanceof Error ? error.message : 'Unknown error'}`
-      );
+        errorMsg.includes('credentials') || errorMsg.includes('API')
+          ? 'Unable to connect to Zotero. Please check your API credentials in settings.'
+          : 'Unable to import the paper. Please try again.',
+        'Check Settings',
+        'Retry'
+      ).then(action => {
+        if (action === 'Check Settings') {
+          vscode.commands.executeCommand('workbench.action.openSettings', 'researchAssistant.zotero');
+        }
+      });
       return null;
     }
   }
@@ -162,7 +171,8 @@ export class InternetPaperSearcher extends CoreInternetPaperSearcher {
     } catch (error) {
       console.error('Failed to extract fulltext:', error);
       vscode.window.showErrorMessage(
-        `Failed to extract fulltext: ${error instanceof Error ? error.message : 'Unknown error'}`
+        'Unable to extract text from the PDF. The file may be corrupted or password-protected.',
+        'Retry'
       );
     }
   }

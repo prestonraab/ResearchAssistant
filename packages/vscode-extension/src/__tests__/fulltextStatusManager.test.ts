@@ -3,37 +3,34 @@ import { PDFExtractionService } from '../core/pdfExtractionService';
 import { OutlineParser } from '../core/outlineParserWrapper';
 import * as fs from 'fs';
 import * as path from 'path';
-import { setupTest } from './helpers';
+import { 
+  setupTest, 
+  createMockPdfExtractionService, 
+  createMockOutlineParser 
+} from './helpers';
+
+jest.mock('fs');
 
 describe('FulltextStatusManager', () => {
   setupTest();
 
   let manager: FulltextStatusManager;
-  let mockPdfService: jest.Mocked<PDFExtractionService>;
-  let mockOutlineParser: jest.Mocked<OutlineParser>;
-  let mockExtractText: jest.Mock;
+  let mockPdfService: ReturnType<typeof createMockPdfExtractionService>;
+  let mockOutlineParser: ReturnType<typeof createMockOutlineParser>;
   const workspaceRoot = '/test/workspace';
 
   beforeEach(() => {
-    // Create individual mock functions
-    mockExtractText = jest.fn();
+    // Use factory functions for consistent mocks
+    mockPdfService = createMockPdfExtractionService();
+    mockOutlineParser = createMockOutlineParser();
 
-    // Create mock instances with proper jest.fn() mocks
-    mockPdfService = {
-      extractText: mockExtractText,
-      hasExtractedText: jest.fn(),
-      getExtractedTextPath: jest.fn(),
-    } as any;
-
-    mockOutlineParser = {} as any;
-
-    // Mock fs.existsSync
+    // Mock fs functions - automatically cleaned up by setupTest()
     (fs.existsSync as jest.Mock).mockReturnValue(false);
     (fs.readdirSync as jest.Mock).mockReturnValue([]);
 
     manager = new FulltextStatusManager(
-      mockPdfService,
-      mockOutlineParser,
+      mockPdfService as any,
+      mockOutlineParser as any,
       workspaceRoot
     );
   });
@@ -46,10 +43,10 @@ describe('FulltextStatusManager', () => {
     /**
      * Test: Scan identifies papers without fulltext
      * Validates: Requirement 44.1
-     * NOTE: This test needs to be rewritten to match the new local-file-based implementation
+     * SKIPPED: Needs rewrite for local-file-based implementation (no longer uses Zotero API)
      */
     it.skip('should identify papers without extracted text', async () => {
-      // TODO: Rewrite test for local PDF scanning
+      // Test implementation pending - requires local PDF scanning approach
     });
 
     /**
@@ -115,10 +112,10 @@ describe('FulltextStatusManager', () => {
     /**
      * Test: Returns only papers without fulltext
      * Validates: Requirement 44.2
-     * NOTE: This test needs to be rewritten to match the new local-file-based implementation
+     * SKIPPED: Needs rewrite for local-file-based implementation (no longer uses Zotero API)
      */
     it.skip('should return only papers missing fulltext that have PDFs', async () => {
-      // TODO: Rewrite test for local PDF scanning
+      // Test implementation pending - requires local PDF scanning approach
     });
   });
 
@@ -126,28 +123,28 @@ describe('FulltextStatusManager', () => {
     /**
      * Test: Batch extraction processes all missing papers
      * Validates: Requirement 44.3, 44.4
-     * NOTE: This test needs to be rewritten to match the new local-file-based implementation
+     * SKIPPED: Needs rewrite for local-file-based implementation (no longer uses Zotero API)
      */
     it.skip('should extract all missing fulltexts with progress reporting', async () => {
-      // TODO: Rewrite test for local PDF scanning
+      // Test implementation pending - requires local PDF scanning approach
     });
 
     /**
      * Test: Batch extraction handles failures gracefully
      * Validates: Requirement 44.4
-     * NOTE: This test needs to be rewritten to match the new local-file-based implementation
+     * SKIPPED: Needs rewrite for local-file-based implementation (no longer uses Zotero API)
      */
     it.skip('should handle extraction failures and report errors', async () => {
-      // TODO: Rewrite test for local PDF scanning
+      // Test implementation pending - requires local PDF scanning approach
     });
 
     /**
      * Test: Progress callback includes estimated time
      * Validates: Requirement 44.4
-     * NOTE: This test needs to be rewritten to match the new local-file-based implementation
+     * SKIPPED: Needs rewrite for local-file-based implementation (no longer uses Zotero API)
      */
     it.skip('should provide estimated time remaining in progress updates', async () => {
-      // TODO: Rewrite test for local PDF scanning
+      // Test implementation pending - requires local PDF scanning approach
     });
   });
 
@@ -155,19 +152,19 @@ describe('FulltextStatusManager', () => {
     /**
      * Test: Papers are prioritized by relevance to section context
      * Validates: Requirement 44.5
-     * NOTE: This test needs to be rewritten to match the new local-file-based implementation
+     * SKIPPED: Needs rewrite for local-file-based implementation (no longer uses Zotero API)
      */
     it.skip('should prioritize papers by relevance to section context', async () => {
-      // TODO: Rewrite test for local PDF scanning
+      // Test implementation pending - requires local PDF scanning approach
     });
 
     /**
      * Test: Prioritization sorts papers correctly
      * Validates: Requirement 44.5
-     * NOTE: This test needs to be rewritten to match the new local-file-based implementation
+     * SKIPPED: Needs rewrite for local-file-based implementation (no longer uses Zotero API)
      */
     it.skip('should sort papers by priority for batch extraction', async () => {
-      // TODO: Rewrite test for local PDF scanning
+      // Test implementation pending - requires local PDF scanning approach
     });
   });
 
@@ -175,10 +172,10 @@ describe('FulltextStatusManager', () => {
     /**
      * Test: Statistics accurately reflect fulltext coverage
      * Validates: Requirement 44.1
-     * NOTE: This test needs to be rewritten to match the new local-file-based implementation
+     * SKIPPED: Needs rewrite for local-file-based implementation (no longer uses Zotero API)
      */
     it.skip('should provide accurate statistics about fulltext coverage', async () => {
-      // TODO: Rewrite test for local PDF scanning
+      // Test implementation pending - requires local PDF scanning approach
     });
   });
 

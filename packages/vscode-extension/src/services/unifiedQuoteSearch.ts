@@ -2,7 +2,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { LiteratureIndexer } from './literatureIndexer';
 import { TextNormalizer } from '@research-assistant/core';
-import { FuzzyMatcher } from '../core/fuzzyMatcher';
+import { FuzzyMatcher } from '@research-assistant/core';
 
 export interface QuoteSearchResult {
   similarity: number;

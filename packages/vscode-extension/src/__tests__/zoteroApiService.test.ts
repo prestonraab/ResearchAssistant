@@ -1,7 +1,13 @@
 import { jest } from '@jest/globals';
-import { ZoteroApiService, ZoteroItem } from '../services/zoteroApiService';
+import { ZoteroClient, ZoteroItem } from '@research-assistant/core';
 import { EmbeddingService } from '@research-assistant/core';
-import { setupTest, createMockZoteroItem } from './helpers';
+import { 
+  setupTest, 
+  createMockZoteroItem, 
+  createMockEmbeddingService,
+  createMockFetchResponse,
+  createMockErrorResponse
+} from './helpers';
 
 // Mock EmbeddingService
 jest.mock('@research-assistant/core', () => ({
@@ -10,90 +16,77 @@ jest.mock('@research-assistant/core', () => ({
   })),
 }));
 
-// Mock fetch globally
-global.fetch = jest.fn() as jest.MockedFunction<typeof fetch>;
-
 describe('ZoteroApiService', () => {
   setupTest();
 
   let service: ZoteroApiService;
   let mockEmbeddingService: jest.Mocked<EmbeddingService>;
+  let fetchSpy: jest.SpyInstance;
 
   beforeEach(() => {
+    // Use jest.spyOn for global fetch - automatically cleaned up by setupTest()
+    fetchSpy = jest.spyOn(global, 'fetch' as any).mockResolvedValue(
+      createMockFetchResponse({})
+    );
+
     service = new ZoteroApiService();
     service.initialize('test-api-key', 'test-user-id');
     
-    // Manually set the embedding service to bypass vscode config issues
-    mockEmbeddingService = {
-      generateEmbedding: jest.fn(),
-    } as any;
+    // Use factory function for consistent, complete mock
+    mockEmbeddingService = createMockEmbeddingService();
     (service as any).embeddingService = mockEmbeddingService;
   });
 
   afterEach(() => {
-    service.clearCache();
+    fetchSpy.mockRestore();
   });
 
   describe('getCollectionItems', () => {
     const mockCollectionItems: ZoteroItem[] = [
-      {
+      createMockZoteroItem({
         key: 'item1',
         title: 'Paper 1 in Collection',
-        itemType: 'journalArticle',
         abstractNote: 'First paper abstract',
         creators: [{ firstName: 'Alice', lastName: 'Smith' }],
-      },
-      {
+      }),
+      createMockZoteroItem({
         key: 'item2',
         title: 'Paper 2 in Collection',
-        itemType: 'journalArticle',
         abstractNote: 'Second paper abstract',
         creators: [{ firstName: 'Bob', lastName: 'Jones' }],
-      },
+      }),
     ];
 
     test('should fetch items from a specific collection', async () => {
-      (global.fetch as jest.MockedFunction<typeof fetch>).mockResolvedValue({
-        status: 200,
-        headers: new Headers({ 'content-type': 'application/json' }),
-        json: async () => mockCollectionItems,
-      } as Response);
+      fetchSpy.mockResolvedValueOnce(createMockFetchResponse(mockCollectionItems));
 
       const results = await service.getCollectionItems('ABC123');
 
       expect(results).toEqual(mockCollectionItems);
-      expect(global.fetch).toHaveBeenCalledWith(
+      expect(fetchSpy).toHaveBeenCalledWith(
         expect.stringContaining('/collections/ABC123/items'),
         expect.any(Object)
       );
     });
 
     test('should respect the limit parameter when provided', async () => {
-      (global.fetch as jest.MockedFunction<typeof fetch>).mockResolvedValue({
-        status: 200,
-        headers: new Headers({ 'content-type': 'application/json' }),
-        json: async () => [mockCollectionItems[0]],
-      } as Response);
+      fetchSpy.mockResolvedValueOnce(createMockFetchResponse([mockCollectionItems[0]]));
 
       const results = await service.getCollectionItems('ABC123', 1);
 
       expect(results.length).toBe(1);
-      expect(global.fetch).toHaveBeenCalledWith(
+      expect(fetchSpy).toHaveBeenCalledWith(
         expect.stringContaining('limit=1'),
         expect.any(Object)
       );
     });
 
     test('should not add limit parameter when not provided', async () => {
-      (global.fetch as jest.MockedFunction<typeof fetch>).mockResolvedValue({
-        status: 200,
-        headers: new Headers({ 'content-type': 'application/json' }),
-        json: async () => mockCollectionItems,
-      } as Response);
+      fetchSpy.mockResolvedValueOnce(createMockFetchResponse(mockCollectionItems));
 
       await service.getCollectionItems('ABC123');
 
-      const fetchCall = (global.fetch as jest.MockedFunction<typeof fetch>).mock.calls[0];
+      const fetchCall = fetchSpy.mock.calls[0];
       expect(fetchCall[0]).toContain('/collections/ABC123/items');
       expect(fetchCall[0]).not.toContain('limit=');
     });
@@ -112,68 +105,53 @@ describe('ZoteroApiService', () => {
     });
 
     test('should throw error when collection is not found', async () => {
-      (global.fetch as jest.MockedFunction<typeof fetch>).mockResolvedValue({
-        status: 404,
-        headers: new Headers({ 'content-type': 'application/json' }),
-        json: async () => ({ error: 'Not found' }),
-      } as Response);
+      fetchSpy.mockResolvedValueOnce(createMockErrorResponse(404, 'Not found'));
 
       await expect(service.getCollectionItems('INVALID')).rejects.toThrow('Collection not found: INVALID');
     });
 
     test('should throw error on API failure', async () => {
-      (global.fetch as jest.MockedFunction<typeof fetch>).mockResolvedValue({
-        status: 500,
-        headers: new Headers({ 'content-type': 'application/json' }),
-        json: async () => ({ error: 'Server error' }),
-      } as Response);
+      fetchSpy.mockResolvedValueOnce(createMockErrorResponse(500, 'Server error'));
 
       await expect(service.getCollectionItems('ABC123')).rejects.toThrow('Failed to fetch collection items: 500');
     });
 
     test('should cache collection items', async () => {
-      (global.fetch as jest.MockedFunction<typeof fetch>).mockResolvedValue({
-        status: 200,
-        headers: new Headers({ 'content-type': 'application/json' }),
-        json: async () => mockCollectionItems,
-      } as Response);
+      fetchSpy.mockResolvedValueOnce(createMockFetchResponse(mockCollectionItems));
 
       // First call
       const results1 = await service.getCollectionItems('ABC123');
       
       // Clear mock call history
-      (global.fetch as jest.MockedFunction<typeof fetch>).mockClear();
+      fetchSpy.mockClear();
 
       // Second call with same collection key
       const results2 = await service.getCollectionItems('ABC123');
 
       // Should return cached results without calling API
-      expect(global.fetch).not.toHaveBeenCalled();
+      expect(fetchSpy).not.toHaveBeenCalled();
       expect(results2).toEqual(results1);
     });
 
     test('should use different cache keys for different limits', async () => {
-      (global.fetch as jest.MockedFunction<typeof fetch>).mockResolvedValue({
-        status: 200,
-        headers: new Headers({ 'content-type': 'application/json' }),
-        json: async () => mockCollectionItems,
-      } as Response);
+      fetchSpy.mockResolvedValueOnce(createMockFetchResponse(mockCollectionItems));
 
       // First call with limit
       await service.getCollectionItems('ABC123', 10);
       
       // Clear mock call history
-      (global.fetch as jest.MockedFunction<typeof fetch>).mockClear();
+      fetchSpy.mockClear();
 
       // Second call without limit (different cache key)
+      fetchSpy.mockResolvedValueOnce(createMockFetchResponse(mockCollectionItems));
       await service.getCollectionItems('ABC123');
 
       // Should make a new API call since cache key is different
-      expect(global.fetch).toHaveBeenCalled();
+      expect(fetchSpy).toHaveBeenCalled();
     });
 
     test('should handle network errors gracefully', async () => {
-      (global.fetch as jest.MockedFunction<typeof fetch>).mockRejectedValue(new Error('Network error'));
+      fetchSpy.mockRejectedValueOnce(new Error('Network error'));
 
       await expect(service.getCollectionItems('ABC123')).rejects.toThrow();
     });
@@ -181,59 +159,49 @@ describe('ZoteroApiService', () => {
 
   describe('getRecentItems', () => {
     const mockRecentItems: ZoteroItem[] = [
-      {
+      createMockZoteroItem({
         key: 'item1',
         title: 'Most Recent Paper',
-        itemType: 'journalArticle',
         abstractNote: 'Recently modified paper',
         creators: [{ firstName: 'Alice', lastName: 'Smith' }],
         date: '2024-01-15',
-      },
-      {
+      }),
+      createMockZoteroItem({
         key: 'item2',
         title: 'Second Recent Paper',
-        itemType: 'journalArticle',
         abstractNote: 'Another recent paper',
         creators: [{ firstName: 'Bob', lastName: 'Jones' }],
         date: '2024-01-14',
-      },
+      }),
     ];
 
     test('should fetch recent items with default limit', async () => {
-      (global.fetch as jest.MockedFunction<typeof fetch>).mockResolvedValue({
-        status: 200,
-        headers: new Headers({ 'content-type': 'application/json' }),
-        json: async () => mockRecentItems,
-      } as Response);
+      fetchSpy.mockResolvedValueOnce(createMockFetchResponse(mockRecentItems));
 
       const results = await service.getRecentItems();
 
       expect(results).toEqual(mockRecentItems);
-      expect(global.fetch).toHaveBeenCalledWith(
+      expect(fetchSpy).toHaveBeenCalledWith(
         expect.stringContaining('sort=dateModified'),
         expect.any(Object)
       );
-      expect(global.fetch).toHaveBeenCalledWith(
+      expect(fetchSpy).toHaveBeenCalledWith(
         expect.stringContaining('direction=desc'),
         expect.any(Object)
       );
-      expect(global.fetch).toHaveBeenCalledWith(
+      expect(fetchSpy).toHaveBeenCalledWith(
         expect.stringContaining('limit=50'),
         expect.any(Object)
       );
     });
 
     test('should respect custom limit parameter', async () => {
-      (global.fetch as jest.MockedFunction<typeof fetch>).mockResolvedValue({
-        status: 200,
-        headers: new Headers({ 'content-type': 'application/json' }),
-        json: async () => [mockRecentItems[0]],
-      } as Response);
+      fetchSpy.mockResolvedValueOnce(createMockFetchResponse([mockRecentItems[0]]));
 
       const results = await service.getRecentItems(10);
 
       expect(results.length).toBe(1);
-      expect(global.fetch).toHaveBeenCalledWith(
+      expect(fetchSpy).toHaveBeenCalledWith(
         expect.stringContaining('limit=10'),
         expect.any(Object)
       );
@@ -253,72 +221,57 @@ describe('ZoteroApiService', () => {
     });
 
     test('should throw error on API failure', async () => {
-      (global.fetch as jest.MockedFunction<typeof fetch>).mockResolvedValue({
-        status: 500,
-        headers: new Headers({ 'content-type': 'application/json' }),
-        json: async () => ({ error: 'Server error' }),
-      } as Response);
+      fetchSpy.mockResolvedValueOnce(createMockErrorResponse(500, 'Server error'));
 
       await expect(service.getRecentItems()).rejects.toThrow('Failed to fetch recent items: 500');
     });
 
     test('should cache recent items', async () => {
-      (global.fetch as jest.MockedFunction<typeof fetch>).mockResolvedValue({
-        status: 200,
-        headers: new Headers({ 'content-type': 'application/json' }),
-        json: async () => mockRecentItems,
-      } as Response);
+      fetchSpy.mockResolvedValueOnce(createMockFetchResponse(mockRecentItems));
 
       // First call
       const results1 = await service.getRecentItems();
       
       // Clear mock call history
-      (global.fetch as jest.MockedFunction<typeof fetch>).mockClear();
+      fetchSpy.mockClear();
 
       // Second call with same limit
       const results2 = await service.getRecentItems();
 
       // Should return cached results without calling API
-      expect(global.fetch).not.toHaveBeenCalled();
+      expect(fetchSpy).not.toHaveBeenCalled();
       expect(results2).toEqual(results1);
     });
 
     test('should use different cache keys for different limits', async () => {
-      (global.fetch as jest.MockedFunction<typeof fetch>).mockResolvedValue({
-        status: 200,
-        headers: new Headers({ 'content-type': 'application/json' }),
-        json: async () => mockRecentItems,
-      } as Response);
+      fetchSpy.mockResolvedValueOnce(createMockFetchResponse(mockRecentItems));
 
       // First call with default limit
       await service.getRecentItems();
       
       // Clear mock call history
-      (global.fetch as jest.MockedFunction<typeof fetch>).mockClear();
+      fetchSpy.mockClear();
 
       // Second call with different limit (different cache key)
+      fetchSpy.mockResolvedValueOnce(createMockFetchResponse(mockRecentItems));
       await service.getRecentItems(10);
 
       // Should make a new API call since cache key is different
-      expect(global.fetch).toHaveBeenCalled();
+      expect(fetchSpy).toHaveBeenCalled();
     });
 
     test('should handle network errors gracefully', async () => {
-      (global.fetch as jest.MockedFunction<typeof fetch>).mockRejectedValue(new Error('Network error'));
+      fetchSpy.mockRejectedValueOnce(new Error('Network error'));
 
       await expect(service.getRecentItems()).rejects.toThrow();
     });
 
     test('should include correct API parameters in request', async () => {
-      (global.fetch as jest.MockedFunction<typeof fetch>).mockResolvedValue({
-        status: 200,
-        headers: new Headers({ 'content-type': 'application/json' }),
-        json: async () => mockRecentItems,
-      } as Response);
+      fetchSpy.mockResolvedValueOnce(createMockFetchResponse(mockRecentItems));
 
       await service.getRecentItems(25);
 
-      const fetchCall = (global.fetch as jest.MockedFunction<typeof fetch>).mock.calls[0];
+      const fetchCall = fetchSpy.mock.calls[0];
       const url = fetchCall[0] as string;
       
       expect(url).toContain('format=json');
@@ -383,7 +336,7 @@ describe('ZoteroApiService', () => {
 
     beforeEach(() => {
       // Mock fetch to return items
-      (global.fetch as jest.MockedFunction<typeof fetch>).mockResolvedValue({
+      fetchSpy.mockResolvedValueOnce({
         status: 200,
         headers: new Headers({ 'content-type': 'application/json' }),
         json: async () => mockItems,
@@ -452,14 +405,14 @@ describe('ZoteroApiService', () => {
       
       // Clear mock call history
       mockEmbeddingService.generateEmbedding.mockClear();
-      (global.fetch as jest.MockedFunction<typeof fetch>).mockClear();
+      fetchSpy.mockClear();
 
       // Second search with same query
       const results2 = await service.semanticSearch('machine learning', 5);
 
       // Should return cached results without calling API or generating embeddings
       expect(mockEmbeddingService.generateEmbedding).not.toHaveBeenCalled();
-      expect(global.fetch).not.toHaveBeenCalled();
+      expect(fetchSpy).not.toHaveBeenCalled();
       expect(results2).toEqual(results1);
     });
 
@@ -478,7 +431,7 @@ describe('ZoteroApiService', () => {
       await service.semanticSearch('machine learning', 5);
 
       // Mock error for second call
-      mockEmbeddingService.generateEmbedding.mockRejectedValue(new Error('API error'));
+      mockEmbeddingService.generateEmbedding.mockRejectedValueOnce(new Error('API error'));
 
       // Second search should return cached results despite error
       const results = await service.semanticSearch('machine learning', 5);
@@ -492,7 +445,7 @@ describe('ZoteroApiService', () => {
       mockEmbeddingService.generateEmbedding.mockResolvedValue([1.0, 0.0, 0.0]);
 
       // Mock fetch to return one item
-      (global.fetch as jest.MockedFunction<typeof fetch>).mockResolvedValue({
+      fetchSpy.mockResolvedValueOnce({
         status: 200,
         headers: new Headers({ 'content-type': 'application/json' }),
         json: async () => [{
@@ -521,7 +474,7 @@ describe('ZoteroApiService', () => {
       });
 
       // Mock fetch to return one item
-      (global.fetch as jest.MockedFunction<typeof fetch>).mockResolvedValue({
+      fetchSpy.mockResolvedValueOnce({
         status: 200,
         headers: new Headers({ 'content-type': 'application/json' }),
         json: async () => [{
@@ -547,7 +500,7 @@ describe('ZoteroApiService', () => {
         abstractNote: 'Test Abstract',
       };
 
-      (global.fetch as jest.MockedFunction<typeof fetch>).mockResolvedValue({
+      fetchSpy.mockResolvedValueOnce({
         status: 200,
         headers: new Headers({ 'content-type': 'application/json' }),
         json: async () => [mockItem],
@@ -573,7 +526,7 @@ describe('ZoteroApiService', () => {
         itemType: 'journalArticle',
       };
 
-      (global.fetch as jest.MockedFunction<typeof fetch>).mockResolvedValue({
+      fetchSpy.mockResolvedValueOnce({
         status: 200,
         headers: new Headers({ 'content-type': 'application/json' }),
         json: async () => [mockItem],
@@ -593,7 +546,7 @@ describe('ZoteroApiService', () => {
     test('should fetch items from Zotero API', async () => {
       mockEmbeddingService.generateEmbedding.mockResolvedValue([0.5, 0.5, 0.5]);
 
-      (global.fetch as jest.MockedFunction<typeof fetch>).mockResolvedValue({
+      fetchSpy.mockResolvedValueOnce({
         status: 200,
         headers: new Headers({ 'content-type': 'application/json' }),
         json: async () => [],
@@ -602,8 +555,8 @@ describe('ZoteroApiService', () => {
       await service.semanticSearch('test', 5);
 
       // Should call Zotero API
-      expect(global.fetch).toHaveBeenCalled();
-      const fetchCall = (global.fetch as jest.MockedFunction<typeof fetch>).mock.calls[0];
+      expect(fetchSpy).toHaveBeenCalled();
+      const fetchCall = fetchSpy.mock.calls[0];
       expect(fetchCall[0]).toContain('api.zotero.org');
       expect(fetchCall[0]).toContain('test-user-id');
     });
@@ -611,7 +564,7 @@ describe('ZoteroApiService', () => {
     test('should return empty array when no items in library', async () => {
       mockEmbeddingService.generateEmbedding.mockResolvedValue([0.5, 0.5, 0.5]);
 
-      (global.fetch as jest.MockedFunction<typeof fetch>).mockResolvedValue({
+      fetchSpy.mockResolvedValueOnce({
         status: 200,
         headers: new Headers({ 'content-type': 'application/json' }),
         json: async () => [],
@@ -659,7 +612,7 @@ describe('ZoteroApiService', () => {
     ];
 
     test('should fetch and return typed attachments only', async () => {
-      (global.fetch as jest.MockedFunction<typeof fetch>).mockResolvedValue({
+      fetchSpy.mockResolvedValueOnce({
         status: 200,
         headers: new Headers({ 'content-type': 'application/json' }),
         json: async () => mockChildren,
@@ -702,7 +655,7 @@ describe('ZoteroApiService', () => {
     });
 
     test('should return empty array on API failure', async () => {
-      (global.fetch as jest.MockedFunction<typeof fetch>).mockResolvedValue({
+      fetchSpy.mockResolvedValueOnce({
         status: 500,
         headers: new Headers({ 'content-type': 'application/json' }),
         json: async () => ({ error: 'Server error' }),
@@ -713,7 +666,7 @@ describe('ZoteroApiService', () => {
     });
 
     test('should return empty array when item has no children', async () => {
-      (global.fetch as jest.MockedFunction<typeof fetch>).mockResolvedValue({
+      fetchSpy.mockResolvedValueOnce({
         status: 200,
         headers: new Headers({ 'content-type': 'application/json' }),
         json: async () => [],
@@ -724,7 +677,7 @@ describe('ZoteroApiService', () => {
     });
 
     test('should cache item children', async () => {
-      (global.fetch as jest.MockedFunction<typeof fetch>).mockResolvedValue({
+      fetchSpy.mockResolvedValueOnce({
         status: 200,
         headers: new Headers({ 'content-type': 'application/json' }),
         json: async () => mockChildren,
@@ -734,13 +687,13 @@ describe('ZoteroApiService', () => {
       const results1 = await service.getItemChildren('item123');
       
       // Clear mock call history
-      (global.fetch as jest.MockedFunction<typeof fetch>).mockClear();
+      fetchSpy.mockClear();
 
       // Second call with same item key
       const results2 = await service.getItemChildren('item123');
 
       // Should return cached results without calling API
-      expect(global.fetch).not.toHaveBeenCalled();
+      expect(fetchSpy).not.toHaveBeenCalled();
       expect(results2).toEqual(results1);
     });
 
@@ -755,7 +708,7 @@ describe('ZoteroApiService', () => {
         }
       ];
 
-      (global.fetch as jest.MockedFunction<typeof fetch>).mockResolvedValue({
+      fetchSpy.mockResolvedValueOnce({
         status: 200,
         headers: new Headers({ 'content-type': 'application/json' }),
         json: async () => incompleteChildren,
@@ -775,14 +728,14 @@ describe('ZoteroApiService', () => {
     });
 
     test('should handle network errors gracefully', async () => {
-      (global.fetch as jest.MockedFunction<typeof fetch>).mockRejectedValue(new Error('Network error'));
+      fetchSpy.mockRejectedValueOnce(new Error('Network error'));
 
       const results = await service.getItemChildren('item123');
       expect(results).toEqual([]);
     });
 
     test('should call correct API endpoint', async () => {
-      (global.fetch as jest.MockedFunction<typeof fetch>).mockResolvedValue({
+      fetchSpy.mockResolvedValueOnce({
         status: 200,
         headers: new Headers({ 'content-type': 'application/json' }),
         json: async () => [],
@@ -790,11 +743,11 @@ describe('ZoteroApiService', () => {
 
       await service.getItemChildren('item123');
 
-      expect(global.fetch).toHaveBeenCalledWith(
+      expect(fetchSpy).toHaveBeenCalledWith(
         expect.stringContaining('/users/test-user-id/items/item123/children'),
         expect.any(Object)
       );
-      expect(global.fetch).toHaveBeenCalledWith(
+      expect(fetchSpy).toHaveBeenCalledWith(
         expect.stringContaining('format=json'),
         expect.any(Object)
       );

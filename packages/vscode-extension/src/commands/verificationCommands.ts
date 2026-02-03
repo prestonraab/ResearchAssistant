@@ -40,7 +40,18 @@ export function registerVerificationCommands(
           }
         );
       } catch (error) {
-        vscode.window.showErrorMessage(`Quote verification failed: ${error}`);
+        const errorMsg = error instanceof Error ? error.message : String(error);
+        vscode.window.showErrorMessage(
+          `Unable to verify quotes. ${errorMsg.includes('timeout') ? 'The operation took too long.' : 'Please check your connection and try again.'}`,
+          'Retry',
+          'View Help'
+        ).then(action => {
+          if (action === 'Retry') {
+            vscode.commands.executeCommand('researchAssistant.batchVerifyQuotes');
+          } else if (action === 'View Help') {
+            vscode.commands.executeCommand('researchAssistant.showHelp');
+          }
+        });
       }
     }),
 
@@ -54,7 +65,14 @@ export function registerVerificationCommands(
         : claimIdOrItem?.claim?.id;
 
       if (!claimId) {
-        vscode.window.showErrorMessage('Invalid claim ID');
+        vscode.window.showErrorMessage(
+          'Could not identify the claim. Please select a valid claim from the list.',
+          'View Claims'
+        ).then(action => {
+          if (action === 'View Claims') {
+            vscode.commands.executeCommand('researchAssistant.showClaimsPanel');
+          }
+        });
         return;
       }
 
@@ -79,7 +97,15 @@ export function registerVerificationCommands(
           }
         );
       } catch (error) {
-        vscode.window.showErrorMessage(`Verification failed: ${error}`);
+        const errorMsg = error instanceof Error ? error.message : String(error);
+        vscode.window.showErrorMessage(
+          `Unable to verify this claim. ${errorMsg.includes('not found') ? 'The source document may be missing.' : 'Please try again.'}`,
+          'Retry'
+        ).then(action => {
+          if (action === 'Retry') {
+            vscode.commands.executeCommand('researchAssistant.verifyClaimQuote', claimId);
+          }
+        });
       }
     }),
 
@@ -91,7 +117,14 @@ export function registerVerificationCommands(
       try {
         await extensionState.autoQuoteVerifier.verifyAllUnverified();
       } catch (error) {
-        vscode.window.showErrorMessage(`Batch verification failed: ${error}`);
+        vscode.window.showErrorMessage(
+          'Unable to complete batch verification. Some claims may not have been processed.',
+          'View Unverified Claims'
+        ).then(action => {
+          if (action === 'View Unverified Claims') {
+            vscode.commands.executeCommand('researchAssistant.showClaimsPanel');
+          }
+        });
       }
     }),
 
@@ -129,7 +162,14 @@ export function registerVerificationCommands(
           }
         });
       } catch (error) {
-        vscode.window.showErrorMessage(`Verification failed: ${error}`);
+        vscode.window.showErrorMessage(
+          'Unable to complete verification. Please check that your source documents are available and try again.',
+          'Retry'
+        ).then(action => {
+          if (action === 'Retry') {
+            vscode.commands.executeCommand('researchAssistant.verifyAllClaims');
+          }
+        });
       }
     }),
 
@@ -143,14 +183,28 @@ export function registerVerificationCommands(
         : claimIdOrItem?.claim?.id;
 
       if (!claimId) {
-        vscode.window.showErrorMessage('Invalid claim ID');
+        vscode.window.showErrorMessage(
+          'Could not identify the claim. Please select a valid claim from the list.',
+          'View Claims'
+        ).then(action => {
+          if (action === 'View Claims') {
+            vscode.commands.executeCommand('researchAssistant.showClaimsPanel');
+          }
+        });
         return;
       }
 
       try {
         const claim = extensionState.claimsManager.getClaim(claimId);
         if (!claim) {
-          vscode.window.showWarningMessage(`Claim ${claimId} not found`);
+          vscode.window.showWarningMessage(
+            `Could not find claim "${claimId}". It may have been deleted or moved.`,
+            'Refresh Claims'
+          ).then(action => {
+            if (action === 'Refresh Claims') {
+              vscode.commands.executeCommand('researchAssistant.refreshClaims');
+            }
+          });
           return;
         }
 
@@ -216,7 +270,14 @@ export function registerVerificationCommands(
           }
         );
       } catch (error) {
-        vscode.window.showErrorMessage(`Validation failed: ${error}`);
+        vscode.window.showErrorMessage(
+          'Unable to validate claim support. Please ensure your source documents are accessible and try again.',
+          'Retry'
+        ).then(action => {
+          if (action === 'Retry') {
+            vscode.commands.executeCommand('researchAssistant.validateClaimSupport', claimId);
+          }
+        });
       }
     }),
 
@@ -318,7 +379,14 @@ export function registerVerificationCommands(
           }
         );
       } catch (error) {
-        vscode.window.showErrorMessage(`Batch validation failed: ${error}`);
+        vscode.window.showErrorMessage(
+          'Unable to complete batch validation. Some claims may not have been processed.',
+          'View Claims'
+        ).then(action => {
+          if (action === 'View Claims') {
+            vscode.commands.executeCommand('researchAssistant.showClaimsPanel');
+          }
+        });
       }
     }),
 
@@ -367,7 +435,14 @@ export function registerVerificationCommands(
           }
         );
       } catch (error) {
-        vscode.window.showErrorMessage(`Failed to flag weak support: ${error}`);
+        vscode.window.showErrorMessage(
+          'Unable to check for weak support. Please try again later.',
+          'Retry'
+        ).then(action => {
+          if (action === 'Retry') {
+            vscode.commands.executeCommand('researchAssistant.flagWeakSupport');
+          }
+        });
       }
     })
   );

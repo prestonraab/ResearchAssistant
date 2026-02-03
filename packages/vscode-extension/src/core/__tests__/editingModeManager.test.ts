@@ -1,6 +1,9 @@
 import { EditingModeManager } from '../editingModeManager';
+import { setupTest } from '../../__tests__/helpers';
 
 describe('EditingModeManager', () => {
+  setupTest();
+  
   let manager: EditingModeManager;
 
   beforeEach(() => {
@@ -16,7 +19,6 @@ describe('EditingModeManager', () => {
       const state = manager.initializeState();
 
       expect(state).toBeDefined();
-      expect(state.scrollPosition).toBe(0);
       expect(state.expandedClaims.size).toBe(0);
       expect(state.selectedSentences.size).toBe(0);
     });
@@ -150,18 +152,18 @@ describe('EditingModeManager', () => {
       manager.initializeState();
     });
 
-    test('should save scroll position', () => {
-      manager.saveScrollPosition(100);
-      expect(manager.getScrollPosition()).toBe(100);
+    test('should save center item position', () => {
+      manager.saveCenterItemId('item-1', 100);
+      expect(manager.getCenterItemPosition()).toBe(100);
     });
 
-    test('should return 0 by default', () => {
-      expect(manager.getScrollPosition()).toBe(0);
+    test('should return undefined by default', () => {
+      expect(manager.getCenterItemPosition()).toBeUndefined();
     });
 
-    test('should handle large scroll positions', () => {
-      manager.saveScrollPosition(999999);
-      expect(manager.getScrollPosition()).toBe(999999);
+    test('should handle large positions', () => {
+      manager.saveCenterItemId('item-1', 999999);
+      expect(manager.getCenterItemPosition()).toBe(999999);
     });
   });
 
@@ -194,13 +196,13 @@ describe('EditingModeManager', () => {
       manager.selectSentence('S_1');
       manager.selectSentence('S_2');
       manager.toggleClaimExpansion('S_1');
-      manager.saveScrollPosition(150);
+      manager.saveCenterItemId('item-1', 150);
 
       expect(manager.getCurrentSentence()).toBe('S_1');
       expect(manager.getCurrentClaim()).toBe('C_1');
       expect(manager.getSelectedSentences()).toHaveLength(2);
       expect(manager.isClaimExpanded('S_1')).toBe(true);
-      expect(manager.getScrollPosition()).toBe(150);
+      expect(manager.getCenterItemPosition()).toBe(150);
     });
 
     test('should maintain state consistency', () => {
@@ -228,10 +230,10 @@ describe('EditingModeManager', () => {
       expect(manager.getSelectedSentences()).toEqual([]);
     });
 
-    test('should handle negative scroll position', () => {
+    test('should handle negative position', () => {
       manager.initializeState();
-      manager.saveScrollPosition(-100);
-      expect(manager.getScrollPosition()).toBe(-100);
+      manager.saveCenterItemId('item-1', -100);
+      expect(manager.getCenterItemPosition()).toBe(-100);
     });
   });
 });

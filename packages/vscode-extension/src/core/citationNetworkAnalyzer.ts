@@ -30,14 +30,15 @@ export class CitationNetworkAnalyzer {
   /**
    * Build citation network from paper metadata
    */
-  public buildNetwork(papers: any[]): CitationNode[] {
+  public buildNetwork(papers: unknown[]): CitationNode[] {
     this.nodes.clear();
 
     // Create nodes for all papers
     papers.forEach(paper => {
+      const paperObj = paper as Record<string, unknown>;
       const node: CitationNode = {
-        paperId: paper.itemKey || paper.id,
-        title: paper.title || 'Untitled',
+        paperId: (paperObj.itemKey || paperObj.id) as string,
+        title: (paperObj.title || 'Untitled') as string,
         authors: paper.authors || [],
         year: paper.year || 0,
         citedBy: [],

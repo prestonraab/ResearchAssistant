@@ -136,8 +136,8 @@ export class Phase2Initializer {
       // Configure Zotero API service if credentials are available
       const prefs = state.configurationManager.getUserPreferences();
       if (prefs.zoteroApiKey && prefs.zoteroUserId) {
-        state.zoteroApiService.initialize(prefs.zoteroApiKey, prefs.zoteroUserId);
-        console.log('[Phase2] Zotero API service configured');
+        state.zoteroClient.initialize(prefs.zoteroApiKey, prefs.zoteroUserId);
+        console.log('[Phase2] Zotero client configured');
       }
       
       console.log('[Phase2] Configuration loaded successfully');

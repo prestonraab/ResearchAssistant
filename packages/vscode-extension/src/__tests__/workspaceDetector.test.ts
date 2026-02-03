@@ -2,24 +2,18 @@ import { jest } from '@jest/globals';
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 import { WorkspaceDetector } from '../core/workspaceDetector';
-import { setupTest, createMockWorkspaceFolder } from './helpers';
+import { setupTest, createMockWorkspaceFolder, createMockExtensionContext } from './helpers';
 
 jest.mock('fs');
 
 describe('WorkspaceDetector', () => {
   setupTest();
 
-  const mockContext = {
-    subscriptions: [],
-    workspaceState: {
-      get: jest.fn<() => any>(),
-      update: jest.fn<() => Promise<void>>(),
-    },
-    globalState: {
-      get: jest.fn<() => any>(),
-      update: jest.fn<() => Promise<void>>(),
-    },
-  } as any;
+  let mockContext: vscode.ExtensionContext;
+
+  beforeEach(() => {
+    mockContext = createMockExtensionContext();
+  });
 
   beforeEach(() => {
     (vscode.workspace as any).workspaceFolders = [

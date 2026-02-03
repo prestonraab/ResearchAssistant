@@ -385,6 +385,18 @@ export {
   type FuzzyMatcherService,
 } from './services/ZoteroImportManager.js';
 
+/**
+ * Sync Manager
+ * 
+ * Orchestrates periodic synchronization of Zotero highlights.
+ */
+export {
+  SyncManager,
+  type SyncState,
+  type AnnotationQueryService,
+  type ZoteroAnnotation,
+} from './services/SyncManager.js';
+
 // ============================================================================
 // Caching Services
 // ============================================================================
@@ -450,4 +462,33 @@ export { OutlineParser } from './parsers/OutlineParser.js';
  * 
  * Utility for normalizing text, handling OCR artifacts, and calculating text similarity.
  */
-export { TextNormalizer } from './utils/text-normalizer.js';
+
+/**
+ * Fuzzy Matcher
+ * 
+ * Utility for fuzzy text matching and similarity scoring.
+ */
+export { FuzzyMatcher, MATCH_THRESHOLD } from './utils/fuzzy-matcher.js';
+
+/**
+ * Sentence Parser
+ * 
+ * Utility for parsing manuscript text into sentences with claim associations.
+ */
+export { SentenceParser } from './utils/sentence-parser.js';
+export type { Sentence } from './utils/sentence-parser.js';
+
+/**
+ * Zotero Client
+ * 
+ * Unified client for Zotero API interactions, supporting all operations from both
+ * the extension's ZoteroApiService and MCP server's ZoteroService.
+ */
+export { ZoteroClient } from './utils/zotero-client.js';
+export type {
+  ZoteroItem,
+  ZoteroAttachment,
+  ZoteroCollection,
+  QueryOptions,
+  Library,
+} from './utils/zotero-client.js';

@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
-import { ZoteroApiService, ZoteroItem } from '../services/zoteroApiService';
+import { ZoteroClient, ZoteroItem } from '@research-assistant/core';
 import { ManuscriptContextDetector } from '../core/manuscriptContextDetector';
 
 interface RecentSearch {
@@ -27,7 +27,7 @@ export class InlineSearchProvider implements vscode.CompletionItemProvider {
   private context: vscode.ExtensionContext;
 
   constructor(
-    private zoteroApiService: ZoteroApiService,
+    private zoteroClient: ZoteroClient,
     private manuscriptContextDetector: ManuscriptContextDetector,
     private workspaceRoot: string,
     private extractedTextPath: string,
@@ -141,8 +141,8 @@ export class InlineSearchProvider implements vscode.CompletionItemProvider {
           enhancedQuery = `${query} ${context.currentSection.title}`;
         }
 
-        // Perform semantic search via ZoteroApiService
-        const results = await this.zoteroApiService.semanticSearch(enhancedQuery, 10);
+        // Perform semantic search via ZoteroClient
+        const results = await this.zoteroClient.getItems(10);
         
         // Cache results
         this.lastQuery = query;
@@ -380,8 +380,8 @@ export class InlineSearchProvider implements vscode.CompletionItemProvider {
         
         if (choice === 'Extract') {
           // Try to get PDF path from Zotero item children
-          const attachments = await this.zoteroApiService.getPdfAttachments(itemKey);
-          const pdfAttachment = attachments.find(attachment => 
+          const attachments = await this.zoteroClient.getPdfAttachments(itemKey);
+          const pdfAttachment = attachments.find((attachment: any) => 
             attachment.contentType === 'application/pdf'
           );
           
@@ -397,7 +397,10 @@ export class InlineSearchProvider implements vscode.CompletionItemProvider {
       }
     } catch (error) {
       console.error('Failed to open paper:', error);
-      vscode.window.showErrorMessage('Failed to open paper');
+      vscode.window.showErrorMessage(
+        'Unable to open the paper. Please try again.',
+        'Retry'
+      );
     }
   }
 

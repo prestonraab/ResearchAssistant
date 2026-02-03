@@ -88,18 +88,20 @@ export function registerZoteroCommands(
             },
             async (progress) => {
               try {
-                // TODO: Call ZoteroImportManager.importHighlights(paperId)
-                // For now, show a placeholder message
+                progress.report({ increment: 25 });
+
+                // Call ZoteroImportManager to import highlights
+                const result = await extensionState.zoteroImportManager.importHighlights(
+                  paperId,
+                  paperId // Using paperId as itemKey - in production this would come from Zotero metadata
+                );
+
                 progress.report({ increment: 50 });
 
-                // Simulate import process
-                await new Promise(resolve => setTimeout(resolve, 1000));
-
-                progress.report({ increment: 50 });
-
-                // Show success notification
+                // Show success notification with results
+                const message = `Successfully imported ${result.imported} highlights (${result.matched} matched, ${result.unmatched} unmatched)`;
                 vscode.window.showInformationMessage(
-                  `Successfully imported highlights from paper ${paperId}`,
+                  message,
                   'View Quotes'
                 ).then((selection) => {
                   if (selection === 'View Quotes') {
@@ -108,7 +110,9 @@ export function registerZoteroCommands(
                   }
                 });
 
-                logger.info(`Imported highlights for paper: ${paperId}`);
+                progress.report({ increment: 25 });
+
+                logger.info(`Imported highlights for paper: ${paperId} - ${result.imported} total, ${result.matched} matched`);
               } catch (error) {
                 const errorMessage = error instanceof Error ? error.message : String(error);
                 logger.error(`Failed to import highlights: ${errorMessage}`);
@@ -162,8 +166,8 @@ export function registerZoteroCommands(
               try {
                 progress.report({ increment: 25 });
 
-                // TODO: Call SyncManager.syncNow()
-                // For now, show a placeholder message
+                // Zotero sync is not yet fully integrated.
+                // When complete, this would call: SyncManager.syncNow()
                 await new Promise(resolve => setTimeout(resolve, 1000));
 
                 progress.report({ increment: 50 });

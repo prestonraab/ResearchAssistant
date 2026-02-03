@@ -228,7 +228,14 @@ export class ClaimReviewProvider {
         returnToSentenceId: existingContext?.returnToSentenceId
       });
     } catch (error) {
-      vscode.window.showErrorMessage(`Failed to load claim: ${error}`);
+      vscode.window.showErrorMessage(
+        'Unable to load the claim. It may have been deleted or the data may be corrupted.',
+        'Refresh Claims'
+      ).then(action => {
+        if (action === 'Refresh Claims') {
+          vscode.commands.executeCommand('researchAssistant.refreshClaims');
+        }
+      });
     }
   }
 
@@ -730,7 +737,10 @@ export class ClaimReviewProvider {
         });
       }
     } catch (error) {
-      vscode.window.showErrorMessage(`Failed to verify quote: ${error}`);
+      vscode.window.showErrorMessage(
+        'Unable to verify the quote. Please check that the source document is available.',
+        'Retry'
+      );
     }
   }
 
@@ -742,7 +752,14 @@ export class ClaimReviewProvider {
       const claim = this.extensionState.claimsManager.getClaim(claimId);
 
       if (!claim) {
-        vscode.window.showErrorMessage('Claim not found');
+        vscode.window.showErrorMessage(
+          'Could not find this claim. It may have been deleted.',
+          'Refresh Claims'
+        ).then(action => {
+          if (action === 'Refresh Claims') {
+            vscode.commands.executeCommand('researchAssistant.refreshClaims');
+          }
+        });
         return;
       }
 
@@ -784,7 +801,10 @@ export class ClaimReviewProvider {
 
       vscode.window.showInformationMessage('Quote updated successfully');
     } catch (error) {
-      vscode.window.showErrorMessage(`Failed to accept quote: ${error}`);
+      vscode.window.showErrorMessage(
+        'Unable to update the quote. Please try again.',
+        'Retry'
+      );
     }
   }
 
@@ -796,7 +816,14 @@ export class ClaimReviewProvider {
       const claim = this.extensionState.claimsManager.getClaim(claimId);
 
       if (!claim) {
-        vscode.window.showErrorMessage('Claim not found');
+        vscode.window.showErrorMessage(
+          'Could not find this claim. It may have been deleted.',
+          'Refresh Claims'
+        ).then(action => {
+          if (action === 'Refresh Claims') {
+            vscode.commands.executeCommand('researchAssistant.refreshClaims');
+          }
+        });
         return;
       }
 
@@ -815,7 +842,10 @@ export class ClaimReviewProvider {
 
       vscode.window.showInformationMessage('Quote deleted successfully');
     } catch (error) {
-      vscode.window.showErrorMessage(`Failed to delete quote: ${error}`);
+      vscode.window.showErrorMessage(
+        'Unable to delete the quote. Please try again.',
+        'Retry'
+      );
     }
   }
 
@@ -869,7 +899,14 @@ export class ClaimReviewProvider {
       const claim = this.extensionState.claimsManager.getClaim(claimId);
 
       if (!claim) {
-        vscode.window.showErrorMessage('Claim not found');
+        vscode.window.showErrorMessage(
+          'Could not find this claim. It may have been deleted.',
+          'Refresh Claims'
+        ).then(action => {
+          if (action === 'Refresh Claims') {
+            vscode.commands.executeCommand('researchAssistant.refreshClaims');
+          }
+        });
         return;
       }
 
@@ -928,7 +965,10 @@ export class ClaimReviewProvider {
 
       vscode.window.showInformationMessage('Quote added successfully');
     } catch (error) {
-      vscode.window.showErrorMessage(`Failed to add quote: ${error}`);
+      vscode.window.showErrorMessage(
+        'Unable to add the quote. Please try again.',
+        'Retry'
+      );
     }
   }
 
@@ -1008,12 +1048,15 @@ export class ClaimReviewProvider {
       }
     } catch (error) {
       console.error('[ClaimReview] Find quotes error:', error);
-      vscode.window.showErrorMessage(`Failed to find quotes: ${error}`);
+      vscode.window.showErrorMessage(
+        'Unable to search for quotes. Please check your literature files and try again.',
+        'Retry'
+      );
       
       if (this.panel) {
         this.panel.webview.postMessage({
           type: 'error',
-          message: `Failed to search literature: ${error}`
+          message: 'Unable to search literature. Please try again.'
         });
       }
     }
@@ -1119,7 +1162,10 @@ export class ClaimReviewProvider {
       }
     } catch (error) {
       console.error('Search failed:', error);
-      vscode.window.showErrorMessage(`Failed to search: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      vscode.window.showErrorMessage(
+        'Unable to complete the search. Please check your internet connection and try again.',
+        'Retry'
+      );
       
       if (this.panel) {
         this.panel.webview.postMessage({
@@ -1138,7 +1184,14 @@ export class ClaimReviewProvider {
       const claim = this.extensionState.claimsManager.getClaim(claimId);
 
       if (!claim) {
-        vscode.window.showErrorMessage('Claim not found');
+        vscode.window.showErrorMessage(
+          'Could not find this claim. It may have been deleted.',
+          'Refresh Claims'
+        ).then(action => {
+          if (action === 'Refresh Claims') {
+            vscode.commands.executeCommand('researchAssistant.refreshClaims');
+          }
+        });
         return;
       }
 
@@ -1156,7 +1209,10 @@ export class ClaimReviewProvider {
         });
       }
     } catch (error) {
-      vscode.window.showErrorMessage(`Failed to validate support: ${error}`);
+      vscode.window.showErrorMessage(
+        'Unable to validate claim support. Please try again.',
+        'Retry'
+      );
     }
   }
 
@@ -1168,7 +1224,14 @@ export class ClaimReviewProvider {
       const manuscriptPath = this.extensionState.getAbsolutePath('03_Drafting/manuscript.md');
 
       if (!fs.existsSync(manuscriptPath)) {
-        vscode.window.showErrorMessage('Manuscript file not found');
+        vscode.window.showErrorMessage(
+          'Could not find the manuscript file. Please ensure your workspace is properly configured.',
+          'Open Settings'
+        ).then(action => {
+          if (action === 'Open Settings') {
+            vscode.commands.executeCommand('workbench.action.openSettings', 'researchAssistant');
+          }
+        });
         return;
       }
 
@@ -1181,7 +1244,10 @@ export class ClaimReviewProvider {
       editor.selection = new vscode.Selection(range.start, range.start);
       editor.revealRange(range, vscode.TextEditorRevealType.InCenter);
     } catch (error) {
-      vscode.window.showErrorMessage(`Failed to navigate to manuscript: ${error}`);
+      vscode.window.showErrorMessage(
+        'Unable to open the manuscript. Please try again.',
+        'Retry'
+      );
     }
   }
 
@@ -1204,7 +1270,14 @@ export class ClaimReviewProvider {
       const claim = this.extensionState.claimsManager.getClaim(claimId);
 
       if (!claim) {
-        vscode.window.showErrorMessage('Claim not found');
+        vscode.window.showErrorMessage(
+          'Could not find this claim. It may have been deleted.',
+          'Refresh Claims'
+        ).then(action => {
+          if (action === 'Refresh Claims') {
+            vscode.commands.executeCommand('researchAssistant.refreshClaims');
+          }
+        });
         return;
       }
 
@@ -1225,7 +1298,10 @@ export class ClaimReviewProvider {
         });
       }
     } catch (error) {
-      vscode.window.showErrorMessage(`Failed to update category: ${error}`);
+      vscode.window.showErrorMessage(
+        'Unable to update the category. Please try again.',
+        'Retry'
+      );
     }
   }
 

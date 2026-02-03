@@ -1,4 +1,5 @@
 import type { OutlineSection, Claim } from '@research-assistant/core';
+import type { ClaimsManager, EmbeddingServiceInterface, PaperRanker } from '../types';
 
 export interface CoverageMetrics {
   sectionId: string;
@@ -22,8 +23,8 @@ export interface CoverageReport {
 
 export class CoverageAnalyzer {
   constructor(
-    private claimsManager: any,
-    private embeddingService: any
+    private claimsManager: ClaimsManager,
+    private embeddingService: EmbeddingServiceInterface
   ) {}
 
   /**
@@ -272,8 +273,8 @@ export class CoverageAnalyzer {
    */
   async recommendPapers(
     section: OutlineSection,
-    papers: any[],
-    paperRanker: any,
+    papers: unknown[],
+    paperRanker: PaperRanker,
     topK: number = 5
   ): Promise<string[]> {
     if (papers.length === 0) {
@@ -284,7 +285,7 @@ export class CoverageAnalyzer {
     const ranked = await paperRanker.rankPapers(papers, section);
     
     // Return top K paper item keys
-    return ranked.slice(0, topK).map((rp: any) => rp.paper.itemKey);
+    return ranked.slice(0, topK).map((rp: { paper: { itemKey: string } }) => rp.paper.itemKey);
   }
 
   /**

@@ -111,9 +111,10 @@ export const clearWorkspace = () => {
 };
 
 /**
- * Setup workspace configuration
+ * Setup workspace configuration with custom values
+ * @deprecated Use setupConfiguration from testSetup.ts instead
  */
-export const setupConfiguration = (config: Record<string, any>) => {
+export const setupWorkspaceConfigurationLegacy = (config: Record<string, any>) => {
   (vscode.workspace.getConfiguration as jest.Mock).mockReturnValue({
     get: jest.fn((key: string, defaultValue?: any) => {
       return config[key] ?? defaultValue;
@@ -129,9 +130,10 @@ export const setupConfiguration = (config: Record<string, any>) => {
 // ============================================================================
 
 /**
- * Setup active text editor
+ * Setup active text editor with a mock document
+ * @deprecated Use setupActiveEditor from testSetup.ts instead
  */
-export const setupActiveEditor = (document?: jest.Mocked<vscode.TextDocument>) => {
+export const setupActiveTextEditorLegacy = (document?: jest.Mocked<vscode.TextDocument>) => {
   const mockDoc = document || createMockDocument();
   const mockEditor = {
     document: mockDoc,
@@ -225,28 +227,8 @@ export const mockCommandExecution = (commandId: string, result?: any) => {
 };
 
 // ============================================================================
-// Assertion Helpers
+// Assertion Helpers (use testSetup.ts versions for more options)
 // ============================================================================
-
-/**
- * Assert that a message was shown to user
- */
-export const expectInformationMessage = (message: string) => {
-  expect(vscode.window.showInformationMessage).toHaveBeenCalledWith(
-    expect.stringContaining(message),
-    expect.anything()
-  );
-};
-
-/**
- * Assert that an error was shown to user
- */
-export const expectErrorMessage = (message: string) => {
-  expect(vscode.window.showErrorMessage).toHaveBeenCalledWith(
-    expect.stringContaining(message),
-    expect.anything()
-  );
-};
 
 /**
  * Assert that a command was registered
@@ -256,4 +238,327 @@ export const expectCommandRegistered = (commandId: string) => {
     commandId,
     expect.any(Function)
   );
+};
+
+/**
+ * Setup multiple commands at once
+ */
+export const setupCommands = (commandIds: string[]) => {
+  const handlers: Record<string, any> = {};
+  
+  (vscode.commands.registerCommand as jest.Mock<any>).mockImplementation((id: string, h: any) => {
+    if (commandIds.includes(id)) {
+      handlers[id] = h;
+    }
+    return { dispose: jest.fn() };
+  });
+  
+  return {
+    execute: (commandId: string, ...args: any[]) => handlers[commandId]?.(...args),
+    getHandler: (commandId: string) => handlers[commandId]
+  };
+};
+
+/**
+ * Setup multiple quick picks
+ */
+export const setupMultipleQuickPicks = <T>(items: T[][], selectedItems?: T[]) => {
+  let callCount = 0;
+  (vscode.window.showQuickPick as jest.Mock<any>).mockImplementation(() => {
+    const selected = selectedItems?.[callCount] ?? items[callCount]?.[0];
+    callCount++;
+    return Promise.resolve(selected);
+  });
+  return items;
+};
+
+/**
+ * Setup file dialog
+ */
+export const setupFileDialog = (selectedUri?: vscode.Uri) => {
+  (vscode.window.showOpenDialog as jest.Mock<any>).mockResolvedValue(
+    selectedUri ? [selectedUri] : undefined
+  );
+};
+
+/**
+ * Setup save dialog
+ */
+export const setupSaveDialog = (selectedUri?: vscode.Uri) => {
+  (vscode.window.showSaveDialog as jest.Mock<any>).mockResolvedValue(selectedUri);
+};
+
+/**
+ * Setup folder dialog
+ */
+export const setupFolderDialog = (selectedUri?: vscode.Uri) => {
+  (vscode.window.showOpenDialog as jest.Mock<any>).mockResolvedValue(
+    selectedUri ? [selectedUri] : undefined
+  );
+};
+
+/**
+ * Setup status bar item
+ */
+export const setupStatusBarItem = (text: string = 'Test') => {
+  const mockStatusBar = {
+    text,
+    tooltip: '',
+    command: '',
+    show: jest.fn(),
+    hide: jest.fn(),
+    dispose: jest.fn()
+  };
+  
+  (vscode.window.createStatusBarItem as jest.Mock<any>).mockReturnValue(mockStatusBar);
+  return mockStatusBar;
+};
+
+/**
+ * Setup output channel
+ */
+export const setupOutputChannel = (name: string = 'Test') => {
+  const mockChannel = {
+    name,
+    append: jest.fn(),
+    appendLine: jest.fn(),
+    clear: jest.fn(),
+    show: jest.fn(),
+    hide: jest.fn(),
+    dispose: jest.fn()
+  };
+  
+  (vscode.window.createOutputChannel as jest.Mock<any>).mockReturnValue(mockChannel);
+  return mockChannel;
+};
+
+/**
+ * Setup webview panel
+ */
+export const setupWebviewPanel = (title: string = 'Test') => {
+  const mockPanel = {
+    title,
+    viewType: 'test',
+    webview: {
+      html: '',
+      onDidReceiveMessage: jest.fn().mockReturnValue({ dispose: jest.fn() }),
+      postMessage: jest.fn()
+    },
+    onDidDispose: jest.fn().mockReturnValue({ dispose: jest.fn() }),
+    onDidChangeViewState: jest.fn().mockReturnValue({ dispose: jest.fn() }),
+    reveal: jest.fn(),
+    dispose: jest.fn()
+  };
+  
+  (vscode.window.createWebviewPanel as jest.Mock<any>).mockReturnValue(mockPanel);
+  return mockPanel;
+};
+
+/**
+ * Setup tree view
+ */
+export const setupTreeView = (viewId: string = 'test') => {
+  const mockTreeView = {
+    onDidExpandElement: jest.fn().mockReturnValue({ dispose: jest.fn() }),
+    onDidCollapseElement: jest.fn().mockReturnValue({ dispose: jest.fn() }),
+    onDidChangeSelection: jest.fn().mockReturnValue({ dispose: jest.fn() }),
+    onDidChangeVisibility: jest.fn().mockReturnValue({ dispose: jest.fn() }),
+    selection: [],
+    visible: true,
+    reveal: jest.fn(),
+    dispose: jest.fn()
+  };
+  
+  (vscode.window.createTreeView as jest.Mock<any>).mockReturnValue(mockTreeView);
+  return mockTreeView;
+};
+
+/**
+ * Setup progress indicator
+ */
+export const setupProgress = () => {
+  (vscode.window.withProgress as jest.Mock<any>).mockImplementation(
+    async (options: any, task: any) => {
+      const progress = {
+        report: jest.fn()
+      };
+      return task(progress, { isCancellationRequested: false });
+    }
+  );
+};
+
+/**
+ * Setup notification with action
+ */
+export const setupNotificationWithAction = (action: string, result?: any) => {
+  (vscode.window.showInformationMessage as jest.Mock<any>).mockResolvedValue(action);
+  return action;
+};
+
+/**
+ * Setup multiple notifications
+ */
+export const setupMultipleNotifications = (responses: string[]) => {
+  let callCount = 0;
+  (vscode.window.showInformationMessage as jest.Mock<any>).mockImplementation(() => {
+    const response = responses[callCount];
+    callCount++;
+    return Promise.resolve(response);
+  });
+};
+
+/**
+ * Setup text editor with selection
+ */
+export const setupTextEditorWithSelection = (
+  text: string,
+  startLine: number = 0,
+  startChar: number = 0,
+  endLine: number = 0,
+  endChar: number = 0
+) => {
+  const mockDoc = createDocumentWithText(text);
+  const mockEditor = {
+    document: mockDoc,
+    selection: new vscode.Selection(startLine, startChar, endLine, endChar),
+    selections: [new vscode.Selection(startLine, startChar, endLine, endChar)],
+    visibleRanges: [new vscode.Range(0, 0, 10, 0)],
+    options: {},
+    viewColumn: vscode.ViewColumn.One,
+    edit: jest.fn<any>().mockResolvedValue(true),
+    insertSnippet: jest.fn<any>().mockResolvedValue(true),
+    setDecorations: jest.fn<any>(),
+    revealRange: jest.fn<any>(),
+    show: jest.fn<any>(),
+    hide: jest.fn<any>()
+  };
+  
+  (vscode.window as any).activeTextEditor = mockEditor;
+  return mockEditor;
+};
+
+/**
+ * Setup text editor with multiple selections
+ */
+export const setupTextEditorWithMultipleSelections = (
+  text: string,
+  selections: Array<{ startLine: number; startChar: number; endLine: number; endChar: number }>
+) => {
+  const mockDoc = createDocumentWithText(text);
+  const mockSelections = selections.map(
+    s => new vscode.Selection(s.startLine, s.startChar, s.endLine, s.endChar)
+  );
+  
+  const mockEditor = {
+    document: mockDoc,
+    selection: mockSelections[0],
+    selections: mockSelections,
+    visibleRanges: [new vscode.Range(0, 0, 10, 0)],
+    options: {},
+    viewColumn: vscode.ViewColumn.One,
+    edit: jest.fn<any>().mockResolvedValue(true),
+    insertSnippet: jest.fn<any>().mockResolvedValue(true),
+    setDecorations: jest.fn<any>(),
+    revealRange: jest.fn<any>(),
+    show: jest.fn<any>(),
+    hide: jest.fn<any>()
+  };
+  
+  (vscode.window as any).activeTextEditor = mockEditor;
+  return mockEditor;
+};
+
+/**
+ * Setup workspace folders with multiple folders
+ */
+export const setupMultipleWorkspaceFolders = (folderPaths: string[]) => {
+  const folders = folderPaths.map((path, index) => ({
+    uri: vscode.Uri.file(path),
+    name: `workspace-${index}`,
+    index
+  }));
+  
+  (vscode.workspace as any).workspaceFolders = folders;
+  return folders;
+};
+
+/**
+ * Setup file system watcher
+ */
+export const setupFileSystemWatcher = (pattern: string = '**/*') => {
+  const mockWatcher = {
+    onDidChange: jest.fn().mockReturnValue({ dispose: jest.fn() }),
+    onDidCreate: jest.fn().mockReturnValue({ dispose: jest.fn() }),
+    onDidDelete: jest.fn().mockReturnValue({ dispose: jest.fn() }),
+    ignoreChangeEvents: false,
+    ignoreCreateEvents: false,
+    ignoreDeleteEvents: false,
+    dispose: jest.fn()
+  };
+  
+  (vscode.workspace.createFileSystemWatcher as jest.Mock<any>).mockReturnValue(mockWatcher);
+  return mockWatcher;
+};
+
+/**
+ * Setup text document change event
+ */
+export const setupTextDocumentChangeEvent = (
+  document: vscode.TextDocument,
+  changes: Array<{ range: vscode.Range; text: string }>
+) => {
+  return {
+    document,
+    contentChanges: changes
+  };
+};
+
+/**
+ * Setup text document save event
+ */
+export const setupTextDocumentSaveEvent = (document: vscode.TextDocument) => {
+  return { document };
+};
+
+/**
+ * Setup extension context with storage paths
+ */
+export const setupExtensionContextWithStorage = (
+  globalStoragePath: string = '/test/global-storage',
+  workspaceStoragePath: string = '/test/workspace-storage'
+) => {
+  const mockContext = {
+    subscriptions: [],
+    extensionPath: '/test/extension',
+    globalState: {
+      get: jest.fn(),
+      update: jest.fn<() => Thenable<void>>().mockResolvedValue(undefined),
+      keys: jest.fn().mockReturnValue([]),
+      setKeysForSync: jest.fn()
+    },
+    workspaceState: {
+      get: jest.fn(),
+      update: jest.fn<() => Thenable<void>>().mockResolvedValue(undefined),
+      keys: jest.fn().mockReturnValue([]),
+      setKeysForSync: jest.fn()
+    },
+    extensionUri: vscode.Uri.file('/test/extension'),
+    storagePath: workspaceStoragePath,
+    globalStoragePath,
+    logPath: '/test/logs',
+    extensionMode: vscode.ExtensionMode.Test,
+    asAbsolutePath: jest.fn((path: string) => `/test/extension/${path}`),
+    storageUri: vscode.Uri.file(workspaceStoragePath),
+    globalStorageUri: vscode.Uri.file(globalStoragePath),
+    logUri: vscode.Uri.file('/test/logs'),
+    extension: {},
+    secrets: {
+      get: jest.fn(),
+      store: jest.fn<() => Thenable<void>>().mockResolvedValue(undefined),
+      delete: jest.fn<() => Thenable<void>>().mockResolvedValue(undefined),
+      onDidChange: jest.fn()
+    }
+  };
+  
+  return mockContext;
 };

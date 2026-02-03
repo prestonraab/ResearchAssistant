@@ -34,7 +34,7 @@ export interface EmbeddingIndex {
   version: number;
   createdAt: number;
   updatedAt: number;
-  snippets: any[]; // Stored as quantized
+  snippets: QuantizedSnippet[]; // Stored as quantized
   fileHashes: Map<string, string>; // filePath -> hash for change detection
 }
 
@@ -76,7 +76,7 @@ export class EmbeddingStore {
         
         // Migrate old snippets without metadata
         let needsSave = false;
-        parsed.snippets = parsed.snippets.map((snippet: any) => {
+        parsed.snippets = parsed.snippets.map((snippet: QuantizedSnippet) => {
           if (!snippet.embeddingMetadata || typeof snippet.embeddingMetadata.min !== 'number' || typeof snippet.embeddingMetadata.max !== 'number') {
             console.log('[EmbeddingStore] Migrating snippet without valid metadata:', snippet.id);
             needsSave = true;

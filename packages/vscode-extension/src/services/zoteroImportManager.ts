@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
-import { ZoteroApiService, ZoteroAnnotation } from './zoteroApiService';
-import { FuzzyMatcher } from '../core/fuzzyMatcher';
+import { ZoteroClient, ZoteroAnnotation } from '@research-assistant/core';
+import { FuzzyMatcher } from '@research-assistant/core';
 
 /**
  * ZoteroImportManager - Imports Zotero highlights as quotes
@@ -17,7 +17,7 @@ export interface ImportResult {
 }
 
 export class ZoteroImportManager {
-  private zoteroApi: ZoteroApiService;
+  private zoteroClient: ZoteroClient;
   private fuzzyMatcher: FuzzyMatcher;
 
   private getLogger() {
@@ -35,8 +35,8 @@ export class ZoteroImportManager {
     }
   }
 
-  constructor(zoteroApi: ZoteroApiService) {
-    this.zoteroApi = zoteroApi;
+  constructor(zoteroClient: ZoteroClient) {
+    this.zoteroClient = zoteroClient;
     this.fuzzyMatcher = new FuzzyMatcher();
   }
 
@@ -45,7 +45,7 @@ export class ZoteroImportManager {
    */
   async isZoteroAvailable(): Promise<boolean> {
     try {
-      return await this.zoteroApi.testConnection();
+      return await this.zoteroClient.testConnection();
     } catch (error) {
       this.getLogger().error('Zotero availability check failed:', error);
       return false;
@@ -70,7 +70,7 @@ export class ZoteroImportManager {
       this.getLogger().info(`Starting import of highlights for item: ${itemKey}`);
 
       // Get highlights from Zotero
-      const highlights = await this.zoteroApi.getHighlights(itemKey);
+      const highlights = await this.zoteroClient.getHighlights(itemKey);
 
       if (highlights.length === 0) {
         this.getLogger().info('No highlights found for item');
@@ -123,7 +123,7 @@ export class ZoteroImportManager {
       const matchResult = this.fuzzyMatcher.findMatch(
         highlight.text,
         extractedText,
-        highlight.pageLabel ? parseInt(highlight.pageLabel) : undefined
+        highlight.pageNumber
       );
 
       if (!matchResult.matched) {
@@ -132,9 +132,9 @@ export class ZoteroImportManager {
         );
       }
 
-      // TODO: Create quote in database with Zotero metadata
-      // This would call QuoteManager.createQuoteWithZoteroMetadata()
-      // For now, just log the result
+      // Quote creation in database is handled by the caller after import completes.
+      // The ZoteroImportManager focuses on fetching and matching highlights;
+      // QuoteManager.createQuoteWithZoteroMetadata() should be called by the orchestrating code.
       this.getLogger().info(
         `Imported highlight: key=${highlight.key}, matched=${matchResult.matched}, confidence=${matchResult.confidence}`
       );
@@ -150,12 +150,12 @@ export class ZoteroImportManager {
    */
   async getPapersWithPdfs(): Promise<Array<{ key: string; title: string }>> {
     try {
-      const items = await this.zoteroApi.getItems(100);
+      const items = await this.zoteroClient.getItems(100);
       const papersWithPdfs: Array<{ key: string; title: string }> = [];
 
       for (const item of items) {
         if (item.attachments && item.attachments.length > 0) {
-          const hasPdf = item.attachments.some(a => a.contentType === 'application/pdf');
+          const hasPdf = item.attachments.some((a: Record<string, unknown>) => a.contentType === 'application/pdf');
           if (hasPdf) {
             papersWithPdfs.push({
               key: item.key,

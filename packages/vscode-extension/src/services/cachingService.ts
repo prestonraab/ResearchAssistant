@@ -202,7 +202,7 @@ export class CachingService<T> {
  * Sentence parsing cache - caches parsed sentences to avoid re-parsing
  */
 export class SentenceParsingCache {
-  private cache: CachingService<any[]>;
+  private cache: CachingService<unknown[]>;
 
   constructor(maxSize: number = 100) {
     this.cache = new CachingService(maxSize, 3600000); // 1 hour TTL
@@ -211,14 +211,14 @@ export class SentenceParsingCache {
   /**
    * Get cached parsed sentences
    */
-  getParsedSentences(manuscriptPath: string): any[] | undefined {
+  getParsedSentences(manuscriptPath: string): unknown[] | undefined {
     return this.cache.get(`sentences:${manuscriptPath}`);
   }
 
   /**
    * Cache parsed sentences
    */
-  cacheParsedSentences(manuscriptPath: string, sentences: any[]): void {
+  cacheParsedSentences(manuscriptPath: string, sentences: unknown[]): void {
     this.cache.set(`sentences:${manuscriptPath}`, sentences);
   }
 

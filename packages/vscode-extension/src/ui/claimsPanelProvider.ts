@@ -107,7 +107,14 @@ export class ClaimsPanelProvider implements vscode.WebviewViewProvider {
   private async _editClaim(claimId: string) {
     const claim = this._extensionState.claimsManager.getClaim(claimId);
     if (!claim) {
-      vscode.window.showErrorMessage(`Claim ${claimId} not found`);
+      vscode.window.showErrorMessage(
+        'Could not find this claim. It may have been deleted.',
+        'Refresh Claims'
+      ).then(action => {
+        if (action === 'Refresh Claims') {
+          vscode.commands.executeCommand('researchAssistant.refreshClaims');
+        }
+      });
       return;
     }
 
@@ -143,7 +150,10 @@ export class ClaimsPanelProvider implements vscode.WebviewViewProvider {
       });
       vscode.window.showInformationMessage(`Claim ${claimId} updated successfully`);
     } catch (error) {
-      vscode.window.showErrorMessage(`Failed to update claim: ${error}`);
+      vscode.window.showErrorMessage(
+        'Unable to update the claim. Please try again.',
+        'Retry'
+      );
     }
   }
 
@@ -162,20 +172,31 @@ export class ClaimsPanelProvider implements vscode.WebviewViewProvider {
       await this._extensionState.claimsManager.deleteClaim(claimId);
       vscode.window.showInformationMessage(`Claim ${claimId} deleted successfully`);
     } catch (error) {
-      vscode.window.showErrorMessage(`Failed to delete claim: ${error}`);
+      vscode.window.showErrorMessage(
+        'Unable to delete the claim. Please try again.',
+        'Retry'
+      );
     }
   }
 
   private async _verifyClaim(claimId: string) {
     const claim = this._extensionState.claimsManager.getClaim(claimId);
     if (!claim) {
-      vscode.window.showErrorMessage(`Claim ${claimId} not found`);
+      vscode.window.showErrorMessage(
+        'Could not find this claim. It may have been deleted.',
+        'Refresh Claims'
+      ).then(action => {
+        if (action === 'Refresh Claims') {
+          vscode.commands.executeCommand('researchAssistant.refreshClaims');
+        }
+      });
       return;
     }
 
     vscode.window.showInformationMessage('Quote verification feature coming soon');
-    // TODO: Implement quote verification using Citation MCP
-    // const result = await this._extensionState.quoteVerificationService.verifyQuote(
+    // Quote verification via Citation MCP is not yet implemented.
+    // When available, this would call:
+    // this._extensionState.quoteVerificationService.verifyQuote(
     //   claim.primaryQuote?.text,
     //   claim.primaryQuote?.source
     // );
@@ -184,7 +205,14 @@ export class ClaimsPanelProvider implements vscode.WebviewViewProvider {
   private async _reassignClaim(claimId: string) {
     const claim = this._extensionState.claimsManager.getClaim(claimId);
     if (!claim) {
-      vscode.window.showErrorMessage(`Claim ${claimId} not found`);
+      vscode.window.showErrorMessage(
+        'Could not find this claim. It may have been deleted.',
+        'Refresh Claims'
+      ).then(action => {
+        if (action === 'Refresh Claims') {
+          vscode.commands.executeCommand('researchAssistant.refreshClaims');
+        }
+      });
       return;
     }
 
@@ -212,13 +240,16 @@ export class ClaimsPanelProvider implements vscode.WebviewViewProvider {
       });
       vscode.window.showInformationMessage(`Claim ${claimId} reassigned successfully`);
     } catch (error) {
-      vscode.window.showErrorMessage(`Failed to reassign claim: ${error}`);
+      vscode.window.showErrorMessage(
+        'Unable to reassign the claim. Please try again.',
+        'Retry'
+      );
     }
   }
 
   private async _mergeClaims(claimIds: string[]) {
     if (claimIds.length < 2) {
-      vscode.window.showWarningMessage('Please select at least 2 claims to merge');
+      vscode.window.showWarningMessage('Please select at least 2 claims to merge.');
       return;
     }
 
@@ -238,7 +269,10 @@ export class ClaimsPanelProvider implements vscode.WebviewViewProvider {
         `Claims merged successfully into ${mergedClaim.id}`
       );
     } catch (error) {
-      vscode.window.showErrorMessage(`Failed to merge claims: ${error}`);
+      vscode.window.showErrorMessage(
+        'Unable to merge the claims. Please ensure all selected claims are valid and try again.',
+        'Retry'
+      );
     }
   }
 

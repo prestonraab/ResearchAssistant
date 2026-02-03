@@ -3,7 +3,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { ExtensionState } from '../core/state';
 import { EditingModeManager } from '../core/editingModeManager';
-import { SentenceParser, Sentence } from '../core/sentenceParser';
+import { SentenceParser, Sentence } from '@research-assistant/core';
 import { SentenceClaimMapper } from '../core/sentenceClaimMapper';
 import { QuestionAnswerParser, QuestionAnswerPair } from '../core/questionAnswerParser';
 import { generateHelpOverlayHtml, getHelpOverlayCss, getHelpOverlayJs } from './keyboardShortcuts';

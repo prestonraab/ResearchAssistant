@@ -82,7 +82,14 @@ export class QuickClaimExtractor {
   async extractFromSelection(): Promise<void> {
     const editor = vscode.window.activeTextEditor;
     if (!editor) {
-      vscode.window.showWarningMessage('No active editor');
+      vscode.window.showWarningMessage(
+        'Please open a file first to extract claims.',
+        'Open File'
+      ).then(action => {
+        if (action === 'Open File') {
+          vscode.commands.executeCommand('workbench.action.files.openFile');
+        }
+      });
       return;
     }
 
@@ -92,20 +99,31 @@ export class QuickClaimExtractor {
     const normalizedDocPath = path.normalize(docPath);
 
     if (!normalizedDocPath.includes(normalizedExtractedPath)) {
-      vscode.window.showWarningMessage('Quick Extract Claim is only available for ExtractedText files');
+      vscode.window.showWarningMessage(
+        'Quick Extract Claim works only in ExtractedText files. Please open a file from the literature/ExtractedText folder.',
+        'Browse Files'
+      ).then(action => {
+        if (action === 'Browse Files') {
+          vscode.commands.executeCommand('workbench.action.files.openFile');
+        }
+      });
       return;
     }
 
     // Get selection
     const selection = editor.selection;
     if (selection.isEmpty) {
-      vscode.window.showWarningMessage('Please select text to extract as a claim');
+      vscode.window.showWarningMessage(
+        'Please select some text to extract as a claim.'
+      );
       return;
     }
 
     const selectedText = editor.document.getText(selection);
     if (!selectedText || selectedText.trim().length === 0) {
-      vscode.window.showWarningMessage('Please select text to extract as a claim');
+      vscode.window.showWarningMessage(
+        'Please select some text to extract as a claim.'
+      );
       return;
     }
 
@@ -383,9 +401,9 @@ export class QuickClaimExtractor {
         }
       });
 
-      // TODO: Trigger background verification (will be implemented in task 0.3)
-      // This will call Citation_MCP to verify the quote
-      // For now, we just mark it as unverified
+      // Background verification is not yet implemented.
+      // When available, this would call Citation_MCP to verify the quote.
+      // Claims are saved as unverified and can be verified manually later.
       
     } catch (error) {
       console.error('Error saving claim:', error);

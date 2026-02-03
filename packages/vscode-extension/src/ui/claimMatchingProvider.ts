@@ -4,7 +4,7 @@ import * as path from 'path';
 import { ExtensionState } from '../core/state';
 import { ClaimMatchingService } from '../core/claimMatchingService';
 import { SentenceClaimMapper } from '../core/sentenceClaimMapper';
-import { SentenceParser, Sentence } from '../core/sentenceParser';
+import { SentenceParser, Sentence } from '@research-assistant/core';
 import { generateHelpOverlayHtml, getHelpOverlayCss, getHelpOverlayJs } from './keyboardShortcuts';
 import { generateBreadcrumb, getBreadcrumbCss, getModeSwitchingJs, modeStateManager } from './modeSwitching';
 import { getWebviewDisposalManager } from './webviewDisposalManager';

@@ -52,7 +52,7 @@ export class ZoteroApiService {
   private apiKey: string = '';
   private userID: string = '';
   private baseUrl: string = 'https://api.zotero.org';
-  private cacheMap: Map<string, { data: any; timestamp: number }> = new Map();
+  private cacheMap: Map<string, { data: unknown; timestamp: number }> = new Map();
   private readonly CACHE_TTL = 5 * 60 * 1000; // 5 minutes
   private readonly REQUEST_TIMEOUT = 10000; // 10 seconds
   private embeddingService: EmbeddingService | null = null;
@@ -590,8 +590,8 @@ export class ZoteroApiService {
    */
   private async makeRequest(
     endpoint: string,
-    options: { method?: string; body?: any } = {}
-  ): Promise<{ status: number; data: any }> {
+    options: { method?: string; body?: unknown } = {}
+  ): Promise<{ status: number; data: unknown }> {
     try {
       const url = `${this.baseUrl}${endpoint}`;
       const headers: Record<string, string> = {
@@ -616,7 +616,7 @@ export class ZoteroApiService {
 
         clearTimeout(timeoutId);
 
-        let data: any;
+        let data: unknown;
         const contentType = response.headers.get('content-type');
         if (contentType?.includes('application/json')) {
           data = await response.json();
@@ -641,7 +641,7 @@ export class ZoteroApiService {
   /**
    * Get from cache if not expired
    */
-  private getFromCache(key: string): any | null {
+  private getFromCache(key: string): unknown | null {
     const entry = this.cacheMap.get(key);
     if (!entry) {
       return null;
@@ -658,7 +658,7 @@ export class ZoteroApiService {
   /**
    * Set cache entry
    */
-  private setCache(key: string, data: any): void {
+  private setCache(key: string, data: unknown): void {
     this.cacheMap.set(key, {
       data,
       timestamp: Date.now(),

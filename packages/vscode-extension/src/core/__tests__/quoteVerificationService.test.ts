@@ -1,8 +1,15 @@
 import { QuoteVerificationService, QuoteVerificationResult, BatchVerificationResult } from '../quoteVerificationService';
-import { VerificationResult } from '../../services/zoteroApiService';
+import { VerificationResult } from '@research-assistant/core';
 import { ClaimsManager } from '../claimsManagerWrapper';
 import type { Claim } from '@research-assistant/core';
-import { setupTest, createMockClaim, createMockVerificationResult } from '../../__tests__/helpers';
+import { 
+  setupTest, 
+  createMockClaim, 
+  createMockVerificationResult,
+  createMockClaimsManager,
+  createMockUnifiedQuoteSearch,
+  aClaim
+} from '../../__tests__/helpers';
 import { UnifiedQuoteSearch } from '../unifiedQuoteSearch';
 
 // Mock the dependencies
@@ -13,13 +20,14 @@ describe('QuoteVerificationService', () => {
   setupTest();
 
   let service: QuoteVerificationService;
-  let mockUnifiedQuoteSearch: jest.Mocked<UnifiedQuoteSearch>;
-  let mockClaimsManager: jest.Mocked<ClaimsManager>;
+  let mockUnifiedQuoteSearch: ReturnType<typeof createMockUnifiedQuoteSearch>;
+  let mockClaimsManager: ReturnType<typeof createMockClaimsManager>;
 
   beforeEach(() => {
-    mockUnifiedQuoteSearch = new UnifiedQuoteSearch() as jest.Mocked<UnifiedQuoteSearch>;
-    mockClaimsManager = new ClaimsManager('test.md') as jest.Mocked<ClaimsManager>;
-    service = new QuoteVerificationService(mockUnifiedQuoteSearch, mockClaimsManager);
+    // Use factory functions for consistent mocks
+    mockUnifiedQuoteSearch = createMockUnifiedQuoteSearch();
+    mockClaimsManager = createMockClaimsManager();
+    service = new QuoteVerificationService(mockUnifiedQuoteSearch as any, mockClaimsManager as any);
   });
 
   describe('verifyQuote', () => {

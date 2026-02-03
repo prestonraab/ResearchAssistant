@@ -215,7 +215,14 @@ export class WritingModeProvider {
         pairs: sanitizedPairs
       });
     } catch (error) {
-      vscode.window.showErrorMessage(`Failed to initialize writing mode: ${error}`);
+      vscode.window.showErrorMessage(
+        'Unable to initialize writing mode. Please check your workspace configuration.',
+        'Open Settings'
+      ).then(action => {
+        if (action === 'Open Settings') {
+          vscode.commands.executeCommand('workbench.action.openSettings', 'researchAssistant');
+        }
+      });
     }
   }
 
@@ -380,7 +387,14 @@ export class WritingModeProvider {
     // Queue the save operation to prevent race conditions with file watchers
     this.writeQueue = this.writeQueue.then(() => this._performManuscriptSave(pairs)).catch(error => {
       console.error('Error in manuscript write queue:', error);
-      vscode.window.showErrorMessage(`Failed to save manuscript: ${error}`);
+      vscode.window.showErrorMessage(
+        'Unable to save the manuscript. Your changes may not be saved.',
+        'Retry'
+      ).then(action => {
+        if (action === 'Retry') {
+          this.saveManuscript(pairs);
+        }
+      });
     });
     
     return this.writeQueue;

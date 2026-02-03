@@ -1,9 +1,16 @@
 import { InstantSearchHandler } from '../core/instantSearchHandler';
-import { ZoteroApiService, ZoteroItem } from '../services/zoteroApiService';
+import { ZoteroClient, ZoteroItem } from '@research-assistant/core';
 import { ManuscriptContextDetector } from '../core/manuscriptContextDetector';
 import * as vscode from 'vscode';
 import * as fs from 'fs';
-import { setupTest, aZoteroItem } from './helpers';
+import { 
+  setupTest, 
+  aZoteroItem,
+  aDocumentSection,
+  createMockZoteroItem,
+  createMockZoteroApiService,
+  createMockManuscriptContextDetector
+} from './helpers';
 
 // Mock modules
 jest.mock('fs');
@@ -14,9 +21,8 @@ describe('InstantSearchHandler', () => {
   setupTest();
 
   let handler: InstantSearchHandler;
-  let mockZoteroApiService: jest.Mocked<ZoteroApiService>;
-  let mockManuscriptContextDetector: jest.Mocked<ManuscriptContextDetector>;
-  let mockSemanticSearch: jest.Mock;
+  let mockZoteroApiService: ReturnType<typeof createMockZoteroApiService>;
+  let mockManuscriptContextDetector: ReturnType<typeof createMockManuscriptContextDetector>;
   const workspaceRoot = '/test/workspace';
   const extractedTextPath = '/test/workspace/literature/ExtractedText';
 
@@ -30,38 +36,27 @@ describe('InstantSearchHandler', () => {
     .withDOI('10.1234/test')
     .build();
 
-  const mockSection: any = {
-    id: 'section-1',
-    level: 2,
-    title: 'Machine Learning Methods',
-    content: ['Neural networks', 'Deep learning'],
-    parent: null,
-    children: [],
-    lineStart: 10,
-    lineEnd: 20,
-  };
+  const mockSection = aDocumentSection()
+    .withId('section-1')
+    .withLevel(2)
+    .withTitle('Machine Learning Methods')
+    .withContent(['Neural networks', 'Deep learning'])
+    .withLineRange(10, 20)
+    .build();
 
   beforeEach(() => {
-    // Create mock instances with proper jest.fn() mocks
-    mockSemanticSearch = jest.fn();
-    mockZoteroApiService = {
-      semanticSearch: mockSemanticSearch,
-      isConfigured: jest.fn().mockReturnValue(true),
-      getPdfAttachments: jest.fn(),
-    } as any;
-
-    mockManuscriptContextDetector = {
-      getContext: jest.fn().mockReturnValue(null),
-    } as any;
+    // Use factory functions for consistent mocks
+    mockZoteroApiService = createMockZoteroApiService();
+    mockManuscriptContextDetector = createMockManuscriptContextDetector();
 
     handler = new InstantSearchHandler(
-      mockZoteroApiService,
-      mockManuscriptContextDetector,
+      mockZoteroApiService as any,
+      mockManuscriptContextDetector as any,
       workspaceRoot,
       extractedTextPath
     );
 
-    // Mock fs.existsSync
+    // Mock fs.existsSync - automatically cleaned up by setupTest()
     (fs.existsSync as jest.Mock).mockReturnValue(false);
   });
 
@@ -86,7 +81,7 @@ describe('InstantSearchHandler', () => {
   describe('searchFromSelection', () => {
     test('should search for papers using selected text', async () => {
       const mockResults = [mockZoteroItem];
-      mockSemanticSearch.mockResolvedValue(mockResults);
+      mockZoteroApiService.semanticSearch.mockResolvedValue(mockResults);
 
       // Mock vscode.window.withProgress
       (vscode.window.withProgress as jest.Mock).mockImplementation(
@@ -107,7 +102,7 @@ describe('InstantSearchHandler', () => {
 
     test('should include section context in search query', async () => {
       const mockResults = [mockZoteroItem];
-      mockSemanticSearch.mockResolvedValue(mockResults);
+      mockZoteroApiService.semanticSearch.mockResolvedValue(mockResults);
 
       (vscode.window.withProgress as jest.Mock).mockImplementation(
         async (options, task) => task({ report: jest.fn() })
@@ -116,7 +111,7 @@ describe('InstantSearchHandler', () => {
 
       await handler.searchFromSelection('neural networks', 'Machine Learning Methods');
 
-      expect(mockSemanticSearch).toHaveBeenCalledWith(
+      expect(mockZoteroApiService.semanticSearch).toHaveBeenCalledWith(
         'neural networks Machine Learning Methods',
         10
       );
@@ -124,7 +119,7 @@ describe('InstantSearchHandler', () => {
 
     test('should use cached results for repeated queries', async () => {
       const mockResults = [mockZoteroItem];
-      mockSemanticSearch.mockResolvedValue(mockResults);
+      mockZoteroApiService.semanticSearch.mockResolvedValue(mockResults);
 
       (vscode.window.withProgress as jest.Mock).mockImplementation(
         async (options, task) => task({ report: jest.fn() })
@@ -133,16 +128,16 @@ describe('InstantSearchHandler', () => {
 
       // First search
       await handler.searchFromSelection('machine learning');
-      expect(mockSemanticSearch).toHaveBeenCalledTimes(1);
+      expect(mockZoteroApiService.semanticSearch).toHaveBeenCalledTimes(1);
 
       // Second search with same query - should use cache
       await handler.searchFromSelection('machine learning');
-      expect(mockSemanticSearch).toHaveBeenCalledTimes(1);
+      expect(mockZoteroApiService.semanticSearch).toHaveBeenCalledTimes(1);
     });
 
     test('should handle search timeout gracefully', async () => {
       // Mock a slow search that exceeds timeout
-      mockSemanticSearch.mockImplementation(
+      mockZoteroApiService.semanticSearch.mockImplementation(
         () => new Promise(resolve => setTimeout(() => resolve([]), 3000))
       );
 
@@ -162,7 +157,7 @@ describe('InstantSearchHandler', () => {
     });
 
     test('should handle search errors', async () => {
-      mockSemanticSearch.mockRejectedValue(
+      mockZoteroApiService.semanticSearch.mockRejectedValue(
         new Error('Network error')
       );
 
@@ -185,7 +180,7 @@ describe('InstantSearchHandler', () => {
       const longQuery = 'a'.repeat(600);
       const longContext = 'b'.repeat(600);
       
-      mockSemanticSearch.mockResolvedValue([]);
+      mockZoteroApiService.semanticSearch.mockResolvedValue([]);
       (vscode.window.withProgress as jest.Mock).mockImplementation(
         async (options, task) => task({ report: jest.fn() })
       );
@@ -193,7 +188,7 @@ describe('InstantSearchHandler', () => {
 
       await handler.searchFromSelection(longQuery, longContext);
 
-      const calledQuery = mockSemanticSearch.mock.calls[0][0];
+      const calledQuery = mockZoteroApiService.semanticSearch.mock.calls[0][0];
       expect(calledQuery.length).toBeLessThanOrEqual(500);
     });
   });
@@ -374,7 +369,7 @@ describe('InstantSearchHandler', () => {
   describe('Cache Management', () => {
     test('should clear cache on demand', async () => {
       const mockResults = [mockZoteroItem];
-      mockSemanticSearch.mockResolvedValue(mockResults);
+      mockZoteroApiService.semanticSearch.mockResolvedValue(mockResults);
 
       (vscode.window.withProgress as jest.Mock).mockImplementation(
         async (options, task) => task({ report: jest.fn() })
@@ -383,18 +378,18 @@ describe('InstantSearchHandler', () => {
 
       // Populate cache
       await handler.searchFromSelection('test query');
-      expect(mockSemanticSearch).toHaveBeenCalledTimes(1);
+      expect(mockZoteroApiService.semanticSearch).toHaveBeenCalledTimes(1);
 
       // Clear cache
       handler.clearCache();
 
       // Search again - should hit MCP again
       await handler.searchFromSelection('test query');
-      expect(mockSemanticSearch).toHaveBeenCalledTimes(2);
+      expect(mockZoteroApiService.semanticSearch).toHaveBeenCalledTimes(2);
     });
 
     test('should limit cache size to 50 entries', async () => {
-      mockSemanticSearch.mockResolvedValue([mockZoteroItem]);
+      mockZoteroApiService.semanticSearch.mockResolvedValue([mockZoteroItem]);
 
       (vscode.window.withProgress as jest.Mock).mockImplementation(
         async (options, task) => task({ report: jest.fn() })
@@ -410,7 +405,7 @@ describe('InstantSearchHandler', () => {
       await handler.searchFromSelection('query 0');
       
       // Should have made 52 calls (51 initial + 1 for evicted entry)
-      expect(mockSemanticSearch).toHaveBeenCalledTimes(52);
+      expect(mockZoteroApiService.semanticSearch).toHaveBeenCalledTimes(52);
     });
   });
 
@@ -457,7 +452,7 @@ describe('InstantSearchHandler', () => {
   describe('Performance', () => {
     test('should complete search within 2 seconds for cached results', async () => {
       const mockResults = [mockZoteroItem];
-      mockSemanticSearch.mockResolvedValue(mockResults);
+      mockZoteroApiService.semanticSearch.mockResolvedValue(mockResults);
 
       (vscode.window.withProgress as jest.Mock).mockImplementation(
         async (options, task) => task({ report: jest.fn() })

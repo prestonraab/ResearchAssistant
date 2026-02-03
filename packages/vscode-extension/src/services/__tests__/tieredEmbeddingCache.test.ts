@@ -2,8 +2,11 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
 import { TieredEmbeddingCache } from '../tieredEmbeddingCache';
+import { setupTest } from '../../__tests__/helpers';
 
 describe('TieredEmbeddingCache', () => {
+  setupTest();
+
   let cacheDir: string;
   let cache: TieredEmbeddingCache;
 

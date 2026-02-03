@@ -2,19 +2,19 @@ import { describe, test, expect, beforeEach } from '@jest/globals';
 import { jest } from '@jest/globals';
 import { CoverageAnalyzer } from '../coverageAnalyzer';
 import type { OutlineSection, Claim } from '@research-assistant/core';
+import { setupTest, createMockEmbeddingService } from '../../__tests__/helpers';
 
 describe('CoverageAnalyzer', () => {
+  setupTest();
+
   let analyzer: CoverageAnalyzer;
   let mockClaimsManager: any;
-  let mockEmbeddingService: any;
+  let mockEmbeddingService: ReturnType<typeof createMockEmbeddingService>;
 
   beforeEach(() => {
-    // Create mock dependencies
+    // Create mock dependencies using factory
     mockClaimsManager = {};
-    mockEmbeddingService = {
-      generateEmbedding: jest.fn().mockResolvedValue([0.1, 0.2, 0.3]),
-      cosineSimilarity: jest.fn().mockReturnValue(0.8)
-    };
+    mockEmbeddingService = createMockEmbeddingService();
     
     analyzer = new CoverageAnalyzer(mockClaimsManager, mockEmbeddingService);
   });

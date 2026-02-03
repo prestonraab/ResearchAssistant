@@ -4,7 +4,7 @@ import { ClaimExtractor } from '../core/claimExtractor';
 import { ReadingStatusManager } from '../core/readingStatusManager';
 import { ClaimsManager } from '../core/claimsManagerWrapper';
 import { EmbeddingService } from '@research-assistant/core';
-import { setupTest } from './helpers';
+import { setupTest, createMockExtensionContext, createMockEmbeddingService, createMockClaimsManager } from './helpers';
 
 /**
  * Integration tests for ReadingAssistant class.
@@ -28,45 +28,13 @@ describe('ReadingAssistant', () => {
   let mockContext: vscode.ExtensionContext;
 
   beforeEach(() => {
-    // Create mock extension context with all required properties
-    mockContext = {
-      subscriptions: [],
-      workspaceState: {
-        get: jest.fn().mockReturnValue({}),
-        update: jest.fn().mockResolvedValue(undefined),
-        keys: jest.fn().mockReturnValue([])
-      },
-      globalState: {
-        get: jest.fn(),
-        update: jest.fn(),
-        keys: jest.fn().mockReturnValue([]),
-        setKeysForSync: jest.fn()
-      },
-      extensionPath: '/mock/path',
-      extensionUri: vscode.Uri.file('/mock/path'),
-      environmentVariableCollection: {} as any,
-      extensionMode: vscode.ExtensionMode.Test,
-      storageUri: undefined,
-      storagePath: undefined,
-      globalStorageUri: vscode.Uri.file('/mock/global'),
-      globalStoragePath: '/mock/global',
-      logUri: vscode.Uri.file('/mock/log'),
-      logPath: '/mock/log',
-      asAbsolutePath: (relativePath: string) => `/mock/path/${relativePath}`,
-      secrets: {} as any,
-      extension: {} as any,
-      languageModelAccessInformation: {} as any
-    } as unknown as vscode.ExtensionContext;
+    // Use factory function for consistent, complete mock
+    mockContext = createMockExtensionContext();
+
+    // Use factory function for consistent, complete mock
+    mockEmbeddingService = createMockEmbeddingService();
 
     // Create fresh mocks for each test
-    mockEmbeddingService = {
-      generateEmbedding: jest.fn().mockResolvedValue([0.1, 0.2, 0.3]),
-      generateBatch: jest.fn(),
-      cosineSimilarity: jest.fn(),
-      cacheEmbedding: jest.fn(),
-      getCachedEmbedding: jest.fn()
-    } as any;
-
     mockClaimExtractor = {
       categorizeClaim: jest.fn().mockReturnValue('method'),
       suggestSections: jest.fn().mockResolvedValue([]),
@@ -79,12 +47,7 @@ describe('ReadingAssistant', () => {
       getReadingProgress: jest.fn().mockReturnValue({ read: 0, total: 0 })
     } as any;
 
-    mockClaimsManager = {
-      saveClaim: jest.fn().mockResolvedValue(undefined),
-      getClaim: jest.fn(),
-      getClaims: jest.fn().mockReturnValue([]),
-      generateClaimId: jest.fn().mockReturnValue('C_01')
-    } as any;
+    mockClaimsManager = createMockClaimsManager();
 
     // Create reading assistant with mocks
     readingAssistant = new ReadingAssistant(

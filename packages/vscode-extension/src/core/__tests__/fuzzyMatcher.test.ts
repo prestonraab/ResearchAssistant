@@ -7,7 +7,7 @@
  * @see Requirements 7.1, 7.3 - Zotero PDF Integration
  */
 
-import { FuzzyMatcher, MATCH_THRESHOLD } from '../fuzzyMatcher';
+import { FuzzyMatcher, MATCH_THRESHOLD } from '@research-assistant/core';
 
 describe('FuzzyMatcher', () => {
   let matcher: FuzzyMatcher;

@@ -1,5 +1,9 @@
 import * as vscode from 'vscode';
 
+interface MessageSelection {
+  [key: string]: unknown;
+}
+
 /**
  * DeepLinkHandler manages the construction and opening of Zotero deep links.
  * It constructs zotero:// URLs for opening PDFs at specific locations and
@@ -86,7 +90,7 @@ export class DeepLinkHandler {
         vscode.window.showErrorMessage(
           'Failed to open PDF in Zotero. Make sure Zotero is running.',
           'Open Zotero'
-        ).then((selection: any) => {
+        ).then((selection: MessageSelection | undefined) => {
           if (selection === 'Open Zotero') {
             // Try to open Zotero application
             vscode.env.openExternal(vscode.Uri.parse('zotero://'));
@@ -131,7 +135,7 @@ export class DeepLinkHandler {
         vscode.window.showErrorMessage(
           'Failed to open PDF in Zotero. Make sure Zotero is running.',
           'Open Zotero'
-        ).then((selection: any) => {
+        ).then((selection: MessageSelection | undefined) => {
           if (selection === 'Open Zotero') {
             // Try to open Zotero application
             vscode.env.openExternal(vscode.Uri.parse('zotero://'));

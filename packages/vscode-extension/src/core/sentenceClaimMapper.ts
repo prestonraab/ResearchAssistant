@@ -1,5 +1,5 @@
 import { ClaimsManager } from './claimsManagerWrapper';
-import { Sentence } from './sentenceParser';
+import { Sentence } from '@research-assistant/core';
 import * as vscode from 'vscode';
 
 /**

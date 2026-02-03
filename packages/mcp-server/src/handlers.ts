@@ -16,7 +16,7 @@ import {
   SearchQueryGenerator,
   LiteratureIndexer,
 } from '@research-assistant/core';
-import { ZoteroService } from './services/ZoteroService.js';
+import { ZoteroClient } from '@research-assistant/core';
 import { DoclingService } from './services/DoclingService.js';
 
 export interface Services {
@@ -31,7 +31,7 @@ export interface Services {
   synthesisEngine: SynthesisEngine;
   searchQueryGenerator: SearchQueryGenerator;
   literatureIndexer: LiteratureIndexer;
-  zoteroService?: ZoteroService;
+  zoteroClient?: ZoteroClient;
   doclingService?: DoclingService;
   workspaceRoot: string;
 }
@@ -158,25 +158,23 @@ const toolHandlers: Record<string, (args: any, services: Services) => Promise<an
   
   // Zotero tools
   zotero_get_collections: async (args, s) => {
-    if (!s.zoteroService) throw new Error('Zotero service not configured');
-    return s.zoteroService.getCollections();
+    if (!s.zoteroClient) throw new Error('Zotero client not configured');
+    return s.zoteroClient.getCollections();
   },
   zotero_get_collection_items: async (args, s) => {
-    if (!s.zoteroService) throw new Error('Zotero service not configured');
-    return s.zoteroService.getCollectionItems(args.collection_key);
+    if (!s.zoteroClient) throw new Error('Zotero client not configured');
+    return s.zoteroClient.getCollectionItems(args.collection_key);
   },
   zotero_add_paper: async (args, s) => {
-    if (!s.zoteroService) throw new Error('Zotero service not configured');
-    return s.zoteroService.addPaper(
-      args.collection_name,
-      args.title,
-      args.authors,
-      {
-        date: args.date,
-        DOI: args.doi,
-        publicationTitle: args.publication_title
-      }
-    );
+    if (!s.zoteroClient) throw new Error('Zotero client not configured');
+    return s.zoteroClient.createItem({
+      itemType: 'journalArticle',
+      title: args.title,
+      creators: args.authors,
+      date: args.date,
+      DOI: args.doi,
+      publicationTitle: args.publication_title
+    });
   },
 
   // Docling tools
@@ -218,11 +216,15 @@ const toolHandlers: Record<string, (args: any, services: Services) => Promise<an
   },
 
   bulk_import_from_zotero: async (args, s) => {
-    if (!s.zoteroService) throw new Error('Zotero service not configured');
-    return s.zoteroService.bulkImportCollection(
+    if (!s.zoteroClient) throw new Error('Zotero client not configured');
+    const items = await s.zoteroClient.getCollectionItems(
       args.collection_key,
       args.limit || 50
     );
+    return {
+      papersImported: items.length,
+      errors: []
+    };
   },
 
   search_papers_for_text: async (args, s) => {

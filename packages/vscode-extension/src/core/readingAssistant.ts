@@ -120,7 +120,9 @@ export class ReadingAssistant {
     const selectedText = document.getText(selection);
 
     if (!selectedText || selectedText.trim().length === 0) {
-      vscode.window.showWarningMessage('Please select text to extract as a claim');
+      vscode.window.showWarningMessage(
+        'Please select some text to extract as a claim.'
+      );
       return null;
     }
 
@@ -213,12 +215,15 @@ export class ReadingAssistant {
     // Generate claim ID
     const claimId = this.claimsManager.generateClaimId();
 
-    // Get source ID (for now, use a placeholder - should be from Zotero metadata)
-    const sourceId = 1; // TODO: Get from Zotero MCP
+    // Source ID is a placeholder. In a full implementation, this would be
+    // retrieved from Zotero metadata via the Zotero MCP integration.
+    const sourceId = 1;
 
-    // Suggest sections (placeholder - would use outline parser in full implementation)
+    // Section suggestions are not yet implemented in this flow.
+    // The claimExtractor.suggestSections() method could be used here
+    // to auto-suggest relevant outline sections based on claim content.
     // Validates: Requirement 5.4
-    const sections: string[] = []; // TODO: Use claimExtractor.suggestSections()
+    const sections: string[] = [];
 
     // Show claim form
     const claimText = await vscode.window.showInputBox({
@@ -340,7 +345,9 @@ export class ReadingAssistant {
 
         const selection = editor.selection;
         if (selection.isEmpty) {
-          vscode.window.showWarningMessage('Please select text to extract as a claim');
+          vscode.window.showWarningMessage(
+            'Please select some text to extract as a claim.'
+          );
           return;
         }
 

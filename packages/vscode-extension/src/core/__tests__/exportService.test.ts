@@ -1,22 +1,16 @@
-import { jest } from '@jest/globals';
-import { ExportService, ManuscriptExportOptions, CitedQuote } from '../exportService';
-import type { DocumentModel, DocumentSection, DocumentParagraph } from '../documentModel';
+import { ExportService, ManuscriptExportOptions } from '../exportService';
+import { setupTest, createMockSentenceClaimQuoteLinkManager, createMockClaimsManager, aClaim } from '../../__tests__/helpers';
 
 describe('ExportService - buildDocumentModel', () => {
+  setupTest();
+
   let exportService: ExportService;
-  let mockSentenceClaimQuoteLinkManager: any;
-  let mockClaimsManager: any;
+  let mockSentenceClaimQuoteLinkManager: ReturnType<typeof createMockSentenceClaimQuoteLinkManager>;
+  let mockClaimsManager: ReturnType<typeof createMockClaimsManager>;
 
   beforeEach(() => {
-    // Create mock objects
-    mockSentenceClaimQuoteLinkManager = {
-      getCitationsForSentence: jest.fn().mockReturnValue([])
-    };
-
-    mockClaimsManager = {
-      getClaim: jest.fn().mockReturnValue(null)
-    };
-    
+    mockSentenceClaimQuoteLinkManager = createMockSentenceClaimQuoteLinkManager();
+    mockClaimsManager = createMockClaimsManager();
     exportService = new ExportService(mockSentenceClaimQuoteLinkManager, mockClaimsManager);
   });
 
@@ -26,13 +20,9 @@ describe('ExportService - buildDocumentModel', () => {
 
 This is a paragraph with some text.`;
 
-      const options: ManuscriptExportOptions = {
-        outputPath: '/tmp/test.docx',
-        includeFootnotes: false,
-        includeBibliography: false
-      };
-
-      const model = await exportService.buildDocumentModel(manuscript, options);
+      const model = await exportService.buildDocumentModel(manuscript, {
+        outputPath: '/tmp/test.docx'
+      });
 
       expect(model.sections).toHaveLength(1);
       expect(model.sections[0].heading).toBe('Introduction');
@@ -53,13 +43,9 @@ Content 1.1
 
 Content 2`;
 
-      const options: ManuscriptExportOptions = {
-        outputPath: '/tmp/test.docx',
-        includeFootnotes: false,
-        includeBibliography: false
-      };
-
-      const model = await exportService.buildDocumentModel(manuscript, options);
+      const model = await exportService.buildDocumentModel(manuscript, {
+        outputPath: '/tmp/test.docx'
+      });
 
       expect(model.sections).toHaveLength(3);
       expect(model.sections[0].level).toBe(1);
@@ -72,13 +58,9 @@ Content 2`;
 
 Some content`;
 
-      const options: ManuscriptExportOptions = {
-        outputPath: '/tmp/test.docx',
-        includeFootnotes: false,
-        includeBibliography: false
-      };
-
-      const model = await exportService.buildDocumentModel(manuscript, options);
+      const model = await exportService.buildDocumentModel(manuscript, {
+        outputPath: '/tmp/test.docx'
+      });
 
       expect(model.sections[0].heading).toBe('My Section Title');
       expect(model.sections[0].heading).not.toContain('#');
@@ -93,13 +75,9 @@ Second paragraph here.
 
 Third paragraph here.`;
 
-      const options: ManuscriptExportOptions = {
-        outputPath: '/tmp/test.docx',
-        includeFootnotes: false,
-        includeBibliography: false
-      };
-
-      const model = await exportService.buildDocumentModel(manuscript, options);
+      const model = await exportService.buildDocumentModel(manuscript, {
+        outputPath: '/tmp/test.docx'
+      });
 
       expect(model.sections[0].paragraphs).toHaveLength(3);
     });
@@ -111,19 +89,14 @@ Third paragraph here.`;
 
 This is a sentence. This is another sentence.`;
 
-      const options: ManuscriptExportOptions = {
-        outputPath: '/tmp/test.docx',
-        includeFootnotes: false,
-        includeBibliography: false
-      };
-
-      const model = await exportService.buildDocumentModel(manuscript, options);
+      const model = await exportService.buildDocumentModel(manuscript, {
+        outputPath: '/tmp/test.docx'
+      });
       const paragraph = model.sections[0].paragraphs[0];
 
-      // Should have text runs for both sentences
-      const textRuns = paragraph.runs.filter(r => r.type === 'text');
+      const textRuns = paragraph.runs.filter((r: any) => r.type === 'text');
       expect(textRuns.length).toBeGreaterThan(0);
-      expect(textRuns.every(r => r.content.length > 0)).toBe(true);
+      expect(textRuns.every((r: any) => r.content.length > 0)).toBe(true);
     });
 
     test('should not create footnote references when includeFootnotes is false', async () => {
@@ -131,16 +104,13 @@ This is a sentence. This is another sentence.`;
 
 This is a sentence.`;
 
-      const options: ManuscriptExportOptions = {
+      const model = await exportService.buildDocumentModel(manuscript, {
         outputPath: '/tmp/test.docx',
-        includeFootnotes: false,
-        includeBibliography: false
-      };
-
-      const model = await exportService.buildDocumentModel(manuscript, options);
+        includeFootnotes: false
+      });
       const paragraph = model.sections[0].paragraphs[0];
 
-      const footnoteRefs = paragraph.runs.filter(r => r.type === 'footnote-ref');
+      const footnoteRefs = paragraph.runs.filter((r: any) => r.type === 'footnote-ref');
       expect(footnoteRefs).toHaveLength(0);
     });
   });
@@ -151,33 +121,22 @@ This is a sentence.`;
 
 This is a sentence.`;
 
-      const mockCitation = {
-        claimId: 'claim1',
-        quoteIndex: 0
-      };
-
-      const mockClaim = {
-        id: 'claim1',
-        primaryQuote: {
-          text: 'Quote text',
-          source: 'Smith 2020'
-        },
-        supportingQuotes: []
-      };
+      const mockCitation = { claimId: 'claim1', quoteIndex: 0 };
+      const mockClaim = aClaim()
+        .withId('claim1')
+        .withPrimaryQuote('Quote text', 'Smith 2020')
+        .build();
 
       mockSentenceClaimQuoteLinkManager.getCitationsForSentence.mockReturnValue([mockCitation as any]);
       mockClaimsManager.getClaim.mockReturnValue(mockClaim as any);
 
-      const options: ManuscriptExportOptions = {
+      const model = await exportService.buildDocumentModel(manuscript, {
         outputPath: '/tmp/test.docx',
-        includeFootnotes: true,
-        includeBibliography: false
-      };
-
-      const model = await exportService.buildDocumentModel(manuscript, options);
+        includeFootnotes: true
+      });
       const paragraph = model.sections[0].paragraphs[0];
 
-      const footnoteRefs = paragraph.runs.filter(r => r.type === 'footnote-ref');
+      const footnoteRefs = paragraph.runs.filter((r: any) => r.type === 'footnote-ref');
       expect(footnoteRefs.length).toBeGreaterThan(0);
       expect(footnoteRefs[0].footnoteId).toBe(1);
     });
@@ -187,30 +146,19 @@ This is a sentence.`;
 
 This is a sentence.`;
 
-      const mockCitation = {
-        claimId: 'claim1',
-        quoteIndex: 0
-      };
-
-      const mockClaim = {
-        id: 'claim1',
-        primaryQuote: {
-          text: 'Important quote',
-          source: 'Smith 2020'
-        },
-        supportingQuotes: []
-      };
+      const mockCitation = { claimId: 'claim1', quoteIndex: 0 };
+      const mockClaim = aClaim()
+        .withId('claim1')
+        .withPrimaryQuote('Important quote', 'Smith 2020')
+        .build();
 
       mockSentenceClaimQuoteLinkManager.getCitationsForSentence.mockReturnValue([mockCitation as any]);
       mockClaimsManager.getClaim.mockReturnValue(mockClaim as any);
 
-      const options: ManuscriptExportOptions = {
+      const model = await exportService.buildDocumentModel(manuscript, {
         outputPath: '/tmp/test.docx',
-        includeFootnotes: true,
-        includeBibliography: false
-      };
-
-      const model = await exportService.buildDocumentModel(manuscript, options);
+        includeFootnotes: true
+      });
 
       expect(model.metadata.footnotes).toHaveLength(1);
       expect(model.metadata.footnotes[0].quoteText).toBe('Important quote');
@@ -226,35 +174,23 @@ Sentence 1.
 
 Sentence 2.`;
 
-      const mockCitation = {
-        claimId: 'claim1',
-        quoteIndex: 0
-      };
-
-      const mockClaim = {
-        id: 'claim1',
-        primaryQuote: {
-          text: 'Quote',
-          source: 'Source'
-        },
-        supportingQuotes: []
-      };
+      const mockCitation = { claimId: 'claim1', quoteIndex: 0 };
+      const mockClaim = aClaim()
+        .withId('claim1')
+        .withPrimaryQuote('Quote', 'Source')
+        .build();
 
       mockSentenceClaimQuoteLinkManager.getCitationsForSentence.mockReturnValue([mockCitation as any]);
       mockClaimsManager.getClaim.mockReturnValue(mockClaim as any);
 
-      const options: ManuscriptExportOptions = {
+      const model = await exportService.buildDocumentModel(manuscript, {
         outputPath: '/tmp/test.docx',
         includeFootnotes: true,
-        includeBibliography: false,
         footnoteScope: 'document'
-      };
+      });
 
-      const model = await exportService.buildDocumentModel(manuscript, options);
-
-      // Both sections should have footnotes with continuous numbering
-      const section1Footnotes = model.sections[0].paragraphs[0].runs.filter(r => r.type === 'footnote-ref');
-      const section2Footnotes = model.sections[1].paragraphs[0].runs.filter(r => r.type === 'footnote-ref');
+      const section1Footnotes = model.sections[0].paragraphs[0].runs.filter((r: any) => r.type === 'footnote-ref');
+      const section2Footnotes = model.sections[1].paragraphs[0].runs.filter((r: any) => r.type === 'footnote-ref');
 
       if (section1Footnotes.length > 0 && section2Footnotes.length > 0) {
         expect(section2Footnotes[0].footnoteId).toBeGreaterThan(section1Footnotes[0].footnoteId!);
@@ -270,35 +206,23 @@ Sentence 1.
 
 Sentence 2.`;
 
-      const mockCitation = {
-        claimId: 'claim1',
-        quoteIndex: 0
-      };
-
-      const mockClaim = {
-        id: 'claim1',
-        primaryQuote: {
-          text: 'Quote',
-          source: 'Source'
-        },
-        supportingQuotes: []
-      };
+      const mockCitation = { claimId: 'claim1', quoteIndex: 0 };
+      const mockClaim = aClaim()
+        .withId('claim1')
+        .withPrimaryQuote('Quote', 'Source')
+        .build();
 
       mockSentenceClaimQuoteLinkManager.getCitationsForSentence.mockReturnValue([mockCitation as any]);
       mockClaimsManager.getClaim.mockReturnValue(mockClaim as any);
 
-      const options: ManuscriptExportOptions = {
+      const model = await exportService.buildDocumentModel(manuscript, {
         outputPath: '/tmp/test.docx',
         includeFootnotes: true,
-        includeBibliography: false,
         footnoteScope: 'section'
-      };
+      });
 
-      const model = await exportService.buildDocumentModel(manuscript, options);
-
-      // Both sections should have footnotes starting at 1
-      const section1Footnotes = model.sections[0].paragraphs[0].runs.filter(r => r.type === 'footnote-ref');
-      const section2Footnotes = model.sections[1].paragraphs[0].runs.filter(r => r.type === 'footnote-ref');
+      const section1Footnotes = model.sections[0].paragraphs[0].runs.filter((r: any) => r.type === 'footnote-ref');
+      const section2Footnotes = model.sections[1].paragraphs[0].runs.filter((r: any) => r.type === 'footnote-ref');
 
       if (section1Footnotes.length > 0 && section2Footnotes.length > 0) {
         expect(section1Footnotes[0].footnoteId).toBe(1);
@@ -313,30 +237,20 @@ Sentence 2.`;
 
 Sentence 1.`;
 
-      const mockCitation = {
-        claimId: 'claim1',
-        quoteIndex: 0
-      };
-
-      const mockClaim = {
-        id: 'claim1',
-        primaryQuote: {
-          text: 'Quote',
-          source: 'Smith 2020'
-        },
-        supportingQuotes: []
-      };
+      const mockCitation = { claimId: 'claim1', quoteIndex: 0 };
+      const mockClaim = aClaim()
+        .withId('claim1')
+        .withPrimaryQuote('Quote', 'Smith 2020')
+        .build();
 
       mockSentenceClaimQuoteLinkManager.getCitationsForSentence.mockReturnValue([mockCitation as any]);
       mockClaimsManager.getClaim.mockReturnValue(mockClaim as any);
 
-      const options: ManuscriptExportOptions = {
+      const model = await exportService.buildDocumentModel(manuscript, {
         outputPath: '/tmp/test.docx',
         includeFootnotes: true,
         includeBibliography: true
-      };
-
-      const model = await exportService.buildDocumentModel(manuscript, options);
+      });
 
       expect(model.bibliography).toHaveLength(1);
       expect(model.bibliography[0].source).toBe('Smith 2020');
@@ -347,30 +261,20 @@ Sentence 1.`;
 
 Sentence 1.`;
 
-      const mockCitation = {
-        claimId: 'claim1',
-        quoteIndex: 0
-      };
-
-      const mockClaim = {
-        id: 'claim1',
-        primaryQuote: {
-          text: 'Quote',
-          source: 'Smith 2020'
-        },
-        supportingQuotes: []
-      };
+      const mockCitation = { claimId: 'claim1', quoteIndex: 0 };
+      const mockClaim = aClaim()
+        .withId('claim1')
+        .withPrimaryQuote('Quote', 'Smith 2020')
+        .build();
 
       mockSentenceClaimQuoteLinkManager.getCitationsForSentence.mockReturnValue([mockCitation as any]);
       mockClaimsManager.getClaim.mockReturnValue(mockClaim as any);
 
-      const options: ManuscriptExportOptions = {
+      const model = await exportService.buildDocumentModel(manuscript, {
         outputPath: '/tmp/test.docx',
         includeFootnotes: true,
         includeBibliography: false
-      };
-
-      const model = await exportService.buildDocumentModel(manuscript, options);
+      });
 
       expect(model.bibliography).toHaveLength(0);
     });
@@ -382,33 +286,18 @@ Sentence 1.
 
 Sentence 2.`;
 
-      const mockCitation1 = {
-        claimId: 'claim1',
-        quoteIndex: 0
-      };
+      const mockCitation1 = { claimId: 'claim1', quoteIndex: 0 };
+      const mockCitation2 = { claimId: 'claim2', quoteIndex: 0 };
 
-      const mockCitation2 = {
-        claimId: 'claim2',
-        quoteIndex: 0
-      };
+      const mockClaim1 = aClaim()
+        .withId('claim1')
+        .withPrimaryQuote('Quote 1', 'Smith 2020')
+        .build();
 
-      const mockClaim1 = {
-        id: 'claim1',
-        primaryQuote: {
-          text: 'Quote 1',
-          source: 'Smith 2020'
-        },
-        supportingQuotes: []
-      };
-
-      const mockClaim2 = {
-        id: 'claim2',
-        primaryQuote: {
-          text: 'Quote 2',
-          source: 'Smith 2020'
-        },
-        supportingQuotes: []
-      };
+      const mockClaim2 = aClaim()
+        .withId('claim2')
+        .withPrimaryQuote('Quote 2', 'Smith 2020')
+        .build();
 
       mockSentenceClaimQuoteLinkManager.getCitationsForSentence
         .mockReturnValueOnce([mockCitation1 as any])
@@ -418,15 +307,12 @@ Sentence 2.`;
         .mockReturnValueOnce(mockClaim1 as any)
         .mockReturnValueOnce(mockClaim2 as any);
 
-      const options: ManuscriptExportOptions = {
+      const model = await exportService.buildDocumentModel(manuscript, {
         outputPath: '/tmp/test.docx',
         includeFootnotes: true,
         includeBibliography: true
-      };
+      });
 
-      const model = await exportService.buildDocumentModel(manuscript, options);
-
-      // Should have only one unique source
       expect(model.bibliography).toHaveLength(1);
       expect(model.bibliography[0].source).toBe('Smith 2020');
     });
@@ -436,30 +322,20 @@ Sentence 2.`;
 
 Sentence 1.`;
 
-      const mockCitation = {
-        claimId: 'claim1',
-        quoteIndex: 0
-      };
-
-      const mockClaim = {
-        id: 'claim1',
-        primaryQuote: {
-          text: 'Quote',
-          source: 'Smith 2020'
-        },
-        supportingQuotes: []
-      };
+      const mockCitation = { claimId: 'claim1', quoteIndex: 0 };
+      const mockClaim = aClaim()
+        .withId('claim1')
+        .withPrimaryQuote('Quote', 'Smith 2020')
+        .build();
 
       mockSentenceClaimQuoteLinkManager.getCitationsForSentence.mockReturnValue([mockCitation as any]);
       mockClaimsManager.getClaim.mockReturnValue(mockClaim as any);
 
-      const options: ManuscriptExportOptions = {
+      const model = await exportService.buildDocumentModel(manuscript, {
         outputPath: '/tmp/test.docx',
         includeFootnotes: true,
         includeBibliography: true
-      };
-
-      const model = await exportService.buildDocumentModel(manuscript, options);
+      });
 
       expect(model.bibliography[0].year).toBe('2020');
     });
@@ -467,18 +343,12 @@ Sentence 1.`;
 
   describe('buildDocumentModel - Metadata', () => {
     test('should set correct metadata for document scope', async () => {
-      const manuscript = `# Section
-
-Content`;
-
-      const options: ManuscriptExportOptions = {
+      const model = await exportService.buildDocumentModel('# Section\n\nContent', {
         outputPath: '/tmp/test.docx',
         includeFootnotes: true,
         includeBibliography: true,
         footnoteScope: 'document'
-      };
-
-      const model = await exportService.buildDocumentModel(manuscript, options);
+      });
 
       expect(model.metadata.footnoteScope).toBe('document');
       expect(model.metadata.includeFootnotes).toBe(true);
@@ -486,46 +356,28 @@ Content`;
     });
 
     test('should set correct metadata for section scope', async () => {
-      const manuscript = `# Section
-
-Content`;
-
-      const options: ManuscriptExportOptions = {
+      const model = await exportService.buildDocumentModel('# Section\n\nContent', {
         outputPath: '/tmp/test.docx',
         includeFootnotes: true,
         includeBibliography: true,
         footnoteScope: 'section'
-      };
-
-      const model = await exportService.buildDocumentModel(manuscript, options);
+      });
 
       expect(model.metadata.footnoteScope).toBe('section');
     });
 
     test('should default to document scope when not specified', async () => {
-      const manuscript = `# Section
-
-Content`;
-
-      const options: ManuscriptExportOptions = {
+      const model = await exportService.buildDocumentModel('# Section\n\nContent', {
         outputPath: '/tmp/test.docx'
-      };
-
-      const model = await exportService.buildDocumentModel(manuscript, options);
+      });
 
       expect(model.metadata.footnoteScope).toBe('document');
     });
 
     test('should default to including footnotes and bibliography', async () => {
-      const manuscript = `# Section
-
-Content`;
-
-      const options: ManuscriptExportOptions = {
+      const model = await exportService.buildDocumentModel('# Section\n\nContent', {
         outputPath: '/tmp/test.docx'
-      };
-
-      const model = await exportService.buildDocumentModel(manuscript, options);
+      });
 
       expect(model.metadata.includeFootnotes).toBe(true);
       expect(model.metadata.includeBibliography).toBe(true);
@@ -534,15 +386,9 @@ Content`;
 
   describe('buildDocumentModel - Edge Cases', () => {
     test('should handle empty manuscript', async () => {
-      const manuscript = '';
-
-      const options: ManuscriptExportOptions = {
-        outputPath: '/tmp/test.docx',
-        includeFootnotes: false,
-        includeBibliography: false
-      };
-
-      const model = await exportService.buildDocumentModel(manuscript, options);
+      const model = await exportService.buildDocumentModel('', {
+        outputPath: '/tmp/test.docx'
+      });
 
       expect(model.sections).toHaveLength(0);
       expect(model.bibliography).toHaveLength(0);
@@ -550,33 +396,18 @@ Content`;
     });
 
     test('should handle manuscript with only whitespace', async () => {
-      const manuscript = '   \n\n  \t\n   ';
-
-      const options: ManuscriptExportOptions = {
-        outputPath: '/tmp/test.docx',
-        includeFootnotes: false,
-        includeBibliography: false
-      };
-
-      const model = await exportService.buildDocumentModel(manuscript, options);
+      const model = await exportService.buildDocumentModel('   \n\n  \t\n   ', {
+        outputPath: '/tmp/test.docx'
+      });
 
       expect(model.sections).toHaveLength(0);
     });
 
     test('should handle manuscript with no headings', async () => {
-      const manuscript = `Just some text here.
+      const model = await exportService.buildDocumentModel('Just some text here.\n\nMore text here.', {
+        outputPath: '/tmp/test.docx'
+      });
 
-More text here.`;
-
-      const options: ManuscriptExportOptions = {
-        outputPath: '/tmp/test.docx',
-        includeFootnotes: false,
-        includeBibliography: false
-      };
-
-      const model = await exportService.buildDocumentModel(manuscript, options);
-
-      // Should still parse paragraphs even without headings
       expect(model.sections.length).toBeGreaterThanOrEqual(0);
     });
 
@@ -585,38 +416,23 @@ More text here.`;
 
 Sentence 1.`;
 
-      const mockCitation = {
-        claimId: 'nonexistent',
-        quoteIndex: 0
-      };
-
+      const mockCitation = { claimId: 'nonexistent', quoteIndex: 0 };
       mockSentenceClaimQuoteLinkManager.getCitationsForSentence.mockReturnValue([mockCitation as any]);
       mockClaimsManager.getClaim.mockReturnValue(null);
 
-      const options: ManuscriptExportOptions = {
+      const model = await exportService.buildDocumentModel(manuscript, {
         outputPath: '/tmp/test.docx',
         includeFootnotes: true,
         includeBibliography: true
-      };
+      });
 
-      const model = await exportService.buildDocumentModel(manuscript, options);
-
-      // Should not crash, just skip the missing citation
       expect(model.metadata.footnotes).toHaveLength(0);
     });
 
     test('should handle headings with special characters', async () => {
-      const manuscript = `# Section 1: Introduction & Overview
-
-Content here.`;
-
-      const options: ManuscriptExportOptions = {
-        outputPath: '/tmp/test.docx',
-        includeFootnotes: false,
-        includeBibliography: false
-      };
-
-      const model = await exportService.buildDocumentModel(manuscript, options);
+      const model = await exportService.buildDocumentModel('# Section 1: Introduction & Overview\n\nContent here.', {
+        outputPath: '/tmp/test.docx'
+      });
 
       expect(model.sections[0].heading).toBe('Section 1: Introduction & Overview');
     });
@@ -627,21 +443,16 @@ Content here.`;
 **What is the question?** <!-- [undefined] --> This is the answer to the question.
 **Another question?** <!-- [undefined] --> Another answer here.`;
 
-      const options: ManuscriptExportOptions = {
-        outputPath: '/tmp/test.docx',
-        includeFootnotes: false,
-        includeBibliography: false
-      };
-
-      const model = await exportService.buildDocumentModel(manuscript, options);
+      const model = await exportService.buildDocumentModel(manuscript, {
+        outputPath: '/tmp/test.docx'
+      });
 
       expect(model.sections).toHaveLength(1);
       expect(model.sections[0].heading).toBe('Introduction');
       expect(model.sections[0].paragraphs).toHaveLength(1);
       
-      // Check that HTML comments and questions are removed from paragraph text
       const paragraphText = model.sections[0].paragraphs[0].runs
-        .map(run => run.content)
+        .map((run: any) => run.content)
         .join('');
       
       expect(paragraphText).not.toContain('<!-- [undefined] -->');
@@ -656,48 +467,31 @@ Content here.`;
 
 Sentence with multiple citations.`;
 
-      const mockCitation1 = {
-        claimId: 'claim1',
-        quoteIndex: 0
-      };
+      const mockCitation1 = { claimId: 'claim1', quoteIndex: 0 };
+      const mockCitation2 = { claimId: 'claim2', quoteIndex: 0 };
 
-      const mockCitation2 = {
-        claimId: 'claim2',
-        quoteIndex: 0
-      };
+      const mockClaim1 = aClaim()
+        .withId('claim1')
+        .withPrimaryQuote('Quote 1', 'Smith 2020')
+        .build();
 
-      const mockClaim1 = {
-        id: 'claim1',
-        primaryQuote: {
-          text: 'Quote 1',
-          source: 'Smith 2020'
-        },
-        supportingQuotes: []
-      };
-
-      const mockClaim2 = {
-        id: 'claim2',
-        primaryQuote: {
-          text: 'Quote 2',
-          source: 'Jones 2021'
-        },
-        supportingQuotes: []
-      };
+      const mockClaim2 = aClaim()
+        .withId('claim2')
+        .withPrimaryQuote('Quote 2', 'Jones 2021')
+        .build();
 
       mockSentenceClaimQuoteLinkManager.getCitationsForSentence.mockReturnValue([mockCitation1 as any, mockCitation2 as any]);
       mockClaimsManager.getClaim
         .mockReturnValueOnce(mockClaim1 as any)
         .mockReturnValueOnce(mockClaim2 as any);
 
-      const options: ManuscriptExportOptions = {
+      const model = await exportService.buildDocumentModel(manuscript, {
         outputPath: '/tmp/test.docx',
         includeFootnotes: true,
         includeBibliography: true
-      };
+      });
 
-      const model = await exportService.buildDocumentModel(manuscript, options);
-
-      const footnoteRefs = model.sections[0].paragraphs[0].runs.filter(r => r.type === 'footnote-ref');
+      const footnoteRefs = model.sections[0].paragraphs[0].runs.filter((r: any) => r.type === 'footnote-ref');
       expect(footnoteRefs).toHaveLength(2);
       expect(model.metadata.footnotes).toHaveLength(2);
     });

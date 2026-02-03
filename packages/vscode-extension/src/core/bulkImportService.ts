@@ -3,7 +3,7 @@ import { ClaimsManager } from './claimsManagerWrapper';
 import { OutlineParser } from './outlineParserWrapper';
 import { PDFExtractionService } from './pdfExtractionService';
 import { EmbeddingService } from '@research-assistant/core';
-import { ZoteroApiService } from '../services/zoteroApiService';
+import { ZoteroClient } from '@research-assistant/core';
 
 export interface ImportProgress {
   stage: 'papers' | 'extraction' | 'analysis' | 'parsing' | 'complete';
@@ -25,7 +25,7 @@ export interface ImportResult {
  * Requirements: 39.1, 39.2, 39.3, 39.4, 39.5
  */
 export class BulkImportService {
-  private zoteroApiService: ZoteroApiService;
+  private zoteroClient: ZoteroClient;
   private claimsManager: ClaimsManager;
   private outlineParser: OutlineParser;
   private pdfExtractionService: PDFExtractionService;
@@ -33,13 +33,13 @@ export class BulkImportService {
   private progressCallback?: (progress: ImportProgress) => void;
 
   constructor(
-    zoteroApiService: ZoteroApiService,
+    zoteroClient: ZoteroClient,
     claimsManager: ClaimsManager,
     outlineParser: OutlineParser,
     pdfExtractionService: PDFExtractionService,
     embeddingService: EmbeddingService
   ) {
-    this.zoteroApiService = zoteroApiService;
+    this.zoteroClient = zoteroClient;
     this.claimsManager = claimsManager;
     this.outlineParser = outlineParser;
     this.pdfExtractionService = pdfExtractionService;
@@ -80,10 +80,10 @@ export class BulkImportService {
 
       let papers;
       if (collectionKey) {
-        papers = await this.zoteroApiService.getCollectionItems(collectionKey, limit);
+        papers = await this.zoteroClient.getCollectionItems(collectionKey, limit);
       } else {
         // Get recent papers if no collection specified
-        papers = await this.zoteroApiService.getRecentItems(limit || 50);
+        papers = await this.zoteroClient.getRecentItems(limit || 50);
       }
 
       result.papersImported = papers.length;
@@ -101,15 +101,15 @@ export class BulkImportService {
         
         try {
           // Check if paper has PDF attachments
-          const attachments = await this.zoteroApiService.getItemChildren(paper.key);
-          const pdfAttachment = attachments.find(attachment => 
+          const attachments = await this.zoteroClient.getItemChildren(paper.key);
+          const pdfAttachment = attachments.find((attachment: Record<string, unknown>) => 
             attachment.contentType === 'application/pdf'
           );
 
           if (pdfAttachment) {
             // Extract text using Docling MCP
             const extractResult = await this.pdfExtractionService.extractText(
-              pdfAttachment.path || pdfAttachment.title
+              (pdfAttachment.path || pdfAttachment.title) as string
             );
 
             if (extractResult.success && extractResult.outputPath) {
@@ -117,7 +117,7 @@ export class BulkImportService {
             }
           }
         } catch (error) {
-          result.errors.push(`Failed to extract PDF for ${paper.title}: ${error}`);
+          result.errors.push(`Failed to extract PDF for ${(paper as Record<string, unknown>).title}: ${error}`);
         }
 
         this.reportProgress({
@@ -196,13 +196,15 @@ export class BulkImportService {
    * Requirements: 39.3
    */
   async suggestPaperMappings(
-    papers: any[],
-    sections: any[]
+    papers: unknown[],
+    sections: unknown[]
   ): Promise<Map<string, string[]>> {
     const mappings = new Map<string, string[]>();
 
     for (const paper of papers) {
-      const paperText = `${paper.data.title} ${paper.data.abstractNote || ''}`;
+      const paperObj = paper as Record<string, unknown>;
+      const paperData = paperObj.data as Record<string, unknown>;
+      const paperText = `${paperData.title} ${paperData.abstractNote || ''}`;
       const paperEmbedding = await this.embeddingService.generateEmbedding(paperText);
 
       const sectionScores: Array<{ sectionId: string; score: number }> = [];

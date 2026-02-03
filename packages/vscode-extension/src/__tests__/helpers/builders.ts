@@ -1,5 +1,5 @@
 import type { Claim, SourcedQuote } from '@research-assistant/core';
-import type { ZoteroItem } from '../../services/zoteroApiService';
+import type { ZoteroItem } from '@research-assistant/core';
 
 /**
  * Builder pattern for creating complex test objects
@@ -186,11 +186,72 @@ export class ZoteroItemBuilder {
 }
 
 /**
+ * Builder for DocumentSection objects used in export tests
+ */
+export class DocumentSectionBuilder {
+  private section: any;
+
+  constructor() {
+    this.section = {
+      id: 'section-1',
+      level: 1,
+      title: 'Section Title',
+      content: [],
+      parent: null,
+      children: [],
+      lineStart: 0,
+      lineEnd: 10,
+    };
+  }
+
+  withId(id: string): this {
+    this.section.id = id;
+    return this;
+  }
+
+  withLevel(level: number): this {
+    this.section.level = level;
+    return this;
+  }
+
+  withTitle(title: string): this {
+    this.section.title = title;
+    return this;
+  }
+
+  withContent(content: string[]): this {
+    this.section.content = content;
+    return this;
+  }
+
+  withLineRange(start: number, end: number): this {
+    this.section.lineStart = start;
+    this.section.lineEnd = end;
+    return this;
+  }
+
+  withParent(parentId: string | null): this {
+    this.section.parent = parentId;
+    return this;
+  }
+
+  withChildren(childIds: string[]): this {
+    this.section.children = childIds;
+    return this;
+  }
+
+  build(): any {
+    return { ...this.section };
+  }
+}
+
+/**
  * Convenience functions for common builder patterns
  */
 
 export const aClaim = () => new ClaimBuilder();
 export const aZoteroItem = () => new ZoteroItemBuilder();
+export const aDocumentSection = () => new DocumentSectionBuilder();
 
 /**
  * Pre-configured builders for common scenarios
@@ -218,3 +279,142 @@ export const aJournalArticle = () =>
 export const aBookItem = () => 
   new ZoteroItemBuilder()
     .asBook();
+
+/**
+ * Builder for VerificationResult objects
+ */
+export class VerificationResultBuilder {
+  private result: any;
+
+  constructor() {
+    this.result = {
+      verified: false,
+      similarity: 0.5,
+      confidence: 0.5,
+      nearestMatch: undefined,
+      context: undefined
+    };
+  }
+
+  verified(): this {
+    this.result.verified = true;
+    this.result.similarity = 1.0;
+    this.result.confidence = 1.0;
+    return this;
+  }
+
+  unverified(): this {
+    this.result.verified = false;
+    return this;
+  }
+
+  withSimilarity(similarity: number): this {
+    this.result.similarity = similarity;
+    return this;
+  }
+
+  withConfidence(confidence: number): this {
+    this.result.confidence = confidence;
+    return this;
+  }
+
+  withNearestMatch(match: string): this {
+    this.result.nearestMatch = match;
+    return this;
+  }
+
+  withContext(context: string): this {
+    this.result.context = context;
+    return this;
+  }
+
+  build(): any {
+    return { ...this.result };
+  }
+}
+
+/**
+ * Builder for OutlineSection objects
+ */
+export class OutlineSectionBuilder {
+  private section: any;
+
+  constructor() {
+    this.section = {
+      id: 'section-1',
+      level: 1,
+      title: 'Section Title',
+      content: [],
+      lineStart: 0,
+      lineEnd: 10
+    };
+  }
+
+  withId(id: string): this {
+    this.section.id = id;
+    return this;
+  }
+
+  withLevel(level: number): this {
+    this.section.level = level;
+    return this;
+  }
+
+  withTitle(title: string): this {
+    this.section.title = title;
+    return this;
+  }
+
+  withContent(content: string[]): this {
+    this.section.content = content;
+    return this;
+  }
+
+  withLineRange(start: number, end: number): this {
+    this.section.lineStart = start;
+    this.section.lineEnd = end;
+    return this;
+  }
+
+  build(): any {
+    return { ...this.section };
+  }
+}
+
+/**
+ * Convenience functions for common builder patterns
+ */
+
+export const aVerificationResult = () => new VerificationResultBuilder();
+export const anOutlineSection = () => new OutlineSectionBuilder();
+
+/**
+ * Pre-configured builders for common scenarios
+ */
+
+export const aHighSimilarityResult = () =>
+  new VerificationResultBuilder()
+    .withSimilarity(0.95)
+    .withConfidence(0.95)
+    .withNearestMatch('Similar text found');
+
+export const aLowSimilarityResult = () =>
+  new VerificationResultBuilder()
+    .withSimilarity(0.3)
+    .withConfidence(0.3)
+    .withNearestMatch('Somewhat related text');
+
+export const aTopLevelSection = () =>
+  new OutlineSectionBuilder()
+    .withLevel(1)
+    .withTitle('Main Section');
+
+export const aSubsection = () =>
+  new OutlineSectionBuilder()
+    .withLevel(2)
+    .withTitle('Subsection');
+
+export const aDeepSubsection = () =>
+  new OutlineSectionBuilder()
+    .withLevel(3)
+    .withTitle('Deep Subsection');

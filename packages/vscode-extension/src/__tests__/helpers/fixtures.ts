@@ -1,6 +1,6 @@
 import { createMockClaim, createMockZoteroItem, createMockVerificationResult } from './mockFactories';
 import type { Claim } from '@research-assistant/core';
-import type { ZoteroItem, VerificationResult } from '../../services/zoteroApiService';
+import type { ZoteroItem, VerificationResult } from '@research-assistant/core';
 
 /**
  * Shared test fixtures for common test scenarios
@@ -142,35 +142,36 @@ export const TEST_ZOTERO_ITEMS: Record<string, ZoteroItem> = {
 export const TEST_VERIFICATION_RESULTS: Record<string, VerificationResult> = {
   verified: createMockVerificationResult({
     verified: true,
-    similarity: 1.0
+    similarity: 1.0,
+    confidence: 1.0
   }),
 
   highSimilarity: createMockVerificationResult({
     verified: false,
     similarity: 0.95,
-    closestMatch: 'We propose parametric and nonparametric empirical Bayes frameworks',
-    context: 'for adjusting data for batch effects that is robust to outliers'
+    confidence: 0.95,
+    nearestMatch: 'We propose parametric and nonparametric empirical Bayes frameworks'
   }),
 
   mediumSimilarity: createMockVerificationResult({
     verified: false,
     similarity: 0.75,
-    closestMatch: 'Empirical Bayes methods are used for batch correction',
-    context: 'in the context of microarray analysis'
+    confidence: 0.75,
+    nearestMatch: 'Empirical Bayes methods are used for batch correction'
   }),
 
   lowSimilarity: createMockVerificationResult({
     verified: false,
     similarity: 0.3,
-    closestMatch: 'Statistical methods for genomics',
-    context: 'various approaches exist'
+    confidence: 0.3,
+    nearestMatch: 'Statistical methods for genomics'
   }),
 
   notFound: createMockVerificationResult({
     verified: false,
     similarity: 0,
-    closestMatch: undefined,
-    context: undefined
+    confidence: 0,
+    nearestMatch: undefined
   })
 };
 
@@ -232,4 +233,157 @@ Another paragraph mentioning C_02 and C_03.`,
   noClaimReferences: `This is a document with no claim references.
 
 Just regular text here.`
+};
+
+// ============================================================================
+// Error Fixtures
+// ============================================================================
+
+export const TEST_ERRORS = {
+  networkError: new Error('Network request failed'),
+  timeoutError: new Error('Request timeout'),
+  validationError: new Error('Validation failed'),
+  notFoundError: new Error('Resource not found'),
+  unauthorizedError: new Error('Unauthorized'),
+  forbiddenError: new Error('Forbidden'),
+  conflictError: new Error('Resource conflict'),
+  serverError: new Error('Internal server error'),
+  serviceUnavailableError: new Error('Service unavailable')
+};
+
+// ============================================================================
+// Response Fixtures
+// ============================================================================
+
+export const TEST_API_RESPONSES = {
+  successResponse: { status: 'success', data: 'test' },
+  errorResponse: { status: 'error', message: 'Test error' },
+  emptyResponse: {},
+  paginatedResponse: {
+    items: [TEST_ZOTERO_ITEMS.johnson2007],
+    page: 1,
+    pageSize: 10,
+    total: 100
+  },
+  batchResponse: {
+    results: [
+      { id: 1, status: 'success', data: 'result1' },
+      { id: 2, status: 'error', error: 'Failed' }
+    ],
+    successful: 1,
+    failed: 1
+  }
+};
+
+// ============================================================================
+// Configuration Fixtures
+// ============================================================================
+
+export const TEST_CONFIGURATIONS = {
+  default: {
+    'outlinePath': '03_Drafting/outline.md',
+    'claimsDatabasePath': '01_Knowledge_Base/claims_and_evidence.md',
+    'extractedTextPath': 'literature/ExtractedText',
+    'coverageThresholds': { low: 3, moderate: 6, strong: 7 },
+    'embeddingCacheSize': 1000
+  },
+  minimal: {
+    'outlinePath': 'outline.md',
+    'claimsDatabasePath': 'claims.md'
+  },
+  custom: {
+    'outlinePath': 'custom/outline.md',
+    'claimsDatabasePath': 'custom/claims.md',
+    'extractedTextPath': 'custom/extracted',
+    'coverageThresholds': { low: 5, moderate: 10, strong: 15 },
+    'embeddingCacheSize': 5000
+  }
+};
+
+// ============================================================================
+// Document Fixtures
+// ============================================================================
+
+export const TEST_DOCUMENTS = {
+  simple: {
+    uri: 'file:///test/simple.md',
+    fileName: 'simple.md',
+    isUntitled: false,
+    languageId: 'markdown',
+    version: 1,
+    isDirty: false,
+    isClosed: false,
+    lineCount: 5,
+    getText: () => '# Title\n\nContent here.'
+  },
+  withClaims: {
+    uri: 'file:///test/claims.md',
+    fileName: 'claims.md',
+    isUntitled: false,
+    languageId: 'markdown',
+    version: 1,
+    isDirty: false,
+    isClosed: false,
+    lineCount: 10,
+    getText: () => 'This references C_01 and C_02.'
+  },
+  empty: {
+    uri: 'file:///test/empty.md',
+    fileName: 'empty.md',
+    isUntitled: false,
+    languageId: 'markdown',
+    version: 1,
+    isDirty: false,
+    isClosed: false,
+    lineCount: 0,
+    getText: () => ''
+  }
+};
+
+// ============================================================================
+// Search Query Fixtures
+// ============================================================================
+
+export const TEST_SEARCH_QUERIES = {
+  simple: 'batch effects',
+  complex: 'batch effects AND correction',
+  withAuthor: 'batch effects author:Johnson',
+  withYear: 'batch effects year:2007',
+  withDOI: 'doi:10.1093/biostatistics/kxj037',
+  empty: '',
+  special: 'test & special | characters'
+};
+
+// ============================================================================
+// Embedding Fixtures
+// ============================================================================
+
+export const TEST_EMBEDDINGS = {
+  single: new Array(1536).fill(0).map(() => Math.random()),
+  batch: Array.from({ length: 3 }, () => 
+    new Array(1536).fill(0).map(() => Math.random())
+  ),
+  similar: [
+    new Array(1536).fill(0.5),
+    new Array(1536).fill(0.5)
+  ],
+  dissimilar: [
+    new Array(1536).fill(0),
+    new Array(1536).fill(1)
+  ]
+};
+
+// ============================================================================
+// Event Fixtures
+// ============================================================================
+
+export const TEST_EVENTS = {
+  claimCreated: { type: 'claim.created', data: { claimId: 'C_01' } },
+  claimUpdated: { type: 'claim.updated', data: { claimId: 'C_01' } },
+  claimDeleted: { type: 'claim.deleted', data: { claimId: 'C_01' } },
+  paperAdded: { type: 'paper.added', data: { paperId: 'PAPER001' } },
+  paperRemoved: { type: 'paper.removed', data: { paperId: 'PAPER001' } },
+  syncStarted: { type: 'sync.started', data: {} },
+  syncCompleted: { type: 'sync.completed', data: { itemsProcessed: 10 } },
+  syncFailed: { type: 'sync.failed', data: { error: 'Network error' } }
 };

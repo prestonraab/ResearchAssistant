@@ -2,23 +2,51 @@
  * DataValidationService - Validates data structures before passing between modes
  * Ensures data integrity and prevents undefined/null propagation
  */
+
+interface ClaimLike {
+  id?: unknown;
+  text?: unknown;
+  [key: string]: unknown;
+}
+
+interface SentenceLike {
+  id?: unknown;
+  text?: unknown;
+  claims?: unknown;
+  [key: string]: unknown;
+}
+
+interface QAPairLike {
+  id?: unknown;
+  question?: unknown;
+  answer?: unknown;
+  [key: string]: unknown;
+}
+
+interface WebviewMessageLike {
+  type?: unknown;
+  [key: string]: unknown;
+}
+
 export class DataValidationService {
   /**
    * Validate claim object
    */
-  static validateClaim(claim: any): boolean {
+  static validateClaim(claim: unknown): claim is ClaimLike {
     if (!claim || typeof claim !== 'object') {
       console.warn('[DataValidation] Claim is not an object:', claim);
       return false;
     }
 
-    if (!claim.id || typeof claim.id !== 'string') {
-      console.warn('[DataValidation] Claim missing or invalid id:', claim.id);
+    const claimObj = claim as Record<string, unknown>;
+
+    if (!claimObj.id || typeof claimObj.id !== 'string') {
+      console.warn('[DataValidation] Claim missing or invalid id:', claimObj.id);
       return false;
     }
 
-    if (!claim.text || typeof claim.text !== 'string') {
-      console.warn('[DataValidation] Claim missing or invalid text:', claim.text);
+    if (!claimObj.text || typeof claimObj.text !== 'string') {
+      console.warn('[DataValidation] Claim missing or invalid text:', claimObj.text);
       return false;
     }
 
@@ -28,24 +56,26 @@ export class DataValidationService {
   /**
    * Validate sentence object
    */
-  static validateSentence(sentence: any): boolean {
+  static validateSentence(sentence: unknown): sentence is SentenceLike {
     if (!sentence || typeof sentence !== 'object') {
       console.warn('[DataValidation] Sentence is not an object:', sentence);
       return false;
     }
 
-    if (!sentence.id || typeof sentence.id !== 'string') {
-      console.warn('[DataValidation] Sentence missing or invalid id:', sentence.id);
+    const sentenceObj = sentence as Record<string, unknown>;
+
+    if (!sentenceObj.id || typeof sentenceObj.id !== 'string') {
+      console.warn('[DataValidation] Sentence missing or invalid id:', sentenceObj.id);
       return false;
     }
 
-    if (!sentence.text || typeof sentence.text !== 'string') {
-      console.warn('[DataValidation] Sentence missing or invalid text:', sentence.text);
+    if (!sentenceObj.text || typeof sentenceObj.text !== 'string') {
+      console.warn('[DataValidation] Sentence missing or invalid text:', sentenceObj.text);
       return false;
     }
 
-    if (!Array.isArray(sentence.claims)) {
-      console.warn('[DataValidation] Sentence claims is not an array:', sentence.claims);
+    if (!Array.isArray(sentenceObj.claims)) {
+      console.warn('[DataValidation] Sentence claims is not an array:', sentenceObj.claims);
       return false;
     }
 
@@ -55,7 +85,7 @@ export class DataValidationService {
   /**
    * Validate sentences array
    */
-  static validateSentencesArray(sentences: any): boolean {
+  static validateSentencesArray(sentences: unknown): sentences is SentenceLike[] {
     if (!Array.isArray(sentences)) {
       console.warn('[DataValidation] Sentences is not an array:', sentences);
       return false;
@@ -79,25 +109,27 @@ export class DataValidationService {
   /**
    * Validate Q&A pair object
    */
-  static validateQAPair(pair: any): boolean {
+  static validateQAPair(pair: unknown): pair is QAPairLike {
     if (!pair || typeof pair !== 'object') {
       console.warn('[DataValidation] Q&A pair is not an object:', pair);
       return false;
     }
 
-    if (!pair.id || typeof pair.id !== 'string') {
-      console.warn('[DataValidation] Q&A pair missing or invalid id:', pair.id);
+    const pairObj = pair as Record<string, unknown>;
+
+    if (!pairObj.id || typeof pairObj.id !== 'string') {
+      console.warn('[DataValidation] Q&A pair missing or invalid id:', pairObj.id);
       return false;
     }
 
-    if (!pair.question || typeof pair.question !== 'string') {
-      console.warn('[DataValidation] Q&A pair missing or invalid question:', pair.question);
+    if (!pairObj.question || typeof pairObj.question !== 'string') {
+      console.warn('[DataValidation] Q&A pair missing or invalid question:', pairObj.question);
       return false;
     }
 
     // Answer can be empty (user might still be drafting)
-    if (typeof pair.answer !== 'string') {
-      console.warn('[DataValidation] Q&A pair answer is not a string:', pair.answer);
+    if (typeof pairObj.answer !== 'string') {
+      console.warn('[DataValidation] Q&A pair answer is not a string:', pairObj.answer);
       return false;
     }
 
@@ -107,7 +139,7 @@ export class DataValidationService {
   /**
    * Validate Q&A pairs array
    */
-  static validateQAPairsArray(pairs: any): boolean {
+  static validateQAPairsArray(pairs: unknown): pairs is QAPairLike[] {
     if (!Array.isArray(pairs)) {
       console.warn('[DataValidation] Q&A pairs is not an array:', pairs);
       return false;
@@ -132,62 +164,72 @@ export class DataValidationService {
    * Sanitize claim for webview transmission
    * Preserves full quote objects with metadata instead of flattening to strings
    */
-  static sanitizeClaimForWebview(claim: any): any {
+  static sanitizeClaimForWebview(claim: unknown): ClaimLike | null {
     if (!this.validateClaim(claim)) {
       return null;
     }
 
+    const claimObj = claim as Record<string, unknown>;
+    const primaryQuote = claimObj.primaryQuote as Record<string, unknown> | undefined;
+    const supportingQuotes = claimObj.supportingQuotes as unknown[] | undefined;
+
     return {
-      id: claim.id || '',
-      text: claim.text || '',
-      category: claim.category || 'Uncategorized',
-      source: claim.primaryQuote?.source || 'Unknown',
-      primaryQuote: claim.primaryQuote ? {
-        text: claim.primaryQuote.text || '',
-        source: claim.primaryQuote.source || '',
-        verified: claim.primaryQuote.verified ?? false,
-        confidence: claim.primaryQuote.confidence,
-        sourceId: claim.primaryQuote.sourceId,
-        pageNumber: claim.primaryQuote.pageNumber
+      id: claimObj.id || '',
+      text: claimObj.text || '',
+      category: claimObj.category || 'Uncategorized',
+      source: primaryQuote?.source || 'Unknown',
+      primaryQuote: primaryQuote ? {
+        text: primaryQuote.text || '',
+        source: primaryQuote.source || '',
+        verified: primaryQuote.verified ?? false,
+        confidence: primaryQuote.confidence,
+        sourceId: primaryQuote.sourceId,
+        pageNumber: primaryQuote.pageNumber
       } : null,
-      supportingQuotes: Array.isArray(claim.supportingQuotes) 
-        ? claim.supportingQuotes.map((q: any) => ({
-            text: q.text || q,
-            source: q.source || '',
-            verified: q.verified ?? false,
-            confidence: q.confidence,
-            sourceId: q.sourceId,
-            pageNumber: q.pageNumber
-          }))
+      supportingQuotes: Array.isArray(supportingQuotes) 
+        ? supportingQuotes.map((q: unknown) => {
+            const quoteObj = q as Record<string, unknown>;
+            return {
+              text: quoteObj.text || q,
+              source: quoteObj.source || '',
+              verified: quoteObj.verified ?? false,
+              confidence: quoteObj.confidence,
+              sourceId: quoteObj.sourceId,
+              pageNumber: quoteObj.pageNumber
+            };
+          })
         : [],
-      verified: claim.verified ?? false,
-      context: claim.context || ''
+      verified: claimObj.verified ?? false,
+      context: claimObj.context || ''
     };
   }
 
   /**
    * Sanitize sentence for webview transmission
    */
-  static sanitizeSentenceForWebview(sentence: any): any {
+  static sanitizeSentenceForWebview(sentence: unknown): SentenceLike | null {
     if (!this.validateSentence(sentence)) {
       return null;
     }
 
+    const sentenceObj = sentence as Record<string, unknown>;
+    const claims = sentenceObj.claims as unknown[] | undefined;
+
     return {
-      id: sentence.id || '',
-      text: sentence.text || '',
-      originalText: sentence.originalText || sentence.text || '',
-      position: sentence.position ?? 0,
-      outlineSection: sentence.outlineSection || '',
-      claims: Array.isArray(sentence.claims) ? sentence.claims : [],
-      claimCount: Array.isArray(sentence.claims) ? sentence.claims.length : 0
+      id: sentenceObj.id || '',
+      text: sentenceObj.text || '',
+      originalText: sentenceObj.originalText || sentenceObj.text || '',
+      position: sentenceObj.position ?? 0,
+      outlineSection: sentenceObj.outlineSection || '',
+      claims: Array.isArray(claims) ? claims : [],
+      claimCount: Array.isArray(claims) ? claims.length : 0
     };
   }
 
   /**
    * Sanitize sentences array for webview transmission
    */
-  static sanitizeSentencesForWebview(sentences: any): any[] {
+  static sanitizeSentencesForWebview(sentences: unknown): SentenceLike[] {
     if (!Array.isArray(sentences)) {
       console.warn('[DataValidation] Cannot sanitize non-array sentences');
       return [];
@@ -195,31 +237,35 @@ export class DataValidationService {
 
     return sentences
       .map(s => this.sanitizeSentenceForWebview(s))
-      .filter(s => s !== null);
+      .filter((s): s is SentenceLike => s !== null);
   }
 
   /**
    * Sanitize Q&A pair for webview transmission
    */
-  static sanitizeQAPairForWebview(pair: any): any {
+  static sanitizeQAPairForWebview(pair: unknown): QAPairLike | null {
     if (!this.validateQAPair(pair)) {
       return null;
     }
 
+    const pairObj = pair as Record<string, unknown>;
+    const linkedSources = pairObj.linkedSources as unknown[] | undefined;
+    const pairClaims = pairObj.claims as unknown[] | undefined;
+
     return {
-      id: pair.id || '',
-      question: pair.question || '',
-      answer: pair.answer || '',
-      section: pair.section || '',
-      linkedSources: Array.isArray(pair.linkedSources) ? pair.linkedSources : [],
-      claims: Array.isArray(pair.claims) ? pair.claims : []
+      id: pairObj.id || '',
+      question: pairObj.question || '',
+      answer: pairObj.answer || '',
+      section: pairObj.section || '',
+      linkedSources: Array.isArray(linkedSources) ? linkedSources : [],
+      claims: Array.isArray(pairClaims) ? pairClaims : []
     };
   }
 
   /**
    * Sanitize Q&A pairs array for webview transmission
    */
-  static sanitizeQAPairsForWebview(pairs: any): any[] {
+  static sanitizeQAPairsForWebview(pairs: unknown): QAPairLike[] {
     if (!Array.isArray(pairs)) {
       console.warn('[DataValidation] Cannot sanitize non-array Q&A pairs');
       return [];
@@ -227,20 +273,21 @@ export class DataValidationService {
 
     return pairs
       .map(p => this.sanitizeQAPairForWebview(p))
-      .filter(p => p !== null);
+      .filter((p): p is QAPairLike => p !== null);
   }
 
   /**
    * Validate webview message
    */
-  static validateWebviewMessage(message: any): boolean {
+  static validateWebviewMessage(message: unknown): message is WebviewMessageLike {
     if (!message || typeof message !== 'object') {
       console.warn('[DataValidation] Message is not an object:', message);
       return false;
     }
 
-    if (!message.type || typeof message.type !== 'string') {
-      console.warn('[DataValidation] Message missing or invalid type:', message.type);
+    const msgObj = message as Record<string, unknown>;
+    if (!msgObj.type || typeof msgObj.type !== 'string') {
+      console.warn('[DataValidation] Message missing or invalid type:', msgObj.type);
       return false;
     }
 

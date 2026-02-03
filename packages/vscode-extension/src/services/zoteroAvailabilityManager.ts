@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { ZoteroApiService } from './zoteroApiService';
+import { ZoteroClient } from '@research-assistant/core';
 
 /**
  * ZoteroAvailabilityManager handles checking Zotero API availability
@@ -13,7 +13,7 @@ import { ZoteroApiService } from './zoteroApiService';
  * - Support dynamic re-checking of availability
  */
 export class ZoteroAvailabilityManager {
-  private zoteroApi: ZoteroApiService;
+  private zoteroClient: ZoteroClient;
   private isAvailable: boolean = false;
   private availabilityCheckTimeout: number = 5000; // 5 seconds timeout
   private checkInProgress: boolean = false;
@@ -47,8 +47,8 @@ export class ZoteroAvailabilityManager {
     return this.onAvailabilityChanged;
   }
 
-  constructor(zoteroApi: ZoteroApiService) {
-    this.zoteroApi = zoteroApi;
+  constructor(zoteroClient: ZoteroClient) {
+    this.zoteroClient = zoteroClient;
   }
 
   /**
@@ -154,7 +154,7 @@ export class ZoteroAvailabilityManager {
   private async attemptZoteroConnection(): Promise<boolean> {
     try {
       // Test connection to Zotero API
-      return await this.zoteroApi.testConnection();
+      return await this.zoteroClient.testConnection();
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       this.getLogger().debug('Zotero API connection attempt failed:', message);

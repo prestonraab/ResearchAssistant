@@ -1,6 +1,6 @@
 import { InstantSearchHandler } from '../core/instantSearchHandler';
 import { InternetPaperSearcher } from '../core/internetPaperSearcher';
-import { ZoteroApiService, ZoteroItem } from '../services/zoteroApiService';
+import { ZoteroClient, ZoteroItem } from '@research-assistant/core';
 import { ManuscriptContextDetector } from '../core/manuscriptContextDetector';
 import * as vscode from 'vscode';
 import { setupTest, aZoteroItem } from './helpers';

@@ -1,5 +1,5 @@
 import { jest } from '@jest/globals';
-import { setupTest } from './helpers';
+import { setupTest, createMockZoteroApiService } from './helpers';
 
 // Mock vscode module BEFORE importing the service
 jest.mock('vscode', () => {
@@ -25,20 +25,17 @@ jest.mock('vscode', () => {
 });
 
 import { ZoteroAvailabilityManager } from '../services/zoteroAvailabilityManager';
-import { ZoteroApiService } from '../services/zoteroApiService';
+import { ZoteroClient } from '@research-assistant/core';
 
 describe('ZoteroAvailabilityManager', () => {
   setupTest();
 
   let manager: ZoteroAvailabilityManager;
-  let mockZoteroApiService: jest.Mocked<ZoteroApiService>;
+  let mockZoteroApiService: ReturnType<typeof createMockZoteroApiService>;
 
   beforeEach(() => {
-    // Create mock ZoteroApiService fresh for each test
-    mockZoteroApiService = {
-      isConfigured: jest.fn(),
-      testConnection: jest.fn(),
-    } as any;
+    // Use factory function for consistent mock
+    mockZoteroApiService = createMockZoteroApiService();
   });
 
   afterEach(() => {

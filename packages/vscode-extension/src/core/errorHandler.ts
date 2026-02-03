@@ -10,7 +10,7 @@ export enum ErrorSeverity {
 export interface ErrorContext {
   operation: string;
   component: string;
-  details?: any;
+  details?: Record<string, unknown>;
 }
 
 /**
@@ -121,7 +121,7 @@ export class ErrorHandler {
    */
   handleValidationError(
     message: string,
-    details?: any
+    details?: Record<string, unknown>
   ): void {
     const context: ErrorContext = {
       operation: 'validation',

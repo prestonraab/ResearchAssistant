@@ -25,7 +25,14 @@ export function registerBulkCommands(
 
       const service = getBulkImportService();
       if (!service) {
-        vscode.window.showErrorMessage('Bulk import service not available');
+        vscode.window.showErrorMessage(
+          'The import service is not ready yet. Please wait a moment and try again.',
+          'Retry'
+        ).then(action => {
+          if (action === 'Retry') {
+            vscode.commands.executeCommand('researchAssistant.bulkImport');
+          }
+        });
         return;
       }
 
@@ -156,7 +163,18 @@ export function registerBulkCommands(
           }
         );
       } catch (error) {
-        vscode.window.showErrorMessage(`Bulk import failed: ${error}`);
+        const errorMsg = error instanceof Error ? error.message : String(error);
+        vscode.window.showErrorMessage(
+          `Unable to complete the import. ${errorMsg.includes('Zotero') ? 'Please check your Zotero connection.' : 'Please try again.'}`,
+          'Retry',
+          'Check Settings'
+        ).then(action => {
+          if (action === 'Retry') {
+            vscode.commands.executeCommand('researchAssistant.bulkImport');
+          } else if (action === 'Check Settings') {
+            vscode.commands.executeCommand('workbench.action.openSettings', 'researchAssistant.zotero');
+          }
+        });
       }
     }),
 
@@ -251,7 +269,17 @@ export function registerBulkCommands(
           }
         );
       } catch (error) {
-        vscode.window.showErrorMessage(`Failed to extract fulltexts: ${error}`);
+        vscode.window.showErrorMessage(
+          'Unable to extract text from PDFs. Please ensure the PDF files are accessible and not corrupted.',
+          'Retry',
+          'Scan Library'
+        ).then(action => {
+          if (action === 'Retry') {
+            vscode.commands.executeCommand('researchAssistant.extractMissingFulltexts');
+          } else if (action === 'Scan Library') {
+            vscode.commands.executeCommand('researchAssistant.scanFulltextStatus');
+          }
+        });
       }
     }),
 
@@ -290,7 +318,17 @@ export function registerBulkCommands(
 
         papersProvider.refresh();
       } catch (error) {
-        vscode.window.showErrorMessage(`Failed to scan library: ${error}`);
+        vscode.window.showErrorMessage(
+          'Unable to scan the library. Please check that your workspace is properly configured.',
+          'Retry',
+          'Open Settings'
+        ).then(action => {
+          if (action === 'Retry') {
+            vscode.commands.executeCommand('researchAssistant.scanFulltextStatus');
+          } else if (action === 'Open Settings') {
+            vscode.commands.executeCommand('workbench.action.openSettings', 'researchAssistant');
+          }
+        });
       }
     })
   );

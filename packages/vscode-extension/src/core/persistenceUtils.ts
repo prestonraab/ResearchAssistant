@@ -215,7 +215,7 @@ export class PersistenceUtils {
   /**
    * Validate claim data before persistence
    */
-  static validateClaim(claim: any): { valid: boolean; errors: string[] } {
+  static validateClaim(claim: unknown): { valid: boolean; errors: string[] } {
     const errors: string[] = [];
 
     if (!claim) {
@@ -223,31 +223,33 @@ export class PersistenceUtils {
       return { valid: false, errors };
     }
 
-    if (!claim.id || typeof claim.id !== 'string') {
+    const claimObj = claim as Record<string, unknown>;
+
+    if (!claimObj.id || typeof claimObj.id !== 'string') {
       errors.push('Claim must have a valid id (string)');
     }
 
-    if (!claim.text || typeof claim.text !== 'string') {
+    if (!claimObj.text || typeof claimObj.text !== 'string') {
       errors.push('Claim must have a valid text (string)');
     }
 
-    if (claim.text && claim.text.trim().length === 0) {
+    if (claimObj.text && (claimObj.text as string).trim().length === 0) {
       errors.push('Claim text cannot be empty');
     }
 
-    if (!Array.isArray(claim.sections)) {
+    if (!Array.isArray(claimObj.sections)) {
       errors.push('Claim sections must be an array');
     }
 
-    if (!Array.isArray(claim.supportingQuotes)) {
+    if (!Array.isArray(claimObj.supportingQuotes)) {
       errors.push('Claim supportingQuotes must be an array');
     }
 
-    if (claim.createdAt && !(claim.createdAt instanceof Date)) {
+    if (claimObj.createdAt && !(claimObj.createdAt instanceof Date)) {
       errors.push('Claim createdAt must be a Date');
     }
 
-    if (claim.modifiedAt && !(claim.modifiedAt instanceof Date)) {
+    if (claimObj.modifiedAt && !(claimObj.modifiedAt instanceof Date)) {
       errors.push('Claim modifiedAt must be a Date');
     }
 
@@ -260,7 +262,7 @@ export class PersistenceUtils {
   /**
    * Validate reading progress data before persistence
    */
-  static validateReadingProgress(progress: any): { valid: boolean; errors: string[] } {
+  static validateReadingProgress(progress: unknown): { valid: boolean; errors: string[] } {
     const errors: string[] = [];
 
     if (!progress) {

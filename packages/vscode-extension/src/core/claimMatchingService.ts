@@ -41,11 +41,11 @@ export class ClaimMatchingService {
       const claims = this.claimsManager.getClaims();
 
       // Calculate similarity for each claim
-      const similarities: Array<{ claim: any; similarity: number }> = [];
+      const similarities: Array<{ claim: unknown; similarity: number }> = [];
 
       for (const claim of claims) {
         try {
-          const claimEmbedding = await this.embeddingService.generateEmbedding(claim.text);
+          const claimEmbedding = await this.embeddingService.generateEmbedding((claim as Record<string, unknown>).text as string);
 
           if (claimEmbedding) {
             const similarity = TextNormalizer.cosineSimilarity(sentenceEmbedding, claimEmbedding);

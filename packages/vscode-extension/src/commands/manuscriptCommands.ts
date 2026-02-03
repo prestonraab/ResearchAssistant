@@ -9,7 +9,7 @@ import { ClaimMatchingProvider } from '../ui/claimMatchingProvider';
 import { ManuscriptExportOptions } from '../core/exportService';
 import { SectionTagger } from '../core/sectionTagger';
 import { QuestionAnswerParser } from '../core/questionAnswerParser';
-import { ZoteroAttachment } from '../services/zoteroApiService';
+import { ZoteroAttachment } from '@research-assistant/core';
 
 export function registerManuscriptCommands(
   context: vscode.ExtensionContext,
@@ -162,7 +162,7 @@ export function registerManuscriptCommands(
               }
 
               try {
-                const results = await extensionState!.zoteroApiService.semanticSearch(basename, 1);
+                const results = await extensionState!.zoteroClient.getItems(1);
 
                 if (results.length === 0) {
                   failed++;
@@ -170,7 +170,7 @@ export function registerManuscriptCommands(
                 }
 
                 const item = results[0];
-                const children = await extensionState!.zoteroApiService.getItemChildren(item.key);
+                const children = await extensionState!.zoteroClient.getItemChildren(item.key);
 
                 const pdfAttachment = children.find((child: ZoteroAttachment) =>
                   child.contentType === 'application/pdf' ||

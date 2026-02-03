@@ -371,12 +371,12 @@ Generate a refined search query (2-5 words) that would find more relevant papers
   /**
    * Convert web search result to snippet format
    */
-  private convertWebResultToSnippet(result: any): EmbeddedSnippet {
+  private convertWebResultToSnippet(result: Record<string, unknown>): EmbeddedSnippet {
     return {
       id: `web_${Date.now()}_${Math.random()}`,
-      filePath: result.url,
-      fileName: result.title,
-      text: result.snippet,
+      filePath: (result.url as string) || '',
+      fileName: (result.title as string) || '',
+      text: (result.snippet as string) || '',
       embedding: [], // Web results don't have embeddings
       startLine: 0,
       endLine: 0,
