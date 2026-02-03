@@ -81,8 +81,13 @@ export class WorkspaceDetector {
     } catch (error) {
       console.error('Failed to auto-activate Research Assistant:', error);
       vscode.window.showErrorMessage(
-        'Failed to activate Research Assistant. Please activate manually.'
-      );
+        'Failed to activate Research Assistant. Please try activating manually via the command palette (Ctrl+Shift+P).',
+        'Activate Now'
+      ).then(action => {
+        if (action === 'Activate Now') {
+          vscode.commands.executeCommand('researchAssistant.activate');
+        }
+      });
     }
   }
 

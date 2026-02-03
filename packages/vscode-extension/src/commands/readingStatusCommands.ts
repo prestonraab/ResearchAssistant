@@ -21,7 +21,7 @@ export function registerReadingStatusCommands(
     vscode.commands.registerCommand('researchAssistant.markPaperUnread', async (item: PaperTreeItem) => {
       const paperId = getPaperId(item);
       if (!paperId) {
-        vscode.window.showErrorMessage('Could not identify paper');
+        vscode.window.showErrorMessage('Could not identify the paper. Please select a paper from the Papers panel.');
         return;
       }
 
@@ -30,7 +30,7 @@ export function registerReadingStatusCommands(
         papersProvider.refresh();
         vscode.window.showInformationMessage(`Marked "${paperId}" as unread`);
       } catch (error) {
-        vscode.window.showErrorMessage(`Failed to update reading status: ${error}`);
+        vscode.window.showErrorMessage(`Failed to update reading status. Please check that your papers database is accessible.`);
       }
     })
   );
@@ -40,7 +40,7 @@ export function registerReadingStatusCommands(
     vscode.commands.registerCommand('researchAssistant.markPaperSomeRead', async (item: PaperTreeItem) => {
       const paperId = getPaperId(item);
       if (!paperId) {
-        vscode.window.showErrorMessage('Could not identify paper');
+        vscode.window.showErrorMessage('Could not identify the paper. Please select a paper from the Papers panel.');
         return;
       }
 
@@ -49,7 +49,7 @@ export function registerReadingStatusCommands(
         papersProvider.refresh();
         vscode.window.showInformationMessage(`Marked "${paperId}" as partially read`);
       } catch (error) {
-        vscode.window.showErrorMessage(`Failed to update reading status: ${error}`);
+        vscode.window.showErrorMessage(`Failed to update reading status. Please check that your papers database is accessible.`);
       }
     })
   );
@@ -59,7 +59,7 @@ export function registerReadingStatusCommands(
     vscode.commands.registerCommand('researchAssistant.markPaperSkimmed', async (item: PaperTreeItem) => {
       const paperId = getPaperId(item);
       if (!paperId) {
-        vscode.window.showErrorMessage('Could not identify paper');
+        vscode.window.showErrorMessage('Could not identify the paper. Please select a paper from the Papers panel.');
         return;
       }
 
@@ -68,7 +68,7 @@ export function registerReadingStatusCommands(
         papersProvider.refresh();
         vscode.window.showInformationMessage(`Marked "${paperId}" as skimmed`);
       } catch (error) {
-        vscode.window.showErrorMessage(`Failed to update reading status: ${error}`);
+        vscode.window.showErrorMessage(`Failed to update reading status. Please check that your papers database is accessible.`);
       }
     })
   );
@@ -78,7 +78,7 @@ export function registerReadingStatusCommands(
     vscode.commands.registerCommand('researchAssistant.markPaperRead', async (item: PaperTreeItem) => {
       const paperId = getPaperId(item);
       if (!paperId) {
-        vscode.window.showErrorMessage('Could not identify paper');
+        vscode.window.showErrorMessage('Could not identify the paper. Please select a paper from the Papers panel.');
         return;
       }
 
@@ -87,7 +87,7 @@ export function registerReadingStatusCommands(
         papersProvider.refresh();
         vscode.window.showInformationMessage(`Marked "${paperId}" as read`);
       } catch (error) {
-        vscode.window.showErrorMessage(`Failed to update reading status: ${error}`);
+        vscode.window.showErrorMessage(`Failed to update reading status. Please check that your papers database is accessible.`);
       }
     })
   );
@@ -97,7 +97,7 @@ export function registerReadingStatusCommands(
     vscode.commands.registerCommand('researchAssistant.markPaperDeeplyRead', async (item: PaperTreeItem) => {
       const paperId = getPaperId(item);
       if (!paperId) {
-        vscode.window.showErrorMessage('Could not identify paper');
+        vscode.window.showErrorMessage('Could not identify the paper. Please select a paper from the Papers panel.');
         return;
       }
 
@@ -106,7 +106,7 @@ export function registerReadingStatusCommands(
         papersProvider.refresh();
         vscode.window.showInformationMessage(`Marked "${paperId}" as deeply read`);
       } catch (error) {
-        vscode.window.showErrorMessage(`Failed to update reading status: ${error}`);
+        vscode.window.showErrorMessage(`Failed to update reading status. Please check that your papers database is accessible.`);
       }
     })
   );
@@ -116,7 +116,7 @@ export function registerReadingStatusCommands(
     vscode.commands.registerCommand('researchAssistant.setPaperReadingStatus', async (item: PaperTreeItem) => {
       const paperId = getPaperId(item);
       if (!paperId) {
-        vscode.window.showErrorMessage('Could not identify paper');
+        vscode.window.showErrorMessage('Could not identify the paper. Please select a paper from the Papers panel.');
         return;
       }
 
@@ -140,7 +140,7 @@ export function registerReadingStatusCommands(
           papersProvider.refresh();
           vscode.window.showInformationMessage(`Updated reading status to: ${selected.label}`);
         } catch (error) {
-          vscode.window.showErrorMessage(`Failed to update reading status: ${error}`);
+          vscode.window.showErrorMessage(`Failed to update reading status. Please check that your papers database is accessible.`);
         }
       }
     })

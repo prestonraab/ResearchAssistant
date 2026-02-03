@@ -23,7 +23,7 @@ import { SentenceClaimQuoteLinkManager } from '../sentenceClaimQuoteLinkManager'
 /** Service state: all service instances and their initialization. */
 export class ServiceState {
   public outlineParser: OutlineParser;
-  public claimsManager: ClaimsManager;
+  public claimsManager: ClaimsManager; // This is the wrapper class, not the interface
   public embeddingService: EmbeddingService;
   public paperRanker: PaperRanker;
   public coverageAnalyzer: CoverageAnalyzer;
@@ -54,10 +54,10 @@ export class ServiceState {
     const cacheDir = path.join(workspaceRoot, '.cache', 'embeddings');
 
     this.outlineParser = new OutlineParser(coreState.getAbsolutePath(config.outlinePath));
-    this.claimsManager = new ClaimsManager(coreState.getAbsolutePath(config.claimsDatabasePath));
-    this.embeddingService = new EmbeddingService(apiKey, cacheDir, cfg.get<number>('embeddingCacheSize') || 100, cfg.get<string>('embeddingModel') || 'text-embedding-3-small');
+    this.claimsManager = new ClaimsManager(coreState.getAbsolutePath(config.claimsDatabasePath)) as any;
+    this.embeddingService = new EmbeddingService(apiKey, cacheDir, cfg.get<number>('embeddingCacheSize') || 100, cfg.get<string>('embeddingModel') || 'text-embedding-3-small') as any;
     this.paperRanker = new PaperRanker(this.embeddingService, this.outlineParser.getCoreParser());
-    this.coverageAnalyzer = new CoverageAnalyzer(this.claimsManager, this.embeddingService);
+    this.coverageAnalyzer = new CoverageAnalyzer(this.claimsManager as any, this.embeddingService as any);
     this.readingStatusManager = new ReadingStatusManager(context);
     this.claimExtractor = new ClaimExtractor(this.embeddingService);
     this.configurationManager = new ConfigurationManager(context);

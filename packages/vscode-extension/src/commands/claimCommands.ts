@@ -21,7 +21,7 @@ export function registerClaimCommands(
         const claim = extensionState.claimsManager.getClaim(claimId);
 
         if (!claim) {
-          vscode.window.showWarningMessage(`Claim ${claimId} not found`);
+          vscode.window.showWarningMessage(`Claim "${claimId}" not found. It may have been deleted or the claims database needs to be reloaded.`, 'Reload Claims');
           return;
         }
 
@@ -33,7 +33,7 @@ export function registerClaimCommands(
         }
       } catch (error) {
         console.error('Failed to show claim details:', error);
-        vscode.window.showErrorMessage('Failed to show claim details');
+        vscode.window.showErrorMessage('Failed to show claim details. Please check that your claims database is accessible.');
       }
     }),
 
@@ -70,11 +70,11 @@ export function registerClaimCommands(
         if (claimReviewProvider) {
           await claimReviewProvider.show(claimId);
         } else {
-          vscode.window.showErrorMessage('Claim review provider not available');
+          vscode.window.showErrorMessage('Claim review is not available. Please try again or check the output panel for details.');
         }
       } catch (error) {
         console.error('Failed to open claim review:', error);
-        vscode.window.showErrorMessage('Failed to open claim review');
+        vscode.window.showErrorMessage('Failed to open claim review. Please check that your claims database is accessible.');
       }
     }),
 

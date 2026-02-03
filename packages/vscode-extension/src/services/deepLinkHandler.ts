@@ -85,10 +85,10 @@ export class DeepLinkHandler {
 
       // Show user-friendly error message
       if (errorMessage.includes('annotationKey') || errorMessage.includes('itemKey')) {
-        vscode.window.showErrorMessage('Invalid annotation or item key');
+        vscode.window.showErrorMessage('Invalid annotation or item key. The annotation may have been deleted or moved in Zotero.');
       } else {
         vscode.window.showErrorMessage(
-          'Failed to open PDF in Zotero. Make sure Zotero is running.',
+          'Failed to open PDF in Zotero. Make sure Zotero is running and the PDF is available.',
           'Open Zotero'
         ).then((selection: string | undefined) => {
           if (selection === 'Open Zotero') {
@@ -130,10 +130,10 @@ export class DeepLinkHandler {
 
       // Show user-friendly error message
       if (errorMessage.includes('itemKey') || errorMessage.includes('pageNumber')) {
-        vscode.window.showErrorMessage('Invalid item key or page number');
+        vscode.window.showErrorMessage('Invalid item key or page number. Please check that the PDF and page number are valid.');
       } else {
         vscode.window.showErrorMessage(
-          'Failed to open PDF in Zotero. Make sure Zotero is running.',
+          'Failed to open PDF in Zotero. Make sure Zotero is running and the PDF is available.',
           'Open Zotero'
         ).then((selection: string | undefined) => {
           if (selection === 'Open Zotero') {

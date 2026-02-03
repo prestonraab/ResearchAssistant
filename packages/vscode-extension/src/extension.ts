@@ -66,7 +66,7 @@ async function initializePhase2(
     phase1Initializer.updateStatusBar('$(warning) Research Assistant (Limited)', 'Some features unavailable');
     
     vscode.window.showWarningMessage(
-      'Research Assistant: Some features may not work. Check workspace configuration.',
+      'Research Assistant: Some features may not work. Check workspace configuration and file paths in settings.',
       'Open Settings'
     ).then(selection => {
       if (selection === 'Open Settings') {
@@ -256,7 +256,7 @@ async function runPageNumberBackfill(logger: Logger, quoteCount: number): Promis
         const errorMessage = error instanceof Error ? error.message : String(error);
         logger.error(`Page number backfill failed: ${errorMessage}`);
         vscode.window.showWarningMessage(
-          `Page number backfill encountered an error: ${errorMessage}`
+          'Page number backfill encountered an error. Your manuscript may have missing page numbers. You can manually add them or try again later.'
         );
       }
     }

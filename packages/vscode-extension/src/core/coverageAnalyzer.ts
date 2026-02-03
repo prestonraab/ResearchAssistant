@@ -309,7 +309,7 @@ export class CoverageAnalyzer {
     }
 
     // Generate embedding for claim text
-    const claimEmbedding = await this.embeddingService.generateEmbedding(claim.text);
+    const claimEmbedding = (await this.embeddingService.generateEmbedding(claim.text)) as number[];
 
     // Calculate similarity with each section
     const similarities: Array<{ sectionId: string; similarity: number }> = [];
@@ -317,21 +317,22 @@ export class CoverageAnalyzer {
     for (const section of sections) {
       // Combine section title and content for embedding
       const sectionObj = (section as unknown) as Record<string, unknown>;
-      const content = (sectionObj.content as string[]) || [];
-      const sectionText = [sectionObj.title, ...content].join(' ');
-      const sectionEmbedding = await this.embeddingService.generateEmbedding(sectionText);
+      const content = ((sectionObj.content as any) as string[]) || [];
+      const title = ((sectionObj.title as any) as string) || '';
+      const sectionText = ([title, ...content] as any).join(' ') as string;
+      const sectionEmbedding = (await this.embeddingService.generateEmbedding(sectionText)) as number[];
 
       // Calculate cosine similarity
-      const similarity = this.embeddingService.cosineSimilarity(claimEmbedding, sectionEmbedding);
+      const similarity = (this.embeddingService as any).cosineSimilarity(claimEmbedding, sectionEmbedding);
 
       similarities.push({
-        sectionId: sectionObj.id as string,
+        sectionId: ((sectionObj.id as any) as string),
         similarity
       });
     }
 
     // Sort by similarity (descending) and return top 1-3
-    similarities.sort((a, b) => b.similarity - a.similarity);
+    similarities.sort((a: any, b: any) => b.similarity - a.similarity);
 
     return similarities.slice(0, 3);
   }

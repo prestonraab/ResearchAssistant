@@ -425,7 +425,7 @@ export class ClaimsManager {
    */
   getClaim(claimId: string): Claim | null {
     if (!this.loaded) {
-      throw new Error('Claims not loaded. Call loadClaims() first.');
+      throw new Error('Claims not loaded. Call loadClaims() first. This is an internal error - please report it.');
     }
     return this.claimsById.get(claimId) || null;
   }
@@ -445,7 +445,7 @@ export class ClaimsManager {
    */
   findClaimsBySource(source: string): Claim[] {
     if (!this.loaded) {
-      throw new Error('Claims not loaded. Call loadClaims() first.');
+      throw new Error('Claims not loaded. Call loadClaims() first. This is an internal error - please report it.');
     }
     return this.claimsBySource.get(source) || [];
   }
@@ -465,7 +465,7 @@ export class ClaimsManager {
    */
   findClaimsBySection(sectionId: string): Claim[] {
     if (!this.loaded) {
-      throw new Error('Claims not loaded. Call loadClaims() first.');
+      throw new Error('Claims not loaded. Call loadClaims() first. This is an internal error - please report it.');
     }
     return this.claimsBySection.get(sectionId) || [];
   }

@@ -42,7 +42,7 @@ export function registerVerificationCommands(
       } catch (error) {
         const errorMsg = error instanceof Error ? error.message : String(error);
         vscode.window.showErrorMessage(
-          `Unable to verify quotes. ${errorMsg.includes('timeout') ? 'The operation took too long.' : 'Please check your connection and try again.'}`,
+          `Unable to verify quotes. ${errorMsg.includes('timeout') ? 'The operation took too long. Please check your internet connection and try again.' : 'Please check your connection and try again.'}`,
           'Retry',
           'View Help'
         ).then(action => {
@@ -66,7 +66,7 @@ export function registerVerificationCommands(
 
       if (!claimId) {
         vscode.window.showErrorMessage(
-          'Could not identify the claim. Please select a valid claim from the list.',
+          'Could not identify the claim. Please select a claim from the Claims panel and try again.',
           'View Claims'
         ).then(action => {
           if (action === 'View Claims') {
@@ -99,7 +99,7 @@ export function registerVerificationCommands(
       } catch (error) {
         const errorMsg = error instanceof Error ? error.message : String(error);
         vscode.window.showErrorMessage(
-          `Unable to verify this claim. ${errorMsg.includes('not found') ? 'The source document may be missing.' : 'Please try again.'}`,
+          `Unable to verify this claim. ${errorMsg.includes('not found') ? 'The source document may be missing. Check that your source files are in the correct location.' : 'Please try again.'}`,
           'Retry'
         ).then(action => {
           if (action === 'Retry') {

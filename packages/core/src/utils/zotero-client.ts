@@ -96,25 +96,25 @@ export class ZoteroClient {
   async testConnection(): Promise<boolean> {
     try {
       if (!this.apiKey) {
-        throw new Error('Zotero API key not configured.');
+        throw new Error('Zotero API key not configured. Please set your API key in the Research Assistant settings.');
       }
       if (!this.userID) {
-        throw new Error('Zotero user ID not configured.');
+        throw new Error('Zotero user ID not configured. Please set your user ID in the Research Assistant settings.');
       }
 
       const response = await this.makeRequest(`/users/${this.userID}/items?limit=1`);
       
       if (response.status === 401) {
-        throw new Error('Zotero API authentication failed. Check your API key and user ID.');
+        throw new Error('Zotero API authentication failed. Please check your API key and user ID in settings. Make sure your API key has read permissions.');
       }
       if (response.status === 403) {
-        throw new Error('Zotero API access denied. Check that your API key has read permissions.');
+        throw new Error('Zotero API access denied. Your API key does not have read permissions. Please regenerate your API key with read permissions in Zotero settings.');
       }
       if (response.status === 404) {
-        throw new Error('Zotero user not found. Check your user ID.');
+        throw new Error('Zotero user not found. Please check your user ID in the Research Assistant settings.');
       }
       if (response.status !== 200) {
-        throw new Error(`Zotero API error: ${response.status}`);
+        throw new Error(`Zotero API error: ${response.status}. Please check your internet connection and try again.`);
       }
       
       return true;
@@ -159,11 +159,11 @@ export class ZoteroClient {
   async getCollectionItems(collectionKey: string, limit?: number): Promise<ZoteroItem[]> {
     try {
       if (!collectionKey || collectionKey.trim().length === 0) {
-        throw new Error('Collection key cannot be empty');
+        throw new Error('Collection key cannot be empty. Please provide a valid Zotero collection key.');
       }
 
       if (!this.isConfigured()) {
-        throw new Error('Zotero API not configured. Set API key and user ID.');
+        throw new Error('Zotero API not configured. Please set your API key and user ID in the Research Assistant settings.');
       }
 
       const cacheKey = `collection_items_${collectionKey}_${limit || 'all'}`;
@@ -204,11 +204,11 @@ export class ZoteroClient {
   async getRecentItems(limit: number = 50): Promise<ZoteroItem[]> {
     try {
       if (!this.isConfigured()) {
-        throw new Error('Zotero API not configured. Set API key and user ID.');
+        throw new Error('Zotero API not configured. Please set your API key and user ID in the Research Assistant settings.');
       }
 
       if (limit <= 0) {
-        throw new Error('Limit must be a positive number');
+        throw new Error('Limit must be a positive number. Please provide a limit greater than 0.');
       }
 
       const cacheKey = `recent_items_${limit}`;
@@ -222,7 +222,7 @@ export class ZoteroClient {
       const response = await this.makeRequest(endpoint);
 
       if (response.status !== 200) {
-        throw new Error(`Failed to fetch recent items: ${response.status}`);
+        throw new Error(`Failed to fetch recent items: ${response.status}. Please check your internet connection and try again.`);
       }
 
       const items = response.data as ZoteroItem[];
@@ -352,7 +352,7 @@ export class ZoteroClient {
       }
 
       if (!itemKey || itemKey.trim().length === 0) {
-        throw new Error('Item key cannot be empty');
+        throw new Error('Item key cannot be empty. Please provide a valid Zotero item key.');
       }
 
       const cacheKey = `item_children_${itemKey}`;
@@ -400,7 +400,7 @@ export class ZoteroClient {
   async getCollections(): Promise<ZoteroCollection[]> {
     try {
       if (!this.isConfigured()) {
-        throw new Error('Zotero API not configured.');
+        throw new Error('Zotero API not configured. Please set your API key and user ID in the Research Assistant settings.');
       }
 
       const cacheKey = 'collections';
@@ -459,7 +459,7 @@ export class ZoteroClient {
   }): Promise<string> {
     try {
       if (!this.isConfigured()) {
-        throw new Error('Zotero API not configured. Set API key and user ID.');
+        throw new Error('Zotero API not configured. Please set your API key and user ID in the Research Assistant settings.');
       }
 
       const payload = [itemData];

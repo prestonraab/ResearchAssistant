@@ -64,7 +64,7 @@ export class InternetPaperSearcher extends CoreInternetPaperSearcher {
           const userId = config.get<string>('zoteroUserId') || '';
 
           if (!apiKey || !userId) {
-            throw new Error('Zotero API credentials not configured. Please set zoteroApiKey and zoteroUserId in settings.');
+            throw new Error('Zotero API credentials not configured. Please set zoteroApiKey and zoteroUserId in settings. [Open Settings](command:workbench.action.openSettings?%5B%22researchAssistant.zotero%22%5D)');
           }
 
           const zoteroService = new ZoteroClient();
@@ -142,8 +142,8 @@ export class InternetPaperSearcher extends CoreInternetPaperSearcher {
       const errorMsg = error instanceof Error ? error.message : 'Unknown error';
       vscode.window.showErrorMessage(
         errorMsg.includes('credentials') || errorMsg.includes('API')
-          ? 'Unable to connect to Zotero. Please check your API credentials in settings.'
-          : 'Unable to import the paper. Please try again.',
+          ? 'Unable to connect to Zotero. Please check your API credentials in settings. Make sure your API key has write permissions.'
+          : 'Unable to import the paper. Please check your internet connection and try again.',
         'Check Settings',
         'Retry'
       ).then(action => {
@@ -171,7 +171,7 @@ export class InternetPaperSearcher extends CoreInternetPaperSearcher {
     } catch (error) {
       console.error('Failed to extract fulltext:', error);
       vscode.window.showErrorMessage(
-        'Unable to extract text from the PDF. The file may be corrupted or password-protected.',
+        'Unable to extract text from the PDF. The file may be corrupted, password-protected, or not yet downloaded. Try downloading the PDF manually in Zotero first.',
         'Retry'
       );
     }

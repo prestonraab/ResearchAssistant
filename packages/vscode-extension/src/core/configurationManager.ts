@@ -48,7 +48,7 @@ export class ConfigurationManager {
     const workspaceFolders = vscode.workspace.workspaceFolders;
     
     if (!workspaceFolders || workspaceFolders.length === 0) {
-      throw new Error('No workspace folder open. Please open a workspace to use the Research Assistant.');
+      throw new Error('No workspace folder open. Please open a workspace folder to use the Research Assistant. [Open Folder](command:workbench.action.openFolder)');
     }
 
     const workspaceRoot = workspaceFolders[0].uri.fsPath;
@@ -319,7 +319,7 @@ export class ConfigurationManager {
    */
   public getWorkspaceConfig(): WorkspaceConfiguration {
     if (!this.workspaceConfig) {
-      throw new Error('Configuration not initialized. Call initialize() first.');
+      throw new Error('Configuration not initialized. Call initialize() first. This is an internal error - please report it.');
     }
     return this.workspaceConfig;
   }
@@ -329,7 +329,7 @@ export class ConfigurationManager {
    */
   public getUserPreferences(): UserPreferences {
     if (!this.userPreferences) {
-      throw new Error('Preferences not loaded. Call initialize() first.');
+      throw new Error('Preferences not loaded. Call initialize() first. This is an internal error - please report it.');
     }
     return this.userPreferences;
   }

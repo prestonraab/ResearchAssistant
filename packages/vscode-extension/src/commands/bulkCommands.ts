@@ -26,7 +26,7 @@ export function registerBulkCommands(
       const service = getBulkImportService();
       if (!service) {
         vscode.window.showErrorMessage(
-          'The import service is not ready yet. Please wait a moment and try again.',
+          'The import service is still initializing. Please wait a moment and try again. If this persists, check that your Zotero configuration is correct.',
           'Retry'
         ).then(action => {
           if (action === 'Retry') {

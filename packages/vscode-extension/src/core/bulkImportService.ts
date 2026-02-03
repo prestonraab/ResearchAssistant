@@ -117,7 +117,7 @@ export class BulkImportService {
             }
           }
         } catch (error) {
-          result.errors.push(`Failed to extract PDF for ${(paper as Record<string, unknown>).title}: ${error}`);
+          result.errors.push(`Failed to extract PDF for ${((paper as unknown) as Record<string, unknown>).title}: ${error}`);
         }
 
         this.reportProgress({
