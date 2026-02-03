@@ -6,6 +6,60 @@
  */
 
 // ============================================================================
+// Zotero Integration Models
+// ============================================================================
+
+/**
+ * Metadata for quotes imported from Zotero highlights
+ * Stores annotation key, highlight color, and import information for bidirectional linking
+ * 
+ * @see Requirements 3.1, 3.2, 8.1, 8.6 - Zotero PDF Integration
+ */
+export interface ZoteroQuoteMetadata {
+  annotationKey: string;         // Zotero annotation key for bidirectional linking (immutable)
+  highlightColor: string;        // Hex color code (e.g., "#ffff00" for yellow)
+  importedAt: string;            // ISO timestamp of when the highlight was imported
+  fromZotero: boolean;           // Flag indicating quote originated from Zotero (for search prioritization)
+  matchConfidence?: number;      // Fuzzy match confidence score (0-1), undefined if exact match
+  originalText?: string;         // Original Zotero text if different from matched text
+  itemKey?: string;              // Zotero item key for the parent PDF (for deep linking)
+}
+
+/**
+ * Zotero annotation data structure for import processing
+ * Represents a highlight annotation from Zotero's PDF reader
+ */
+export interface ZoteroAnnotation {
+  key: string;                   // Unique annotation key
+  type: 'highlight' | 'note' | 'image' | 'ink' | 'underline';  // Annotation type
+  text: string;                  // Highlighted/annotated text
+  color: string;                 // Highlight color (hex code)
+  pageNumber: number;            // Page number in PDF (1-indexed)
+  position: ZoteroAnnotationPosition;  // Position information
+  dateModified: string;          // ISO timestamp of last modification
+  parentItemKey: string;         // Key of the parent PDF attachment
+}
+
+/**
+ * Position information for a Zotero annotation
+ */
+export interface ZoteroAnnotationPosition {
+  pageIndex: number;             // Page index (0-indexed)
+  rects: number[][];             // Bounding rectangles [[x1, y1, x2, y2], ...]
+}
+
+/**
+ * Result of fuzzy matching a Zotero highlight against extracted text
+ */
+export interface FuzzyMatchResult {
+  matched: boolean;              // Whether a match was found above threshold
+  startOffset?: number;          // Start character offset in document text
+  endOffset?: number;            // End character offset in document text
+  confidence: number;            // Match confidence score (0-1)
+  matchedText?: string;          // The matched text from the document
+}
+
+// ============================================================================
 // Claim Models
 // ============================================================================
 
@@ -24,6 +78,11 @@ export interface SourcedQuote {
     startLine?: number;          // Starting line number in source file
     endLine?: number;            // Ending line number in source file
   };
+  
+  // Zotero integration fields (Requirements 3.1, 3.2, 8.1, 8.6)
+  startOffset?: number;          // Start character offset in source document
+  endOffset?: number;            // End character offset in source document
+  zoteroMetadata?: ZoteroQuoteMetadata;  // Zotero-specific metadata for imported highlights
 }
 
 /**
@@ -719,4 +778,73 @@ export interface ExtractionResult {
   error?: string;                // Error message
   pageCount?: number;            // Number of pages
   wordCount?: number;            // Word count
+}
+
+// ============================================================================
+// Zotero Sync Models
+// ============================================================================
+
+/**
+ * State for Zotero highlight synchronization
+ * Persisted across extension restarts
+ * 
+ * @see Requirements 5.1, 5.9 - Zotero PDF Integration
+ */
+export interface ZoteroSyncState {
+  lastSyncTimestamp: string | null;  // ISO timestamp of last successful sync
+  syncEnabled: boolean;              // Whether automatic sync is enabled
+  syncIntervalMinutes: number;       // Sync interval in minutes (default: 15)
+  lastSyncStatus: 'success' | 'error' | 'in_progress' | 'never';  // Status of last sync
+  lastError?: string;                // Error message from last failed sync
+  retryCount?: number;               // Current retry count for exponential backoff
+}
+
+/**
+ * Audit log entry for deleted quotes with Zotero annotation keys
+ * Retained for potential future reconciliation
+ * 
+ * @see Requirements 8.3 - Zotero PDF Integration
+ */
+export interface ZoteroAnnotationAuditEntry {
+  annotationKey: string;             // The Zotero annotation key
+  quoteId: string;                   // Original quote identifier
+  quoteText: string;                 // The quote text at time of deletion
+  paperId: string;                   // Associated paper identifier
+  deletedAt: string;                 // ISO timestamp of deletion
+  deletedBy?: string;                // User or process that deleted the quote
+  reason?: string;                   // Reason for deletion (if provided)
+}
+
+/**
+ * Zotero annotation key validation result
+ * 
+ * @see Requirements 8.2 - Zotero PDF Integration
+ */
+export interface AnnotationKeyValidation {
+  valid: boolean;                    // Whether the key is valid
+  key: string;                       // The key that was validated
+  error?: string;                    // Error message if invalid
+}
+
+/**
+ * Result of importing Zotero highlights
+ */
+export interface ZoteroImportResult {
+  totalHighlights: number;           // Total highlights found
+  imported: number;                  // Successfully imported count
+  matched: number;                   // Highlights with successful fuzzy match
+  unmatched: number;                 // Highlights without fuzzy match (warning)
+  skipped: number;                   // Skipped (already imported or invalid)
+  errors: string[];                  // Error messages
+  quoteIds: string[];                // IDs of created quotes
+}
+
+/**
+ * Options for Zotero highlight import
+ */
+export interface ZoteroImportOptions {
+  paperId: string;                   // Paper to import highlights for
+  itemKey: string;                   // Zotero item key for the PDF
+  skipExisting?: boolean;            // Skip highlights already imported (default: true)
+  matchThreshold?: number;           // Fuzzy match threshold (default: 0.85)
 }

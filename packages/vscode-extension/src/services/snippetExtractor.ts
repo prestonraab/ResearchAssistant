@@ -1,6 +1,9 @@
+import { TextNormalizer } from './textNormalizer';
+
 /**
  * Extracts meaningful snippets from text for embedding
  * Uses sentence-level chunking with context preservation
+ * Normalizes text to handle OCR artifacts
  */
 export class SnippetExtractor {
   private readonly MIN_SNIPPET_LENGTH = 150; // Minimum characters per snippet (at least one sentence)
@@ -14,8 +17,11 @@ export class SnippetExtractor {
   extractSnippets(text: string, fileName: string): Array<{ text: string; startLine: number; endLine: number }> {
     const snippets: Array<{ text: string; startLine: number; endLine: number }> = [];
 
+    // Normalize text to handle OCR artifacts before processing
+    const normalizedText = TextNormalizer.normalizeForEmbedding(text);
+
     // Split into sentences
-    const sentences = this.splitIntoSentences(text);
+    const sentences = this.splitIntoSentences(normalizedText);
     if (sentences.length === 0) {
       return [];
     }
@@ -31,7 +37,7 @@ export class SnippetExtractor {
       // If adding this sentence would exceed max length, save current chunk and start new one
       if (potentialChunk.length > this.MAX_SNIPPET_LENGTH && currentChunk.length > 0) {
         if (currentChunk.length >= this.MIN_SNIPPET_LENGTH) {
-          const { startLine, endLine } = this.getLineNumbers(text, currentChunk);
+          const { startLine, endLine } = this.getLineNumbers(normalizedText, currentChunk);
           snippets.push({
             text: currentChunk.trim(),
             startLine,
@@ -47,7 +53,7 @@ export class SnippetExtractor {
 
     // Add final chunk
     if (currentChunk.length >= this.MIN_SNIPPET_LENGTH) {
-      const { startLine, endLine } = this.getLineNumbers(text, currentChunk);
+      const { startLine, endLine } = this.getLineNumbers(normalizedText, currentChunk);
       snippets.push({
         text: currentChunk.trim(),
         startLine,

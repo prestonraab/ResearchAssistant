@@ -206,6 +206,9 @@ jest.mock('vscode', () => {
       items,
       isIncomplete
     })),
+    env: {
+      openExternal: jest.fn<any>().mockResolvedValue(undefined),
+    },
   };
 }, { virtual: true });
 

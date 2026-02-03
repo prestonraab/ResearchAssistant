@@ -11,6 +11,7 @@ import { registerClaimCommands } from './claimCommands';
 import { registerVerificationCommands } from './verificationCommands';
 import { registerBulkCommands } from './bulkCommands';
 import { registerManuscriptCommands } from './manuscriptCommands';
+import { registerReadingStatusCommands } from './readingStatusCommands';
 
 export function registerAllCommands(
   context: vscode.ExtensionContext,
@@ -29,4 +30,5 @@ export function registerAllCommands(
   registerVerificationCommands(context, extensionState, claimsProvider);
   registerBulkCommands(context, extensionState, outlineProvider, claimsProvider, papersProvider, getBulkImportService, autoSyncPDFs, logger);
   registerManuscriptCommands(context, extensionState, papersProvider, logger);
+  registerReadingStatusCommands(context, extensionState, papersProvider);
 }

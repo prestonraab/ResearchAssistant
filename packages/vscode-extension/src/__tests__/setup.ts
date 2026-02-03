@@ -205,6 +205,9 @@ export const vscode = {
     Operator: 23,
     TypeParameter: 24,
   },
+  env: {
+    openExternal: jest.fn<any>().mockResolvedValue(undefined),
+  },
 };
 
 // Make vscode available as default export for jest.mock

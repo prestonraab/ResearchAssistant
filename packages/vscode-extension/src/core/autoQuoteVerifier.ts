@@ -3,9 +3,8 @@ import type { Claim } from '@research-assistant/core';
 import { ClaimsManager } from './claimsManagerWrapper';
 import { MCPClientManager, VerificationResult } from '../mcp/mcpClient';
 import { getLogger } from './loggingService';
-import { HybridQuoteSearch } from '../services/hybridQuoteSearch';
+import { UnifiedQuoteSearch } from '../services/unifiedQuoteSearch';
 import { LiteratureIndexer } from '../services/literatureIndexer';
-import { FuzzyQuoteMatcher } from '../services/fuzzyQuoteMatcher';
 
 interface VerificationQueueItem {
   claim: Claim;
@@ -26,7 +25,7 @@ export class AutoQuoteVerifier {
   private logger = getLogger();
   private onDidVerifyEmitter = new vscode.EventEmitter<{ claimId: string; verified: boolean }>();
   public readonly onDidVerify = this.onDidVerifyEmitter.event;
-  private hybridQuoteSearch: HybridQuoteSearch;
+  private unifiedQuoteSearch: UnifiedQuoteSearch;
 
   constructor(
     private claimsManager: ClaimsManager,
@@ -34,11 +33,10 @@ export class AutoQuoteVerifier {
   ) {
     this.logger.info('AutoQuoteVerifier initialized');
     
-    // Initialize hybrid search service
+    // Initialize unified quote search service
     const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || '';
     const literatureIndexer = new LiteratureIndexer(workspaceRoot);
-    const fuzzyQuoteMatcher = new FuzzyQuoteMatcher(workspaceRoot);
-    this.hybridQuoteSearch = new HybridQuoteSearch(literatureIndexer, fuzzyQuoteMatcher);
+    this.unifiedQuoteSearch = new UnifiedQuoteSearch(literatureIndexer, workspaceRoot);
   }
 
   /**
@@ -159,8 +157,8 @@ export class AutoQuoteVerifier {
     try {
       const quoteText = claim.primaryQuote.text;
       
-      // Use hybrid search to find best match
-      const results = await this.hybridQuoteSearch.search(quoteText, 5);
+      // Use unified quote search to find best match
+      const results = await this.unifiedQuoteSearch.search(quoteText, 5);
       
       // Auto-update metadata and source if we found a match
       const existingMetadata = claim.primaryQuote.metadata;

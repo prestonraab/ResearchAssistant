@@ -2,17 +2,22 @@ import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
 import { ExtensionState } from '../core/state';
+import { ReadingStatus } from '../core/readingStatusManager';
 
 export class PaperTreeItem extends vscode.TreeItem {
+  public readingStatus?: ReadingStatus;
+
   constructor(
     public readonly label: string,
     public readonly filePath?: string,
     public readonly pdfPath?: string,
     public readonly needsExtraction?: boolean,
     public readonly collapsibleState: vscode.TreeItemCollapsibleState = vscode.TreeItemCollapsibleState.None,
-    public readonly children?: PaperTreeItem[]
+    public readonly children?: PaperTreeItem[],
+    readingStatus?: ReadingStatus
   ) {
     super(label, collapsibleState);
+    this.readingStatus = readingStatus;
     
     if (children) {
       // This is a group node
@@ -32,7 +37,7 @@ export class PaperTreeItem extends vscode.TreeItem {
       // PDF exists and extracted
       this.contextValue = 'pdfExtracted';
       this.iconPath = new vscode.ThemeIcon('file-pdf');
-      this.tooltip = `${label}\n\nPDF: ${pdfPath}\nExtracted: ${filePath}`;
+      this.tooltip = this.buildTooltip(label, pdfPath, filePath, readingStatus);
       this.command = {
         command: 'vscode.open',
         title: 'Open PDF',
@@ -42,7 +47,7 @@ export class PaperTreeItem extends vscode.TreeItem {
       // Only extracted text exists
       this.contextValue = 'extractedOnly';
       this.iconPath = new vscode.ThemeIcon('file-text');
-      this.tooltip = `${label}\n\nExtracted text: ${filePath}\n(PDF not found)`;
+      this.tooltip = this.buildTooltip(label, undefined, filePath, readingStatus);
       this.command = {
         command: 'vscode.open',
         title: 'Open Extracted Text',
@@ -52,6 +57,51 @@ export class PaperTreeItem extends vscode.TreeItem {
       this.contextValue = 'paper';
       this.iconPath = new vscode.ThemeIcon('file');
     }
+
+    // Update label with reading status indicator
+    this.label = this.buildLabel(label, readingStatus);
+  }
+
+  private buildLabel(label: string, status?: ReadingStatus): string {
+    if (!status || status === 'unread') {
+      return label;
+    }
+
+    const statusIcons: Record<ReadingStatus, string> = {
+      'unread': '',
+      'some-read': '◐',
+      'skimmed': '👁️',
+      'read': '✓',
+      'deeply-read': '★'
+    };
+
+    const icon = statusIcons[status];
+    return icon ? `${icon} ${label}` : label;
+  }
+
+  private buildTooltip(label: string, pdfPath?: string, filePath?: string, status?: ReadingStatus): string {
+    let tooltip = label;
+
+    if (pdfPath) {
+      tooltip += `\n\nPDF: ${pdfPath}`;
+    }
+
+    if (filePath) {
+      tooltip += `\n\nExtracted text: ${filePath}`;
+    }
+
+    if (status && status !== 'unread') {
+      const statusLabels: Record<ReadingStatus, string> = {
+        'unread': 'Not started',
+        'some-read': 'Partially read',
+        'skimmed': 'Skimmed',
+        'read': 'Fully read',
+        'deeply-read': 'Deeply read with notes'
+      };
+      tooltip += `\n\nReading Status: ${statusLabels[status]}`;
+    }
+
+    return tooltip;
   }
 }
 
@@ -163,18 +213,20 @@ export class PapersTreeProvider implements vscode.TreeDataProvider<PaperTreeItem
         }
         
         const pdfPath = findMatchingPdf(basename);
+        const readingStatus = this.state.readingStatusManager.getStatus(basename);
+        
         if (pdfPath) {
-          extracted.push(new PaperTreeItem(basename, actualPath, pdfPath, false));
+          extracted.push(new PaperTreeItem(basename, actualPath, pdfPath, false, vscode.TreeItemCollapsibleState.None, undefined, readingStatus?.status));
           matchedPdfs.add(pdfPath);
         } else {
-          extractedOnly.push(new PaperTreeItem(basename, actualPath));
+          extractedOnly.push(new PaperTreeItem(basename, actualPath, undefined, false, vscode.TreeItemCollapsibleState.None, undefined, readingStatus?.status));
         }
       }
       
       // PDFs that need extraction (not matched to any extracted text)
       for (const [basename, pdfPath] of pdfFiles) {
         if (!matchedPdfs.has(pdfPath)) {
-          needsExtraction.push(new PaperTreeItem(basename, undefined, pdfPath, true));
+          needsExtraction.push(new PaperTreeItem(basename, undefined, pdfPath, true, vscode.TreeItemCollapsibleState.None, undefined, undefined));
         }
       }
       

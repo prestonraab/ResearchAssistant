@@ -274,11 +274,23 @@ function displayQuoteContainer(container, quote, result, type) {
     sourcePaperHtml = `<div class="quote-source-paper">📄 <strong>${escapeHtml(result.source)}</strong></div>`;
   }
   
+  // Build Zotero metadata HTML (Requirements: 3.5, 3.6, 3.7, 3.8)
+  const zoteroMetadataHtml = buildZoteroMetadataHtml(result);
+  
+  // Build Jump to PDF button HTML (Requirements: 2.1, 2.2, 2.8, 6.6)
+  // TODO: Get Zotero availability status from extension state
+  const jumpToPdfButtonHtml = buildJumpToPdfButtonHtml(result, true);
+  
   // Build buttons HTML
   let buttonsHtml = `
     <button class="btn btn-danger" data-action="deleteQuote" data-quote="${escapeHtml(quote)}">Delete</button>
     <button class="btn btn-secondary" data-action="findNewQuotes">Find New</button>
   `;
+  
+  // Add Jump to PDF button if available
+  if (jumpToPdfButtonHtml) {
+    buttonsHtml = jumpToPdfButtonHtml + buttonsHtml;
+  }
 
   // Build verification and support info on same line
   let infoHtml = '';
@@ -355,6 +367,7 @@ function displayQuoteContainer(container, quote, result, type) {
       <span class="quote-type">${type === 'primary' ? 'PRIMARY' : 'SUPPORTING'}</span>
       <span class="status-icon ${getStatusClass(result)}">${statusIcon}</span>
     </div>
+    ${zoteroMetadataHtml}
     ${sourcePaperHtml}
     ${quoteDisplayHtml}
     ${infoHtml}
@@ -481,6 +494,23 @@ function displayQuoteContainer(container, quote, result, type) {
   if (findBtn) {
     findBtn.addEventListener('click', () => {
       findNewQuotes();
+    });
+  }
+  
+  // Attach event listener for Jump to PDF button
+  const jumpBtn = container.querySelector('[data-action="jumpToPdf"]');
+  if (jumpBtn) {
+    jumpBtn.addEventListener('click', () => {
+      const annotationKey = jumpBtn.getAttribute('data-annotation-key');
+      const itemKey = jumpBtn.getAttribute('data-item-key');
+      const pageNumber = jumpBtn.getAttribute('data-page-number');
+      
+      vscode.postMessage({
+        type: 'jumpToPdf',
+        annotationKey: annotationKey || undefined,
+        itemKey: itemKey || undefined,
+        pageNumber: pageNumber ? parseInt(pageNumber) : undefined
+      });
     });
   }
 }
@@ -1121,10 +1151,15 @@ function displayNewQuotesRound(message) {
     const stars = Math.round(confidence * 5);
     const starDisplay = '★'.repeat(stars) + '☆'.repeat(5 - stars);
     
+    // Build Zotero indicator for search results (Requirements: 4.2)
+    const zoteroIndicator = q.zoteroMetadata && q.zoteroMetadata.fromZotero 
+      ? '<span class="quote-result-zotero-indicator">Zotero</span>'
+      : '';
+    
     item.innerHTML = `
       <div class="quote-number">${quoteNumber}</div>
       <div class="quote-details">
-        <div class="quote-summary">"${escapeHtml(q.summary)}"</div>
+        <div class="quote-summary">"${escapeHtml(q.summary)}"${zoteroIndicator}</div>
         <div class="quote-source">${escapeHtml(q.source)} (lines ${q.lineRange})</div>
         <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid #ccc; display: flex; align-items: center; gap: 12px; font-size: 12px; color: #000;">
           Support: ${starDisplay} ${percentage}%
@@ -1181,16 +1216,23 @@ function displayNewQuotes(quotes) {
       <button class="close-btn" data-action="closeQuotes">✕</button>
     </div>
     <div class="new-quotes-list">
-      ${quotes.map((q, i) => `
-        <div class="new-quote-item">
-          <div class="quote-number">${i + 1}</div>
-          <div class="quote-details">
-            <div class="quote-text">"${escapeHtml(q.text)}"</div>
-            <div class="quote-source">${escapeHtml(q.source)} (${Math.round(q.similarity * 100)}% match)</div>
-            <button class="btn btn-small btn-primary" data-action="addQuote" data-quote="${escapeHtml(q.text)}">Add Quote</button>
+      ${quotes.map((q, i) => {
+        // Build Zotero indicator for search results (Requirements: 4.2)
+        const zoteroIndicator = q.zoteroMetadata && q.zoteroMetadata.fromZotero 
+          ? '<span class="quote-result-zotero-indicator">Zotero</span>'
+          : '';
+        
+        return `
+          <div class="new-quote-item">
+            <div class="quote-number">${i + 1}</div>
+            <div class="quote-details">
+              <div class="quote-text">"${escapeHtml(q.text)}"${zoteroIndicator}</div>
+              <div class="quote-source">${escapeHtml(q.source)} (${Math.round(q.similarity * 100)}% match)</div>
+              <button class="btn btn-small btn-primary" data-action="addQuote" data-quote="${escapeHtml(q.text)}">Add Quote</button>
+            </div>
           </div>
-        </div>
-      `).join('')}
+        `;
+      }).join('')}
     </div>
   `;
 
@@ -1427,6 +1469,112 @@ function handleExpandedContext(message) {
     
     console.log('[ClaimReview] Expanded context', direction, 'to lines', message.startLine, '-', message.endLine);
   }
+}
+
+/**
+ * Build Zotero metadata HTML for a quote
+ * Requirements: 3.5, 3.6, 3.7, 3.8
+ */
+function buildZoteroMetadataHtml(quote) {
+  if (!quote || !quote.zoteroMetadata) {
+    return '';
+  }
+
+  const metadata = quote.zoteroMetadata;
+  if (!metadata.fromZotero) {
+    return '';
+  }
+
+  // Build page number display
+  let pageNumberHtml = '';
+  if (quote.pageNumber) {
+    pageNumberHtml = `<div class="zotero-page-number">Page ${quote.pageNumber}</div>`;
+  }
+
+  // Build highlight color display
+  let colorSwatchHtml = '';
+  if (metadata.highlightColor) {
+    const colorHex = metadata.highlightColor.startsWith('#') ? metadata.highlightColor : `#${metadata.highlightColor}`;
+    colorSwatchHtml = `
+      <div class="zotero-highlight-color">
+        <span>Color:</span>
+        <div class="zotero-color-swatch" style="background-color: ${escapeHtml(colorHex)};"></div>
+      </div>
+    `;
+  }
+
+  // Build tooltip with annotation key and import timestamp
+  let tooltipText = '';
+  if (metadata.annotationKey) {
+    const importDate = new Date(metadata.importedAt).toLocaleDateString();
+    tooltipText = `Annotation: ${metadata.annotationKey} • Imported: ${importDate}`;
+  }
+
+  // Build the metadata container
+  return `
+    <div class="zotero-metadata">
+      <div class="zotero-indicator">
+        <div class="zotero-indicator-icon">Z</div>
+        <span>Zotero</span>
+      </div>
+      <div class="zotero-metadata-info">
+        ${pageNumberHtml}
+        ${colorSwatchHtml}
+        ${tooltipText ? `<div class="zotero-tooltip" data-tooltip="${escapeHtml(tooltipText)}">ℹ️</div>` : ''}
+      </div>
+    </div>
+  `;
+}
+
+/**
+ * Build Jump to PDF button HTML
+ * Requirements: 2.1, 2.2, 2.8, 6.6
+ */
+function buildJumpToPdfButtonHtml(quote, isZoteroAvailable = true) {
+  if (!quote) {
+    return '';
+  }
+
+  const metadata = quote.zoteroMetadata;
+  
+  // Check if we have the required data for the button
+  const hasAnnotationKey = metadata && metadata.annotationKey;
+  const hasPageAndItemKey = quote.pageNumber && metadata && metadata.itemKey;
+  
+  // Show button if we have annotation key OR (page number AND item key)
+  if (!hasAnnotationKey && !hasPageAndItemKey) {
+    return '';
+  }
+
+  // Determine button state
+  const isDisabled = !isZoteroAvailable;
+  const disabledClass = isDisabled ? 'zotero-unavailable' : '';
+  const disabledAttr = isDisabled ? 'disabled' : '';
+
+  return `
+    <button class="jump-to-pdf-btn ${disabledClass}" 
+            data-action="jumpToPdf" 
+            data-annotation-key="${metadata && metadata.annotationKey ? escapeHtml(metadata.annotationKey) : ''}"
+            data-item-key="${metadata && metadata.itemKey ? escapeHtml(metadata.itemKey) : ''}"
+            data-page-number="${quote.pageNumber || ''}"
+            ${disabledAttr}
+            title="${isDisabled ? 'Zotero is not available' : 'Open this quote in Zotero PDF reader'}">
+      Jump to PDF
+    </button>
+    ${isDisabled ? '<div class="zotero-unavailable-notice">Zotero is not available</div>' : ''}
+  `;
+}
+
+/**
+ * Build Zotero indicator for search results
+ * Requirements: 4.2
+ */
+function buildZoteroSearchIndicatorHtml(quote) {
+  if (!quote || !quote.zoteroMetadata || !quote.zoteroMetadata.fromZotero) {
+    return '';
+  }
+
+  return '<span class="quote-result-zotero-indicator">Zotero</span>';
 }
 
 /**

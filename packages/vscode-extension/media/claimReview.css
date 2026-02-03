@@ -425,6 +425,169 @@ body {
   color: #0066cc;
 }
 
+/* Zotero metadata styles */
+.zotero-metadata {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  padding: 6px 10px;
+  background-color: #f3e5f5;
+  border-left: 3px solid #9c27b0;
+  border-radius: 2px;
+  font-size: 12px;
+}
+
+.zotero-indicator {
+  font-size: 14px;
+  font-weight: bold;
+  color: #9c27b0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.zotero-indicator-icon {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  background-color: #9c27b0;
+  border-radius: 2px;
+  color: white;
+  font-size: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+}
+
+.zotero-metadata-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  color: #666;
+}
+
+.zotero-page-number {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+}
+
+.zotero-page-number::before {
+  content: "📄";
+  font-size: 12px;
+}
+
+.zotero-highlight-color {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+}
+
+.zotero-color-swatch {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border-radius: 2px;
+  border: 1px solid #ccc;
+}
+
+.zotero-tooltip {
+  position: relative;
+  cursor: help;
+  border-bottom: 1px dotted #9c27b0;
+}
+
+.zotero-tooltip:hover::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: 125%;
+  left: 0;
+  background-color: #333;
+  color: white;
+  padding: 8px 12px;
+  border-radius: 4px;
+  font-size: 11px;
+  white-space: nowrap;
+  z-index: 1000;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.zotero-tooltip:hover::before {
+  content: "";
+  position: absolute;
+  bottom: 120%;
+  left: 8px;
+  width: 0;
+  height: 0;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  border-top: 4px solid #333;
+  z-index: 1000;
+}
+
+/* Jump to PDF button */
+.jump-to-pdf-btn {
+  background-color: #9c27b0;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.jump-to-pdf-btn:hover {
+  background-color: #7b1fa2;
+}
+
+.jump-to-pdf-btn:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.jump-to-pdf-btn::before {
+  content: "🔗";
+  font-size: 12px;
+}
+
+/* Zotero quote indicator in search results */
+.quote-result-zotero-indicator {
+  display: inline-block;
+  background-color: #9c27b0;
+  color: white;
+  padding: 2px 6px;
+  border-radius: 2px;
+  font-size: 10px;
+  font-weight: bold;
+  margin-left: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Zotero unavailable state */
+.zotero-unavailable {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.zotero-unavailable-notice {
+  font-size: 11px;
+  color: #999;
+  font-style: italic;
+  margin-top: 4px;
+}
+
 .quote-actions {
   display: flex;
   gap: 8px;

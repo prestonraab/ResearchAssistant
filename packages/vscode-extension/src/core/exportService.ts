@@ -5,6 +5,17 @@ import type { Claim, OutlineSection } from '@research-assistant/core';
 import { CoverageMetrics } from './coverageAnalyzer';
 import { SentenceClaimQuoteLinkManager } from './sentenceClaimQuoteLinkManager';
 import { ClaimsManager } from './claimsManagerWrapper';
+import { WordRenderer } from './wordRenderer';
+import { LaTeXRenderer } from './latexRenderer';
+import type {
+  DocumentModel,
+  DocumentSection,
+  DocumentParagraph,
+  DocumentRun,
+  DocumentFootnote,
+  BibliographyEntry,
+  DocumentMetadata
+} from './documentModel';
 
 export type ExportFormat = 'markdown' | 'csv' | 'json';
 
@@ -53,14 +64,144 @@ export class ExportService {
 
   /**
    * Export manuscript with marked citations as Word (.docx) with native footnotes
+   * 
+   * Implements task 8.1: Replace stub implementation of exportManuscriptWord
+   * - Calls buildDocumentModel with manuscript text and options
+   * - Creates WordRenderer instance and calls render
+   * - Writes buffer to output path using fs
+   * - Requirements: 1.1, 6.1
    */
   public async exportManuscriptWord(
     manuscriptText: string,
     options: ManuscriptExportOptions
   ): Promise<void> {
-    // Word export requires docx library - will be implemented with proper dependency
-    // For now, throw informative error
-    throw new Error('Word export requires docx library installation. Use markdown export for now.');
+    // Validate output path (8.4)
+    this.validateOutputPath(options.outputPath);
+
+    // Handle empty manuscript gracefully (8.4)
+    if (!manuscriptText || manuscriptText.trim().length === 0) {
+      // Create empty document
+      const emptyModel: DocumentModel = {
+        sections: [],
+        bibliography: [],
+        metadata: {
+          footnotes: [],
+          footnoteScope: options.footnoteScope || 'document',
+          includeFootnotes: options.includeFootnotes !== false,
+          includeBibliography: options.includeBibliography !== false
+        }
+      };
+      const renderer = new WordRenderer(emptyModel);
+      const buffer = await renderer.render(emptyModel);
+      await this.writeBufferToFile(options.outputPath, buffer);
+      return;
+    }
+
+    // Build document model from manuscript (8.1)
+    const model = await this.buildDocumentModel(manuscriptText, options);
+
+    // Create WordRenderer instance and render (8.1)
+    const renderer = new WordRenderer(model);
+    const buffer = await renderer.render(model);
+
+    // Write buffer to output path (8.1)
+    await this.writeBufferToFile(options.outputPath, buffer);
+  }
+
+  /**
+   * Export manuscript with marked citations as LaTeX (.tex) with native footnotes
+   * 
+   * Implements task 8.2: Add exportManuscriptLatex method
+   * - Calls buildDocumentModel with manuscript text and options
+   * - Creates LaTeXRenderer instance and calls render
+   * - Writes string content to output path
+   * - Requirements: 2.1, 6.1
+   */
+  public async exportManuscriptLatex(
+    manuscriptText: string,
+    options: ManuscriptExportOptions
+  ): Promise<void> {
+    // Validate output path (8.4)
+    this.validateOutputPath(options.outputPath);
+
+    // Handle empty manuscript gracefully (8.4)
+    if (!manuscriptText || manuscriptText.trim().length === 0) {
+      // Create empty document
+      const emptyModel: DocumentModel = {
+        sections: [],
+        bibliography: [],
+        metadata: {
+          footnotes: [],
+          footnoteScope: options.footnoteScope || 'document',
+          includeFootnotes: options.includeFootnotes !== false,
+          includeBibliography: options.includeBibliography !== false
+        }
+      };
+      const renderer = new LaTeXRenderer(emptyModel);
+      const content = renderer.render(emptyModel);
+      await this.writeToFile(options.outputPath, content);
+      return;
+    }
+
+    // Build document model from manuscript (8.2)
+    const model = await this.buildDocumentModel(manuscriptText, options);
+
+    // Create LaTeXRenderer instance and render (8.2)
+    const renderer = new LaTeXRenderer(model);
+    const content = renderer.render(model);
+
+    // Write string content to output path (8.2)
+    await this.writeToFile(options.outputPath, content);
+  }
+
+  /**
+   * Validate that the output path is writable
+   * 
+   * Implements task 8.4: Validate output path exists and is writable
+   * - Throws descriptive error for invalid paths
+   * - Requirements: 1.4, 2.6
+   */
+  private validateOutputPath(outputPath: string): void {
+    const dir = path.dirname(outputPath);
+
+    // Check if directory exists, create if needed
+    if (!fs.existsSync(dir)) {
+      try {
+        fs.mkdirSync(dir, { recursive: true });
+      } catch (error) {
+        throw new Error(
+          `Cannot create output directory: ${dir}. ` +
+          `Please ensure the path is valid and you have write permissions.`
+        );
+      }
+    }
+
+    // Check if directory is writable
+    try {
+      fs.accessSync(dir, fs.constants.W_OK);
+    } catch (error) {
+      throw new Error(
+        `Output directory is not writable: ${dir}. ` +
+        `Please check your file permissions.`
+      );
+    }
+  }
+
+  /**
+   * Write a buffer to a file
+   * 
+   * Used by exportManuscriptWord to write .docx files
+   */
+  private async writeBufferToFile(filePath: string, buffer: Buffer): Promise<void> {
+    const dir = path.dirname(filePath);
+
+    // Ensure directory exists
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+
+    // Write file
+    fs.writeFileSync(filePath, buffer);
   }
 
   /**
@@ -109,6 +250,134 @@ export class ExportService {
   private extractYear(source: string): string | undefined {
     const match = source.match(/(\d{4})/);
     return match ? match[1] : undefined;
+  }
+
+  /**
+   * Build a format-agnostic document model from manuscript text
+   * This method parses the manuscript into sections, collects citations,
+   * and builds a DocumentModel that can be rendered to multiple formats.
+   */
+  public async buildDocumentModel(
+    manuscriptText: string,
+    options: ManuscriptExportOptions
+  ): Promise<DocumentModel> {
+    const sections = this.parseManuscriptSections(manuscriptText);
+    const documentSections: DocumentSection[] = [];
+    const allCitations: CitedQuote[] = [];
+    const footnotes: DocumentFootnote[] = [];
+    let footnoteIndex = 1;
+
+    // Process each section
+    for (const section of sections) {
+      const level = this.getHeadingLevel(section.heading);
+      const paragraphs: DocumentParagraph[] = [];
+
+      // Process each paragraph in the section
+      for (const paragraphText of section.paragraphs) {
+        const runs: DocumentRun[] = [];
+        const sentences = this.parseSentences(paragraphText);
+
+        // Process each sentence
+        for (const sentence of sentences) {
+          // Add text run for the sentence
+          runs.push({ type: 'text', content: sentence.text });
+
+          // Collect citations for this sentence if footnotes are enabled
+          if (options.includeFootnotes !== false) {
+            const citations = await this.collectCitationsForSentence(sentence.id);
+            
+            for (const citation of citations) {
+              allCitations.push(citation);
+              
+              // Create footnote entry
+              const footnote: DocumentFootnote = {
+                id: footnoteIndex,
+                quoteText: citation.quoteText,
+                source: citation.source,
+                year: citation.year
+              };
+              footnotes.push(footnote);
+              
+              // Add footnote reference run
+              runs.push({
+                type: 'footnote-ref',
+                content: '',
+                footnoteId: footnoteIndex
+              });
+              
+              footnoteIndex++;
+            }
+          }
+        }
+
+        paragraphs.push({ runs });
+      }
+
+      documentSections.push({
+        heading: section.heading.replace(/^#+\s*/, ''),
+        level,
+        paragraphs
+      });
+
+      // Reset footnote numbering for section scope
+      if (options.footnoteScope === 'section') {
+        footnoteIndex = 1;
+      }
+    }
+
+    // Build bibliography if requested
+    const bibliography = options.includeBibliography !== false
+      ? this.buildBibliographyFromCitations(allCitations)
+      : [];
+
+    // Create document metadata
+    const metadata: DocumentMetadata = {
+      footnotes,
+      footnoteScope: options.footnoteScope || 'document',
+      includeFootnotes: options.includeFootnotes !== false,
+      includeBibliography: options.includeBibliography !== false
+    };
+
+    return {
+      sections: documentSections,
+      bibliography,
+      metadata
+    };
+  }
+
+  /**
+   * Extract heading level from markdown syntax
+   * # = 1, ## = 2, ### = 3, etc.
+   */
+  private getHeadingLevel(heading: string): number {
+    const match = heading.match(/^#+/);
+    return match ? match[0].length : 1;
+  }
+
+  /**
+   * Build bibliography entries from citations
+   * Collects unique sources and formats them as BibliographyEntry objects
+   */
+  private buildBibliographyFromCitations(citations: CitedQuote[]): BibliographyEntry[] {
+    const sourceMap = new Map<string, CitedQuote>();
+
+    // Collect unique sources (keyed by source name)
+    for (const citation of citations) {
+      const key = citation.source;
+      if (!sourceMap.has(key)) {
+        sourceMap.set(key, citation);
+      }
+    }
+
+    // Convert to BibliographyEntry array and sort
+    const entries = Array.from(sourceMap.values())
+      .map(citation => ({
+        source: citation.source,
+        year: citation.year
+      }))
+      .sort((a, b) => a.source.localeCompare(b.source));
+
+    return entries;
   }
 
   /**

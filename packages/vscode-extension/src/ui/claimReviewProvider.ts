@@ -14,7 +14,7 @@ import { VerificationFeedbackLoop } from '../services/verificationFeedbackLoop';
 import { getModeContextManager } from '../core/modeContextManager';
 import { DataValidationService } from '../core/dataValidationService';
 import { SentenceClaimMapper } from '../core/sentenceClaimMapper';
-import { FuzzyQuoteMatcher } from '../services/fuzzyQuoteMatcher';
+import { UnifiedQuoteSearch } from '../services/unifiedQuoteSearch';
 
 /**
  * ClaimReviewProvider - Webview panel provider for claim review mode
@@ -36,7 +36,7 @@ export class ClaimReviewProvider {
   private verificationFeedbackLoop: VerificationFeedbackLoop;
   private scrollPosition: number = 0; // Track scroll position for restoration
   private sentenceClaimMapper: SentenceClaimMapper;
-  private fuzzyQuoteMatcher: FuzzyQuoteMatcher;
+  private unifiedQuoteSearch: UnifiedQuoteSearch;
 
   constructor(
     private extensionState: ExtensionState,
@@ -49,8 +49,8 @@ export class ClaimReviewProvider {
     const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || '';
     this.literatureIndexer = new LiteratureIndexer(workspaceRoot);
     
-    // Initialize fuzzy quote matcher for fallback
-    this.fuzzyQuoteMatcher = new FuzzyQuoteMatcher(workspaceRoot);
+    // Initialize unified quote search for quote verification
+    this.unifiedQuoteSearch = new UnifiedQuoteSearch(this.literatureIndexer, workspaceRoot);
     
     // Initialize verification feedback loop with workspace root for cache
     this.verificationFeedbackLoop = new VerificationFeedbackLoop(
@@ -294,19 +294,19 @@ export class ClaimReviewProvider {
                 embeddingResults[0]?.similarity.toFixed(3), 'in', embeddingResults[0]?.metadata.sourceFile);
             }
             
-            // ALWAYS run fuzzy matching - it may find better exact matches
-            console.log('[ClaimReview] Running fuzzy matching...');
-            const fuzzyResults = await this.fuzzyQuoteMatcher.searchQuote(quoteText, 5);
+            // ALWAYS run unified quote search - combines embedding and fuzzy matching
+            console.log('[ClaimReview] Running unified quote search...');
+            const searchResults = await this.unifiedQuoteSearch.search(quoteText, 5);
             
             let fuzzyAlternatives: any[] = [];
-            if (fuzzyResults.length > 0) {
-              fuzzyAlternatives = fuzzyResults.map(result => ({
-                source: result.fileName.replace(/\.txt$/, '').replace(/ - /g, ' '),
+            if (searchResults.length > 0) {
+              fuzzyAlternatives = searchResults.map(result => ({
+                source: result.sourceFile.replace(/\.txt$/, '').replace(/ - /g, ' '),
                 similarity: result.similarity,
                 matchedText: result.matchedText,
                 context: `Lines ${result.startLine}-${result.endLine}`,
                 metadata: {
-                  sourceFile: result.fileName,
+                  sourceFile: result.sourceFile,
                   startLine: result.startLine,
                   endLine: result.endLine
                 }
@@ -430,18 +430,18 @@ export class ClaimReviewProvider {
                 }));
             }
             
-            // ALWAYS run fuzzy matching
-            const fuzzyResults = await this.fuzzyQuoteMatcher.searchQuote(quoteText, 5);
+            // ALWAYS run unified quote search
+            const searchResults = await this.unifiedQuoteSearch.search(quoteText, 5);
             
             let fuzzyAlternatives: any[] = [];
-            if (fuzzyResults.length > 0) {
-              fuzzyAlternatives = fuzzyResults.map(matchResult => ({
-                source: matchResult.fileName.replace(/\.txt$/, '').replace(/ - /g, ' '),
+            if (searchResults.length > 0) {
+              fuzzyAlternatives = searchResults.map(matchResult => ({
+                source: matchResult.sourceFile.replace(/\.txt$/, '').replace(/ - /g, ' '),
                 similarity: matchResult.similarity,
                 matchedText: matchResult.matchedText,
                 context: `Lines ${matchResult.startLine}-${matchResult.endLine}`,
                 metadata: {
-                  sourceFile: matchResult.fileName,
+                  sourceFile: matchResult.sourceFile,
                   startLine: matchResult.startLine,
                   endLine: matchResult.endLine
                 }

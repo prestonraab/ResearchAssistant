@@ -2,9 +2,8 @@ import { MCPClientManager, VerificationResult, VerificationReport } from '../mcp
 import { ClaimsManager } from './claimsManagerWrapper';
 import { QuoteVerificationCache } from '@research-assistant/core';
 import type { Claim } from '@research-assistant/core';
-import { HybridQuoteSearch } from '../services/hybridQuoteSearch';
+import { UnifiedQuoteSearch } from '../services/unifiedQuoteSearch';
 import { LiteratureIndexer } from '../services/literatureIndexer';
-import { FuzzyQuoteMatcher } from '../services/fuzzyQuoteMatcher';
 
 export interface QuoteVerificationResult {
   claimId: string;
@@ -34,7 +33,7 @@ export interface BatchVerificationResult {
 export class QuoteVerificationService {
   private cache: QuoteVerificationCache | null = null;
   private cacheReady: Promise<void>;
-  private hybridQuoteSearch: HybridQuoteSearch;
+  private unifiedQuoteSearch: UnifiedQuoteSearch;
 
   constructor(
     private mcpClient: MCPClientManager,
@@ -51,11 +50,10 @@ export class QuoteVerificationService {
       this.cacheReady = Promise.resolve();
     }
     
-    // Initialize hybrid search service
+    // Initialize unified quote search service
     const root = workspaceRoot || '';
     const literatureIndexer = new LiteratureIndexer(root);
-    const fuzzyQuoteMatcher = new FuzzyQuoteMatcher(root);
-    this.hybridQuoteSearch = new HybridQuoteSearch(literatureIndexer, fuzzyQuoteMatcher);
+    this.unifiedQuoteSearch = new UnifiedQuoteSearch(literatureIndexer, root);
   }
 
   /**
@@ -95,8 +93,8 @@ export class QuoteVerificationService {
     }
 
     try {
-      // Use hybrid search to find best match
-      const bestMatch = await this.hybridQuoteSearch.findBestMatch(quote);
+      // Use unified quote search to find best match
+      const bestMatch = await this.unifiedQuoteSearch.findBestMatch(quote);
       
       // Determine if verified (similarity >= 0.9)
       const verified = bestMatch ? bestMatch.similarity >= 0.9 : false;

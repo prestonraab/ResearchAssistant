@@ -697,6 +697,67 @@ export function registerManuscriptCommands(
       }
     }),
 
+    vscode.commands.registerCommand('researchAssistant.exportManuscriptLatex', async () => {
+      if (!extensionState) {
+        vscode.window.showErrorMessage('Extension state not initialized');
+        return;
+      }
+
+      try {
+        // Load manuscript
+        const manuscriptPath = extensionState.getAbsolutePath('03_Drafting/manuscript.md');
+        if (!fs.existsSync(manuscriptPath)) {
+          vscode.window.showErrorMessage('Manuscript file not found at 03_Drafting/manuscript.md');
+          return;
+        }
+
+        const manuscriptText = fs.readFileSync(manuscriptPath, 'utf-8');
+
+        // Prompt for export location
+        const uri = await vscode.window.showSaveDialog({
+          defaultUri: vscode.Uri.file('manuscript-export.tex'),
+          filters: {
+            'LaTeX Document': ['tex']
+          }
+        });
+
+        if (!uri) {
+          return;
+        }
+
+        await vscode.window.withProgress(
+          {
+            location: vscode.ProgressLocation.Notification,
+            title: 'Exporting manuscript to LaTeX',
+            cancellable: false
+          },
+          async () => {
+            const options: ManuscriptExportOptions = {
+              outputPath: uri.fsPath,
+              includeFootnotes: true,
+              includeBibliography: true,
+              footnoteStyle: 'native',
+              footnoteScope: 'document'
+            };
+
+            await extensionState!.exportService.exportManuscriptLatex(manuscriptText, options);
+
+            vscode.window.showInformationMessage(
+              `Manuscript exported successfully to ${uri.fsPath}`,
+              'Open File'
+            ).then(action => {
+              if (action === 'Open File') {
+                vscode.commands.executeCommand('vscode.open', uri);
+              }
+            });
+          }
+        );
+      } catch (error) {
+        vscode.window.showErrorMessage(`Export failed: ${error}`);
+        logger?.error('LaTeX export error:', error);
+      }
+    }),
+
     // Performance benchmark commands
     vscode.commands.registerCommand('researchAssistant.runPerformanceBenchmarks', async () => {
       try {

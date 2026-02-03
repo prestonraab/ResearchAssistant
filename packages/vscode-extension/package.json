@@ -170,6 +170,46 @@
         "command": "researchAssistant.exportManuscriptWord",
         "title": "Research Assistant: Export Manuscript as Word",
         "icon": "$(file-word)"
+      },
+      {
+        "command": "researchAssistant.exportManuscriptLatex",
+        "title": "Research Assistant: Export Manuscript as LaTeX",
+        "icon": "$(file-code)"
+      },
+      {
+        "command": "researchAssistant.markPaperUnread",
+        "title": "Mark as Unread",
+        "icon": "$(circle-outline)"
+      },
+      {
+        "command": "researchAssistant.markPaperSomeRead",
+        "title": "Mark as Partially Read",
+        "icon": "$(circle-half-filled)"
+      },
+      {
+        "command": "researchAssistant.markPaperSkimmed",
+        "title": "Mark as Skimmed",
+        "icon": "$(eye)"
+      },
+      {
+        "command": "researchAssistant.markPaperRead",
+        "title": "Mark as Read",
+        "icon": "$(check)"
+      },
+      {
+        "command": "researchAssistant.markPaperDeeplyRead",
+        "title": "Mark as Deeply Read",
+        "icon": "$(star-full)"
+      },
+      {
+        "command": "researchAssistant.setPaperReadingStatus",
+        "title": "Set Reading Status",
+        "icon": "$(list-selection)"
+      },
+      {
+        "command": "researchAssistant.showReadingStatistics",
+        "title": "Research Assistant: Show Reading Statistics",
+        "icon": "$(graph)"
       }
     ],
     "viewsContainers": {
@@ -250,6 +290,11 @@
           "command": "researchAssistant.syncPDFsFromZotero",
           "when": "view == researchAssistant.papers",
           "group": "navigation@1"
+        },
+        {
+          "command": "researchAssistant.showReadingStatistics",
+          "when": "view == researchAssistant.papers",
+          "group": "navigation@2"
         }
       ],
       "view/item/context": [
@@ -287,6 +332,36 @@
           "command": "researchAssistant.extractPdf",
           "when": "view == researchAssistant.papers && viewItem == pdfNeedsExtraction",
           "group": "1_extraction@1"
+        },
+        {
+          "command": "researchAssistant.setPaperReadingStatus",
+          "when": "view == researchAssistant.papers && (viewItem == pdfExtracted || viewItem == extractedOnly)",
+          "group": "2_reading@1"
+        },
+        {
+          "command": "researchAssistant.markPaperUnread",
+          "when": "view == researchAssistant.papers && (viewItem == pdfExtracted || viewItem == extractedOnly)",
+          "group": "2_reading@2"
+        },
+        {
+          "command": "researchAssistant.markPaperSomeRead",
+          "when": "view == researchAssistant.papers && (viewItem == pdfExtracted || viewItem == extractedOnly)",
+          "group": "2_reading@3"
+        },
+        {
+          "command": "researchAssistant.markPaperSkimmed",
+          "when": "view == researchAssistant.papers && (viewItem == pdfExtracted || viewItem == extractedOnly)",
+          "group": "2_reading@4"
+        },
+        {
+          "command": "researchAssistant.markPaperRead",
+          "when": "view == researchAssistant.papers && (viewItem == pdfExtracted || viewItem == extractedOnly)",
+          "group": "2_reading@5"
+        },
+        {
+          "command": "researchAssistant.markPaperDeeplyRead",
+          "when": "view == researchAssistant.papers && (viewItem == pdfExtracted || viewItem == extractedOnly)",
+          "group": "2_reading@6"
         }
       ]
     },
@@ -439,6 +514,7 @@
     "typescript": "^5.3.0"
   },
   "dependencies": {
-    "@research-assistant/core": "*"
+    "@research-assistant/core": "*",
+    "docx": "^9.5.1"
   }
 }

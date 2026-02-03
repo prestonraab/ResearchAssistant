@@ -1,9 +1,11 @@
 import * as vscode from 'vscode';
 import * as https from 'https';
+import { TextNormalizer } from './textNormalizer';
 
 /**
  * Service for generating embeddings using OpenAI API
  * Caches embeddings in memory to avoid redundant API calls
+ * Normalizes text before embedding to handle OCR artifacts
  */
 export class EmbeddingService {
   private apiKey: string;
@@ -30,6 +32,7 @@ export class EmbeddingService {
 
   /**
    * Generate embedding for text
+   * Normalizes text before embedding to improve quality
    */
   async embed(text: string): Promise<number[] | null> {
     if (!this.apiKey) {
@@ -37,14 +40,17 @@ export class EmbeddingService {
       return null;
     }
 
-    // Check cache first
-    const cached = this.cache.get(text);
+    // Normalize text to handle OCR artifacts
+    const normalizedText = TextNormalizer.normalizeForEmbedding(text);
+
+    // Check cache first (using normalized text as key)
+    const cached = this.cache.get(normalizedText);
     if (cached) {
       return cached;
     }
 
     try {
-      const embedding = await this.callOpenAIAPI(text);
+      const embedding = await this.callOpenAIAPI(normalizedText);
       
       // Cache result
       if (this.cache.size >= this.CACHE_SIZE) {
@@ -54,7 +60,7 @@ export class EmbeddingService {
           this.cache.delete(firstKey);
         }
       }
-      this.cache.set(text, embedding);
+      this.cache.set(normalizedText, embedding);
 
       return embedding;
     } catch (error) {

@@ -1,5 +1,6 @@
 import { ClaimsManager } from './claimsManagerWrapper';
 import type { EmbeddingService } from '@research-assistant/core';
+import { TextNormalizer } from '../services/textNormalizer';
 
 /**
  * ClaimMatchingService - Finds similar claims for sentences
@@ -47,7 +48,7 @@ export class ClaimMatchingService {
           const claimEmbedding = await this.embeddingService.generateEmbedding(claim.text);
 
           if (claimEmbedding) {
-            const similarity = this.cosineSimilarity(sentenceEmbedding, claimEmbedding);
+            const similarity = TextNormalizer.cosineSimilarity(sentenceEmbedding, claimEmbedding);
 
             if (similarity >= threshold) {
               similarities.push({ claim, similarity });
@@ -77,23 +78,6 @@ export class ClaimMatchingService {
       console.error('Error finding similar claims:', error);
       return [];
     }
-  }
-
-  /**
-   * Calculate cosine similarity between two embeddings
-   */
-  private cosineSimilarity(a: number[], b: number[]): number {
-    let dotProduct = 0;
-    let normA = 0;
-    let normB = 0;
-
-    for (let i = 0; i < a.length; i++) {
-      dotProduct += a[i] * b[i];
-      normA += a[i] * a[i];
-      normB += b[i] * b[i];
-    }
-
-    return dotProduct / (Math.sqrt(normA) * Math.sqrt(normB));
   }
 
   /**
@@ -132,7 +116,7 @@ export class ClaimMatchingService {
         return false;
       }
 
-      const similarity = this.cosineSimilarity(sentenceEmbedding, claimEmbedding);
+      const similarity = TextNormalizer.cosineSimilarity(sentenceEmbedding, claimEmbedding);
       return similarity >= threshold;
     } catch (error) {
       console.error('Error checking similarity:', error);
@@ -175,7 +159,7 @@ export class ClaimMatchingService {
         return 0;
       }
 
-      return this.cosineSimilarity(sentenceEmbedding, claimEmbedding);
+      return TextNormalizer.cosineSimilarity(sentenceEmbedding, claimEmbedding);
     } catch (error) {
       console.error('Error calculating similarity score:', error);
       return 0;

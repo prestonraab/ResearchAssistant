@@ -240,6 +240,33 @@ export type {
   ExtractionResult,
 } from './types/index.js';
 
+/**
+ * Zotero Integration Models
+ * 
+ * Types for Zotero PDF integration and highlight import.
+ */
+export type {
+  ZoteroQuoteMetadata,
+  ZoteroAnnotation,
+  ZoteroAnnotationPosition,
+  FuzzyMatchResult,
+  ZoteroSyncState,
+  ZoteroAnnotationAuditEntry,
+  AnnotationKeyValidation,
+  ZoteroImportResult,
+  ZoteroImportOptions,
+  SourcedQuote,
+} from './types/index.js';
+
+/**
+ * Sync Models
+ * 
+ * Types for sync operations and results.
+ */
+export type {
+  SyncResult,
+} from './services/SyncManager.js';
+
 // ============================================================================
 // Manager Exports
 // ============================================================================
@@ -250,6 +277,13 @@ export type {
  * Handles loading and querying claims from the workspace.
  */
 export { ClaimsManager } from './managers/ClaimsManager.js';
+
+/**
+ * Quote Manager
+ * 
+ * Handles storage, retrieval, and management of quotes with Zotero integration.
+ */
+export { QuoteManager } from './managers/QuoteManager.js';
 
 // ============================================================================
 // Service Exports
@@ -331,6 +365,17 @@ export {
   QuoteVerifier,
   ClaimsProvider
 } from './services/QuoteVerificationService.js';
+
+/**
+ * Zotero Import Manager
+ * 
+ * Orchestrates the import of Zotero highlights as quotes with fuzzy matching.
+ */
+export {
+  ZoteroImportManager,
+  type ZoteroMCPClient,
+  type FuzzyMatcherService,
+} from './services/ZoteroImportManager.js';
 
 // ============================================================================
 // Caching Services
