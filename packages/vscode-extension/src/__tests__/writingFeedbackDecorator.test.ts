@@ -7,12 +7,11 @@ describe('WritingFeedbackDecorator', () => {
   setupTest();
 
   let decorator: WritingFeedbackDecorator;
-  let mockExtensionState: jest.Mocked<ExtensionState>;
-  let mockEditor: jest.Mocked<vscode.TextEditor>;
-  let mockDocument: jest.Mocked<vscode.TextDocument>;
+  let mockExtensionState: jest.Mocked<any>;
+  let mockEditor: jest.Mocked<any>;
+  let mockDocument: jest.Mocked<any>;
 
   beforeEach(() => {
-    // Create mock extension state
     mockExtensionState = {
       getAbsolutePath: jest.fn((path: string) => `/workspace/${path}`),
       claimsManager: {
@@ -29,7 +28,6 @@ describe('WritingFeedbackDecorator', () => {
       }
     } as any;
 
-    // Create mock document
     mockDocument = {
       languageId: 'markdown',
       uri: {
@@ -39,7 +37,6 @@ describe('WritingFeedbackDecorator', () => {
       positionAt: jest.fn((offset: number) => new vscode.Position(0, offset))
     } as any;
 
-    // Create mock editor
     mockEditor = {
       document: mockDocument,
       setDecorations: jest.fn()

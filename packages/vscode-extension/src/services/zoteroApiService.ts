@@ -150,8 +150,8 @@ export class ZoteroApiService {
     try {
       const cacheKey = `items_${limit}_${start}`;
       const cached = this.getFromCache(cacheKey);
-      if (cached) {
-        return cached;
+      if (cached && Array.isArray(cached)) {
+        return cached as ZoteroItem[];
       }
 
       const response = await this.makeRequest(
@@ -162,7 +162,7 @@ export class ZoteroApiService {
         throw new Error(`Failed to fetch items: ${response.status}`);
       }
 
-      const items = response.data as ZoteroItem[];
+      const items = (Array.isArray(response.data) ? response.data : []) as ZoteroItem[];
       this.setCache(cacheKey, items);
       return items;
     } catch (error) {
@@ -192,8 +192,8 @@ export class ZoteroApiService {
       // Build cache key
       const cacheKey = `collection_items_${collectionKey}_${limit || 'all'}`;
       const cached = this.getFromCache(cacheKey);
-      if (cached) {
-        return cached;
+      if (cached && Array.isArray(cached)) {
+        return cached as ZoteroItem[];
       }
 
       // Build API endpoint with optional limit
@@ -213,7 +213,7 @@ export class ZoteroApiService {
         throw new Error(`Failed to fetch collection items: ${response.status}`);
       }
 
-      const items = response.data as ZoteroItem[];
+      const items = (Array.isArray(response.data) ? response.data : []) as ZoteroItem[];
       this.setCache(cacheKey, items);
       
       this.getLogger().info(`Fetched ${items.length} items from collection ${collectionKey}`);
@@ -244,8 +244,8 @@ export class ZoteroApiService {
       // Build cache key
       const cacheKey = `recent_items_${limit}`;
       const cached = this.getFromCache(cacheKey);
-      if (cached) {
-        return cached;
+      if (cached && Array.isArray(cached)) {
+        return cached as ZoteroItem[];
       }
 
       // Build API endpoint with sort parameters
@@ -258,7 +258,7 @@ export class ZoteroApiService {
         throw new Error(`Failed to fetch recent items: ${response.status}`);
       }
 
-      const items = response.data as ZoteroItem[];
+      const items = (Array.isArray(response.data) ? response.data : []) as ZoteroItem[];
       this.setCache(cacheKey, items);
       
       this.getLogger().info(`Fetched ${items.length} recent items`);
@@ -276,8 +276,8 @@ export class ZoteroApiService {
     try {
       const cacheKey = `item_${itemKey}`;
       const cached = this.getFromCache(cacheKey);
-      if (cached) {
-        return cached;
+      if (cached && typeof cached === 'object' && 'key' in cached) {
+        return cached as ZoteroItem;
       }
 
       const response = await this.makeRequest(
@@ -304,8 +304,8 @@ export class ZoteroApiService {
     try {
       const cacheKey = `annotations_${itemKey}`;
       const cached = this.getFromCache(cacheKey);
-      if (cached) {
-        return cached;
+      if (cached && Array.isArray(cached)) {
+        return cached as ZoteroAnnotation[];
       }
 
       // Get child items (annotations are stored as child items)
@@ -317,7 +317,7 @@ export class ZoteroApiService {
         throw new Error(`Failed to fetch annotations: ${response.status}`);
       }
 
-      const annotations = (response.data as any[]).map(item => ({
+      const annotations = (Array.isArray(response.data) ? response.data : []).map((item: any) => ({
         key: item.key,
         type: item.data.annotationType || 'note',
         text: item.data.annotationText || item.data.text || '',
@@ -362,9 +362,9 @@ export class ZoteroApiService {
         return [];
       }
 
-      const attachments = (response.data as any[])
-        .filter(item => item.data.contentType === 'application/pdf')
-        .map(item => ({
+      const attachments = (Array.isArray(response.data) ? response.data : [])
+        .filter((item: any) => item.data.contentType === 'application/pdf')
+        .map((item: any) => ({
           key: item.key,
           title: item.data.title,
           itemType: item.data.itemType,
@@ -401,8 +401,8 @@ export class ZoteroApiService {
       // Check cache first
       const cacheKey = `item_children_${itemKey}`;
       const cached = this.getFromCache(cacheKey);
-      if (cached) {
-        return cached;
+      if (cached && Array.isArray(cached)) {
+        return cached as ZoteroAttachment[];
       }
 
       // Fetch all children
@@ -416,12 +416,12 @@ export class ZoteroApiService {
       }
 
       // Filter for attachment items only and map to ZoteroAttachment interface
-      const attachments = (response.data as any[])
-        .filter(item => {
+      const attachments = (Array.isArray(response.data) ? response.data : [])
+        .filter((item: any) => {
           const data = item.data || item;
           return data.itemType === 'attachment';
         })
-        .map(item => {
+        .map((item: any) => {
           const data = item.data || item;
           return {
             key: item.key || data.key,
@@ -465,9 +465,9 @@ export class ZoteroApiService {
       // Check cache first
       const cacheKey = `semantic_search_${query}_${limit}`;
       const cached = this.getFromCache(cacheKey);
-      if (cached) {
+      if (cached && Array.isArray(cached)) {
         this.getLogger().info('Returning cached semantic search results');
-        return cached;
+        return cached as ZoteroItem[];
       }
 
       // Check if EmbeddingService is available
@@ -537,9 +537,9 @@ export class ZoteroApiService {
       // Return cached results if available
       const cacheKey = `semantic_search_${query}_${limit}`;
       const cached = this.getFromCache(cacheKey);
-      if (cached) {
+      if (cached && Array.isArray(cached)) {
         this.getLogger().info('Returning cached results after error');
-        return cached;
+        return cached as ZoteroItem[];
       }
       
       // Return empty array as fallback
@@ -707,7 +707,8 @@ export class ZoteroApiService {
 
       if (response.status === 200 || response.status === 201) {
         // Extract the created item key from response
-        const createdItems = response.data?.successful || response.data;
+        const responseData = response.data as any;
+        const createdItems = responseData?.successful || responseData;
         if (createdItems && createdItems['0']) {
           const itemKey = createdItems['0'].key;
           this.getLogger().info(`Created Zotero item: ${itemKey}`);

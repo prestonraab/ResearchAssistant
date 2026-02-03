@@ -394,7 +394,6 @@ export {
   SyncManager,
   type SyncState,
   type AnnotationQueryService,
-  type ZoteroAnnotation,
 } from './services/SyncManager.js';
 
 // ============================================================================

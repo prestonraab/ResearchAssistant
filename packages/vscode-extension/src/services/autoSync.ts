@@ -79,7 +79,7 @@ export async function autoSyncPDFs(state: ExtensionState, papersProvider: Papers
         const item = results[0];
         const children = await state.zoteroClient.getPdfAttachments(item.key);
 
-        const pdfAttachment = children.find((child: PdfAttachment) =>
+        const pdfAttachment = children.find((child) =>
           child.contentType === 'application/pdf' ||
           child.title?.endsWith('.pdf')
         );

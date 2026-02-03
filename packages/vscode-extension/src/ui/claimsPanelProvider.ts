@@ -193,13 +193,58 @@ export class ClaimsPanelProvider implements vscode.WebviewViewProvider {
       return;
     }
 
-    vscode.window.showInformationMessage('Quote verification feature coming soon');
-    // Quote verification via Citation MCP is not yet implemented.
-    // When available, this would call:
-    // this._extensionState.quoteVerificationService.verifyQuote(
-    //   claim.primaryQuote?.text,
-    //   claim.primaryQuote?.source
-    // );
+    // Check if claim has a primary quote to verify
+    if (!claim.primaryQuote || !claim.primaryQuote.text) {
+      vscode.window.showWarningMessage(
+        'This claim does not have a primary quote to verify.'
+      );
+      return;
+    }
+
+    // Show progress while verifying
+    await vscode.window.withProgress(
+      {
+        location: vscode.ProgressLocation.Notification,
+        title: 'Verifying quote...',
+        cancellable: false
+      },
+      async () => {
+        try {
+          const result = await this._extensionState.quoteVerificationService.verifyClaim(claimId);
+
+          if (result.error) {
+            vscode.window.showErrorMessage(
+              `Quote verification failed: ${result.error}`
+            );
+            return;
+          }
+
+          // Show verification result
+          const similarityPercent = Math.round(result.similarity * 100);
+          const status = result.verified ? '✓ Verified' : '✗ Not Verified';
+          
+          const message = `${status} (${similarityPercent}% similarity)${
+            result.closestMatch ? `\n\nClosest match: "${result.closestMatch}"` : ''
+          }`;
+
+          if (result.verified) {
+            vscode.window.showInformationMessage(message);
+          } else {
+            vscode.window.showWarningMessage(message);
+          }
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+          vscode.window.showErrorMessage(
+            `Failed to verify quote: ${errorMessage}`,
+            'Retry'
+          ).then(action => {
+            if (action === 'Retry') {
+              this._verifyClaim(claimId);
+            }
+          });
+        }
+      }
+    );
   }
 
   private async _reassignClaim(claimId: string) {

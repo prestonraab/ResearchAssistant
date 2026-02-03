@@ -4,6 +4,7 @@ import { ClaimsManager } from './claimsManagerWrapper';
 import { ClaimExtractor } from './claimExtractor';
 import { OutlineParser } from './outlineParserWrapper';
 import { EmbeddingService } from '@research-assistant/core';
+import { AutoQuoteVerifier } from './autoQuoteVerifier';
 import type { Claim } from '@research-assistant/core';
 
 export interface QuickClaimForm {
@@ -33,6 +34,7 @@ export class QuickClaimExtractor {
   private claimExtractor: ClaimExtractor;
   private outlineParser: OutlineParser;
   private embeddingService: EmbeddingService;
+  private autoQuoteVerifier: AutoQuoteVerifier;
   private extractedTextPath: string;
   private disposables: vscode.Disposable[] = [];
 
@@ -41,12 +43,14 @@ export class QuickClaimExtractor {
     claimExtractor: ClaimExtractor,
     outlineParser: OutlineParser,
     embeddingService: EmbeddingService,
+    autoQuoteVerifier: AutoQuoteVerifier,
     extractedTextPath: string
   ) {
     this.claimsManager = claimsManager;
     this.claimExtractor = claimExtractor;
     this.outlineParser = outlineParser;
     this.embeddingService = embeddingService;
+    this.autoQuoteVerifier = autoQuoteVerifier;
     this.extractedTextPath = extractedTextPath;
   }
 
@@ -385,6 +389,10 @@ export class QuickClaimExtractor {
   /**
    * Save claim to database and trigger background verification.
    * Validates: Requirement 42.5
+   * 
+   * Background verification is triggered asynchronously via AutoQuoteVerifier
+   * to avoid blocking the UI. The claim is saved immediately as unverified,
+   * and verification status is updated in the background.
    */
   async saveAndVerify(claim: Claim): Promise<void> {
     try {
@@ -401,9 +409,11 @@ export class QuickClaimExtractor {
         }
       });
 
-      // Background verification is not yet implemented.
-      // When available, this would call Citation_MCP to verify the quote.
-      // Claims are saved as unverified and can be verified manually later.
+      // Trigger background verification (non-blocking)
+      // The AutoQuoteVerifier will queue the claim for verification and process it
+      // in the background without blocking the UI. Verification results are
+      // automatically updated in the claims database when complete.
+      this.autoQuoteVerifier.verifyOnSave(claim);
       
     } catch (error) {
       console.error('Error saving claim:', error);

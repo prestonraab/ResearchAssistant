@@ -211,7 +211,7 @@ export class EmbeddingStore {
         filePath: snippet.filePath,
         fileName: snippet.fileName,
         text: snippet.text,
-        embedding: Array.from(quantized), // Store as array for JSON serialization
+        embedding: quantized, // Keep as Int8Array
         embeddingMetadata: { min, max },
         startLine: snippet.startLine,
         endLine: snippet.endLine,
@@ -238,14 +238,22 @@ export class EmbeddingStore {
    * Get all snippets (loads from disk, not cached)
    */
   getAllSnippets(): EmbeddedSnippet[] {
-    return this.index.snippets;
+    return this.index.snippets.map(s => ({
+      ...s,
+      embedding: Array.from(s.embedding)
+    }));
   }
 
   /**
    * Get snippets from specific file
    */
   getSnippetsFromFile(filePath: string): EmbeddedSnippet[] {
-    return this.index.snippets.filter(s => s.filePath === filePath);
+    return this.index.snippets
+      .filter(s => s.filePath === filePath)
+      .map(s => ({
+        ...s,
+        embedding: Array.from(s.embedding)
+      }));
   }
 
   /**

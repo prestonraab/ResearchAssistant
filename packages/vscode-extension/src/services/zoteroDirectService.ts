@@ -2,17 +2,7 @@ import * as https from 'https';
 import * as http from 'http';
 import * as vscode from 'vscode';
 import type { ZoteroItemResponse, ZoteroCreator, HttpResponse } from '../types';
-
-export interface ZoteroItem {
-  id: string;
-  itemKey: string;
-  title: string;
-  authors: string[];
-  year?: number;
-  abstract?: string;
-  url?: string;
-  doi?: string;
-}
+import type { ZoteroItem } from '@research-assistant/core';
 
 interface CacheEntry<T> {
   data: T;
@@ -27,7 +17,7 @@ export class ZoteroDirectService {
   private apiKey: string;
   private userId: string;
   private baseUrl = 'https://api.zotero.org';
-  private cache: Map<string, CacheEntry<ZoteroItem[]>> = new Map();
+  private cache: Map<string, CacheEntry<unknown>> = new Map();
   private readonly CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
   constructor(apiKey?: string, userId?: string) {
@@ -61,9 +51,9 @@ export class ZoteroDirectService {
 
     const cacheKey = `search:${query}:${limit}`;
     const cached = this.getFromCache(cacheKey);
-    if (cached) {
+    if (cached && Array.isArray(cached)) {
       console.log('[ZoteroDirectService] Returning cached results for query:', query);
-      return cached;
+      return cached as ZoteroItem[];
     }
 
     try {
@@ -107,8 +97,8 @@ export class ZoteroDirectService {
 
     const cacheKey = `item:${itemKey}`;
     const cached = this.getFromCache(cacheKey);
-    if (cached) {
-      return cached;
+    if (cached && typeof cached === 'object' && 'key' in cached) {
+      return cached as ZoteroItem;
     }
 
     try {
@@ -143,7 +133,7 @@ export class ZoteroDirectService {
         return [];
       }
 
-      return items.map(item => this.parseZoteroItem(item)).filter(Boolean) as ZoteroItem[];
+      return items.map(item => this.parseZoteroItem(item)).filter((item): item is ZoteroItem => item !== null);
     } catch (error) {
       console.error('Failed to get recent items:', error);
       return [];
@@ -160,8 +150,8 @@ export class ZoteroDirectService {
 
     const cacheKey = 'collections';
     const cached = this.getFromCache(cacheKey);
-    if (cached) {
-      return cached;
+    if (cached && Array.isArray(cached)) {
+      return cached as Array<{ key: string; name: string; parentCollection?: string }>;
     }
 
     try {
@@ -172,10 +162,10 @@ export class ZoteroDirectService {
         return [];
       }
 
-      const results = collections.map((col: ZoteroItemResponse) => ({
+      const results = collections.map((col: any) => ({
         key: col.key || col.data?.key || '',
-        name: col.data?.name || (col as Record<string, unknown>).name || 'Unnamed Collection',
-        parentCollection: col.data?.parentCollection || (col as Record<string, unknown>).parentCollection
+        name: col.data?.name || col.name || 'Unnamed Collection',
+        parentCollection: col.data?.parentCollection || col.parentCollection
       }));
 
       this.setCache(cacheKey, results);
@@ -196,8 +186,8 @@ export class ZoteroDirectService {
 
     const cacheKey = `collection:${collectionKey}:${limit || 'all'}`;
     const cached = this.getFromCache(cacheKey);
-    if (cached) {
-      return cached;
+    if (cached && Array.isArray(cached)) {
+      return cached as ZoteroItem[];
     }
 
     try {
@@ -236,8 +226,15 @@ export class ZoteroDirectService {
 
     const cacheKey = `children:${itemKey}`;
     const cached = this.getFromCache(cacheKey);
-    if (cached) {
-      return cached;
+    if (cached && Array.isArray(cached)) {
+      return cached as Array<{
+        key: string;
+        itemType: string;
+        contentType?: string;
+        filename?: string;
+        title?: string;
+        data: Record<string, unknown>;
+      }>;
     }
 
     try {
@@ -250,7 +247,7 @@ export class ZoteroDirectService {
       }
 
       // Parse children to extract useful info
-      const results = children.map((child: ZoteroItemResponse) => {
+      const results = children.map((child: any) => {
         const data = (child.data || child) as Record<string, unknown>;
         return {
           key: child.key || data.key || '',
@@ -280,7 +277,7 @@ export class ZoteroDirectService {
 
     const cacheKey = `fulltext:${itemKey}`;
     const cached = this.getFromCache(cacheKey);
-    if (cached) {
+    if (cached && typeof cached === 'string') {
       return cached;
     }
 
@@ -305,7 +302,7 @@ export class ZoteroDirectService {
   /**
    * Parse Zotero API response into ZoteroItem
    */
-  private parseZoteroItem(item: ZoteroItemResponse): ZoteroItem | null {
+  private parseZoteroItem(item: any): ZoteroItem | null {
     try {
       const data = (item.data || item) as Record<string, unknown>;
       
@@ -313,29 +310,31 @@ export class ZoteroDirectService {
         return null;
       }
 
-      // Extract authors from creators array
-      const authors: string[] = [];
-      const creators = data.creators as ZoteroCreator[] | undefined;
-      if (creators && Array.isArray(creators)) {
-        creators.forEach((creator: ZoteroCreator) => {
-          if (creator.lastName) {
-            authors.push(creator.lastName);
-          }
-        });
-      }
+      // Extract creators array
+      const creators = data.creators as any[] | undefined;
+      const creatorArray = creators && Array.isArray(creators) 
+        ? creators.map((creator: any) => ({
+            name: creator.name,
+            firstName: creator.firstName,
+            lastName: creator.lastName,
+            creatorType: creator.creatorType
+          }))
+        : undefined;
 
       const dateStr = data.date as string | undefined;
       const year = dateStr ? parseInt(dateStr.split('-')[0]) : undefined;
 
       return {
-        id: item.key || (data.key as string) || '',
-        itemKey: item.key || (data.key as string) || '',
+        key: item.key || (data.key as string) || '',
         title: (data.title as string) || '',
-        authors: authors.length > 0 ? authors : ['Unknown'],
-        year: isNaN(year || 0) ? undefined : year,
-        abstract: (data.abstractNote as string) || (data.abstract as string) || undefined,
-        url: (data.url as string) || undefined,
-        doi: (data.DOI as string) || (data.doi as string) || undefined
+        itemType: (data.itemType as string) || 'journalArticle',
+        creators: creatorArray,
+        date: dateStr,
+        abstractNote: (data.abstractNote as string) || (data.abstract as string),
+        url: (data.url as string),
+        doi: (data.DOI as string) || (data.doi as string),
+        tags: (data.tags as string[]),
+        attachments: undefined
       };
     } catch (error) {
       console.error('Failed to parse Zotero item:', error);
@@ -388,7 +387,7 @@ export class ZoteroDirectService {
   /**
    * Get from cache
    */
-  private getFromCache(key: string): ZoteroItem[] | null {
+  private getFromCache(key: string): unknown {
     const entry = this.cache.get(key);
     if (!entry) {
       return null;
@@ -405,7 +404,7 @@ export class ZoteroDirectService {
   /**
    * Set cache
    */
-  private setCache(key: string, data: ZoteroItem[]): void {
+  private setCache(key: string, data: unknown): void {
     this.cache.set(key, {
       data,
       timestamp: Date.now()

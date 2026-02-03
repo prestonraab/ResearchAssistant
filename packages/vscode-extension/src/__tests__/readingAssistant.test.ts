@@ -49,11 +49,19 @@ describe('ReadingAssistant', () => {
 
     mockClaimsManager = createMockClaimsManager();
 
+    // Create mock outline parser
+    const mockOutlineParser = {
+      getSections: jest.fn().mockReturnValue([]),
+      parse: jest.fn().mockResolvedValue(undefined)
+    } as any;
+
     // Create reading assistant with mocks
     readingAssistant = new ReadingAssistant(
       mockClaimExtractor,
       mockReadingStatusManager,
       mockClaimsManager,
+      mockOutlineParser,
+      mockEmbeddingService,
       '/mock/workspace/literature/ExtractedText'
     );
   });

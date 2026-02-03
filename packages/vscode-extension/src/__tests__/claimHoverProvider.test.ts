@@ -8,7 +8,6 @@ import {
   createMockRange,
   createMockClaim,
   setupTest,
-  setupWordAtPosition,
   TEST_CLAIMS,
   aClaim
 } from './helpers';
@@ -17,9 +16,9 @@ describe('ClaimHoverProvider', () => {
   setupTest();
 
   let hoverProvider: ClaimHoverProvider;
-  let mockExtensionState: any;
-  let mockDocument: any;
-  let mockCancellationToken: any;
+  let mockExtensionState: ReturnType<typeof createMockExtensionState>;
+  let mockDocument: ReturnType<typeof createMockDocument>;
+  let mockCancellationToken: ReturnType<typeof createMockCancellationToken>;
 
   beforeEach(() => {
     mockExtensionState = createMockExtensionState();
@@ -31,7 +30,9 @@ describe('ClaimHoverProvider', () => {
   describe('Claim Reference Detection', () => {
     test('should detect valid claim reference pattern C_01', async () => {
       const position = createMockPosition(0, 5);
-      const { range } = setupWordAtPosition(mockDocument, 'C_01', 0, 3);
+      const range = createMockRange(0, 3, 0, 7);
+      mockDocument.getWordRangeAtPosition.mockReturnValue(range);
+      mockDocument.getText.mockReturnValue('C_01');
       
       const claim = aClaim()
         .withId('C_01')
@@ -52,7 +53,9 @@ describe('ClaimHoverProvider', () => {
 
     test('should detect claim reference C_99', async () => {
       const position = createMockPosition(0, 5);
-      setupWordAtPosition(mockDocument, 'C_99', 0, 3);
+      const range = createMockRange(0, 3, 0, 7);
+      mockDocument.getWordRangeAtPosition.mockReturnValue(range);
+      mockDocument.getText.mockReturnValue('C_99');
       
       const claim = aClaim()
         .withId('C_99')
@@ -100,9 +103,10 @@ describe('ClaimHoverProvider', () => {
   describe('Hover Content Rendering', () => {
     test('should render claim with all fields', async () => {
       const position = createMockPosition(0, 5);
-      const { range } = setupWordAtPosition(mockDocument, 'C_01', 0, 3);
+      const range = createMockRange(0, 3, 0, 7);
+      mockDocument.getWordRangeAtPosition.mockReturnValue(range);
+      mockDocument.getText.mockReturnValue('C_01');
       
-      // Use fixture with modifications
       const claim = {
         ...TEST_CLAIMS.method,
         supportingQuotes: ['Supporting quote 1', 'Supporting quote 2'],

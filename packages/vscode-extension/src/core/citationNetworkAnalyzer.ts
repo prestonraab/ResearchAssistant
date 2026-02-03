@@ -39,11 +39,11 @@ export class CitationNetworkAnalyzer {
       const node: CitationNode = {
         paperId: (paperObj.itemKey || paperObj.id) as string,
         title: (paperObj.title || 'Untitled') as string,
-        authors: paper.authors || [],
-        year: paper.year || 0,
+        authors: (paperObj.authors as string[]) || [],
+        year: (paperObj.year as number) || 0,
         citedBy: [],
         cites: [],
-        citationCount: paper.citationCount || 0,
+        citationCount: (paperObj.citationCount as number) || 0,
         inCollectionCitationCount: 0
       };
       this.nodes.set(node.paperId, node);
@@ -51,7 +51,8 @@ export class CitationNetworkAnalyzer {
 
     // Build citation relationships
     papers.forEach(paper => {
-      const paperId = paper.itemKey || paper.id;
+      const paperObj = paper as Record<string, unknown>;
+      const paperId = (paperObj.itemKey || paperObj.id) as string;
       const node = this.nodes.get(paperId);
       
       if (!node) {
@@ -59,11 +60,13 @@ export class CitationNetworkAnalyzer {
       }
 
       // Extract citations from paper metadata
-      if (paper.references && Array.isArray(paper.references)) {
-        paper.references.forEach((refId: string) => {
-          if (this.nodes.has(refId)) {
-            node.cites.push(refId);
-            const citedNode = this.nodes.get(refId);
+      const references = paperObj.references as unknown[];
+      if (references && Array.isArray(references)) {
+        references.forEach((refId: unknown) => {
+          const refIdStr = refId as string;
+          if (this.nodes.has(refIdStr)) {
+            node.cites.push(refIdStr);
+            const citedNode = this.nodes.get(refIdStr);
             if (citedNode) {
               citedNode.citedBy.push(paperId);
               citedNode.inCollectionCitationCount++;
@@ -73,11 +76,17 @@ export class CitationNetworkAnalyzer {
       }
 
       // Also check for DOI-based citations if available
-      if (paper.doi && paper.citedByDOIs && Array.isArray(paper.citedByDOIs)) {
-        paper.citedByDOIs.forEach((citingDOI: string) => {
+      const doi = paperObj.doi as string | undefined;
+      const citedByDOIs = paperObj.citedByDOIs as unknown[];
+      if (doi && citedByDOIs && Array.isArray(citedByDOIs)) {
+        citedByDOIs.forEach((citingDOI: unknown) => {
+          const citingDOIStr = citingDOI as string;
           // Find paper with this DOI in our collection
           const citingPaper = Array.from(this.nodes.values()).find(
-            n => papers.find(p => (p.itemKey === n.paperId || p.id === n.paperId) && p.doi === citingDOI)
+            n => papers.find(p => {
+              const pObj = p as Record<string, unknown>;
+              return (pObj.itemKey === n.paperId || pObj.id === n.paperId) && pObj.doi === citingDOIStr;
+            })
           );
           if (citingPaper && !node.citedBy.includes(citingPaper.paperId)) {
             node.citedBy.push(citingPaper.paperId);

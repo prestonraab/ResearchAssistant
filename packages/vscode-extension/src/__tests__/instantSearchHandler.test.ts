@@ -26,7 +26,7 @@ describe('InstantSearchHandler', () => {
   const workspaceRoot = '/test/workspace';
   const extractedTextPath = '/test/workspace/literature/ExtractedText';
 
-  const mockZoteroItem: ZoteroItem = aZoteroItem()
+  const mockZoteroItem = aZoteroItem()
     .withKey('ABC123')
     .withTitle('Test Paper on Machine Learning')
     .withAuthor('John', 'Smith')
@@ -45,7 +45,6 @@ describe('InstantSearchHandler', () => {
     .build();
 
   beforeEach(() => {
-    // Use factory functions for consistent mocks
     mockZoteroApiService = createMockZoteroApiService();
     mockManuscriptContextDetector = createMockManuscriptContextDetector();
 
@@ -56,7 +55,6 @@ describe('InstantSearchHandler', () => {
       extractedTextPath
     );
 
-    // Mock fs.existsSync - automatically cleaned up by setupTest()
     (fs.existsSync as jest.Mock).mockReturnValue(false);
   });
 

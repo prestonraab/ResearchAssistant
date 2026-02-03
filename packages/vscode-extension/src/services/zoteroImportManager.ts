@@ -155,7 +155,7 @@ export class ZoteroImportManager {
 
       for (const item of items) {
         if (item.attachments && item.attachments.length > 0) {
-          const hasPdf = item.attachments.some((a: Record<string, unknown>) => a.contentType === 'application/pdf');
+          const hasPdf = item.attachments.some((a) => a.contentType === 'application/pdf');
           if (hasPdf) {
             papersWithPdfs.push({
               key: item.key,

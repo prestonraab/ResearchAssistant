@@ -3,7 +3,9 @@ import * as path from 'path';
 import { ClaimExtractor } from './claimExtractor';
 import { ReadingStatusManager } from './readingStatusManager';
 import { ClaimsManager } from './claimsManagerWrapper';
-import type { PotentialClaim, Claim } from '@research-assistant/core';
+import type { PotentialClaim, Claim, OutlineSection } from '@research-assistant/core';
+import type { OutlineParser } from './outlineParserWrapper';
+import type { EmbeddingService } from '@research-assistant/core';
 
 /**
  * ReadingAssistant provides assistance during active reading of papers.
@@ -20,6 +22,8 @@ export class ReadingAssistant {
   private claimExtractor: ClaimExtractor;
   private readingStatusManager: ReadingStatusManager;
   private claimsManager: ClaimsManager;
+  private outlineParser: OutlineParser;
+  private embeddingService: EmbeddingService | null;
   private extractedTextPath: string;
   private codeLensProvider: ReadingCodeLensProvider;
   private disposables: vscode.Disposable[] = [];
@@ -28,11 +32,15 @@ export class ReadingAssistant {
     claimExtractor: ClaimExtractor,
     readingStatusManager: ReadingStatusManager,
     claimsManager: ClaimsManager,
+    outlineParser: OutlineParser,
+    embeddingService: EmbeddingService | null,
     extractedTextPath: string
   ) {
     this.claimExtractor = claimExtractor;
     this.readingStatusManager = readingStatusManager;
     this.claimsManager = claimsManager;
+    this.outlineParser = outlineParser;
+    this.embeddingService = embeddingService;
     this.extractedTextPath = extractedTextPath;
 
     // Create code lens provider
@@ -215,15 +223,24 @@ export class ReadingAssistant {
     // Generate claim ID
     const claimId = this.claimsManager.generateClaimId();
 
-    // Source ID is a placeholder. In a full implementation, this would be
-    // retrieved from Zotero metadata via the Zotero MCP integration.
-    const sourceId = 1;
+    // Get source ID using intelligent lookup
+    const sourceId = this.getSourceId(paperId);
 
-    // Section suggestions are not yet implemented in this flow.
-    // The claimExtractor.suggestSections() method could be used here
-    // to auto-suggest relevant outline sections based on claim content.
-    // Validates: Requirement 5.4
-    const sections: string[] = [];
+    // Get suggested sections using embeddings (if available)
+    let sections: string[] = [];
+    try {
+      const outlineSections = this.outlineParser.getSections();
+      if (outlineSections.length > 0 && this.embeddingService) {
+        const suggestedSections = await this.claimExtractor.suggestSections(
+          potentialClaim.text,
+          outlineSections
+        );
+        sections = suggestedSections.map(s => s.id);
+      }
+    } catch (error) {
+      console.warn('Failed to suggest sections:', error);
+      // Continue without section suggestions
+    }
 
     // Show claim form
     const claimText = await vscode.window.showInputBox({
@@ -395,6 +412,35 @@ export class ReadingAssistant {
         this.disposables.push(cmd);
       }
     });
+  }
+
+  /**
+   * Get or generate a source ID for a paper.
+   * Uses intelligent lookup to find existing source IDs or generates a new one.
+   * 
+   * @param source The source reference (e.g., "Smith2023")
+   * @returns The source ID
+   */
+  private getSourceId(source: string): number {
+    // Check if this source already has a source ID
+    const existingClaims = this.claimsManager.getClaims();
+    const sourceIds = existingClaims
+      .filter(c => c.primaryQuote?.source === source)
+      .map(c => c.primaryQuote?.sourceId)
+      .filter((id): id is number => id !== undefined);
+    
+    if (sourceIds.length > 0) {
+      // Use existing source ID
+      return sourceIds[0];
+    }
+    
+    // Generate new source ID (max existing + 1)
+    const allSourceIds = existingClaims
+      .map(c => c.primaryQuote?.sourceId)
+      .filter((id): id is number => id !== undefined);
+    const maxId = allSourceIds.length > 0 ? Math.max(...allSourceIds) : 0;
+    
+    return maxId + 1;
   }
 
   /**

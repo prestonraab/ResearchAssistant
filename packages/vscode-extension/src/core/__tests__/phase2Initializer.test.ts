@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import { Phase2Initializer } from '../initializers/phase2';
 import { Phase1Initializer } from '../initializers/phase1';
 import { ExtensionState } from '../state';
+import { setupTest } from '../../__tests__/helpers';
 
 // Mock vscode module
 jest.mock('vscode', () => ({
@@ -27,6 +28,7 @@ jest.mock('vscode', () => ({
 }));
 
 describe('Phase2Initializer', () => {
+  setupTest();
   let mockPhase1: Phase1Initializer;
   let mockState: ExtensionState;
   let mockStatusBarItem: any;

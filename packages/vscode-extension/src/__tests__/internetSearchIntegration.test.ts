@@ -10,8 +10,8 @@ describe('Internet Search Integration', () => {
 
   let instantSearchHandler: InstantSearchHandler;
   let internetSearcher: InternetPaperSearcher;
-  let mockZoteroService: jest.Mocked<ZoteroApiService>;
-  let mockContextDetector: jest.Mocked<ManuscriptContextDetector>;
+  let mockZoteroService: jest.Mocked<any>;
+  let mockContextDetector: jest.Mocked<any>;
   const workspaceRoot = '/test/workspace';
   const extractedTextPath = '/test/workspace/literature/ExtractedText';
 

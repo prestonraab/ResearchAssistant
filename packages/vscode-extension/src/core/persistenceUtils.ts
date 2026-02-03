@@ -270,20 +270,21 @@ export class PersistenceUtils {
       return { valid: false, errors };
     }
 
+    const progressObj = progress as Record<string, unknown>;
     const validStatuses = ['to-read', 'reading', 'read'];
-    if (!validStatuses.includes(progress.status)) {
+    if (!validStatuses.includes(progressObj.status as string)) {
       errors.push(`Status must be one of: ${validStatuses.join(', ')}`);
     }
 
-    if (progress.startedAt && !(progress.startedAt instanceof Date)) {
+    if (progressObj.startedAt && !(progressObj.startedAt instanceof Date)) {
       errors.push('startedAt must be a Date');
     }
 
-    if (progress.completedAt && !(progress.completedAt instanceof Date)) {
+    if (progressObj.completedAt && !(progressObj.completedAt instanceof Date)) {
       errors.push('completedAt must be a Date');
     }
 
-    if (progress.readingDuration !== undefined && typeof progress.readingDuration !== 'number') {
+    if (progressObj.readingDuration !== undefined && typeof progressObj.readingDuration !== 'number') {
       errors.push('readingDuration must be a number');
     }
 

@@ -1,5 +1,5 @@
 import { ClaimsManager } from './claimsManagerWrapper';
-import type { EmbeddingService } from '@research-assistant/core';
+import type { EmbeddingService, Claim } from '@research-assistant/core';
 import { TextNormalizer } from '@research-assistant/core';
 
 /**
@@ -41,11 +41,11 @@ export class ClaimMatchingService {
       const claims = this.claimsManager.getClaims();
 
       // Calculate similarity for each claim
-      const similarities: Array<{ claim: unknown; similarity: number }> = [];
+      const similarities: Array<{ claim: Claim; similarity: number }> = [];
 
       for (const claim of claims) {
         try {
-          const claimEmbedding = await this.embeddingService.generateEmbedding((claim as Record<string, unknown>).text as string);
+          const claimEmbedding = await this.embeddingService.generateEmbedding(claim.text);
 
           if (claimEmbedding) {
             const similarity = TextNormalizer.cosineSimilarity(sentenceEmbedding, claimEmbedding);

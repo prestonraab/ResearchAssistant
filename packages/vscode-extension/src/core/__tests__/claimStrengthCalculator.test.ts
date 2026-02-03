@@ -1,17 +1,21 @@
+import { describe, test, expect, beforeEach } from '@jest/globals';
 import { ClaimStrengthCalculator } from '../claimStrengthCalculator';
 import { EmbeddingService } from '@research-assistant/core';
 import { ClaimsManager } from '../claimsManagerWrapper';
 import type { Claim, ClaimStrengthResult } from '@research-assistant/core';
+import { setupTest, createMockEmbeddingService, createMockClaimsManager, aClaim } from '../../__tests__/helpers';
 
 describe('ClaimStrengthCalculator', () => {
-  let embeddingService: EmbeddingService;
-  let claimsManager: ClaimsManager;
+  setupTest();
+
+  let embeddingService: ReturnType<typeof createMockEmbeddingService>;
+  let claimsManager: ReturnType<typeof createMockClaimsManager>;
   let calculator: ClaimStrengthCalculator;
 
   beforeEach(() => {
-    embeddingService = new EmbeddingService('mock-api-key');
-    claimsManager = new ClaimsManager('/mock/claims.md');
-    calculator = new ClaimStrengthCalculator(embeddingService, claimsManager);
+    embeddingService = createMockEmbeddingService();
+    claimsManager = createMockClaimsManager();
+    calculator = new ClaimStrengthCalculator(embeddingService as any, claimsManager);
   });
 
   // Helper function to create test claims
@@ -20,20 +24,12 @@ describe('ClaimStrengthCalculator', () => {
     text: string,
     source: string,
     sourceId: number
-  ): Claim => ({
-    id,
-    text,
-    category: 'Result',
-    source,
-    sourceId,
-    context: '',
-    primaryQuote: '',
-    supportingQuotes: [],
-    sections: [],
-    verified: false,
-    createdAt: new Date(),
-    modifiedAt: new Date()
-  });
+  ): Claim => aClaim()
+    .withId(id)
+    .withText(text)
+    .withSource(source)
+    .withSourceId(sourceId)
+    .build();
 
   describe('Unit Tests', () => {
     describe('calculateStrength', () => {

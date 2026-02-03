@@ -162,6 +162,8 @@ function initializeCoreServices(context: vscode.ExtensionContext): void {
     extensionState!.claimExtractor,
     extensionState!.readingStatusManager,
     extensionState!.claimsManager,
+    extensionState!.outlineParser,
+    extensionState!.embeddingService,
     extensionState!.getAbsolutePath(extensionState!.getConfig().extractedTextPath)
   );
 
@@ -178,6 +180,7 @@ function initializeCoreServices(context: vscode.ExtensionContext): void {
     extensionState!.claimExtractor,
     extensionState!.outlineParser,
     extensionState!.embeddingService,
+    extensionState!.autoQuoteVerifier,
     extensionState!.getAbsolutePath(extensionState!.getConfig().extractedTextPath)
   );
   const quickClaimCommands = quickClaimExtractor.registerCommands();

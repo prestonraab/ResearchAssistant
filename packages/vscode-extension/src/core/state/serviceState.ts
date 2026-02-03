@@ -85,11 +85,11 @@ export class ServiceState {
     );
     
     // Initialize sync manager with state getters/setters
-    const syncState = { lastSyncTimestamp: null, syncEnabled: false, syncIntervalMinutes: 15, lastSyncStatus: 'success' as const };
+    const syncState: any = { lastSyncTimestamp: null, syncEnabled: false, syncIntervalMinutes: 15, lastSyncStatus: 'success' as const };
     this.syncManager = new SyncManager(
       this.zoteroImportManager,
       () => syncState,
-      async (state) => { Object.assign(syncState, state); }
+      async (state: any) => { Object.assign(syncState, state); }
     );
   }
 

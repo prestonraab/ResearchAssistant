@@ -92,8 +92,8 @@ export function registerZoteroCommands(
 
                 // Call ZoteroImportManager to import highlights
                 const result = await extensionState.zoteroImportManager.importHighlights(
-                  paperId,
-                  paperId // Using paperId as itemKey - in production this would come from Zotero metadata
+                  paperId!,
+                  paperId! // Using paperId as itemKey - in production this would come from Zotero metadata
                 );
 
                 progress.report({ increment: 50 });
@@ -166,28 +166,33 @@ export function registerZoteroCommands(
               try {
                 progress.report({ increment: 25 });
 
-                // Zotero sync is not yet fully integrated.
-                // When complete, this would call: SyncManager.syncNow()
-                await new Promise(resolve => setTimeout(resolve, 1000));
+                // Call SyncManager to sync highlights
+                const result = await extensionState.syncManager.syncNow();
 
                 progress.report({ increment: 50 });
 
-                // Simulate sync completion
-                await new Promise(resolve => setTimeout(resolve, 500));
+                if (result.success) {
+                  progress.report({ increment: 25 });
 
-                progress.report({ increment: 25 });
+                  // Show success notification with results
+                  const message = `Sync completed: ${result.newHighlightsCount} new highlights imported`;
+                  vscode.window.showInformationMessage(
+                    message,
+                    'View Quotes'
+                  ).then((selection) => {
+                    if (selection === 'View Quotes') {
+                      vscode.commands.executeCommand('researchAssistant.showClaimsPanel');
+                    }
+                  });
 
-                // Show success notification with results
-                vscode.window.showInformationMessage(
-                  'Sync completed: 5 new highlights imported',
-                  'View Quotes'
-                ).then((selection) => {
-                  if (selection === 'View Quotes') {
-                    vscode.commands.executeCommand('researchAssistant.showClaimsPanel');
-                  }
-                });
-
-                logger.info('Zotero highlights sync completed');
+                  logger.info(`Zotero highlights sync completed: ${result.newHighlightsCount} new highlights`);
+                } else {
+                  const errorMessage = result.error || 'Unknown error during sync';
+                  logger.error(`Sync failed: ${errorMessage}`);
+                  vscode.window.showErrorMessage(
+                    `Failed to sync highlights: ${errorMessage}`
+                  );
+                }
               } catch (error) {
                 const errorMessage = error instanceof Error ? error.message : String(error);
                 logger.error(`Failed to sync highlights: ${errorMessage}`);

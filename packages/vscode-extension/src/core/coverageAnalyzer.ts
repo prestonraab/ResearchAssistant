@@ -282,10 +282,14 @@ export class CoverageAnalyzer {
     }
 
     // Rank papers using PaperRanker
-    const ranked = await paperRanker.rankPapers(papers, section);
+    const ranked = (await (paperRanker as any).rankPapers(papers, section)) as any[];
     
     // Return top K paper item keys
-    return ranked.slice(0, topK).map((rp: { paper: { itemKey: string } }) => rp.paper.itemKey);
+    return ranked.slice(0, topK).map((rp: any) => {
+      const rpObj = rp as Record<string, unknown>;
+      const paper = rpObj.paper as Record<string, unknown>;
+      return (paper.itemKey || paper.key) as string;
+    });
   }
 
   /**
@@ -312,14 +316,16 @@ export class CoverageAnalyzer {
 
     for (const section of sections) {
       // Combine section title and content for embedding
-      const sectionText = [section.title, ...section.content].join(' ');
+      const sectionObj = (section as unknown) as Record<string, unknown>;
+      const content = (sectionObj.content as string[]) || [];
+      const sectionText = [sectionObj.title, ...content].join(' ');
       const sectionEmbedding = await this.embeddingService.generateEmbedding(sectionText);
 
       // Calculate cosine similarity
       const similarity = this.embeddingService.cosineSimilarity(claimEmbedding, sectionEmbedding);
 
       similarities.push({
-        sectionId: section.id,
+        sectionId: sectionObj.id as string,
         similarity
       });
     }

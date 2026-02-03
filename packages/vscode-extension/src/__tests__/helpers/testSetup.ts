@@ -220,34 +220,6 @@ export const getAllCallArgs = (mock: jest.Mock): any[][] => {
 };
 
 /**
- * Assert that a mock was called with an array containing specific items
- */
-export const expectCalledWithArray = (mock: jest.Mock, expectedItems: any[]) => {
-  expect(mock).toHaveBeenCalledWith(expect.arrayContaining(expectedItems));
-};
-
-/**
- * Assert that a mock was called with an object containing specific properties
- */
-export const expectCalledWithObject = (mock: jest.Mock, expectedObject: Record<string, any>) => {
-  expect(mock).toHaveBeenCalledWith(expect.objectContaining(expectedObject));
-};
-
-/**
- * Assert that a mock was called with a string matching a pattern
- */
-export const expectCalledWithPattern = (mock: jest.Mock, pattern: RegExp) => {
-  expect(mock).toHaveBeenCalledWith(expect.stringMatching(pattern));
-};
-
-/**
- * Assert that a mock was called with a specific argument at a specific index
- */
-export const expectCalledWithAt = (mock: jest.Mock, callIndex: number, ...args: any[]) => {
-  expect(mock).toHaveBeenNthCalledWith(callIndex, ...args);
-};
-
-/**
  * Assert that a mock was NOT called with specific arguments
  */
 export const expectNotCalledWith = (mock: jest.Mock, ...args: any[]) => {
@@ -303,16 +275,6 @@ export const resetMocks = (...mocks: jest.Mock[]) => {
  */
 export const restoreMock = (mock: jest.Mock) => {
   mock.mockRestore();
-};
-
-/**
- * Create a spy on a method and return the mock
- */
-export const spyOnMethod = <T extends object, K extends keyof T>(
-  obj: T,
-  method: K
-): jest.SpyInstance => {
-  return jest.spyOn(obj, method as any);
 };
 
 /**

@@ -14,17 +14,13 @@ describe('AutoQuoteVerifier', () => {
   setupTest();
 
   let verifier: AutoQuoteVerifier;
-  let mockClaimsManager: jest.Mocked<ClaimsManager>;
+  let mockClaimsManager: ReturnType<typeof createMockClaimsManager>;
 
   beforeEach(() => {
-    // Use factory function for consistent, complete mock
     mockClaimsManager = createMockClaimsManager();
-
     verifier = new AutoQuoteVerifier(mockClaimsManager);
-    
-    // Spy on processVerificationQueue to prevent automatic processing in tests
     jest.spyOn(verifier as any, 'processVerificationQueue').mockImplementation(() => Promise.resolve());
-  }));
+  });
 
   afterEach(() => {
     verifier.dispose();

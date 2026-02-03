@@ -8,17 +8,15 @@ describe('InlineSearchProvider', () => {
   setupTest();
 
   let provider: InlineSearchProvider;
-  let mockZoteroApiService: jest.Mocked<ZoteroApiService>;
-  let mockManuscriptContext: jest.Mocked<ManuscriptContextDetector>;
-  let mockContext: jest.Mocked<vscode.ExtensionContext>;
+  let mockZoteroApiService: jest.Mocked<any>;
+  let mockManuscriptContext: jest.Mocked<any>;
+  let mockContext: jest.Mocked<any>;
   let mockWorkspaceState: Map<string, any>;
-  let mockZoteroItem: ZoteroItem;
+  let mockZoteroItem: ReturnType<typeof createMockZoteroItem>;
 
   beforeEach(() => {
-    // Create fresh workspace state for each test
     mockWorkspaceState = new Map();
 
-    // Create mock context
     mockContext = {
       workspaceState: {
         get: jest.fn((key, defaultValue) => mockWorkspaceState.get(key) || defaultValue),
@@ -30,7 +28,6 @@ describe('InlineSearchProvider', () => {
       subscriptions: [],
     } as any;
 
-    // Create mock Zotero item using factory
     mockZoteroItem = createMockZoteroItem({
       key: 'TEST123',
       title: 'Test Paper Title',
@@ -40,24 +37,21 @@ describe('InlineSearchProvider', () => {
       ],
       date: '2023',
       abstractNote: 'This is a test abstract for the paper.',
-      DOI: '10.1234/test',
+      doi: '10.1234/test',
       itemType: 'journalArticle'
     });
 
-    // Create mock ZoteroApiService with proper jest mock functions
     mockZoteroApiService = {
       semanticSearch: jest.fn().mockResolvedValue([mockZoteroItem]),
       getPdfAttachments: jest.fn().mockResolvedValue([]),
       isConfigured: jest.fn().mockReturnValue(true),
     } as any;
 
-    // Create mock manuscript context detector
     mockManuscriptContext = {
       getContext: jest.fn().mockReturnValue(null),
       dispose: jest.fn(),
     } as any;
 
-    // Create provider with fresh mocks
     provider = new InlineSearchProvider(
       mockZoteroApiService,
       mockManuscriptContext,

@@ -6,10 +6,9 @@ describe('SentenceClaimQuoteLinkManager', () => {
   setupTest();
 
   let manager: SentenceClaimQuoteLinkManager;
-  let mockClaimsManager: jest.Mocked<ClaimsManager>;
+  let mockClaimsManager: ReturnType<typeof createMockClaimsManager>;
 
   beforeEach(() => {
-    // Create fresh mock for each test
     mockClaimsManager = createMockClaimsManager();
     manager = new SentenceClaimQuoteLinkManager(mockClaimsManager);
   });

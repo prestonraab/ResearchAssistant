@@ -1,8 +1,7 @@
 import { describe, test, expect, beforeEach } from '@jest/globals';
-import { jest } from '@jest/globals';
 import { CoverageAnalyzer } from '../coverageAnalyzer';
 import type { OutlineSection, Claim } from '@research-assistant/core';
-import { setupTest, createMockEmbeddingService } from '../../__tests__/helpers';
+import { setupTest, createMockEmbeddingService, aClaim } from '../../__tests__/helpers';
 
 describe('CoverageAnalyzer', () => {
   setupTest();
@@ -30,20 +29,11 @@ describe('CoverageAnalyzer', () => {
   });
 
   // Helper function to create test claims
-  const createClaim = (id: string, sections: string[]): Claim => ({
-    id,
-    text: `Test claim ${id}`,
-    category: 'Method',
-    source: 'TestAuthor2024',
-    sourceId: 1,
-    context: 'Test context',
-    primaryQuote: 'Test quote',
-    supportingQuotes: [],
-    sections,
-    verified: false,
-    createdAt: new Date(),
-    modifiedAt: new Date()
-  });
+  const createClaim = (id: string, sections: string[]): Claim => aClaim()
+    .withId(id)
+    .withText(`Test claim ${id}`)
+    .withSections(sections)
+    .build();
 
   describe('analyzeCoverage', () => {
     test('should map claims to sections using section IDs', () => {

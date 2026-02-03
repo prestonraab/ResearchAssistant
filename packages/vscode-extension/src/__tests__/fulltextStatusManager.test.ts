@@ -20,11 +20,9 @@ describe('FulltextStatusManager', () => {
   const workspaceRoot = '/test/workspace';
 
   beforeEach(() => {
-    // Use factory functions for consistent mocks
     mockPdfService = createMockPdfExtractionService();
     mockOutlineParser = createMockOutlineParser();
 
-    // Mock fs functions - automatically cleaned up by setupTest()
     (fs.existsSync as jest.Mock).mockReturnValue(false);
     (fs.readdirSync as jest.Mock).mockReturnValue([]);
 
@@ -43,10 +41,35 @@ describe('FulltextStatusManager', () => {
     /**
      * Test: Scan identifies papers without fulltext
      * Validates: Requirement 44.1
-     * SKIPPED: Needs rewrite for local-file-based implementation (no longer uses Zotero API)
      */
-    it.skip('should identify papers without extracted text', async () => {
-      // Test implementation pending - requires local PDF scanning approach
+    test('should identify papers without extracted text', async () => {
+      // Mock PDF directory with files but no extracted text
+      (fs.existsSync as jest.Mock).mockImplementation((filePath: string) => {
+        if (filePath.includes('PDFs')) {
+          return true;
+        }
+        if (filePath.includes('ExtractedText')) {
+          return true;
+        }
+        return false;
+      });
+
+      (fs.readdirSync as jest.Mock).mockImplementation((dirPath: string) => {
+        if (dirPath.includes('PDFs')) {
+          return ['Smith2023.pdf', 'Jones2022.pdf'];
+        }
+        if (dirPath.includes('ExtractedText')) {
+          return []; // No extracted text files
+        }
+        return [];
+      });
+
+      const statuses = await manager.scanLibrary();
+
+      expect(statuses.length).toBe(2);
+      const smithPaper = statuses.find(s => s.title === 'Smith2023');
+      expect(smithPaper?.hasFulltext).toBe(false);
+      expect(smithPaper?.pdfPath).toBeDefined();
     });
 
     /**
@@ -57,6 +80,9 @@ describe('FulltextStatusManager', () => {
       // Mock PDF directory exists with files
       (fs.existsSync as jest.Mock).mockImplementation((filePath: string) => {
         if (filePath.includes('PDFs')) {
+          return true;
+        }
+        if (filePath.includes('ExtractedText')) {
           return true;
         }
         if (filePath.includes('Smith2023.txt')) {
@@ -90,12 +116,15 @@ describe('FulltextStatusManager', () => {
     test('should scan local PDF directory for papers', async () => {
       // Mock PDF directory exists with files
       (fs.existsSync as jest.Mock).mockImplementation((dirPath: string) => {
-        return dirPath.includes('PDFs');
+        return dirPath.includes('PDFs') || dirPath.includes('ExtractedText');
       });
 
       (fs.readdirSync as jest.Mock).mockImplementation((dirPath: string) => {
         if (dirPath.includes('PDFs')) {
           return ['Smith2023.pdf', 'Jones2022.pdf'];
+        }
+        if (dirPath.includes('ExtractedText')) {
+          return [];
         }
         return [];
       });
@@ -106,16 +135,47 @@ describe('FulltextStatusManager', () => {
       expect(statuses[0].title).toBe('Smith2023');
       expect(statuses[1].title).toBe('Jones2022');
     });
+
+    /**
+     * Test: Scan handles empty directories gracefully
+     * Validates: Requirement 44.1
+     */
+    test('should handle empty PDF and ExtractedText directories', async () => {
+      (fs.existsSync as jest.Mock).mockReturnValue(false);
+      (fs.readdirSync as jest.Mock).mockReturnValue([]);
+
+      const statuses = await manager.scanLibrary();
+
+      expect(statuses.length).toBe(0);
+    });
   });
 
   describe('getMissingFulltexts', () => {
     /**
      * Test: Returns only papers without fulltext
      * Validates: Requirement 44.2
-     * SKIPPED: Needs rewrite for local-file-based implementation (no longer uses Zotero API)
      */
-    it.skip('should return only papers missing fulltext that have PDFs', async () => {
-      // Test implementation pending - requires local PDF scanning approach
+    test('should return only papers missing fulltext that have PDFs', async () => {
+      (fs.existsSync as jest.Mock).mockImplementation((filePath: string) => {
+        return filePath.includes('PDFs') || filePath.includes('ExtractedText');
+      });
+
+      (fs.readdirSync as jest.Mock).mockImplementation((dirPath: string) => {
+        if (dirPath.includes('PDFs')) {
+          return ['Smith2023.pdf', 'Jones2022.pdf'];
+        }
+        if (dirPath.includes('ExtractedText')) {
+          return ['Smith2023.txt']; // Only Smith has extracted text
+        }
+        return [];
+      });
+
+      await manager.scanLibrary();
+      const missing = manager.getMissingFulltexts();
+
+      expect(missing.length).toBe(1);
+      expect(missing[0].title).toBe('Jones2022');
+      expect(missing[0].hasFulltext).toBe(false);
     });
   });
 
@@ -123,28 +183,107 @@ describe('FulltextStatusManager', () => {
     /**
      * Test: Batch extraction processes all missing papers
      * Validates: Requirement 44.3, 44.4
-     * SKIPPED: Needs rewrite for local-file-based implementation (no longer uses Zotero API)
      */
-    it.skip('should extract all missing fulltexts with progress reporting', async () => {
-      // Test implementation pending - requires local PDF scanning approach
+    test('should extract all missing fulltexts with progress reporting', async () => {
+      (fs.existsSync as jest.Mock).mockImplementation((filePath: string) => {
+        return filePath.includes('PDFs') || filePath.includes('ExtractedText');
+      });
+
+      (fs.readdirSync as jest.Mock).mockImplementation((dirPath: string) => {
+        if (dirPath.includes('PDFs')) {
+          return ['Smith2023.pdf', 'Jones2022.pdf'];
+        }
+        if (dirPath.includes('ExtractedText')) {
+          return [];
+        }
+        return [];
+      });
+
+      mockPdfService.extractText.mockResolvedValue({
+        success: true,
+        outputPath: '/test/workspace/literature/ExtractedText/Smith2023.txt'
+      });
+
+      await manager.scanLibrary();
+
+      const progressUpdates: any[] = [];
+      const result = await manager.batchExtract((progress) => {
+        progressUpdates.push(progress);
+      });
+
+      expect(result.total).toBe(2);
+      expect(result.successful).toBeGreaterThan(0);
+      expect(progressUpdates.length).toBeGreaterThan(0);
+      expect(progressUpdates[0].currentFile).toBeDefined();
     });
 
     /**
      * Test: Batch extraction handles failures gracefully
      * Validates: Requirement 44.4
-     * SKIPPED: Needs rewrite for local-file-based implementation (no longer uses Zotero API)
      */
-    it.skip('should handle extraction failures and report errors', async () => {
-      // Test implementation pending - requires local PDF scanning approach
+    test('should handle extraction failures and report errors', async () => {
+      (fs.existsSync as jest.Mock).mockImplementation((filePath: string) => {
+        return filePath.includes('PDFs') || filePath.includes('ExtractedText');
+      });
+
+      (fs.readdirSync as jest.Mock).mockImplementation((dirPath: string) => {
+        if (dirPath.includes('PDFs')) {
+          return ['Smith2023.pdf'];
+        }
+        if (dirPath.includes('ExtractedText')) {
+          return [];
+        }
+        return [];
+      });
+
+      mockPdfService.extractText.mockResolvedValue({
+        success: false,
+        error: 'PDF extraction failed'
+      });
+
+      await manager.scanLibrary();
+      const result = await manager.batchExtract();
+
+      expect(result.failed).toBeGreaterThan(0);
+      expect(result.errors.length).toBeGreaterThan(0);
+      expect(result.errors[0].error).toBeDefined();
     });
 
     /**
      * Test: Progress callback includes estimated time
      * Validates: Requirement 44.4
-     * SKIPPED: Needs rewrite for local-file-based implementation (no longer uses Zotero API)
      */
-    it.skip('should provide estimated time remaining in progress updates', async () => {
-      // Test implementation pending - requires local PDF scanning approach
+    test('should provide estimated time remaining in progress updates', async () => {
+      (fs.existsSync as jest.Mock).mockImplementation((filePath: string) => {
+        return filePath.includes('PDFs') || filePath.includes('ExtractedText');
+      });
+
+      (fs.readdirSync as jest.Mock).mockImplementation((dirPath: string) => {
+        if (dirPath.includes('PDFs')) {
+          return ['Smith2023.pdf', 'Jones2022.pdf'];
+        }
+        if (dirPath.includes('ExtractedText')) {
+          return [];
+        }
+        return [];
+      });
+
+      mockPdfService.extractText.mockResolvedValue({
+        success: true,
+        outputPath: '/test/workspace/literature/ExtractedText/test.txt'
+      });
+
+      await manager.scanLibrary();
+
+      const progressUpdates: any[] = [];
+      await manager.batchExtract((progress) => {
+        progressUpdates.push(progress);
+      });
+
+      // Check that later progress updates have estimated time
+      const lastUpdate = progressUpdates[progressUpdates.length - 1];
+      expect(lastUpdate.estimatedTimeRemaining).toBeDefined();
+      expect(typeof lastUpdate.estimatedTimeRemaining).toBe('number');
     });
   });
 
@@ -152,19 +291,61 @@ describe('FulltextStatusManager', () => {
     /**
      * Test: Papers are prioritized by relevance to section context
      * Validates: Requirement 44.5
-     * SKIPPED: Needs rewrite for local-file-based implementation (no longer uses Zotero API)
      */
-    it.skip('should prioritize papers by relevance to section context', async () => {
-      // Test implementation pending - requires local PDF scanning approach
+    test('should prioritize papers by relevance to section context', async () => {
+      (fs.existsSync as jest.Mock).mockImplementation((filePath: string) => {
+        return filePath.includes('PDFs') || filePath.includes('ExtractedText');
+      });
+
+      (fs.readdirSync as jest.Mock).mockImplementation((dirPath: string) => {
+        if (dirPath.includes('PDFs')) {
+          return ['BatchCorrection2023.pdf', 'Normalization2022.pdf'];
+        }
+        if (dirPath.includes('ExtractedText')) {
+          return [];
+        }
+        return [];
+      });
+
+      await manager.scanLibrary();
+      await manager.prioritizeBySection('batch correction methods');
+
+      const statuses = manager.getAllStatuses();
+      const batchPaper = statuses.find(s => s.title.includes('Batch'));
+      
+      expect(batchPaper?.priority).toBeGreaterThan(0);
     });
 
     /**
      * Test: Prioritization sorts papers correctly
      * Validates: Requirement 44.5
-     * SKIPPED: Needs rewrite for local-file-based implementation (no longer uses Zotero API)
      */
-    it.skip('should sort papers by priority for batch extraction', async () => {
-      // Test implementation pending - requires local PDF scanning approach
+    test('should sort papers by priority for batch extraction', async () => {
+      (fs.existsSync as jest.Mock).mockImplementation((filePath: string) => {
+        return filePath.includes('PDFs') || filePath.includes('ExtractedText');
+      });
+
+      (fs.readdirSync as jest.Mock).mockImplementation((dirPath: string) => {
+        if (dirPath.includes('PDFs')) {
+          return ['Smith2023.pdf', 'Jones2022.pdf', 'Brown2021.pdf'];
+        }
+        if (dirPath.includes('ExtractedText')) {
+          return [];
+        }
+        return [];
+      });
+
+      mockPdfService.extractText.mockResolvedValue({
+        success: true,
+        outputPath: '/test/workspace/literature/ExtractedText/test.txt'
+      });
+
+      await manager.scanLibrary();
+      await manager.prioritizeBySection('Smith Jones');
+
+      const result = await manager.batchExtract();
+      
+      expect(result.total).toBeGreaterThan(0);
     });
   });
 
@@ -172,10 +353,29 @@ describe('FulltextStatusManager', () => {
     /**
      * Test: Statistics accurately reflect fulltext coverage
      * Validates: Requirement 44.1
-     * SKIPPED: Needs rewrite for local-file-based implementation (no longer uses Zotero API)
      */
-    it.skip('should provide accurate statistics about fulltext coverage', async () => {
-      // Test implementation pending - requires local PDF scanning approach
+    test('should provide accurate statistics about fulltext coverage', async () => {
+      (fs.existsSync as jest.Mock).mockImplementation((filePath: string) => {
+        return filePath.includes('PDFs') || filePath.includes('ExtractedText');
+      });
+
+      (fs.readdirSync as jest.Mock).mockImplementation((dirPath: string) => {
+        if (dirPath.includes('PDFs')) {
+          return ['Smith2023.pdf', 'Jones2022.pdf', 'Brown2021.pdf'];
+        }
+        if (dirPath.includes('ExtractedText')) {
+          return ['Smith2023.txt']; // Only 1 of 3 has extracted text
+        }
+        return [];
+      });
+
+      await manager.scanLibrary();
+      const stats = manager.getStatistics();
+
+      expect(stats.total).toBe(3);
+      expect(stats.withFulltext).toBe(1);
+      expect(stats.missingFulltext).toBe(2);
+      expect(stats.coveragePercentage).toBeCloseTo(33.33, 1);
     });
   });
 
@@ -187,12 +387,15 @@ describe('FulltextStatusManager', () => {
     test('should clear cached statuses and reset scan time', async () => {
       // Mock PDF directory with files
       (fs.existsSync as jest.Mock).mockImplementation((dirPath: string) => {
-        return dirPath.includes('PDFs');
+        return dirPath.includes('PDFs') || dirPath.includes('ExtractedText');
       });
 
       (fs.readdirSync as jest.Mock).mockImplementation((dirPath: string) => {
         if (dirPath.includes('PDFs')) {
           return ['Smith2023.pdf'];
+        }
+        if (dirPath.includes('ExtractedText')) {
+          return [];
         }
         return [];
       });

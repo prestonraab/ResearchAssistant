@@ -2,8 +2,10 @@ import { ClaimsManager } from '../claimsManagerWrapper';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import * as os from 'os';
+import { setupTest } from '../../__tests__/helpers';
 
 describe('ClaimsManager - User Format Compatibility', () => {
+  setupTest();
   let tempDir: string;
   let claimsFile: string;
   let claimsDir: string;

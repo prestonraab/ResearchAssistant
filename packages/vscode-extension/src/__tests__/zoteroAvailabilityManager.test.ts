@@ -34,7 +34,6 @@ describe('ZoteroAvailabilityManager', () => {
   let mockZoteroApiService: ReturnType<typeof createMockZoteroApiService>;
 
   beforeEach(() => {
-    // Use factory function for consistent mock
     mockZoteroApiService = createMockZoteroApiService();
   });
 

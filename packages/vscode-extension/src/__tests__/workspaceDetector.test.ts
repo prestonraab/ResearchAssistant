@@ -9,7 +9,7 @@ jest.mock('fs');
 describe('WorkspaceDetector', () => {
   setupTest();
 
-  let mockContext: vscode.ExtensionContext;
+  let mockContext: ReturnType<typeof createMockExtensionContext>;
 
   beforeEach(() => {
     mockContext = createMockExtensionContext();

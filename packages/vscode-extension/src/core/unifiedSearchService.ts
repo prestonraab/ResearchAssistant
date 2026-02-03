@@ -150,7 +150,7 @@ export class UnifiedSearchService {
     semantic: boolean,
     keyword: boolean,
     maxResults: number
-  ): Promise<SearchResult[]> {
+  ): Promise<SearchResultData[]> {
     try {
       const claims = await this.claimsManager.loadClaims();
       let results: Array<{ claim: Claim; score: number }> = [];
@@ -196,7 +196,7 @@ export class UnifiedSearchService {
       results = results.slice(0, maxResults);
 
       return results.map(({ claim, score }) => ({
-        type: 'claim' as SearchResultType,
+        type: 'claim' as SearchResultTypeEnum,
         id: claim.id,
         title: `${claim.id}: ${this.truncate(claim.text, 80)}`,
         snippet: claim.text,
@@ -216,14 +216,14 @@ export class UnifiedSearchService {
   /**
    * Search draft files
    */
-  private async searchDrafts(query: string, maxResults: number): Promise<SearchResult[]> {
+  private async searchDrafts(query: string, maxResults: number): Promise<SearchResultData[]> {
     const draftsDir = path.join(this.workspaceRoot, '03_Drafting');
     
     if (!fs.existsSync(draftsDir)) {
       return [];
     }
 
-    const results: SearchResult[] = [];
+    const results: SearchResultData[] = [];
     const queryLower = query.toLowerCase();
 
     // Find all markdown files in drafts directory
@@ -240,7 +240,7 @@ export class UnifiedSearchService {
         lines.forEach((line, index) => {
           if (line.toLowerCase().includes(queryLower)) {
             results.push({
-              type: 'draft',
+              type: 'draft' as SearchResultTypeEnum,
               id: `${path.basename(filePath)}:${index + 1}`,
               title: path.basename(filePath),
               snippet: this.highlightMatch(line, query),
@@ -264,14 +264,14 @@ export class UnifiedSearchService {
   /**
    * Search extracted text files
    */
-  private async searchExtractedText(query: string, maxResults: number): Promise<SearchResult[]> {
+  private async searchExtractedText(query: string, maxResults: number): Promise<SearchResultData[]> {
     const extractedTextDir = path.join(this.workspaceRoot, 'literature', 'ExtractedText');
     
     if (!fs.existsSync(extractedTextDir)) {
       return [];
     }
 
-    const results: SearchResult[] = [];
+    const results: SearchResultData[] = [];
     const queryLower = query.toLowerCase();
 
     // Find all markdown files in extracted text directory
@@ -288,7 +288,7 @@ export class UnifiedSearchService {
         lines.forEach((line, index) => {
           if (line.toLowerCase().includes(queryLower)) {
             results.push({
-              type: 'extracted_text',
+              type: 'extracted_text' as SearchResultTypeEnum,
               id: `${path.basename(filePath)}:${index + 1}`,
               title: path.basename(filePath, '.md'),
               snippet: this.highlightMatch(line, query),
@@ -312,7 +312,7 @@ export class UnifiedSearchService {
   /**
    * Navigate to search result
    */
-  public async navigateToResult(result: SearchResult): Promise<void> {
+  public async navigateToResult(result: SearchResultData): Promise<void> {
     if (result.location) {
       const document = await vscode.workspace.openTextDocument(result.location.filePath);
       const editor = await vscode.window.showTextDocument(document);
@@ -406,11 +406,11 @@ export class UnifiedSearchService {
    * Group results by type with counts
    */
   public groupResults(
-    results: Map<SearchResultType, SearchResult[]>
-  ): Array<{ type: SearchResultType; count: number; results: SearchResult[] }> {
-    const grouped: Array<{ type: SearchResultType; count: number; results: SearchResult[] }> = [];
+    results: Map<SearchResultTypeEnum, SearchResultData[]>
+  ): Array<{ type: SearchResultTypeEnum; count: number; results: SearchResultData[] }> {
+    const grouped: Array<{ type: SearchResultTypeEnum; count: number; results: SearchResultData[] }> = [];
 
-    const typeOrder: SearchResultType[] = ['paper', 'claim', 'draft', 'extracted_text'];
+    const typeOrder: SearchResultTypeEnum[] = ['paper', 'claim', 'draft', 'extracted_text'];
     
     typeOrder.forEach(type => {
       const typeResults = results.get(type) || [];

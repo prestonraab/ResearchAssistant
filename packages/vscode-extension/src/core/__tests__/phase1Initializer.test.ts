@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import { Phase1Initializer } from '../initializers/phase1';
 import { ExtensionState } from '../state';
+import { setupTest } from '../../__tests__/helpers';
 
 // Mock vscode module
 jest.mock('vscode', () => ({
@@ -24,12 +25,12 @@ jest.mock('vscode', () => ({
 }));
 
 describe('Phase1Initializer', () => {
-  let mockContext: vscode.ExtensionContext;
-  let mockState: ExtensionState;
+  setupTest();
+  let mockContext: any;
+  let mockState: any;
   let mockStatusBarItem: any;
 
   beforeEach(() => {
-    // Reset mocks
     jest.clearAllMocks();
 
     // Create mock status bar item

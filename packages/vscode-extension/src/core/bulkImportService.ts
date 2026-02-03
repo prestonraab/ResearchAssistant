@@ -102,7 +102,7 @@ export class BulkImportService {
         try {
           // Check if paper has PDF attachments
           const attachments = await this.zoteroClient.getItemChildren(paper.key);
-          const pdfAttachment = attachments.find((attachment: Record<string, unknown>) => 
+          const pdfAttachment = attachments.find((attachment) => 
             attachment.contentType === 'application/pdf'
           );
 
@@ -141,7 +141,8 @@ export class BulkImportService {
 
       // Generate embeddings for sections to enable paper-to-section mapping
       for (const section of sections) {
-        const sectionText = `${section.title} ${section.content.join(' ')}`;
+        const sectionObj = (section as unknown) as Record<string, unknown>;
+        const sectionText = `${sectionObj.title} ${(sectionObj.content as string[]).join(' ')}`;
         await this.embeddingService.generateEmbedding(sectionText);
       }
 
@@ -203,14 +204,15 @@ export class BulkImportService {
 
     for (const paper of papers) {
       const paperObj = paper as Record<string, unknown>;
-      const paperData = paperObj.data as Record<string, unknown>;
+      const paperData = (paperObj.data as unknown) as Record<string, unknown>;
       const paperText = `${paperData.title} ${paperData.abstractNote || ''}`;
       const paperEmbedding = await this.embeddingService.generateEmbedding(paperText);
 
       const sectionScores: Array<{ sectionId: string; score: number }> = [];
 
       for (const section of sections) {
-        const sectionText = `${section.title} ${section.content.join(' ')}`;
+        const sectionObj = section as Record<string, unknown>;
+        const sectionText = `${sectionObj.title} ${(sectionObj.content as string[]).join(' ')}`;
         const sectionEmbedding = await this.embeddingService.generateEmbedding(sectionText);
 
         const similarity = this.embeddingService.cosineSimilarity(
@@ -218,14 +220,14 @@ export class BulkImportService {
           sectionEmbedding
         );
 
-        sectionScores.push({ sectionId: section.id, score: similarity });
+        sectionScores.push({ sectionId: sectionObj.id as string, score: similarity });
       }
 
       // Sort by similarity and take top 3
       sectionScores.sort((a, b) => b.score - a.score);
       const topSections = sectionScores.slice(0, 3).map(s => s.sectionId);
 
-      mappings.set(paper.key, topSections);
+      mappings.set((paper as Record<string, unknown>).key as string, topSections);
     }
 
     return mappings;

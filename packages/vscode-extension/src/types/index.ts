@@ -328,7 +328,7 @@ export interface DatabaseClaim {
 // ============================================================================
 
 export interface ClaimsManager {
-  getClaim(id: string): Claim | undefined;
+  getClaim(id: string): Claim | null;
   updateClaim(id: string, claim: Claim): Promise<void>;
   [key: string]: unknown;
 }

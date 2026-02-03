@@ -195,7 +195,7 @@ export class ClaimReviewProvider {
       }
 
       // Enhance with additional data
-      const claimData = {
+      const claimData: any = {
         ...sanitizedClaim,
         suggestedCategory,
         availableCategories

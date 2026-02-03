@@ -3,6 +3,7 @@ import type { ClaimsManager } from '../core/claimsManagerWrapper';
 import type { ClaimExtractor } from '../core/claimExtractor';
 import type { OutlineParser } from '../core/outlineParserWrapper';
 import type { EmbeddingService } from '@research-assistant/core';
+import type { AutoQuoteVerifier } from '../core/autoQuoteVerifier';
 import * as vscode from 'vscode';
 import { setupTest, createMockClaim, createMockDocument } from './helpers';
 
@@ -10,10 +11,11 @@ describe('QuickClaimExtractor', () => {
   setupTest();
 
   let quickClaimExtractor: QuickClaimExtractor;
-  let mockClaimsManager: jest.Mocked<ClaimsManager>;
-  let mockClaimExtractor: jest.Mocked<ClaimExtractor>;
-  let mockOutlineParser: jest.Mocked<OutlineParser>;
-  let mockEmbeddingService: jest.Mocked<EmbeddingService>;
+  let mockClaimsManager: jest.Mocked<any>;
+  let mockClaimExtractor: jest.Mocked<any>;
+  let mockOutlineParser: jest.Mocked<any>;
+  let mockEmbeddingService: jest.Mocked<any>;
+  let mockAutoQuoteVerifier: jest.Mocked<any>;
   const extractedTextPath = '/workspace/literature/ExtractedText';
 
   beforeEach(() => {
@@ -60,11 +62,24 @@ describe('QuickClaimExtractor', () => {
       getCachedEmbedding: jest.fn()
     } as any;
 
+    mockAutoQuoteVerifier = {
+      verifyOnSave: jest.fn<() => void>().mockReturnValue(undefined),
+      verifyClaimManually: jest.fn(),
+      verifyAllUnverified: jest.fn(),
+      processVerificationQueue: jest.fn(),
+      getQueueSize: jest.fn<() => number>().mockReturnValue(0),
+      isProcessingQueue: jest.fn<() => boolean>().mockReturnValue(false),
+      clearQueue: jest.fn(),
+      onDidVerify: { event: jest.fn() },
+      dispose: jest.fn()
+    } as any;
+
     quickClaimExtractor = new QuickClaimExtractor(
       mockClaimsManager,
       mockClaimExtractor,
       mockOutlineParser,
       mockEmbeddingService,
+      mockAutoQuoteVerifier,
       extractedTextPath
     );
   });
@@ -197,6 +212,27 @@ describe('QuickClaimExtractor', () => {
         'Claim C_01 saved successfully',
         'View Claim'
       );
+    });
+
+    test('should trigger background verification after saving', async () => {
+      const claim = createMockClaim({
+        id: 'C_01',
+        text: 'Test claim',
+        category: 'Method',
+        primaryQuote: {
+          text: 'Test quote',
+          source: 'Smith2023',
+          sourceId: 1,
+          verified: false
+        },
+        sections: ['section1']
+      });
+
+      (vscode.window.showInformationMessage as jest.Mock).mockResolvedValue(undefined);
+
+      await quickClaimExtractor.saveAndVerify(claim);
+
+      expect(mockAutoQuoteVerifier.verifyOnSave).toHaveBeenCalledWith(claim);
     });
 
     test('should handle save errors', async () => {

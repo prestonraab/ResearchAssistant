@@ -174,32 +174,37 @@ export class WritingModeProvider {
       const editingContext = getModeContextManager().getEditingModeContext();
       
       // If no saved position in writing mode but editing mode has one, find matching pair by position
-      if (!centerItemId && editingContext.centerItemPosition !== undefined) {
+      if (!centerItemId && editingContext?.centerItemPosition !== undefined) {
+        const targetPosition = editingContext.centerItemPosition as number;
         // Find the Q&A pair that contains this position
         const matchingPair = sanitizedPairs.find(p => {
           // Check if the position falls within this Q&A pair's answer
           // We need to be more flexible here since positions might not match exactly
-          return Math.abs(p.position - editingContext.centerItemPosition) < 5;
+          const pPosition = (p as Record<string, unknown>).position as number;
+          return Math.abs(pPosition - targetPosition) < 5;
         });
         
         if (matchingPair) {
-          centerItemId = matchingPair.id;
-          console.log(`[WritingMode] Found matching pair near position ${editingContext.centerItemPosition}: ${centerItemId}`);
+          centerItemId = (matchingPair as Record<string, unknown>).id as string;
+          console.log(`[WritingMode] Found matching pair near position ${targetPosition}: ${centerItemId}`);
         } else {
           // If no exact match, find the closest pair
           let closestPair = sanitizedPairs[0];
-          let minDistance = Math.abs(sanitizedPairs[0].position - editingContext.centerItemPosition);
+          let minDistance = Math.abs(((sanitizedPairs[0] as Record<string, unknown>).position as number) - targetPosition);
           
           for (const pair of sanitizedPairs) {
-            const distance = Math.abs(pair.position - editingContext.centerItemPosition);
+            const pairObj = pair as Record<string, unknown>;
+            const pPosition = pairObj.position as number;
+            const distance = Math.abs(pPosition - targetPosition);
             if (distance < minDistance) {
               minDistance = distance;
               closestPair = pair;
             }
           }
           
-          centerItemId = closestPair.id;
-          console.log(`[WritingMode] Using closest pair at position ${closestPair.position} for target ${editingContext.centerItemPosition}: ${centerItemId}`);
+          const closestObj = closestPair as Record<string, unknown>;
+          centerItemId = closestObj.id as string;
+          console.log(`[WritingMode] Using closest pair at position ${closestObj.position} for target ${targetPosition}: ${centerItemId}`);
         }
       }
 

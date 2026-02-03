@@ -100,7 +100,7 @@ export class InternetPaperSearcher extends CoreInternetPaperSearcher {
           });
 
           // Prepare item data
-          const itemData: Record<string, unknown> = {
+          const itemData: any = {
             itemType: 'journalArticle',
             title: paper.title,
             creators,
