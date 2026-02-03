@@ -46,7 +46,7 @@ describe('PaperRanker', () => {
   });
 
   describe('rankPapers', () => {
-    it('should rank papers by semantic similarity to section content', async () => {
+    test('should rank papers by semantic similarity to section content', async () => {
       const section = createSection(
         'Machine Learning Applications',
         ['Deep learning for image classification', 'Neural networks in computer vision']
@@ -71,7 +71,7 @@ describe('PaperRanker', () => {
       });
     });
 
-    it('should boost ranking for highly-cited papers', async () => {
+    test('should boost ranking for highly-cited papers', async () => {
       const section = createSection('Research Methods', ['Methodology and approaches']);
 
       const papers = [
@@ -91,7 +91,7 @@ describe('PaperRanker', () => {
       expect(p3.citationBoost).toBeGreaterThan(p1.citationBoost);
     });
 
-    it('should boost papers cited by multiple papers in collection', async () => {
+    test('should boost papers cited by multiple papers in collection', async () => {
       const section = createSection('Research', ['Methods']);
 
       const papers = [
@@ -113,7 +113,7 @@ describe('PaperRanker', () => {
       expect(p1.citationBoost).toBeGreaterThan(p2.citationBoost);
     });
 
-    it('should calculate estimated reading time for all papers', async () => {
+    test('should calculate estimated reading time for all papers', async () => {
       const section = createSection('Test', ['Content']);
 
       const papers = [
@@ -131,7 +131,7 @@ describe('PaperRanker', () => {
       });
     });
 
-    it('should return papers sorted by relevance score descending', async () => {
+    test('should return papers sorted by relevance score descending', async () => {
       const section = createSection('Topic', ['Content']);
 
       const papers = [
@@ -148,14 +148,14 @@ describe('PaperRanker', () => {
       }
     });
 
-    it('should handle empty paper list', async () => {
+    test('should handle empty paper list', async () => {
       const section = createSection('Topic', ['Content']);
       const ranked = await paperRanker.rankPapers([], section);
       
       expect(ranked).toEqual([]);
     });
 
-    it('should handle section with no content', async () => {
+    test('should handle section with no content', async () => {
       const section = createSection('Title Only', []);
       const papers = [createPaper('p1', 'Paper', 'Abstract')];
 
@@ -165,7 +165,7 @@ describe('PaperRanker', () => {
       expect(ranked[0].relevanceScore).toBeGreaterThanOrEqual(0);
     });
 
-    it('should handle papers with no abstract', async () => {
+    test('should handle papers with no abstract', async () => {
       const section = createSection('Topic', ['Content']);
       const papers = [
         createPaper('p1', 'Paper with long descriptive title about machine learning', '')
@@ -179,7 +179,7 @@ describe('PaperRanker', () => {
   });
 
   describe('calculateReadingTime', () => {
-    it('should calculate reading time from word count', () => {
+    test('should calculate reading time from word count', () => {
       const paper = createPaper('p1', 'Paper', 'Abstract', undefined, undefined, 4000);
       const time = paperRanker.calculateReadingTime(paper);
 
@@ -187,7 +187,7 @@ describe('PaperRanker', () => {
       expect(time).toBe(20);
     });
 
-    it('should calculate reading time from page count when word count unavailable', () => {
+    test('should calculate reading time from page count when word count unavailable', () => {
       const paper = createPaper('p1', 'Paper', 'Abstract', undefined, 10);
       const time = paperRanker.calculateReadingTime(paper);
 
@@ -195,7 +195,7 @@ describe('PaperRanker', () => {
       expect(time).toBe(25);
     });
 
-    it('should estimate reading time from abstract when no length info available', () => {
+    test('should estimate reading time from abstract when no length info available', () => {
       const longAbstract = 'word '.repeat(300); // 300 words
       const paper = createPaper('p1', 'Paper', longAbstract);
       const time = paperRanker.calculateReadingTime(paper);
@@ -204,7 +204,7 @@ describe('PaperRanker', () => {
       expect(time).toBeGreaterThan(0);
     });
 
-    it('should have minimum reading time estimate', () => {
+    test('should have minimum reading time estimate', () => {
       const paper = createPaper('p1', 'Short', 'Brief');
       const time = paperRanker.calculateReadingTime(paper);
 
@@ -212,7 +212,7 @@ describe('PaperRanker', () => {
       expect(time).toBeGreaterThan(5);
     });
 
-    it('should round up reading time to nearest minute', () => {
+    test('should round up reading time to nearest minute', () => {
       const paper = createPaper('p1', 'Paper', 'Abstract', undefined, undefined, 250);
       const time = paperRanker.calculateReadingTime(paper);
 
@@ -220,7 +220,7 @@ describe('PaperRanker', () => {
       expect(time).toBe(2);
     });
 
-    it('should handle very long papers', () => {
+    test('should handle very long papers', () => {
       const paper = createPaper('p1', 'Long Paper', 'Abstract', undefined, undefined, 50000);
       const time = paperRanker.calculateReadingTime(paper);
 
@@ -230,7 +230,7 @@ describe('PaperRanker', () => {
   });
 
   describe('filterByRelevance', () => {
-    it('should filter papers below relevance threshold', async () => {
+    test('should filter papers below relevance threshold', async () => {
       const section = createSection('Machine Learning', ['Deep learning']);
       
       const papers = [
@@ -248,7 +248,7 @@ describe('PaperRanker', () => {
       });
     });
 
-    it('should use default threshold of 0.3', async () => {
+    test('should use default threshold of 0.3', async () => {
       const section = createSection('Topic', ['Content']);
       const papers = [createPaper('p1', 'Paper', 'Abstract')];
       
@@ -260,7 +260,7 @@ describe('PaperRanker', () => {
       });
     });
 
-    it('should return empty array if no papers meet threshold', async () => {
+    test('should return empty array if no papers meet threshold', async () => {
       const section = createSection('Topic', ['Content']);
       const papers = [createPaper('p1', 'Paper', 'Abstract')];
       
@@ -272,7 +272,7 @@ describe('PaperRanker', () => {
   });
 
   describe('groupByReadingTime', () => {
-    it('should group papers by reading time ranges', async () => {
+    test('should group papers by reading time ranges', async () => {
       const section = createSection('Topic', ['Content']);
       
       const papers = [
@@ -295,7 +295,7 @@ describe('PaperRanker', () => {
       }
     });
 
-    it('should correctly categorize quick reads', async () => {
+    test('should correctly categorize quick reads', async () => {
       const section = createSection('Topic', ['Content']);
       const papers = [
         createPaper('p1', 'Quick', 'Abstract', undefined, undefined, 2000) // ~10 min
@@ -309,14 +309,14 @@ describe('PaperRanker', () => {
       expect(quickReads!.length).toBe(1);
     });
 
-    it('should handle empty paper list', () => {
+    test('should handle empty paper list', () => {
       const grouped = paperRanker.groupByReadingTime([]);
       expect(grouped.size).toBe(0);
     });
   });
 
   describe('configuration', () => {
-    it('should use default configuration values', () => {
+    test('should use default configuration values', () => {
       const config = paperRanker.getConfig();
 
       expect(config.citationBoostFactor).toBe(0.1);
@@ -325,7 +325,7 @@ describe('PaperRanker', () => {
       expect(config.defaultPageWordCount).toBe(500);
     });
 
-    it('should allow custom configuration', () => {
+    test('should allow custom configuration', () => {
       const customRanker = new PaperRanker(embeddingService, outlineParser, {
         citationBoostFactor: 0.2,
         wordsPerMinute: 250
@@ -337,14 +337,14 @@ describe('PaperRanker', () => {
       expect(config.citationThreshold).toBe(50); // Default value
     });
 
-    it('should allow updating configuration', () => {
+    test('should allow updating configuration', () => {
       paperRanker.updateConfig({ wordsPerMinute: 300 });
       
       const config = paperRanker.getConfig();
       expect(config.wordsPerMinute).toBe(300);
     });
 
-    it('should affect reading time calculation when config updated', () => {
+    test('should affect reading time calculation when config updated', () => {
       const paper = createPaper('p1', 'Paper', 'Abstract', undefined, undefined, 6000);
       
       // Default: 6000 words at 200 wpm = 30 minutes
@@ -359,7 +359,7 @@ describe('PaperRanker', () => {
   });
 
   describe('edge cases', () => {
-    it('should handle papers with zero citations', async () => {
+    test('should handle papers with zero citations', async () => {
       const section = createSection('Topic', ['Content']);
       const papers = [createPaper('p1', 'Paper', 'Abstract', 0)];
 
@@ -368,7 +368,7 @@ describe('PaperRanker', () => {
       expect(ranked[0].citationBoost).toBeGreaterThanOrEqual(0);
     });
 
-    it('should handle papers with undefined citation count', async () => {
+    test('should handle papers with undefined citation count', async () => {
       const section = createSection('Topic', ['Content']);
       const papers = [createPaper('p1', 'Paper', 'Abstract', undefined)];
 
@@ -377,7 +377,7 @@ describe('PaperRanker', () => {
       expect(ranked[0].citationBoost).toBeGreaterThanOrEqual(0);
     });
 
-    it('should handle very high citation counts', async () => {
+    test('should handle very high citation counts', async () => {
       const section = createSection('Topic', ['Content']);
       const papers = [createPaper('p1', 'Highly Cited', 'Abstract', 10000)];
 
@@ -387,7 +387,7 @@ describe('PaperRanker', () => {
       expect(ranked[0].citationBoost).toBeLessThan(1); // Should be reasonable
     });
 
-    it('should handle empty cited-by set', async () => {
+    test('should handle empty cited-by set', async () => {
       const section = createSection('Topic', ['Content']);
       const papers = [createPaper('p1', 'Paper', 'Abstract')];
       
@@ -399,7 +399,7 @@ describe('PaperRanker', () => {
       expect(ranked[0].citationBoost).toBeGreaterThanOrEqual(0);
     });
 
-    it('should handle section with very long content', async () => {
+    test('should handle section with very long content', async () => {
       const longContent = Array(100).fill('Content line with various words');
       const section = createSection('Topic', longContent);
       const papers = [createPaper('p1', 'Paper', 'Abstract')];
@@ -410,7 +410,7 @@ describe('PaperRanker', () => {
       expect(ranked[0].relevanceScore).toBeGreaterThanOrEqual(0);
     });
 
-    it('should handle papers with very long abstracts', async () => {
+    test('should handle papers with very long abstracts', async () => {
       const longAbstract = 'word '.repeat(1000);
       const section = createSection('Topic', ['Content']);
       const papers = [createPaper('p1', 'Paper', longAbstract)];
@@ -423,7 +423,7 @@ describe('PaperRanker', () => {
   });
 
   describe('integration with EmbeddingService', () => {
-    it('should use embedding service for semantic similarity', async () => {
+    test('should use embedding service for semantic similarity', async () => {
       const section = createSection('Machine Learning', ['Neural networks']);
       const papers = [
         createPaper('p1', 'ML Paper', 'Machine learning and neural networks'),
@@ -437,7 +437,7 @@ describe('PaperRanker', () => {
       expect(ranked[0].semanticSimilarity).toBeGreaterThan(ranked[1].semanticSimilarity);
     });
 
-    it('should batch generate embeddings for efficiency', async () => {
+    test('should batch generate embeddings for efficiency', async () => {
       const section = createSection('Topic', ['Content']);
       const papers = Array(10).fill(null).map((_, i) => 
         createPaper(`p${i}`, `Paper ${i}`, `Abstract ${i}`)

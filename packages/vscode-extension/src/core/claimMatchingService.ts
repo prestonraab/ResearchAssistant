@@ -1,6 +1,6 @@
 import { ClaimsManager } from './claimsManagerWrapper';
 import type { EmbeddingService } from '@research-assistant/core';
-import { TextNormalizer } from '../services/textNormalizer';
+import { TextNormalizer } from '@research-assistant/core';
 
 /**
  * ClaimMatchingService - Finds similar claims for sentences

@@ -48,7 +48,7 @@ describe('ClaimMatchingService', () => {
   });
 
   describe('findSimilarClaims', () => {
-    it('should find similar claims', async () => {
+    test('should find similar claims', async () => {
       const sentenceText = 'Batch correction improves prediction';
       const similar = await service.findSimilarClaims(sentenceText);
 
@@ -56,7 +56,7 @@ describe('ClaimMatchingService', () => {
       expect(Array.isArray(similar)).toBe(true);
     });
 
-    it('should return SimilarClaim objects with required fields', async () => {
+    test('should return SimilarClaim objects with required fields', async () => {
       const sentenceText = 'Batch correction improves prediction';
       const similar = await service.findSimilarClaims(sentenceText);
 
@@ -70,14 +70,14 @@ describe('ClaimMatchingService', () => {
       }
     });
 
-    it('should limit results to top 20', async () => {
+    test('should limit results to top 20', async () => {
       const sentenceText = 'Test sentence';
       const similar = await service.findSimilarClaims(sentenceText);
 
       expect(similar.length).toBeLessThanOrEqual(20);
     });
 
-    it('should sort by similarity descending', async () => {
+    test('should sort by similarity descending', async () => {
       const sentenceText = 'Batch correction methods improve cross-study prediction';
       const similar = await service.findSimilarClaims(sentenceText);
 
@@ -88,7 +88,7 @@ describe('ClaimMatchingService', () => {
       }
     });
 
-    it('should respect similarity threshold', async () => {
+    test('should respect similarity threshold', async () => {
       const sentenceText = 'Batch correction methods improve cross-study prediction';
       const threshold = 0.7;
       const similar = await service.findSimilarClaims(sentenceText, threshold);
@@ -98,14 +98,14 @@ describe('ClaimMatchingService', () => {
       }
     });
 
-    it('should handle empty results', async () => {
+    test('should handle empty results', async () => {
       const sentenceText = 'xyz abc def ghi jkl';
       const similar = await service.findSimilarClaims(sentenceText, 0.99);
 
       expect(Array.isArray(similar)).toBe(true);
     });
 
-    it('should handle embedding service errors gracefully', async () => {
+    test('should handle embedding service errors gracefully', async () => {
       mockEmbeddingService.generateEmbedding = async () => null;
 
       const sentenceText = 'Test sentence';
@@ -116,7 +116,7 @@ describe('ClaimMatchingService', () => {
   });
 
   describe('findSimilarClaimsWithThreshold', () => {
-    it('should use custom threshold', async () => {
+    test('should use custom threshold', async () => {
       const sentenceText = 'Batch correction methods improve cross-study prediction';
       const threshold = 0.6;
       const similar = await service.findSimilarClaimsWithThreshold(sentenceText, threshold);
@@ -128,7 +128,7 @@ describe('ClaimMatchingService', () => {
   });
 
   describe('getTopSimilarClaims', () => {
-    it('should return top N claims', async () => {
+    test('should return top N claims', async () => {
       const sentenceText = 'Batch correction methods improve cross-study prediction';
       const topN = 2;
       const similar = await service.getTopSimilarClaims(sentenceText, topN);
@@ -136,7 +136,7 @@ describe('ClaimMatchingService', () => {
       expect(similar.length).toBeLessThanOrEqual(topN);
     });
 
-    it('should return all claims if topN is larger than available', async () => {
+    test('should return all claims if topN is larger than available', async () => {
       const sentenceText = 'Batch correction methods improve cross-study prediction';
       const topN = 100;
       const similar = await service.getTopSimilarClaims(sentenceText, topN);
@@ -146,7 +146,7 @@ describe('ClaimMatchingService', () => {
   });
 
   describe('isSimilar', () => {
-    it('should check if claim is similar to sentence', async () => {
+    test('should check if claim is similar to sentence', async () => {
       const sentenceText = 'Batch correction methods improve cross-study prediction';
       const claimId = 'C_1';
       const isSimilar = await service.isSimilar(sentenceText, claimId, 0.5);
@@ -154,7 +154,7 @@ describe('ClaimMatchingService', () => {
       expect(typeof isSimilar).toBe('boolean');
     });
 
-    it('should return false for non-existent claim', async () => {
+    test('should return false for non-existent claim', async () => {
       const sentenceText = 'Test sentence';
       const claimId = 'C_nonexistent';
       const isSimilar = await service.isSimilar(sentenceText, claimId);
@@ -162,7 +162,7 @@ describe('ClaimMatchingService', () => {
       expect(isSimilar).toBe(false);
     });
 
-    it('should respect similarity threshold', async () => {
+    test('should respect similarity threshold', async () => {
       const sentenceText = 'Batch correction methods improve cross-study prediction';
       const claimId = 'C_1';
       const threshold = 0.99;
@@ -173,7 +173,7 @@ describe('ClaimMatchingService', () => {
   });
 
   describe('batchFindSimilarClaims', () => {
-    it('should find similar claims for multiple sentences', async () => {
+    test('should find similar claims for multiple sentences', async () => {
       const sentences = [
         'Batch correction methods improve prediction',
         'Results show improvement',
@@ -184,7 +184,7 @@ describe('ClaimMatchingService', () => {
       expect(results.size).toBe(sentences.length);
     });
 
-    it('should return map with correct keys', async () => {
+    test('should return map with correct keys', async () => {
       const sentences = ['Sentence 1', 'Sentence 2'];
       const results = await service.batchFindSimilarClaims(sentences);
 
@@ -192,7 +192,7 @@ describe('ClaimMatchingService', () => {
       expect(results.has('sentence_1')).toBe(true);
     });
 
-    it('should return arrays of similar claims', async () => {
+    test('should return arrays of similar claims', async () => {
       const sentences = ['Batch correction methods improve prediction'];
       const results = await service.batchFindSimilarClaims(sentences);
 
@@ -202,7 +202,7 @@ describe('ClaimMatchingService', () => {
   });
 
   describe('getSimilarityScore', () => {
-    it('should calculate similarity score', async () => {
+    test('should calculate similarity score', async () => {
       const sentenceText = 'Batch correction methods improve cross-study prediction';
       const claimId = 'C_1';
       const score = await service.getSimilarityScore(sentenceText, claimId);
@@ -212,7 +212,7 @@ describe('ClaimMatchingService', () => {
       expect(score).toBeLessThanOrEqual(1);
     });
 
-    it('should return 0 for non-existent claim', async () => {
+    test('should return 0 for non-existent claim', async () => {
       const sentenceText = 'Test sentence';
       const claimId = 'C_nonexistent';
       const score = await service.getSimilarityScore(sentenceText, claimId);
@@ -220,7 +220,7 @@ describe('ClaimMatchingService', () => {
       expect(score).toBe(0);
     });
 
-    it('should return higher score for more similar text', async () => {
+    test('should return higher score for more similar text', async () => {
       const sentenceText = 'Batch correction methods improve cross-study prediction';
       const claimId = 'C_1';
       const score = await service.getSimilarityScore(sentenceText, claimId);
@@ -231,27 +231,27 @@ describe('ClaimMatchingService', () => {
   });
 
   describe('edge cases', () => {
-    it('should handle empty sentence text', async () => {
+    test('should handle empty sentence text', async () => {
       const similar = await service.findSimilarClaims('');
 
       expect(Array.isArray(similar)).toBe(true);
     });
 
-    it('should handle very long sentence text', async () => {
+    test('should handle very long sentence text', async () => {
       const longText = 'word '.repeat(1000);
       const similar = await service.findSimilarClaims(longText);
 
       expect(Array.isArray(similar)).toBe(true);
     });
 
-    it('should handle special characters', async () => {
+    test('should handle special characters', async () => {
       const sentenceText = 'Test @#$% special & characters!';
       const similar = await service.findSimilarClaims(sentenceText);
 
       expect(Array.isArray(similar)).toBe(true);
     });
 
-    it('should handle unicode characters', async () => {
+    test('should handle unicode characters', async () => {
       const sentenceText = 'Test with unicode: 你好 مرحبا';
       const similar = await service.findSimilarClaims(sentenceText);
 

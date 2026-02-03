@@ -36,7 +36,7 @@ describe('LaTeX Export Integration - 11.2', () => {
   });
 
   describe('11.2 - LaTeX command integration', () => {
-    it('should export manuscript to valid .tex file', async () => {
+    test('should export manuscript to valid .tex file', async () => {
       const manuscript = `# Introduction
 
 This is the introduction section.
@@ -71,7 +71,7 @@ We used the following methods.`;
       expect(content).toContain('\\end{document}');
     });
 
-    it('should create .tex file with correct LaTeX structure', async () => {
+    test('should create .tex file with correct LaTeX structure', async () => {
       const manuscript = `# Section 1
 
 Content for section 1.
@@ -99,7 +99,7 @@ Content for section 2.`;
       expect(content).toContain('\\section{Section 2}');
     });
 
-    it('should handle file dialog scenario with save path', async () => {
+    test('should handle file dialog scenario with save path', async () => {
       const manuscript = `# Test
 
 Test content.`;
@@ -119,7 +119,7 @@ Test content.`;
       expect(fs.existsSync(outputPath)).toBe(true);
     });
 
-    it('should throw error for invalid output path', async () => {
+    test('should throw error for invalid output path', async () => {
       const manuscript = `# Test
 
 Test content.`;
@@ -135,7 +135,7 @@ Test content.`;
       await expect(exportService.exportManuscriptLatex(manuscript, options)).rejects.toThrow();
     });
 
-    it('should export with footnotes and bibliography', async () => {
+    test('should export with footnotes and bibliography', async () => {
       const manuscript = `# Introduction
 
 This is a sentence.`;
@@ -176,7 +176,7 @@ This is a sentence.`;
       expect(content).toContain('\\section*{Bibliography}');
     });
 
-    it('should export with document-scoped footnotes', async () => {
+    test('should export with document-scoped footnotes', async () => {
       const manuscript = `# Section 1
 
 Sentence 1.
@@ -220,7 +220,7 @@ Sentence 2.`;
       expect(content).toContain('\\footnote{');
     });
 
-    it('should export with section-scoped footnotes', async () => {
+    test('should export with section-scoped footnotes', async () => {
       const manuscript = `# Section 1
 
 Sentence 1.
@@ -261,7 +261,7 @@ Sentence 2.`;
       expect(fs.existsSync(outputPath)).toBe(true);
     });
 
-    it('should export without footnotes when includeFootnotes is false', async () => {
+    test('should export without footnotes when includeFootnotes is false', async () => {
       const manuscript = `# Section
 
 Sentence with citation.`;
@@ -299,7 +299,7 @@ Sentence with citation.`;
       expect(content).not.toContain('\\footnote{');
     });
 
-    it('should export without bibliography when includeBibliography is false', async () => {
+    test('should export without bibliography when includeBibliography is false', async () => {
       const manuscript = `# Section
 
 Sentence with citation.`;
@@ -337,7 +337,7 @@ Sentence with citation.`;
       expect(content).not.toContain('\\section*{Bibliography}');
     });
 
-    it('should handle empty manuscript gracefully', async () => {
+    test('should handle empty manuscript gracefully', async () => {
       const manuscript = '';
 
       const outputPath = path.join(tempDir, 'empty.tex');
@@ -358,7 +358,7 @@ Sentence with citation.`;
       expect(content).toContain('\\end{document}');
     });
 
-    it('should escape special LaTeX characters in content', async () => {
+    test('should escape special LaTeX characters in content', async () => {
       const manuscript = `# Section with dollar and ampersand
 
 Content with special characters: percent sign, dollar sign, ampersand, underscore, braces, tilde, caret.`;
@@ -383,7 +383,7 @@ Content with special characters: percent sign, dollar sign, ampersand, underscor
       expect(content).toContain('\\end{document}');
     });
 
-    it('should generate valid LaTeX syntax', async () => {
+    test('should generate valid LaTeX syntax', async () => {
       const manuscript = `# Introduction
 
 This is the introduction.
@@ -426,7 +426,7 @@ Results are shown.`;
       expect(content).toContain('Results are shown.');
     });
 
-    it('should create file with proper permissions', async () => {
+    test('should create file with proper permissions', async () => {
       const manuscript = `# Test
 
 Content.`;
@@ -449,7 +449,7 @@ Content.`;
       expect(content.length).toBeGreaterThan(0);
     });
 
-    it('should handle multiple sections with nested levels', async () => {
+    test('should handle multiple sections with nested levels', async () => {
       const manuscript = `# Main Section
 
 Content.
@@ -480,7 +480,7 @@ Subsubcontent.`;
       expect(content).toContain('\\subsubsection{Subsubsection}');
     });
 
-    it('should include bibliography with proper formatting', async () => {
+    test('should include bibliography with proper formatting', async () => {
       const manuscript = `# Section
 
 Sentence 1. Sentence 2.`;

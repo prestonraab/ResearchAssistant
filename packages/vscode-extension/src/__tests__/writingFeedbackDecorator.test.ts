@@ -21,7 +21,6 @@ describe('WritingFeedbackDecorator', () => {
             .withId('C_01')
             .withText('Machine learning models require large datasets for training')
             .withCategory('Method')
-            .withSource('Smith2020')
             .withContext('')
             .withPrimaryQuote('Large datasets are essential for ML', 'Smith2020')
             .verified()
@@ -54,7 +53,7 @@ describe('WritingFeedbackDecorator', () => {
   });
 
   describe('Vague term detection', () => {
-    it('should detect vague terms in text', () => {
+    test('should detect vague terms in text', () => {
       const text = 'Some studies show that many researchers often use various methods.';
       mockDocument.getText.mockReturnValue(text);
 
@@ -74,7 +73,7 @@ describe('WritingFeedbackDecorator', () => {
       }
     });
 
-    it('should not flag vague terms in headers', () => {
+    test('should not flag vague terms in headers', () => {
       const text = '# Some Introduction\n\nThis is content.';
       mockDocument.getText.mockReturnValue(text);
 
@@ -84,7 +83,7 @@ describe('WritingFeedbackDecorator', () => {
       expect(mockEditor.setDecorations).toHaveBeenCalled();
     });
 
-    it('should not flag vague terms in list items', () => {
+    test('should not flag vague terms in list items', () => {
       const text = '- Some item\n- Another item';
       mockDocument.getText.mockReturnValue(text);
 
@@ -95,7 +94,7 @@ describe('WritingFeedbackDecorator', () => {
   });
 
   describe('Missing citation detection', () => {
-    it('should detect unsupported factual statements', () => {
+    test('should detect unsupported factual statements', () => {
       const text = 'Research shows that machine learning improves accuracy significantly.';
       mockDocument.getText.mockReturnValue(text);
 
@@ -110,7 +109,7 @@ describe('WritingFeedbackDecorator', () => {
       expect(missingCitationCall).toBeDefined();
     });
 
-    it('should not flag statements with claim references', () => {
+    test('should not flag statements with claim references', () => {
       const text = 'Research shows that machine learning improves accuracy C_01.';
       mockDocument.getText.mockReturnValue(text);
 
@@ -127,7 +126,7 @@ describe('WritingFeedbackDecorator', () => {
       }
     });
 
-    it('should not flag questions', () => {
+    test('should not flag questions', () => {
       const text = 'What does research show about machine learning?';
       mockDocument.getText.mockReturnValue(text);
 
@@ -136,7 +135,7 @@ describe('WritingFeedbackDecorator', () => {
       expect(mockEditor.setDecorations).toHaveBeenCalled();
     });
 
-    it('should skip very short sentences', () => {
+    test('should skip very short sentences', () => {
       const text = 'Yes. No. Maybe.';
       mockDocument.getText.mockReturnValue(text);
 
@@ -147,7 +146,7 @@ describe('WritingFeedbackDecorator', () => {
   });
 
   describe('Document filtering', () => {
-    it('should only process markdown files', () => {
+    test('should only process markdown files', () => {
       const nonMarkdownDoc = {
         languageId: 'typescript',
         uri: {
@@ -168,7 +167,7 @@ describe('WritingFeedbackDecorator', () => {
       expect(nonMarkdownEditor.setDecorations).not.toHaveBeenCalled();
     });
 
-    it('should only process files in drafting directory', () => {
+    test('should only process files in drafting directory', () => {
       const outsideDoc = {
         languageId: 'markdown',
         uri: {
@@ -189,7 +188,7 @@ describe('WritingFeedbackDecorator', () => {
       expect(outsideEditor.setDecorations).not.toHaveBeenCalled();
     });
 
-    it('should process files in drafting directory', () => {
+    test('should process files in drafting directory', () => {
       const draftingDoc = {
         languageId: 'markdown',
         uri: {
@@ -212,7 +211,7 @@ describe('WritingFeedbackDecorator', () => {
   });
 
   describe('Debouncing', () => {
-    it('should debounce text changes', () => {
+    test('should debounce text changes', () => {
       jest.useFakeTimers();
       
       const text = 'Some text with many items.';
@@ -242,7 +241,7 @@ describe('WritingFeedbackDecorator', () => {
   });
 
   describe('Claim suggestions', () => {
-    it('should suggest relevant claims for unsupported statements', () => {
+    test('should suggest relevant claims for unsupported statements', () => {
       const text = 'Machine learning models require large datasets for effective training.';
       mockDocument.getText.mockReturnValue(text);
 
@@ -254,14 +253,14 @@ describe('WritingFeedbackDecorator', () => {
   });
 
   describe('Cleanup', () => {
-    it('should clear decorations', () => {
+    test('should clear decorations', () => {
       decorator.clearDecorations(mockEditor);
 
       expect(mockEditor.setDecorations).toHaveBeenCalledTimes(2);
       expect(mockEditor.setDecorations).toHaveBeenCalledWith(expect.anything(), []);
     });
 
-    it('should dispose resources', () => {
+    test('should dispose resources', () => {
       decorator.dispose();
       
       // Should not throw errors

@@ -9,7 +9,7 @@ describe('WordRenderer', () => {
   });
 
   describe('6.1 - Basic document structure', () => {
-    it('should generate valid Word document buffer', async () => {
+    test('should generate valid Word document buffer', async () => {
       const model: DocumentModel = {
         sections: [],
         bibliography: [],
@@ -30,7 +30,7 @@ describe('WordRenderer', () => {
       expect(buffer[1]).toBe(0x4b); // 'K'
     });
 
-    it('should create document with proper structure', async () => {
+    test('should create document with proper structure', async () => {
       const model: DocumentModel = {
         sections: [
           {
@@ -58,7 +58,7 @@ describe('WordRenderer', () => {
       expect(buffer.length).toBeGreaterThan(0);
     });
 
-    it('should handle empty document', async () => {
+    test('should handle empty document', async () => {
       const model: DocumentModel = {
         sections: [],
         bibliography: [],
@@ -78,7 +78,7 @@ describe('WordRenderer', () => {
   });
 
   describe('6.2 - Heading rendering', () => {
-    it('should render level 1 heading', async () => {
+    test('should render level 1 heading', async () => {
       const model: DocumentModel = {
         sections: [
           {
@@ -102,7 +102,7 @@ describe('WordRenderer', () => {
       expect(buffer.length).toBeGreaterThan(0);
     });
 
-    it('should render level 2 heading', async () => {
+    test('should render level 2 heading', async () => {
       const model: DocumentModel = {
         sections: [
           {
@@ -126,7 +126,7 @@ describe('WordRenderer', () => {
       expect(buffer.length).toBeGreaterThan(0);
     });
 
-    it('should render level 3 heading', async () => {
+    test('should render level 3 heading', async () => {
       const model: DocumentModel = {
         sections: [
           {
@@ -150,7 +150,7 @@ describe('WordRenderer', () => {
       expect(buffer.length).toBeGreaterThan(0);
     });
 
-    it('should render multiple sections with different heading levels', async () => {
+    test('should render multiple sections with different heading levels', async () => {
       const model: DocumentModel = {
         sections: [
           {
@@ -184,7 +184,7 @@ describe('WordRenderer', () => {
       expect(buffer.length).toBeGreaterThan(0);
     });
 
-    it('should preserve section hierarchy', async () => {
+    test('should preserve section hierarchy', async () => {
       const model: DocumentModel = {
         sections: [
           {
@@ -223,7 +223,7 @@ describe('WordRenderer', () => {
   });
 
   describe('6.3 - Paragraph and text run rendering', () => {
-    it('should render paragraph with text', async () => {
+    test('should render paragraph with text', async () => {
       const model: DocumentModel = {
         sections: [
           {
@@ -251,7 +251,7 @@ describe('WordRenderer', () => {
       expect(buffer.length).toBeGreaterThan(0);
     });
 
-    it('should render multiple text runs in paragraph', async () => {
+    test('should render multiple text runs in paragraph', async () => {
       const model: DocumentModel = {
         sections: [
           {
@@ -282,7 +282,7 @@ describe('WordRenderer', () => {
       expect(buffer.length).toBeGreaterThan(0);
     });
 
-    it('should render multiple paragraphs', async () => {
+    test('should render multiple paragraphs', async () => {
       const model: DocumentModel = {
         sections: [
           {
@@ -316,7 +316,7 @@ describe('WordRenderer', () => {
       expect(buffer.length).toBeGreaterThan(0);
     });
 
-    it('should handle footnote reference runs', async () => {
+    test('should handle footnote reference runs', async () => {
       const model: DocumentModel = {
         sections: [
           {
@@ -354,7 +354,7 @@ describe('WordRenderer', () => {
       expect(buffer.length).toBeGreaterThan(0);
     });
 
-    it('should handle mixed text and footnote runs', async () => {
+    test('should handle mixed text and footnote runs', async () => {
       const model: DocumentModel = {
         sections: [
           {
@@ -400,7 +400,7 @@ describe('WordRenderer', () => {
   });
 
   describe('6.4 - Footnote rendering', () => {
-    it('should render footnote with quote and source', async () => {
+    test('should render footnote with quote and source', async () => {
       const model: DocumentModel = {
         sections: [
           {
@@ -438,7 +438,7 @@ describe('WordRenderer', () => {
       expect(buffer.length).toBeGreaterThan(0);
     });
 
-    it('should render footnote without year', async () => {
+    test('should render footnote without year', async () => {
       const model: DocumentModel = {
         sections: [
           {
@@ -475,7 +475,7 @@ describe('WordRenderer', () => {
       expect(buffer.length).toBeGreaterThan(0);
     });
 
-    it('should render multiple footnotes', async () => {
+    test('should render multiple footnotes', async () => {
       const model: DocumentModel = {
         sections: [
           {
@@ -519,7 +519,7 @@ describe('WordRenderer', () => {
       expect(buffer.length).toBeGreaterThan(0);
     });
 
-    it('should include quote text and source in footnote content', async () => {
+    test('should include quote text and source in footnote content', async () => {
       const model: DocumentModel = {
         sections: [
           {
@@ -557,7 +557,7 @@ describe('WordRenderer', () => {
       expect(buffer.length).toBeGreaterThan(0);
     });
 
-    it('should handle footnotes with special characters', async () => {
+    test('should handle footnotes with special characters', async () => {
       const model: DocumentModel = {
         sections: [
           {
@@ -596,7 +596,7 @@ describe('WordRenderer', () => {
   });
 
   describe('6.5 - Bibliography rendering', () => {
-    it('should render bibliography section with heading', async () => {
+    test('should render bibliography section with heading', async () => {
       const model: DocumentModel = {
         sections: [],
         bibliography: [
@@ -616,7 +616,7 @@ describe('WordRenderer', () => {
       expect(buffer.length).toBeGreaterThan(0);
     });
 
-    it('should render bibliography entry with year', async () => {
+    test('should render bibliography entry with year', async () => {
       const model: DocumentModel = {
         sections: [],
         bibliography: [
@@ -636,7 +636,7 @@ describe('WordRenderer', () => {
       expect(buffer.length).toBeGreaterThan(0);
     });
 
-    it('should render bibliography entry without year', async () => {
+    test('should render bibliography entry without year', async () => {
       const model: DocumentModel = {
         sections: [],
         bibliography: [
@@ -656,7 +656,7 @@ describe('WordRenderer', () => {
       expect(buffer.length).toBeGreaterThan(0);
     });
 
-    it('should render multiple bibliography entries', async () => {
+    test('should render multiple bibliography entries', async () => {
       const model: DocumentModel = {
         sections: [],
         bibliography: [
@@ -678,7 +678,7 @@ describe('WordRenderer', () => {
       expect(buffer.length).toBeGreaterThan(0);
     });
 
-    it('should not render bibliography when includeBibliography is false', async () => {
+    test('should not render bibliography when includeBibliography is false', async () => {
       const model: DocumentModel = {
         sections: [],
         bibliography: [
@@ -698,7 +698,7 @@ describe('WordRenderer', () => {
       expect(buffer.length).toBeGreaterThan(0);
     });
 
-    it('should not render bibliography when bibliography is empty', async () => {
+    test('should not render bibliography when bibliography is empty', async () => {
       const model: DocumentModel = {
         sections: [],
         bibliography: [],
@@ -716,7 +716,7 @@ describe('WordRenderer', () => {
       expect(buffer.length).toBeGreaterThan(0);
     });
 
-    it('should format bibliography entries correctly', async () => {
+    test('should format bibliography entries correctly', async () => {
       const model: DocumentModel = {
         sections: [],
         bibliography: [
@@ -740,7 +740,7 @@ describe('WordRenderer', () => {
   });
 
   describe('Integration tests', () => {
-    it('should render complete document with sections, paragraphs, footnotes, and bibliography', async () => {
+    test('should render complete document with sections, paragraphs, footnotes, and bibliography', async () => {
       const model: DocumentModel = {
         sections: [
           {
@@ -802,7 +802,7 @@ describe('WordRenderer', () => {
       expect(buffer[1]).toBe(0x4b); // 'K'
     });
 
-    it('should render document with nested sections', async () => {
+    test('should render document with nested sections', async () => {
       const model: DocumentModel = {
         sections: [
           {
@@ -848,7 +848,7 @@ describe('WordRenderer', () => {
       expect(buffer.length).toBeGreaterThan(0);
     });
 
-    it('should render document with multiple paragraphs per section', async () => {
+    test('should render document with multiple paragraphs per section', async () => {
       const model: DocumentModel = {
         sections: [
           {

@@ -52,7 +52,7 @@ describe('ZoteroApiService', () => {
       },
     ];
 
-    it('should fetch items from a specific collection', async () => {
+    test('should fetch items from a specific collection', async () => {
       (global.fetch as jest.MockedFunction<typeof fetch>).mockResolvedValue({
         status: 200,
         headers: new Headers({ 'content-type': 'application/json' }),
@@ -68,7 +68,7 @@ describe('ZoteroApiService', () => {
       );
     });
 
-    it('should respect the limit parameter when provided', async () => {
+    test('should respect the limit parameter when provided', async () => {
       (global.fetch as jest.MockedFunction<typeof fetch>).mockResolvedValue({
         status: 200,
         headers: new Headers({ 'content-type': 'application/json' }),
@@ -84,7 +84,7 @@ describe('ZoteroApiService', () => {
       );
     });
 
-    it('should not add limit parameter when not provided', async () => {
+    test('should not add limit parameter when not provided', async () => {
       (global.fetch as jest.MockedFunction<typeof fetch>).mockResolvedValue({
         status: 200,
         headers: new Headers({ 'content-type': 'application/json' }),
@@ -98,20 +98,20 @@ describe('ZoteroApiService', () => {
       expect(fetchCall[0]).not.toContain('limit=');
     });
 
-    it('should throw error when collection key is empty', async () => {
+    test('should throw error when collection key is empty', async () => {
       await expect(service.getCollectionItems('')).rejects.toThrow('Collection key cannot be empty');
     });
 
-    it('should throw error when collection key is only whitespace', async () => {
+    test('should throw error when collection key is only whitespace', async () => {
       await expect(service.getCollectionItems('   ')).rejects.toThrow('Collection key cannot be empty');
     });
 
-    it('should throw error when service is not configured', async () => {
+    test('should throw error when service is not configured', async () => {
       const unconfiguredService = new ZoteroApiService();
       await expect(unconfiguredService.getCollectionItems('ABC123')).rejects.toThrow('Zotero API not configured');
     });
 
-    it('should throw error when collection is not found', async () => {
+    test('should throw error when collection is not found', async () => {
       (global.fetch as jest.MockedFunction<typeof fetch>).mockResolvedValue({
         status: 404,
         headers: new Headers({ 'content-type': 'application/json' }),
@@ -121,7 +121,7 @@ describe('ZoteroApiService', () => {
       await expect(service.getCollectionItems('INVALID')).rejects.toThrow('Collection not found: INVALID');
     });
 
-    it('should throw error on API failure', async () => {
+    test('should throw error on API failure', async () => {
       (global.fetch as jest.MockedFunction<typeof fetch>).mockResolvedValue({
         status: 500,
         headers: new Headers({ 'content-type': 'application/json' }),
@@ -131,7 +131,7 @@ describe('ZoteroApiService', () => {
       await expect(service.getCollectionItems('ABC123')).rejects.toThrow('Failed to fetch collection items: 500');
     });
 
-    it('should cache collection items', async () => {
+    test('should cache collection items', async () => {
       (global.fetch as jest.MockedFunction<typeof fetch>).mockResolvedValue({
         status: 200,
         headers: new Headers({ 'content-type': 'application/json' }),
@@ -152,7 +152,7 @@ describe('ZoteroApiService', () => {
       expect(results2).toEqual(results1);
     });
 
-    it('should use different cache keys for different limits', async () => {
+    test('should use different cache keys for different limits', async () => {
       (global.fetch as jest.MockedFunction<typeof fetch>).mockResolvedValue({
         status: 200,
         headers: new Headers({ 'content-type': 'application/json' }),
@@ -172,7 +172,7 @@ describe('ZoteroApiService', () => {
       expect(global.fetch).toHaveBeenCalled();
     });
 
-    it('should handle network errors gracefully', async () => {
+    test('should handle network errors gracefully', async () => {
       (global.fetch as jest.MockedFunction<typeof fetch>).mockRejectedValue(new Error('Network error'));
 
       await expect(service.getCollectionItems('ABC123')).rejects.toThrow();
@@ -199,7 +199,7 @@ describe('ZoteroApiService', () => {
       },
     ];
 
-    it('should fetch recent items with default limit', async () => {
+    test('should fetch recent items with default limit', async () => {
       (global.fetch as jest.MockedFunction<typeof fetch>).mockResolvedValue({
         status: 200,
         headers: new Headers({ 'content-type': 'application/json' }),
@@ -223,7 +223,7 @@ describe('ZoteroApiService', () => {
       );
     });
 
-    it('should respect custom limit parameter', async () => {
+    test('should respect custom limit parameter', async () => {
       (global.fetch as jest.MockedFunction<typeof fetch>).mockResolvedValue({
         status: 200,
         headers: new Headers({ 'content-type': 'application/json' }),
@@ -239,20 +239,20 @@ describe('ZoteroApiService', () => {
       );
     });
 
-    it('should throw error when service is not configured', async () => {
+    test('should throw error when service is not configured', async () => {
       const unconfiguredService = new ZoteroApiService();
       await expect(unconfiguredService.getRecentItems()).rejects.toThrow('Zotero API not configured');
     });
 
-    it('should throw error when limit is zero', async () => {
+    test('should throw error when limit is zero', async () => {
       await expect(service.getRecentItems(0)).rejects.toThrow('Limit must be a positive number');
     });
 
-    it('should throw error when limit is negative', async () => {
+    test('should throw error when limit is negative', async () => {
       await expect(service.getRecentItems(-5)).rejects.toThrow('Limit must be a positive number');
     });
 
-    it('should throw error on API failure', async () => {
+    test('should throw error on API failure', async () => {
       (global.fetch as jest.MockedFunction<typeof fetch>).mockResolvedValue({
         status: 500,
         headers: new Headers({ 'content-type': 'application/json' }),
@@ -262,7 +262,7 @@ describe('ZoteroApiService', () => {
       await expect(service.getRecentItems()).rejects.toThrow('Failed to fetch recent items: 500');
     });
 
-    it('should cache recent items', async () => {
+    test('should cache recent items', async () => {
       (global.fetch as jest.MockedFunction<typeof fetch>).mockResolvedValue({
         status: 200,
         headers: new Headers({ 'content-type': 'application/json' }),
@@ -283,7 +283,7 @@ describe('ZoteroApiService', () => {
       expect(results2).toEqual(results1);
     });
 
-    it('should use different cache keys for different limits', async () => {
+    test('should use different cache keys for different limits', async () => {
       (global.fetch as jest.MockedFunction<typeof fetch>).mockResolvedValue({
         status: 200,
         headers: new Headers({ 'content-type': 'application/json' }),
@@ -303,13 +303,13 @@ describe('ZoteroApiService', () => {
       expect(global.fetch).toHaveBeenCalled();
     });
 
-    it('should handle network errors gracefully', async () => {
+    test('should handle network errors gracefully', async () => {
       (global.fetch as jest.MockedFunction<typeof fetch>).mockRejectedValue(new Error('Network error'));
 
       await expect(service.getRecentItems()).rejects.toThrow();
     });
 
-    it('should include correct API parameters in request', async () => {
+    test('should include correct API parameters in request', async () => {
       (global.fetch as jest.MockedFunction<typeof fetch>).mockResolvedValue({
         status: 200,
         headers: new Headers({ 'content-type': 'application/json' }),
@@ -330,23 +330,23 @@ describe('ZoteroApiService', () => {
 
   describe('semanticSearch', () => {
     describe('Basic functionality', () => {
-    it('should return empty array when not configured', async () => {
+    test('should return empty array when not configured', async () => {
       const unconfiguredService = new ZoteroApiService();
       const results = await unconfiguredService.semanticSearch('test query');
       expect(results).toEqual([]);
     });
 
-    it('should return empty array when query is empty', async () => {
+    test('should return empty array when query is empty', async () => {
       const results = await service.semanticSearch('');
       expect(results).toEqual([]);
     });
 
-    it('should return empty array when query is only whitespace', async () => {
+    test('should return empty array when query is only whitespace', async () => {
       const results = await service.semanticSearch('   ');
       expect(results).toEqual([]);
     });
 
-    it('should return empty array when EmbeddingService is not available', async () => {
+    test('should return empty array when EmbeddingService is not available', async () => {
       const serviceWithoutEmbedding = new ZoteroApiService();
       serviceWithoutEmbedding.initialize('test-api-key', 'test-user-id');
       (serviceWithoutEmbedding as any).embeddingService = null;
@@ -404,7 +404,7 @@ describe('ZoteroApiService', () => {
       });
     });
 
-    it('should generate embeddings for query and items', async () => {
+    test('should generate embeddings for query and items', async () => {
       await service.semanticSearch('machine learning', 5);
 
       // Should generate embedding for query + 3 items
@@ -412,7 +412,7 @@ describe('ZoteroApiService', () => {
       expect(mockEmbeddingService.generateEmbedding).toHaveBeenCalledWith('machine learning');
     });
 
-    it('should compute similarity scores and sort results', async () => {
+    test('should compute similarity scores and sort results', async () => {
       const results = await service.semanticSearch('machine learning', 5);
 
       // Should return items sorted by relevance
@@ -423,7 +423,7 @@ describe('ZoteroApiService', () => {
       expect(results[0].key).toBe('item1');
     });
 
-    it('should filter out items below relevance threshold', async () => {
+    test('should filter out items below relevance threshold', async () => {
       // Mock embeddings with very low similarity
       mockEmbeddingService.generateEmbedding.mockImplementation(async (text: string) => {
         if (text === 'test query') {
@@ -439,14 +439,14 @@ describe('ZoteroApiService', () => {
       expect(results).toEqual([]);
     });
 
-    it('should respect the limit parameter', async () => {
+    test('should respect the limit parameter', async () => {
       const results = await service.semanticSearch('machine learning', 1);
 
       // Should return at most 1 result
       expect(results.length).toBeLessThanOrEqual(1);
     });
 
-    it('should cache search results', async () => {
+    test('should cache search results', async () => {
       // First search
       const results1 = await service.semanticSearch('machine learning', 5);
       
@@ -463,7 +463,7 @@ describe('ZoteroApiService', () => {
       expect(results2).toEqual(results1);
     });
 
-    it('should handle errors gracefully and return empty array', async () => {
+    test('should handle errors gracefully and return empty array', async () => {
       // Mock embedding service to throw error
       mockEmbeddingService.generateEmbedding.mockRejectedValue(new Error('API error'));
 
@@ -473,7 +473,7 @@ describe('ZoteroApiService', () => {
       expect(results).toEqual([]);
     });
 
-    it('should return cached results on error if available', async () => {
+    test('should return cached results on error if available', async () => {
       // First successful search
       await service.semanticSearch('machine learning', 5);
 
@@ -487,7 +487,7 @@ describe('ZoteroApiService', () => {
   });
 
   describe('Cosine similarity computation', () => {
-    it('should compute correct cosine similarity for identical vectors', async () => {
+    test('should compute correct cosine similarity for identical vectors', async () => {
       // Mock to return identical embeddings
       mockEmbeddingService.generateEmbedding.mockResolvedValue([1.0, 0.0, 0.0]);
 
@@ -509,7 +509,7 @@ describe('ZoteroApiService', () => {
       expect(results.length).toBe(1);
     });
 
-    it('should compute correct cosine similarity for orthogonal vectors', async () => {
+    test('should compute correct cosine similarity for orthogonal vectors', async () => {
       let callCount = 0;
       mockEmbeddingService.generateEmbedding.mockImplementation(async () => {
         callCount++;
@@ -539,7 +539,7 @@ describe('ZoteroApiService', () => {
   });
 
   describe('Item text extraction', () => {
-    it('should combine title and abstract for embedding', async () => {
+    test('should combine title and abstract for embedding', async () => {
       const mockItem: ZoteroItem = {
         key: 'item1',
         title: 'Test Title',
@@ -566,7 +566,7 @@ describe('ZoteroApiService', () => {
       );
     });
 
-    it('should handle items without abstract', async () => {
+    test('should handle items without abstract', async () => {
       const mockItem: ZoteroItem = {
         key: 'item1',
         title: 'Test Title',
@@ -590,7 +590,7 @@ describe('ZoteroApiService', () => {
   });
 
   describe('API integration', () => {
-    it('should fetch items from Zotero API', async () => {
+    test('should fetch items from Zotero API', async () => {
       mockEmbeddingService.generateEmbedding.mockResolvedValue([0.5, 0.5, 0.5]);
 
       (global.fetch as jest.MockedFunction<typeof fetch>).mockResolvedValue({
@@ -608,7 +608,7 @@ describe('ZoteroApiService', () => {
       expect(fetchCall[0]).toContain('test-user-id');
     });
 
-    it('should return empty array when no items in library', async () => {
+    test('should return empty array when no items in library', async () => {
       mockEmbeddingService.generateEmbedding.mockResolvedValue([0.5, 0.5, 0.5]);
 
       (global.fetch as jest.MockedFunction<typeof fetch>).mockResolvedValue({
@@ -658,7 +658,7 @@ describe('ZoteroApiService', () => {
       }
     ];
 
-    it('should fetch and return typed attachments only', async () => {
+    test('should fetch and return typed attachments only', async () => {
       (global.fetch as jest.MockedFunction<typeof fetch>).mockResolvedValue({
         status: 200,
         headers: new Headers({ 'content-type': 'application/json' }),
@@ -687,21 +687,21 @@ describe('ZoteroApiService', () => {
       });
     });
 
-    it('should return empty array when service is not configured', async () => {
+    test('should return empty array when service is not configured', async () => {
       const unconfiguredService = new ZoteroApiService();
       const results = await unconfiguredService.getItemChildren('item123');
       expect(results).toEqual([]);
     });
 
-    it('should throw error when item key is empty', async () => {
+    test('should throw error when item key is empty', async () => {
       await expect(service.getItemChildren('')).rejects.toThrow('Item key cannot be empty');
     });
 
-    it('should throw error when item key is only whitespace', async () => {
+    test('should throw error when item key is only whitespace', async () => {
       await expect(service.getItemChildren('   ')).rejects.toThrow('Item key cannot be empty');
     });
 
-    it('should return empty array on API failure', async () => {
+    test('should return empty array on API failure', async () => {
       (global.fetch as jest.MockedFunction<typeof fetch>).mockResolvedValue({
         status: 500,
         headers: new Headers({ 'content-type': 'application/json' }),
@@ -712,7 +712,7 @@ describe('ZoteroApiService', () => {
       expect(results).toEqual([]);
     });
 
-    it('should return empty array when item has no children', async () => {
+    test('should return empty array when item has no children', async () => {
       (global.fetch as jest.MockedFunction<typeof fetch>).mockResolvedValue({
         status: 200,
         headers: new Headers({ 'content-type': 'application/json' }),
@@ -723,7 +723,7 @@ describe('ZoteroApiService', () => {
       expect(results).toEqual([]);
     });
 
-    it('should cache item children', async () => {
+    test('should cache item children', async () => {
       (global.fetch as jest.MockedFunction<typeof fetch>).mockResolvedValue({
         status: 200,
         headers: new Headers({ 'content-type': 'application/json' }),
@@ -744,7 +744,7 @@ describe('ZoteroApiService', () => {
       expect(results2).toEqual(results1);
     });
 
-    it('should handle children with missing data fields gracefully', async () => {
+    test('should handle children with missing data fields gracefully', async () => {
       const incompleteChildren = [
         {
           key: 'attach1',
@@ -774,14 +774,14 @@ describe('ZoteroApiService', () => {
       });
     });
 
-    it('should handle network errors gracefully', async () => {
+    test('should handle network errors gracefully', async () => {
       (global.fetch as jest.MockedFunction<typeof fetch>).mockRejectedValue(new Error('Network error'));
 
       const results = await service.getItemChildren('item123');
       expect(results).toEqual([]);
     });
 
-    it('should call correct API endpoint', async () => {
+    test('should call correct API endpoint', async () => {
       (global.fetch as jest.MockedFunction<typeof fetch>).mockResolvedValue({
         status: 200,
         headers: new Headers({ 'content-type': 'application/json' }),

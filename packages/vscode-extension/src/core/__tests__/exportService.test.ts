@@ -21,7 +21,7 @@ describe('ExportService - buildDocumentModel', () => {
   });
 
   describe('buildDocumentModel - Basic Structure', () => {
-    it('should parse single section with heading and paragraph', async () => {
+    test('should parse single section with heading and paragraph', async () => {
       const manuscript = `# Introduction
 
 This is a paragraph with some text.`;
@@ -40,7 +40,7 @@ This is a paragraph with some text.`;
       expect(model.sections[0].paragraphs).toHaveLength(1);
     });
 
-    it('should parse multiple sections with different heading levels', async () => {
+    test('should parse multiple sections with different heading levels', async () => {
       const manuscript = `# Section 1
 
 Content 1
@@ -67,7 +67,7 @@ Content 2`;
       expect(model.sections[2].level).toBe(1);
     });
 
-    it('should extract heading text without markdown syntax', async () => {
+    test('should extract heading text without markdown syntax', async () => {
       const manuscript = `## My Section Title
 
 Some content`;
@@ -84,7 +84,7 @@ Some content`;
       expect(model.sections[0].heading).not.toContain('#');
     });
 
-    it('should parse multiple paragraphs in a section', async () => {
+    test('should parse multiple paragraphs in a section', async () => {
       const manuscript = `# Section
 
 First paragraph here.
@@ -106,7 +106,7 @@ Third paragraph here.`;
   });
 
   describe('buildDocumentModel - Paragraph Structure', () => {
-    it('should create text runs for sentences without citations', async () => {
+    test('should create text runs for sentences without citations', async () => {
       const manuscript = `# Section
 
 This is a sentence. This is another sentence.`;
@@ -126,7 +126,7 @@ This is a sentence. This is another sentence.`;
       expect(textRuns.every(r => r.content.length > 0)).toBe(true);
     });
 
-    it('should not create footnote references when includeFootnotes is false', async () => {
+    test('should not create footnote references when includeFootnotes is false', async () => {
       const manuscript = `# Section
 
 This is a sentence.`;
@@ -146,7 +146,7 @@ This is a sentence.`;
   });
 
   describe('buildDocumentModel - Footnotes', () => {
-    it('should create footnote references when citations exist', async () => {
+    test('should create footnote references when citations exist', async () => {
       const manuscript = `# Section
 
 This is a sentence.`;
@@ -182,7 +182,7 @@ This is a sentence.`;
       expect(footnoteRefs[0].footnoteId).toBe(1);
     });
 
-    it('should build footnotes with quote text and source', async () => {
+    test('should build footnotes with quote text and source', async () => {
       const manuscript = `# Section
 
 This is a sentence.`;
@@ -217,7 +217,7 @@ This is a sentence.`;
       expect(model.metadata.footnotes[0].source).toBe('Smith 2020');
     });
 
-    it('should support document-scoped footnote numbering', async () => {
+    test('should support document-scoped footnote numbering', async () => {
       const manuscript = `# Section 1
 
 Sentence 1.
@@ -261,7 +261,7 @@ Sentence 2.`;
       }
     });
 
-    it('should support section-scoped footnote numbering', async () => {
+    test('should support section-scoped footnote numbering', async () => {
       const manuscript = `# Section 1
 
 Sentence 1.
@@ -308,7 +308,7 @@ Sentence 2.`;
   });
 
   describe('buildDocumentModel - Bibliography', () => {
-    it('should build bibliography from citations when includeBibliography is true', async () => {
+    test('should build bibliography from citations when includeBibliography is true', async () => {
       const manuscript = `# Section
 
 Sentence 1.`;
@@ -342,7 +342,7 @@ Sentence 1.`;
       expect(model.bibliography[0].source).toBe('Smith 2020');
     });
 
-    it('should not include bibliography when includeBibliography is false', async () => {
+    test('should not include bibliography when includeBibliography is false', async () => {
       const manuscript = `# Section
 
 Sentence 1.`;
@@ -375,7 +375,7 @@ Sentence 1.`;
       expect(model.bibliography).toHaveLength(0);
     });
 
-    it('should collect unique sources in bibliography', async () => {
+    test('should collect unique sources in bibliography', async () => {
       const manuscript = `# Section
 
 Sentence 1.
@@ -431,7 +431,7 @@ Sentence 2.`;
       expect(model.bibliography[0].source).toBe('Smith 2020');
     });
 
-    it('should include year in bibliography entries', async () => {
+    test('should include year in bibliography entries', async () => {
       const manuscript = `# Section
 
 Sentence 1.`;
@@ -466,7 +466,7 @@ Sentence 1.`;
   });
 
   describe('buildDocumentModel - Metadata', () => {
-    it('should set correct metadata for document scope', async () => {
+    test('should set correct metadata for document scope', async () => {
       const manuscript = `# Section
 
 Content`;
@@ -485,7 +485,7 @@ Content`;
       expect(model.metadata.includeBibliography).toBe(true);
     });
 
-    it('should set correct metadata for section scope', async () => {
+    test('should set correct metadata for section scope', async () => {
       const manuscript = `# Section
 
 Content`;
@@ -502,7 +502,7 @@ Content`;
       expect(model.metadata.footnoteScope).toBe('section');
     });
 
-    it('should default to document scope when not specified', async () => {
+    test('should default to document scope when not specified', async () => {
       const manuscript = `# Section
 
 Content`;
@@ -516,7 +516,7 @@ Content`;
       expect(model.metadata.footnoteScope).toBe('document');
     });
 
-    it('should default to including footnotes and bibliography', async () => {
+    test('should default to including footnotes and bibliography', async () => {
       const manuscript = `# Section
 
 Content`;
@@ -533,7 +533,7 @@ Content`;
   });
 
   describe('buildDocumentModel - Edge Cases', () => {
-    it('should handle empty manuscript', async () => {
+    test('should handle empty manuscript', async () => {
       const manuscript = '';
 
       const options: ManuscriptExportOptions = {
@@ -549,7 +549,7 @@ Content`;
       expect(model.metadata.footnotes).toHaveLength(0);
     });
 
-    it('should handle manuscript with only whitespace', async () => {
+    test('should handle manuscript with only whitespace', async () => {
       const manuscript = '   \n\n  \t\n   ';
 
       const options: ManuscriptExportOptions = {
@@ -563,7 +563,7 @@ Content`;
       expect(model.sections).toHaveLength(0);
     });
 
-    it('should handle manuscript with no headings', async () => {
+    test('should handle manuscript with no headings', async () => {
       const manuscript = `Just some text here.
 
 More text here.`;
@@ -580,7 +580,7 @@ More text here.`;
       expect(model.sections.length).toBeGreaterThanOrEqual(0);
     });
 
-    it('should handle missing claim references gracefully', async () => {
+    test('should handle missing claim references gracefully', async () => {
       const manuscript = `# Section
 
 Sentence 1.`;
@@ -605,7 +605,7 @@ Sentence 1.`;
       expect(model.metadata.footnotes).toHaveLength(0);
     });
 
-    it('should handle headings with special characters', async () => {
+    test('should handle headings with special characters', async () => {
       const manuscript = `# Section 1: Introduction & Overview
 
 Content here.`;
@@ -621,7 +621,7 @@ Content here.`;
       expect(model.sections[0].heading).toBe('Section 1: Introduction & Overview');
     });
 
-    it('should remove HTML comment markers from manuscript', async () => {
+    test('should remove HTML comment markers from manuscript', async () => {
       const manuscript = `# Introduction
 
 **What is the question?** <!-- [undefined] --> This is the answer to the question.
@@ -651,7 +651,7 @@ Content here.`;
       expect(paragraphText).toContain('Another answer here.');
     });
 
-    it('should handle multiple citations in same sentence', async () => {
+    test('should handle multiple citations in same sentence', async () => {
       const manuscript = `# Section
 
 Sentence with multiple citations.`;

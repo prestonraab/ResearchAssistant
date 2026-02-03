@@ -1024,59 +1024,109 @@ export class ClaimReviewProvider {
    */
   private async handleSearchInternet(query: string): Promise<void> {
     try {
-      // Check if Zotero is configured (check both settings and environment)
-      const config = vscode.workspace.getConfiguration('researchAssistant');
-      const zoteroUserId = config.get<string>('zoteroUserId') || process.env.ZOTERO_USER_ID;
-      
-      if (!zoteroUserId) {
-        const selection = await vscode.window.showErrorMessage(
-          'Zotero User ID not configured. Add it in Extension Settings.',
-          'Open Settings',
-          'Zotero API Page'
-        );
-        
-        if (selection === 'Open Settings') {
-          await vscode.commands.executeCommand('workbench.action.openSettings', 'researchAssistant.zoteroUserId');
-        } else if (selection === 'Zotero API Page') {
-          vscode.env.openExternal(vscode.Uri.parse('https://www.zotero.org/settings/keys'));
-        }
-        
-        if (this.panel) {
-          this.panel.webview.postMessage({
-            type: 'error',
-            message: 'Zotero User ID not configured. Cannot search internet.'
-          });
-        }
-        return;
+      // First, try local Zotero search
+      vscode.window.showInformationMessage('Searching Zotero library...');
+
+      let localResults: any[] = [];
+      try {
+        localResults = await this.zoteroService.semanticSearch(query, 10);
+      } catch (error) {
+        console.warn('Local Zotero search failed:', error);
       }
 
-      vscode.window.showInformationMessage('Searching for related papers...');
-
-      // Search using direct Zotero API
-      try {
-        const searchResults = await this.zoteroService.semanticSearch(query, 5);
-        
+      // If we have good local results, show them first
+      if (localResults.length > 0) {
         if (this.panel) {
           this.panel.webview.postMessage({
             type: 'internetSearchResults',
-            results: searchResults.map((result: any) => ({
+            results: localResults.map((result: any) => ({
               title: result.title || '',
-              url: result.url || result.doi || '',
-              snippet: result.abstract || ''
+              authors: result.creators?.map((c: any) => c.name || `${c.firstName || ''} ${c.lastName || ''}`.trim()).join(', ') || '',
+              year: result.date ? new Date(result.date).getFullYear() : '',
+              abstract: result.abstractNote || '',
+              doi: result.doi || '',
+              url: result.url || '',
+              venue: '',
+              source: 'zotero-local'
             }))
           });
         }
-      } catch (searchError) {
-        console.error('Search failed:', searchError);
-        if (this.panel) {
-          this.panel.webview.postMessage({
-            type: 'internetSearchResults',
-            results: []
-          });
+
+        // Ask if user wants to search external sources too
+        const action = await vscode.window.showInformationMessage(
+          `Found ${localResults.length} paper${localResults.length !== 1 ? 's' : ''} in your Zotero library. Search external sources too?`,
+          'Search External',
+          'Done'
+        );
+
+        if (action !== 'Search External') {
+          return;
         }
       }
+
+      // Search external sources
+      vscode.window.showInformationMessage('Searching external sources...');
+
+      const { InternetPaperSearcher } = await import('../core/internetPaperSearcher');
+      const searcher = new InternetPaperSearcher(this.extensionState.getWorkspaceRoot());
+
+      const papers = await vscode.window.withProgress(
+        {
+          location: vscode.ProgressLocation.Notification,
+          title: 'Searching academic databases...',
+          cancellable: false,
+        },
+        async () => {
+          return await searcher.searchExternal(query);
+        }
+      );
+
+      // Send external results to webview
+      if (this.panel && papers.length > 0) {
+        this.panel.webview.postMessage({
+          type: 'internetSearchResults',
+          results: papers.map(paper => ({
+            title: paper.title,
+            authors: paper.authors.join(', '),
+            year: paper.year,
+            abstract: paper.abstract,
+            doi: paper.doi || '',
+            url: paper.url || '',
+            venue: paper.venue || '',
+            source: paper.source
+          }))
+        });
+      }
+
+      // If external results found, offer to import
+      if (papers.length > 0) {
+        const action = await vscode.window.showInformationMessage(
+          `Found ${papers.length} external paper${papers.length !== 1 ? 's' : ''}. Import to Zotero?`,
+          'Select Papers',
+          'Cancel'
+        );
+
+        if (action === 'Select Papers') {
+          const selected = await searcher.displayExternalResults(papers);
+          if (selected) {
+            await searcher.importToZotero(selected);
+          }
+        }
+      } else if (localResults.length === 0) {
+        vscode.window.showInformationMessage('No papers found in Zotero or external sources.');
+      } else {
+        vscode.window.showInformationMessage('No additional papers found from external sources.');
+      }
     } catch (error) {
-      vscode.window.showErrorMessage(`Failed to search: ${error}`);
+      console.error('Search failed:', error);
+      vscode.window.showErrorMessage(`Failed to search: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      
+      if (this.panel) {
+        this.panel.webview.postMessage({
+          type: 'internetSearchResults',
+          results: []
+        });
+      }
     }
   }
 

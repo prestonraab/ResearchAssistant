@@ -28,17 +28,17 @@ describe('ClaimSupportValidator', () => {
   });
 
   describe('analyzeSimilarity', () => {
-    it('should return 0 for empty claim text', async () => {
+    test('should return 0 for empty claim text', async () => {
       const similarity = await validator.analyzeSimilarity('', 'Some quote');
       expect(similarity).toBe(0);
     });
 
-    it('should return 0 for empty quote', async () => {
+    test('should return 0 for empty quote', async () => {
       const similarity = await validator.analyzeSimilarity('Some claim', '');
       expect(similarity).toBe(0);
     });
 
-    it('should calculate similarity between claim and quote', async () => {
+    test('should calculate similarity between claim and quote', async () => {
       const claimEmbedding = [0.1, 0.2, 0.3];
       const quoteEmbedding = [0.15, 0.25, 0.35];
       
@@ -61,7 +61,7 @@ describe('ClaimSupportValidator', () => {
       );
     });
 
-    it('should clamp similarity to [0, 1] range', async () => {
+    test('should clamp similarity to [0, 1] range', async () => {
       mockEmbeddingService.generateEmbedding
         .mockResolvedValueOnce([1, 0, 0])
         .mockResolvedValueOnce([1, 0, 0]);
@@ -73,7 +73,7 @@ describe('ClaimSupportValidator', () => {
       expect(similarity).toBe(1);
     });
 
-    it('should handle errors gracefully', async () => {
+    test('should handle errors gracefully', async () => {
       mockEmbeddingService.generateEmbedding.mockRejectedValue(
         new Error('Embedding generation failed')
       );
@@ -95,7 +95,7 @@ describe('ClaimSupportValidator', () => {
         .build();
     });
 
-    it('should validate claim with strong support', async () => {
+    test('should validate claim with strong support', async () => {
       mockEmbeddingService.generateEmbedding
         .mockResolvedValueOnce([0.8, 0.6])
         .mockResolvedValueOnce([0.85, 0.55]);
@@ -111,7 +111,7 @@ describe('ClaimSupportValidator', () => {
       expect(validation.analysis).toContain('Strong support');
     });
 
-    it('should validate claim with moderate support', async () => {
+    test('should validate claim with moderate support', async () => {
       mockEmbeddingService.generateEmbedding
         .mockResolvedValueOnce([0.7, 0.3])
         .mockResolvedValueOnce([0.6, 0.4]);
@@ -129,7 +129,7 @@ describe('ClaimSupportValidator', () => {
       expect(validation.analysis).toContain('Moderate support');
     });
 
-    it('should validate claim with weak support', async () => {
+    test('should validate claim with weak support', async () => {
       mockEmbeddingService.generateEmbedding
         .mockResolvedValueOnce([0.5, 0.5])
         .mockResolvedValueOnce([0.1, 0.9]);
@@ -146,7 +146,7 @@ describe('ClaimSupportValidator', () => {
       expect(validation.analysis).toContain('Weak support');
     });
 
-    it('should handle validation errors', async () => {
+    test('should handle validation errors', async () => {
       mockEmbeddingService.generateEmbedding.mockRejectedValue(
         new Error('Service unavailable')
       );
@@ -161,7 +161,7 @@ describe('ClaimSupportValidator', () => {
   });
 
   describe('findBetterQuotes', () => {
-    it('should return empty array if source text not found', async () => {
+    test('should return empty array if source text not found', async () => {
       (fs.readFile as jest.Mock).mockRejectedValue(new Error('File not found'));
 
       const quotes = await validator.findBetterQuotes(
@@ -172,7 +172,7 @@ describe('ClaimSupportValidator', () => {
       expect(quotes).toEqual([]);
     });
 
-    it('should extract and rank sentences from source text', async () => {
+    test('should extract and rank sentences from source text', async () => {
       const sourceText = 'First sentence about batch correction. Second sentence about data quality. Third sentence about validation methods.';
       
       (fs.readFile as jest.Mock).mockResolvedValue(sourceText);
@@ -202,7 +202,7 @@ describe('ClaimSupportValidator', () => {
       expect(quotes[1]).toContain('Second sentence');
     });
 
-    it('should limit results to top 3 suggestions', async () => {
+    test('should limit results to top 3 suggestions', async () => {
       const sourceText = 'Sentence one with enough length. Sentence two with enough length. Sentence three with enough length. Sentence four with enough length. Sentence five with enough length.';
       
       (fs.readFile as jest.Mock).mockResolvedValue(sourceText);
@@ -228,7 +228,7 @@ describe('ClaimSupportValidator', () => {
       expect(quotes).toHaveLength(3); // Limited to top 3
     });
 
-    it('should handle errors gracefully', async () => {
+    test('should handle errors gracefully', async () => {
       (fs.readFile as jest.Mock).mockRejectedValue(new Error('Read error'));
 
       const quotes = await validator.findBetterQuotes('claim', 'Author2020');
@@ -257,7 +257,7 @@ describe('ClaimSupportValidator', () => {
       ];
     });
 
-    it('should validate all claims in batch', async () => {
+    test('should validate all claims in batch', async () => {
       mockEmbeddingService.generateEmbedding.mockResolvedValue([0.5, 0.5]);
       mockEmbeddingService.cosineSimilarity.mockReturnValue(0.8);
 
@@ -268,7 +268,7 @@ describe('ClaimSupportValidator', () => {
       expect(validations[1].claimId).toBe('C_02');
     });
 
-    it('should report progress during batch validation', async () => {
+    test('should report progress during batch validation', async () => {
       mockEmbeddingService.generateEmbedding.mockResolvedValue([0.5, 0.5]);
       mockEmbeddingService.cosineSimilarity.mockReturnValue(0.8);
 
@@ -300,7 +300,7 @@ describe('ClaimSupportValidator', () => {
       ];
     });
 
-    it('should flag only claims with weak support', async () => {
+    test('should flag only claims with weak support', async () => {
       mockEmbeddingService.generateEmbedding.mockResolvedValue([0.5, 0.5]);
       
       mockEmbeddingService.cosineSimilarity
@@ -314,7 +314,7 @@ describe('ClaimSupportValidator', () => {
       expect(weakClaims[0].validation.similarity).toBe(0.45);
     });
 
-    it('should use custom threshold', async () => {
+    test('should use custom threshold', async () => {
       mockEmbeddingService.generateEmbedding.mockResolvedValue([0.5, 0.5]);
       mockEmbeddingService.cosineSimilarity
         .mockReturnValueOnce(0.75)
@@ -326,7 +326,7 @@ describe('ClaimSupportValidator', () => {
       expect(weakClaims[0].claim.id).toBe('C_02');
     });
 
-    it('should return empty array if all claims have strong support', async () => {
+    test('should return empty array if all claims have strong support', async () => {
       mockEmbeddingService.generateEmbedding.mockResolvedValue([0.5, 0.5]);
       mockEmbeddingService.cosineSimilarity
         .mockReturnValueOnce(0.85)
@@ -339,7 +339,7 @@ describe('ClaimSupportValidator', () => {
   });
 
   describe('updateExtractedTextPath', () => {
-    it('should update the extracted text path', () => {
+    test('should update the extracted text path', () => {
       const newPath = '/new/path/to/extracted/text';
       validator.updateExtractedTextPath(newPath);
       

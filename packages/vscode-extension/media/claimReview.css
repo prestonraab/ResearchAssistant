@@ -1175,11 +1175,37 @@ body {
   margin-bottom: 4px;
 }
 
-.result-url {
+.result-authors {
+  font-size: 11px;
+  color: var(--color-text);
+  margin-bottom: 3px;
+}
+
+.result-venue {
   font-size: 11px;
   color: var(--color-grey);
+  font-style: italic;
+  margin-bottom: 3px;
+}
+
+.result-doi {
+  font-size: 11px;
+  color: var(--color-grey);
+  margin-bottom: 3px;
+}
+
+.result-doi a {
+  color: var(--color-accent);
+  text-decoration: none;
+}
+
+.result-doi a:hover {
+  text-decoration: underline;
+}
+
+.result-url {
+  font-size: 11px;
   margin-bottom: 4px;
-  word-break: break-all;
 }
 
 .result-url a {
@@ -1195,6 +1221,14 @@ body {
   font-size: 11px;
   color: #666;
   line-height: 1.4;
+  margin-bottom: 4px;
+}
+
+.result-source {
+  font-size: 10px;
+  color: var(--color-grey);
+  text-transform: uppercase;
+  font-weight: 500;
 }
 
 .btn-small {

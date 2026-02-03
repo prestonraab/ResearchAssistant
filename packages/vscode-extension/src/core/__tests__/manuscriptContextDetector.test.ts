@@ -79,25 +79,25 @@ describe('ManuscriptContextDetector', () => {
   });
 
   describe('initialization', () => {
-    it('should create status bar item', () => {
+    test('should create status bar item', () => {
       expect(vscode.window.createStatusBarItem).toHaveBeenCalledWith(
         vscode.StatusBarAlignment.Right,
         200
       );
     });
 
-    it('should set up file watcher for manuscript.md', () => {
+    test('should set up file watcher for manuscript.md', () => {
       expect(vscode.workspace.createFileSystemWatcher).toHaveBeenCalled();
     });
 
-    it('should set up cursor movement listeners', () => {
+    test('should set up cursor movement listeners', () => {
       expect(vscode.window.onDidChangeActiveTextEditor).toHaveBeenCalled();
       expect(vscode.window.onDidChangeTextEditorSelection).toHaveBeenCalled();
     });
   });
 
   describe('detectCurrentSection', () => {
-    it('should detect section at cursor position', () => {
+    test('should detect section at cursor position', () => {
       const position = new vscode.Position(5, 0);
       const section = detector.detectCurrentSection(position);
       
@@ -107,14 +107,14 @@ describe('ManuscriptContextDetector', () => {
   });
 
   describe('getContext', () => {
-    it('should return null initially', () => {
+    test('should return null initially', () => {
       const context = detector.getContext();
       expect(context).toBeNull();
     });
   });
 
   describe('filterByContext', () => {
-    it('should return all items when no context', () => {
+    test('should return all items when no context', () => {
       const items = [
         { id: '1', sections: ['section1'] },
         { id: '2', sections: ['section2'] }
@@ -124,7 +124,7 @@ describe('ManuscriptContextDetector', () => {
       expect(filtered).toEqual(items);
     });
 
-    it('should filter items by current section when context exists', () => {
+    test('should filter items by current section when context exists', () => {
       // This would require setting up a full context with parsed manuscript
       // For now, just test the no-context case
       const items = [
@@ -138,13 +138,13 @@ describe('ManuscriptContextDetector', () => {
   });
 
   describe('enhanceSearchQuery', () => {
-    it('should return original query when no context', () => {
+    test('should return original query when no context', () => {
       const query = 'test query';
       const enhanced = detector.enhanceSearchQuery(query);
       expect(enhanced).toBe(query);
     });
 
-    it('should add section context to query when context exists', () => {
+    test('should add section context to query when context exists', () => {
       // This would require setting up a full context
       // For now, just test the no-context case
       const query = 'test query';
@@ -154,14 +154,14 @@ describe('ManuscriptContextDetector', () => {
   });
 
   describe('getSections', () => {
-    it('should return empty array initially', () => {
+    test('should return empty array initially', () => {
       const sections = detector.getSections();
       expect(sections).toEqual([]);
     });
   });
 
   describe('dispose', () => {
-    it('should clean up resources', () => {
+    test('should clean up resources', () => {
       const statusBarItem = (detector as any).statusBarItem;
       detector.dispose();
       
@@ -170,7 +170,7 @@ describe('ManuscriptContextDetector', () => {
   });
 
   describe('coverage level calculation', () => {
-    it('should calculate none for 0 claims', () => {
+    test('should calculate none for 0 claims', () => {
       mockClaimsManager.getClaims.mockReturnValue([]);
       
       // Coverage level is calculated internally
@@ -180,7 +180,7 @@ describe('ManuscriptContextDetector', () => {
       expect(context).toBeNull(); // No context initially
     });
 
-    it('should calculate low for 1-2 claims', () => {
+    test('should calculate low for 1-2 claims', () => {
       const claims: Claim[] = [
         { id: 'C_01', sections: ['section1'] } as Claim,
         { id: 'C_02', sections: ['section1'] } as Claim
@@ -190,7 +190,7 @@ describe('ManuscriptContextDetector', () => {
       // Would need to set up context to test this properly
     });
 
-    it('should calculate moderate for 3-5 claims', () => {
+    test('should calculate moderate for 3-5 claims', () => {
       const claims: Claim[] = Array.from({ length: 4 }, (_, i) => ({
         id: `C_${i + 1}`,
         sections: ['section1']
@@ -200,7 +200,7 @@ describe('ManuscriptContextDetector', () => {
       // Would need to set up context to test this properly
     });
 
-    it('should calculate strong for 7+ claims', () => {
+    test('should calculate strong for 7+ claims', () => {
       const claims: Claim[] = Array.from({ length: 8 }, (_, i) => ({
         id: `C_${i + 1}`,
         sections: ['section1']

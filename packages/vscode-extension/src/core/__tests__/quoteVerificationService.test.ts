@@ -23,7 +23,7 @@ describe('QuoteVerificationService', () => {
   });
 
   describe('verifyQuote', () => {
-    it('should verify a quote successfully', async () => {
+    test('should verify a quote successfully', async () => {
       const quote = 'This is a test quote';
       const authorYear = 'Johnson2007';
       const expectedResult = createMockVerificationResult({
@@ -39,7 +39,7 @@ describe('QuoteVerificationService', () => {
       expect(result).toEqual(expectedResult);
     });
 
-    it('should return closest match when verification fails', async () => {
+    test('should return closest match when verification fails', async () => {
       const quote = 'This is a test quote';
       const authorYear = 'Johnson2007';
       const expectedResult = createMockVerificationResult({
@@ -58,15 +58,15 @@ describe('QuoteVerificationService', () => {
       expect(result.similarity).toBe(0.85);
     });
 
-    it('should throw error when quote is empty', async () => {
+    test('should throw error when quote is empty', async () => {
       await expect(service.verifyQuote('', 'Johnson2007')).rejects.toThrow('Quote and authorYear are required');
     });
 
-    it('should throw error when authorYear is empty', async () => {
+    test('should throw error when authorYear is empty', async () => {
       await expect(service.verifyQuote('test quote', '')).rejects.toThrow('Quote and authorYear are required');
     });
 
-    it('should handle MCP client errors', async () => {
+    test('should handle MCP client errors', async () => {
       const quote = 'This is a test quote';
       const authorYear = 'Johnson2007';
 
@@ -77,7 +77,7 @@ describe('QuoteVerificationService', () => {
   });
 
   describe('verifyClaim', () => {
-    it('should verify a claim successfully', async () => {
+    test('should verify a claim successfully', async () => {
       const claim = createMockClaim({
         id: 'C_01',
         text: 'Test claim',
@@ -105,7 +105,7 @@ describe('QuoteVerificationService', () => {
       expect(result.claimId).toBe('C_01');
     });
 
-    it('should return error when claim not found', async () => {
+    test('should return error when claim not found', async () => {
       mockClaimsManager.getClaim = jest.fn().mockReturnValue(null);
 
       const result = await service.verifyClaim('C_99');
@@ -114,7 +114,7 @@ describe('QuoteVerificationService', () => {
       expect(result.error).toBe('Claim C_99 not found');
     });
 
-    it('should return error when claim has no primary quote', async () => {
+    test('should return error when claim has no primary quote', async () => {
       const claim: Claim = {
         id: 'C_01',
         text: 'Test claim',
@@ -138,7 +138,7 @@ describe('QuoteVerificationService', () => {
       expect(result.error).toBe('Claim has no primary quote to verify');
     });
 
-    it('should return error when claim has no source', async () => {
+    test('should return error when claim has no source', async () => {
       const claim: Claim = {
         id: 'C_01',
         text: 'Test claim',
@@ -162,7 +162,7 @@ describe('QuoteVerificationService', () => {
       expect(result.error).toBe('Claim has no source specified');
     });
 
-    it('should not update claim when verification fails', async () => {
+    test('should not update claim when verification fails', async () => {
       const claim: Claim = {
         id: 'C_01',
         text: 'Test claim',
@@ -195,7 +195,7 @@ describe('QuoteVerificationService', () => {
       expect(mockClaimsManager.updateClaim).not.toHaveBeenCalled();
     });
 
-    it('should handle verification errors gracefully', async () => {
+    test('should handle verification errors gracefully', async () => {
       const claim: Claim = {
         id: 'C_01',
         text: 'Test claim',
@@ -222,7 +222,7 @@ describe('QuoteVerificationService', () => {
   });
 
   describe('findClosestMatch', () => {
-    it('should find closest match for a quote', async () => {
+    test('should find closest match for a quote', async () => {
       const quote = 'This is a test quote';
       const authorYear = 'Johnson2007';
       const expectedResult: VerificationResult = {
@@ -240,7 +240,7 @@ describe('QuoteVerificationService', () => {
       expect(result.similarity).toBe(0.85);
     });
 
-    it('should handle errors when finding closest match', async () => {
+    test('should handle errors when finding closest match', async () => {
       mockUnifiedQuoteSearch.findBestMatch = jest.fn().mockRejectedValue(new Error('Source not found'));
 
       await expect(service.findClosestMatch('test', 'Unknown2000')).rejects.toThrow('Source not found');
@@ -248,7 +248,7 @@ describe('QuoteVerificationService', () => {
   });
 
   describe('verifyAllClaims', () => {
-    it('should verify all claims in the database', async () => {
+    test('should verify all claims in the database', async () => {
       const claims: Claim[] = [
         {
           id: 'C_01',
@@ -302,7 +302,7 @@ describe('QuoteVerificationService', () => {
       expect(result.failures[0].claimId).toBe('C_02');
     });
 
-    it('should skip claims without quotes', async () => {
+    test('should skip claims without quotes', async () => {
       const claims: Claim[] = [
         {
           id: 'C_01',
@@ -346,7 +346,7 @@ describe('QuoteVerificationService', () => {
       expect(result.verified).toBe(1);
     });
 
-    it('should handle errors during batch verification', async () => {
+    test('should handle errors during batch verification', async () => {
       const claims: Claim[] = [
         {
           id: 'C_01',
@@ -379,7 +379,7 @@ describe('QuoteVerificationService', () => {
   });
 
   describe('verifyClaimsBatch', () => {
-    it('should verify a batch of specific claims', async () => {
+    test('should verify a batch of specific claims', async () => {
       const claims: Claim[] = [
         {
           id: 'C_01',
@@ -430,7 +430,7 @@ describe('QuoteVerificationService', () => {
       expect(result.failed).toBe(0);
     });
 
-    it('should skip non-existent claims in batch', async () => {
+    test('should skip non-existent claims in batch', async () => {
       mockClaimsManager.getClaim = jest.fn()
         .mockReturnValueOnce(null)
         .mockReturnValueOnce(null);
@@ -444,7 +444,7 @@ describe('QuoteVerificationService', () => {
   });
 
   describe('updateClaimVerificationStatus', () => {
-    it('should update claim verification status', async () => {
+    test('should update claim verification status', async () => {
       mockClaimsManager.updateClaim = jest.fn().mockResolvedValue(undefined);
 
       await service.updateClaimVerificationStatus('C_01', true);
@@ -454,7 +454,7 @@ describe('QuoteVerificationService', () => {
   });
 
   describe('getUnverifiedClaims', () => {
-    it('should return only unverified claims with quotes', () => {
+    test('should return only unverified claims with quotes', () => {
       const claims: Claim[] = [
         {
           id: 'C_01',
@@ -510,7 +510,7 @@ describe('QuoteVerificationService', () => {
   });
 
   describe('getVerificationStats', () => {
-    it('should return correct verification statistics', () => {
+    test('should return correct verification statistics', () => {
       const claims: Claim[] = [
         {
           id: 'C_01',
@@ -567,7 +567,7 @@ describe('QuoteVerificationService', () => {
       expect(stats.verificationRate).toBe(50); // 1 verified out of 2 with quotes
     });
 
-    it('should handle empty claims database', () => {
+    test('should handle empty claims database', () => {
       mockClaimsManager.getClaims = jest.fn().mockReturnValue([]);
 
       const stats = service.getVerificationStats();

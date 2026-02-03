@@ -17,7 +17,7 @@ describe('InternetPaperSearcher', () => {
   });
 
   describe('searchExternal', () => {
-    it('should return empty array when no results found', async () => {
+    test('should return empty array when no results found', async () => {
       // Mock HTTP requests to return empty results
       const results = await searcher.searchExternal('nonexistent query xyz123');
       
@@ -25,7 +25,7 @@ describe('InternetPaperSearcher', () => {
       expect(results.length).toBeLessThanOrEqual(10);
     });
 
-    it('should deduplicate results by DOI', async () => {
+    test('should deduplicate results by DOI', async () => {
       // This test would require mocking HTTP responses
       // For now, we test the deduplication logic separately
       const papers: ExternalPaper[] = [
@@ -54,7 +54,7 @@ describe('InternetPaperSearcher', () => {
       expect(deduped[0].doi).toBe('10.1234/test');
     });
 
-    it('should deduplicate results by title when DOI is missing', async () => {
+    test('should deduplicate results by title when DOI is missing', async () => {
       const papers: ExternalPaper[] = [
         {
           title: 'Test Paper Title',
@@ -77,7 +77,7 @@ describe('InternetPaperSearcher', () => {
       expect(deduped.length).toBe(1);
     });
 
-    it('should preserve order during deduplication', async () => {
+    test('should preserve order during deduplication', async () => {
       const papers: ExternalPaper[] = [
         {
           title: 'Paper A',
@@ -112,7 +112,7 @@ describe('InternetPaperSearcher', () => {
       expect(deduped[1].doi).toBe('10.2222/b');
     });
 
-    it('should handle papers with missing DOI and title', async () => {
+    test('should handle papers with missing DOI and title', async () => {
       const papers: ExternalPaper[] = [
         {
           title: '',
@@ -167,7 +167,7 @@ describe('InternetPaperSearcher', () => {
   });
 
   describe('displayExternalResults', () => {
-    it('should show information message when no results', async () => {
+    test('should show information message when no results', async () => {
       const mockShowInfo = vscode.window.showInformationMessage as jest.Mock;
       
       const result = await searcher.displayExternalResults([]);
@@ -176,7 +176,7 @@ describe('InternetPaperSearcher', () => {
       expect(result).toBeNull();
     });
 
-    it('should display quick pick with formatted results', async () => {
+    test('should display quick pick with formatted results', async () => {
       const mockShowQuickPick = vscode.window.showQuickPick as jest.Mock;
       mockShowQuickPick.mockResolvedValue(null);
 
@@ -203,7 +203,7 @@ describe('InternetPaperSearcher', () => {
       expect(items[0].description).toContain('2023');
     });
 
-    it('should truncate long author lists with et al.', async () => {
+    test('should truncate long author lists with et al.', async () => {
       const mockShowQuickPick = vscode.window.showQuickPick as jest.Mock;
       mockShowQuickPick.mockResolvedValue(null);
 
@@ -223,7 +223,7 @@ describe('InternetPaperSearcher', () => {
       expect(items[0].description).toContain('et al.');
     });
 
-    it('should include source and DOI in detail', async () => {
+    test('should include source and DOI in detail', async () => {
       const mockShowQuickPick = vscode.window.showQuickPick as jest.Mock;
       mockShowQuickPick.mockResolvedValue(null);
 
@@ -247,7 +247,7 @@ describe('InternetPaperSearcher', () => {
   });
 
   describe('importToZotero', () => {
-    it('should show progress during import', async () => {
+    test('should show progress during import', async () => {
       const mockWithProgress = vscode.window.withProgress as jest.Mock;
       const mockShowInfo = vscode.window.showInformationMessage as jest.Mock;
       mockShowInfo.mockResolvedValue(null);
@@ -267,7 +267,7 @@ describe('InternetPaperSearcher', () => {
       expect(progressOptions.title).toContain('Importing');
     });
 
-    it('should offer to copy metadata when import requires manual action', async () => {
+    test('should offer to copy metadata when import requires manual action', async () => {
       const mockShowInfo = vscode.window.showInformationMessage as jest.Mock;
       mockShowInfo.mockResolvedValue('Copy Metadata');
 
@@ -292,7 +292,7 @@ describe('InternetPaperSearcher', () => {
       expect(copiedText).toContain('10.1234/test');
     });
 
-    it('should return null when user cancels import', async () => {
+    test('should return null when user cancels import', async () => {
       const mockShowInfo = vscode.window.showInformationMessage as jest.Mock;
       mockShowInfo.mockResolvedValue('Cancel');
 
@@ -311,7 +311,7 @@ describe('InternetPaperSearcher', () => {
   });
 
   describe('extractFulltext', () => {
-    it('should trigger extraction command', async () => {
+    test('should trigger extraction command', async () => {
       const mockExecuteCommand = vscode.commands.executeCommand as jest.Mock;
 
       await searcher.extractFulltext('test-item-key');
@@ -322,7 +322,7 @@ describe('InternetPaperSearcher', () => {
       );
     });
 
-    it('should handle command execution errors', async () => {
+    test('should handle command execution errors', async () => {
       const mockExecuteCommand = vscode.commands.executeCommand as jest.Mock;
       mockExecuteCommand.mockRejectedValue(new Error('Command failed'));
 
@@ -337,7 +337,7 @@ describe('InternetPaperSearcher', () => {
   });
 
   describe('formatMetadataForImport', () => {
-    it('should format all metadata fields', () => {
+    test('should format all metadata fields', () => {
       const paper: ExternalPaper = {
         title: 'Test Paper',
         authors: ['Author A', 'Author B'],
@@ -361,7 +361,7 @@ describe('InternetPaperSearcher', () => {
       expect(formatted).toContain('This is the abstract');
     });
 
-    it('should handle missing optional fields', () => {
+    test('should handle missing optional fields', () => {
       const paper: ExternalPaper = {
         title: 'Test Paper',
         authors: ['Author A'],
@@ -380,7 +380,7 @@ describe('InternetPaperSearcher', () => {
   });
 
   describe('parseCrossRefItem', () => {
-    it('should parse valid CrossRef item', () => {
+    test('should parse valid CrossRef item', () => {
       const item = {
         title: ['Test Paper Title'],
         author: [
@@ -404,7 +404,7 @@ describe('InternetPaperSearcher', () => {
       expect(parsed.venue).toBe('Test Journal');
     });
 
-    it('should handle missing title', () => {
+    test('should handle missing title', () => {
       const item = {
         author: [{ given: 'John', family: 'Doe' }],
         published: { 'date-parts': [[2023]] },
@@ -415,7 +415,7 @@ describe('InternetPaperSearcher', () => {
       expect(parsed).toBeNull();
     });
 
-    it('should handle missing authors', () => {
+    test('should handle missing authors', () => {
       const item = {
         title: ['Test Paper'],
         published: { 'date-parts': [[2023]] },
@@ -429,7 +429,7 @@ describe('InternetPaperSearcher', () => {
   });
 
   describe('parsePubMedItem', () => {
-    it('should parse valid PubMed item', () => {
+    test('should parse valid PubMed item', () => {
       const item = {
         title: 'Test Paper Title',
         authors: [{ name: 'Doe J' }, { name: 'Smith J' }],
@@ -452,7 +452,7 @@ describe('InternetPaperSearcher', () => {
       expect(parsed.url).toContain('12345678');
     });
 
-    it('should handle missing DOI', () => {
+    test('should handle missing DOI', () => {
       const item = {
         title: 'Test Paper',
         authors: [{ name: 'Doe J' }],

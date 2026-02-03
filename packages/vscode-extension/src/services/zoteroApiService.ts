@@ -671,4 +671,58 @@ export class ZoteroApiService {
   clearCache(): void {
     this.cacheMap.clear();
   }
+
+  /**
+   * Create a new item in Zotero library
+   * @param itemData - Item data following Zotero's item template format
+   * @returns The created item's key
+   */
+  async createItem(itemData: {
+    itemType: string;
+    title: string;
+    creators?: Array<{ creatorType: string; firstName?: string; lastName?: string; name?: string }>;
+    abstractNote?: string;
+    date?: string;
+    DOI?: string;
+    url?: string;
+    publicationTitle?: string;
+    [key: string]: any;
+  }): Promise<string> {
+    try {
+      if (!this.isConfigured()) {
+        throw new Error('Zotero API not configured. Set API key and user ID in settings.');
+      }
+
+      // Prepare the item payload - don't duplicate itemType
+      const payload = [itemData];
+
+      // Make POST request to create item
+      const response = await this.makeRequest(
+        `/users/${this.userID}/items`,
+        {
+          method: 'POST',
+          body: payload
+        }
+      );
+
+      if (response.status === 200 || response.status === 201) {
+        // Extract the created item key from response
+        const createdItems = response.data?.successful || response.data;
+        if (createdItems && createdItems['0']) {
+          const itemKey = createdItems['0'].key;
+          this.getLogger().info(`Created Zotero item: ${itemKey}`);
+          
+          // Clear cache to force refresh
+          this.clearCache();
+          
+          return itemKey;
+        }
+      }
+
+      throw new Error(`Failed to create item: ${response.status}`);
+    } catch (error) {
+      this.getLogger().error('Failed to create Zotero item:', error);
+      throw error;
+    }
+  }
 }

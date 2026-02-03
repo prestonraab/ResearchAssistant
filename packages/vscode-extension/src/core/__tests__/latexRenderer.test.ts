@@ -9,7 +9,7 @@ describe('LaTeXRenderer', () => {
   });
 
   describe('4.1 - Basic structure and preamble', () => {
-    it('should generate valid LaTeX document with preamble', () => {
+    test('should generate valid LaTeX document with preamble', () => {
       const model: DocumentModel = {
         sections: [],
         bibliography: [],
@@ -32,7 +32,7 @@ describe('LaTeXRenderer', () => {
       expect(output).toContain('\\end{document}');
     });
 
-    it('should have proper document structure', () => {
+    test('should have proper document structure', () => {
       const model: DocumentModel = {
         sections: [],
         bibliography: [],
@@ -54,7 +54,7 @@ describe('LaTeXRenderer', () => {
   });
 
   describe('4.2 - LaTeX character escaping', () => {
-    it('should escape backslash', () => {
+    test('should escape backslash', () => {
       const model: DocumentModel = {
         sections: [
           {
@@ -80,7 +80,7 @@ describe('LaTeXRenderer', () => {
       expect(output).toContain('\\textbackslash{}');
     });
 
-    it('should escape percent sign', () => {
+    test('should escape percent sign', () => {
       const model: DocumentModel = {
         sections: [
           {
@@ -106,7 +106,7 @@ describe('LaTeXRenderer', () => {
       expect(output).toContain('\\%');
     });
 
-    it('should escape dollar sign', () => {
+    test('should escape dollar sign', () => {
       const model: DocumentModel = {
         sections: [
           {
@@ -132,7 +132,7 @@ describe('LaTeXRenderer', () => {
       expect(output).toContain('\\$');
     });
 
-    it('should escape ampersand', () => {
+    test('should escape ampersand', () => {
       const model: DocumentModel = {
         sections: [
           {
@@ -158,7 +158,7 @@ describe('LaTeXRenderer', () => {
       expect(output).toContain('\\&');
     });
 
-    it('should escape hash', () => {
+    test('should escape hash', () => {
       const model: DocumentModel = {
         sections: [
           {
@@ -184,7 +184,7 @@ describe('LaTeXRenderer', () => {
       expect(output).toContain('\\#');
     });
 
-    it('should escape underscore', () => {
+    test('should escape underscore', () => {
       const model: DocumentModel = {
         sections: [
           {
@@ -210,7 +210,7 @@ describe('LaTeXRenderer', () => {
       expect(output).toContain('\\_');
     });
 
-    it('should escape braces', () => {
+    test('should escape braces', () => {
       const model: DocumentModel = {
         sections: [
           {
@@ -237,7 +237,7 @@ describe('LaTeXRenderer', () => {
       expect(output).toContain('\\}');
     });
 
-    it('should escape tilde', () => {
+    test('should escape tilde', () => {
       const model: DocumentModel = {
         sections: [
           {
@@ -263,7 +263,7 @@ describe('LaTeXRenderer', () => {
       expect(output).toContain('\\textasciitilde{}');
     });
 
-    it('should escape caret', () => {
+    test('should escape caret', () => {
       const model: DocumentModel = {
         sections: [
           {
@@ -289,7 +289,7 @@ describe('LaTeXRenderer', () => {
       expect(output).toContain('\\textasciicircum{}');
     });
 
-    it('should escape all special characters together', () => {
+    test('should escape all special characters together', () => {
       const model: DocumentModel = {
         sections: [
           {
@@ -326,7 +326,7 @@ describe('LaTeXRenderer', () => {
   });
 
   describe('4.3 - Section rendering', () => {
-    it('should render level 1 heading as \\section', () => {
+    test('should render level 1 heading as \\section', () => {
       const model: DocumentModel = {
         sections: [
           {
@@ -348,7 +348,7 @@ describe('LaTeXRenderer', () => {
       expect(output).toContain('\\section{Introduction}');
     });
 
-    it('should render level 2 heading as \\subsection', () => {
+    test('should render level 2 heading as \\subsection', () => {
       const model: DocumentModel = {
         sections: [
           {
@@ -370,7 +370,7 @@ describe('LaTeXRenderer', () => {
       expect(output).toContain('\\subsection{Subsection}');
     });
 
-    it('should render level 3 heading as \\subsubsection', () => {
+    test('should render level 3 heading as \\subsubsection', () => {
       const model: DocumentModel = {
         sections: [
           {
@@ -392,7 +392,7 @@ describe('LaTeXRenderer', () => {
       expect(output).toContain('\\subsubsection{Subsubsection}');
     });
 
-    it('should escape special characters in heading', () => {
+    test('should escape special characters in heading', () => {
       const model: DocumentModel = {
         sections: [
           {
@@ -414,7 +414,7 @@ describe('LaTeXRenderer', () => {
       expect(output).toContain('\\section{Section with \\$100 \\& 50\\%}');
     });
 
-    it('should render multiple sections', () => {
+    test('should render multiple sections', () => {
       const model: DocumentModel = {
         sections: [
           {
@@ -444,7 +444,7 @@ describe('LaTeXRenderer', () => {
   });
 
   describe('4.4 - Paragraph and footnote rendering', () => {
-    it('should render paragraph with text', () => {
+    test('should render paragraph with text', () => {
       const model: DocumentModel = {
         sections: [
           {
@@ -470,7 +470,7 @@ describe('LaTeXRenderer', () => {
       expect(output).toContain('This is a paragraph.');
     });
 
-    it('should render footnote with quote and source', () => {
+    test('should render footnote with quote and source', () => {
       const model: DocumentModel = {
         sections: [
           {
@@ -506,7 +506,7 @@ describe('LaTeXRenderer', () => {
       expect(output).toContain('\\footnote{This is a quote --- Smith 2020, 2020}');
     });
 
-    it('should render footnote without year', () => {
+    test('should render footnote without year', () => {
       const model: DocumentModel = {
         sections: [
           {
@@ -541,7 +541,7 @@ describe('LaTeXRenderer', () => {
       expect(output).toContain('\\footnote{This is a quote --- Smith}');
     });
 
-    it('should render multiple footnotes in paragraph', () => {
+    test('should render multiple footnotes in paragraph', () => {
       const model: DocumentModel = {
         sections: [
           {
@@ -584,7 +584,7 @@ describe('LaTeXRenderer', () => {
       expect(output).toContain('\\footnote{Quote 2 --- Source 2}');
     });
 
-    it('should escape special characters in footnote content', () => {
+    test('should escape special characters in footnote content', () => {
       const model: DocumentModel = {
         sections: [
           {
@@ -621,7 +621,7 @@ describe('LaTeXRenderer', () => {
   });
 
   describe('4.5 - Bibliography rendering', () => {
-    it('should render bibliography section with heading', () => {
+    test('should render bibliography section with heading', () => {
       const model: DocumentModel = {
         sections: [],
         bibliography: [
@@ -641,7 +641,7 @@ describe('LaTeXRenderer', () => {
       expect(output).toContain('\\end{itemize}');
     });
 
-    it('should render bibliography entry with year', () => {
+    test('should render bibliography entry with year', () => {
       const model: DocumentModel = {
         sections: [],
         bibliography: [
@@ -659,7 +659,7 @@ describe('LaTeXRenderer', () => {
       expect(output).toContain('\\item Smith (2020)');
     });
 
-    it('should render bibliography entry without year', () => {
+    test('should render bibliography entry without year', () => {
       const model: DocumentModel = {
         sections: [],
         bibliography: [
@@ -678,7 +678,7 @@ describe('LaTeXRenderer', () => {
       expect(output).not.toContain('\\item Smith ()');
     });
 
-    it('should render multiple bibliography entries', () => {
+    test('should render multiple bibliography entries', () => {
       const model: DocumentModel = {
         sections: [],
         bibliography: [
@@ -700,7 +700,7 @@ describe('LaTeXRenderer', () => {
       expect(output).toContain('\\item Brown');
     });
 
-    it('should escape special characters in bibliography entries', () => {
+    test('should escape special characters in bibliography entries', () => {
       const model: DocumentModel = {
         sections: [],
         bibliography: [
@@ -718,7 +718,7 @@ describe('LaTeXRenderer', () => {
       expect(output).toContain('\\item Smith \\& Jones (2020)');
     });
 
-    it('should not render bibliography when includeBibliography is false', () => {
+    test('should not render bibliography when includeBibliography is false', () => {
       const model: DocumentModel = {
         sections: [],
         bibliography: [
@@ -737,7 +737,7 @@ describe('LaTeXRenderer', () => {
       expect(output).not.toContain('\\item Smith');
     });
 
-    it('should not render bibliography when bibliography is empty', () => {
+    test('should not render bibliography when bibliography is empty', () => {
       const model: DocumentModel = {
         sections: [],
         bibliography: [],
@@ -755,7 +755,7 @@ describe('LaTeXRenderer', () => {
   });
 
   describe('Integration tests', () => {
-    it('should render complete document with sections, paragraphs, footnotes, and bibliography', () => {
+    test('should render complete document with sections, paragraphs, footnotes, and bibliography', () => {
       const model: DocumentModel = {
         sections: [
           {

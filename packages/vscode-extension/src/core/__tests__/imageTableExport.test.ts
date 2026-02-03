@@ -11,7 +11,7 @@ describe('Image and Table Export', () => {
   });
 
   describe('Document Model - Images', () => {
-    it('should parse markdown images', async () => {
+    test('should parse markdown images', async () => {
       const manuscript = `# Introduction
 
 This is text with an image: ![Test Image](./test.png)
@@ -35,7 +35,7 @@ More text after.`;
       expect(imageRun?.image?.altText).toBe('Test Image');
     });
 
-    it('should handle multiple images in one paragraph', async () => {
+    test('should handle multiple images in one paragraph', async () => {
       const manuscript = `# Section
 
 Text ![Image 1](./img1.png) middle ![Image 2](./img2.png) end.`;
@@ -56,7 +56,7 @@ Text ![Image 1](./img1.png) middle ![Image 2](./img2.png) end.`;
   });
 
   describe('Document Model - Tables', () => {
-    it('should parse markdown tables', async () => {
+    test('should parse markdown tables', async () => {
       const manuscript = `# Results
 
 | Column 1 | Column 2 | Column 3 |
@@ -85,7 +85,7 @@ Text after table.`;
       expect(tableParagraph?.runs[0].table?.rows[0]).toEqual(['Column 1', 'Column 2', 'Column 3']);
     });
 
-    it('should handle tables without headers', async () => {
+    test('should handle tables without headers', async () => {
       const manuscript = `# Data
 
 | A | B |
@@ -106,7 +106,7 @@ Text after table.`;
   });
 
   describe('LaTeX Renderer - Images', () => {
-    it('should render images with figure environment', () => {
+    test('should render images with figure environment', () => {
       const model: DocumentModel = {
         sections: [
           {
@@ -149,7 +149,7 @@ Text after table.`;
   });
 
   describe('LaTeX Renderer - Tables', () => {
-    it('should render tables with tabular environment', () => {
+    test('should render tables with tabular environment', () => {
       const model: DocumentModel = {
         sections: [
           {
@@ -199,7 +199,7 @@ Text after table.`;
   });
 
   describe('Word Renderer - Tables', () => {
-    it('should render tables', async () => {
+    test('should render tables', async () => {
       const model: DocumentModel = {
         sections: [
           {

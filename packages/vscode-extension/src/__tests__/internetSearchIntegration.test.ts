@@ -40,7 +40,7 @@ describe('Internet Search Integration', () => {
   });
 
   describe('Complete workflow: Zotero search fails -> Internet search -> Import', () => {
-    it('should offer internet search when Zotero returns no results', async () => {
+    test('should offer internet search when Zotero returns no results', async () => {
       // Mock Zotero search returning empty results
       const mockSemanticSearch = mockZoteroService.semanticSearch as jest.Mock;
       mockSemanticSearch.mockResolvedValue([]);
@@ -65,7 +65,7 @@ describe('Internet Search Integration', () => {
       );
     });
 
-    it('should handle internet search workflow', async () => {
+    test('should handle internet search workflow', async () => {
       const mockShowInputBox = vscode.window.showInputBox as jest.Mock;
       mockShowInputBox.mockResolvedValue('machine learning');
 
@@ -93,7 +93,7 @@ describe('Internet Search Integration', () => {
       expect(Array.isArray(results)).toBe(true);
     });
 
-    it('should integrate with InstantSearchHandler disposal', () => {
+    test('should integrate with InstantSearchHandler disposal', () => {
       // Verify that disposal cleans up resources
       expect(() => {
         instantSearchHandler.dispose();
@@ -102,7 +102,7 @@ describe('Internet Search Integration', () => {
   });
 
   describe('External API integration', () => {
-    it('should handle CrossRef API format', () => {
+    test('should handle CrossRef API format', () => {
       const crossrefItem = {
         title: ['Test Paper'],
         author: [
@@ -121,7 +121,7 @@ describe('Internet Search Integration', () => {
       expect(parsed.source).toBe('crossref');
     });
 
-    it('should handle PubMed API format', () => {
+    test('should handle PubMed API format', () => {
       const pubmedItem = {
         title: 'Test Paper',
         authors: [{ name: 'Doe J' }],
@@ -143,7 +143,7 @@ describe('Internet Search Integration', () => {
   });
 
   describe('Error handling', () => {
-    it('should handle network errors gracefully', async () => {
+    test('should handle network errors gracefully', async () => {
       // Internet search should not throw on network errors
       const results = await internetSearcher.searchExternal('test query');
       
@@ -151,7 +151,7 @@ describe('Internet Search Integration', () => {
       expect(Array.isArray(results)).toBe(true);
     });
 
-    it('should handle malformed API responses', () => {
+    test('should handle malformed API responses', () => {
       const malformedItem = {
         // Missing required fields
         author: [{ given: 'John' }],

@@ -1,7 +1,10 @@
 import { FuzzyMatcher, MATCH_THRESHOLD } from '../core/fuzzyMatcher';
 import fc from 'fast-check';
+import { setupTest } from './helpers';
 
 describe('FuzzyMatcher', () => {
+  setupTest();
+
   let matcher: FuzzyMatcher;
 
   beforeEach(() => {

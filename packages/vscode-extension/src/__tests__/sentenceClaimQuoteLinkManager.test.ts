@@ -15,7 +15,7 @@ describe('SentenceClaimQuoteLinkManager', () => {
   });
 
   describe('markQuoteForCitation', () => {
-    it('should mark a quote for citation', async () => {
+    test('should mark a quote for citation', async () => {
       await manager.markQuoteForCitation('sent1', 'claim1', 0);
       
       const isCited = manager.isQuoteCitedForSentence('sent1', 'claim1', 0);
@@ -24,7 +24,7 @@ describe('SentenceClaimQuoteLinkManager', () => {
   });
 
   describe('unmarkQuoteForCitation', () => {
-    it('should unmark a quote for citation', async () => {
+    test('should unmark a quote for citation', async () => {
       await manager.markQuoteForCitation('sent1', 'claim1', 0);
       await manager.unmarkQuoteForCitation('sent1', 'claim1', 0);
       
@@ -34,12 +34,12 @@ describe('SentenceClaimQuoteLinkManager', () => {
   });
 
   describe('toggleQuoteCitation', () => {
-    it('should toggle citation status from false to true', async () => {
+    test('should toggle citation status from false to true', async () => {
       const result = await manager.toggleQuoteCitation('sent1', 'claim1', 0);
       expect(result).toBe(true);
     });
 
-    it('should toggle citation status from true to false', async () => {
+    test('should toggle citation status from true to false', async () => {
       await manager.toggleQuoteCitation('sent1', 'claim1', 0);
       const result = await manager.toggleQuoteCitation('sent1', 'claim1', 0);
       expect(result).toBe(false);
@@ -47,7 +47,7 @@ describe('SentenceClaimQuoteLinkManager', () => {
   });
 
   describe('getCitationsForSentence', () => {
-    it('should return all citations for a sentence', async () => {
+    test('should return all citations for a sentence', async () => {
       await manager.markQuoteForCitation('sent1', 'claim1', 0);
       await manager.markQuoteForCitation('sent1', 'claim2', 0);
       
@@ -59,7 +59,7 @@ describe('SentenceClaimQuoteLinkManager', () => {
   });
 
   describe('getCitationsForClaim', () => {
-    it('should return all citations for a claim', async () => {
+    test('should return all citations for a claim', async () => {
       await manager.markQuoteForCitation('sent1', 'claim1', 0);
       await manager.markQuoteForCitation('sent2', 'claim1', 0);
       
@@ -71,7 +71,7 @@ describe('SentenceClaimQuoteLinkManager', () => {
   });
 
   describe('getSentencesWithQuoteCited', () => {
-    it('should return all sentences with a quote marked for citation', async () => {
+    test('should return all sentences with a quote marked for citation', async () => {
       await manager.markQuoteForCitation('sent1', 'claim1', 0);
       await manager.markQuoteForCitation('sent2', 'claim1', 0);
       
@@ -83,7 +83,7 @@ describe('SentenceClaimQuoteLinkManager', () => {
   });
 
   describe('deleteSentenceLinks', () => {
-    it('should delete all links for a sentence', async () => {
+    test('should delete all links for a sentence', async () => {
       await manager.markQuoteForCitation('sent1', 'claim1', 0);
       await manager.markQuoteForCitation('sent1', 'claim2', 0);
       
@@ -95,7 +95,7 @@ describe('SentenceClaimQuoteLinkManager', () => {
   });
 
   describe('deleteClaimLinks', () => {
-    it('should delete all links for a claim', async () => {
+    test('should delete all links for a claim', async () => {
       await manager.markQuoteForCitation('sent1', 'claim1', 0);
       await manager.markQuoteForCitation('sent2', 'claim1', 0);
       
@@ -107,7 +107,7 @@ describe('SentenceClaimQuoteLinkManager', () => {
   });
 
   describe('deleteLink', () => {
-    it('should delete a specific link', async () => {
+    test('should delete a specific link', async () => {
       await manager.markQuoteForCitation('sent1', 'claim1', 0);
       await manager.markQuoteForCitation('sent1', 'claim2', 0);
       
@@ -120,7 +120,7 @@ describe('SentenceClaimQuoteLinkManager', () => {
   });
 
   describe('getAllLinks', () => {
-    it('should return all links', async () => {
+    test('should return all links', async () => {
       await manager.markQuoteForCitation('sent1', 'claim1', 0);
       await manager.markQuoteForCitation('sent2', 'claim2', 0);
       
@@ -130,7 +130,7 @@ describe('SentenceClaimQuoteLinkManager', () => {
   });
 
   describe('clearLinks', () => {
-    it('should clear all links', async () => {
+    test('should clear all links', async () => {
       await manager.markQuoteForCitation('sent1', 'claim1', 0);
       await manager.markQuoteForCitation('sent2', 'claim2', 0);
       
@@ -142,7 +142,7 @@ describe('SentenceClaimQuoteLinkManager', () => {
   });
 
   describe('getLinkCount', () => {
-    it('should return the count of links', async () => {
+    test('should return the count of links', async () => {
       await manager.markQuoteForCitation('sent1', 'claim1', 0);
       await manager.markQuoteForCitation('sent2', 'claim2', 0);
       

@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import * as https from 'https';
-import { TextNormalizer } from './textNormalizer';
+import { TextNormalizer } from '@research-assistant/core';
 
 /**
  * Service for generating embeddings using OpenAI API

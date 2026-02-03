@@ -8,28 +8,28 @@ describe('FeatureManager', () => {
   });
 
   describe('Feature availability', () => {
-    it('should enable features', () => {
+    test('should enable features', () => {
       featureManager.enable('feature1');
       expect(featureManager.isAvailable('feature1')).toBe(true);
     });
 
-    it('should disable features', () => {
+    test('should disable features', () => {
       featureManager.enable('feature1');
       featureManager.disable('feature1', 'test reason');
       expect(featureManager.isAvailable('feature1')).toBe(false);
     });
 
-    it('should track disabled reason', () => {
+    test('should track disabled reason', () => {
       featureManager.disable('feature1', 'API key missing');
       expect(featureManager.getDisabledReason('feature1')).toBe('API key missing');
     });
 
-    it('should return undefined for available features', () => {
+    test('should return undefined for available features', () => {
       featureManager.enable('feature1');
       expect(featureManager.getDisabledReason('feature1')).toBeUndefined();
     });
 
-    it('should handle multiple features', () => {
+    test('should handle multiple features', () => {
       featureManager.enable('feature1');
       featureManager.enable('feature2');
       featureManager.disable('feature3', 'not initialized');
@@ -41,7 +41,7 @@ describe('FeatureManager', () => {
   });
 
   describe('Feature execution', () => {
-    it('should execute available features', async () => {
+    test('should execute available features', async () => {
       featureManager.enable('feature1');
 
       const result = await featureManager.execute(
@@ -53,7 +53,7 @@ describe('FeatureManager', () => {
       expect(result).toBe('success');
     });
 
-    it('should use fallback for unavailable features', async () => {
+    test('should use fallback for unavailable features', async () => {
       featureManager.disable('feature1', 'not available');
 
       const result = await featureManager.execute(
@@ -65,7 +65,7 @@ describe('FeatureManager', () => {
       expect(result).toBe('fallback');
     });
 
-    it('should disable feature on error', async () => {
+    test('should disable feature on error', async () => {
       featureManager.enable('feature1');
 
       const result = await featureManager.execute(
@@ -80,7 +80,7 @@ describe('FeatureManager', () => {
       expect(featureManager.isAvailable('feature1')).toBe(false);
     });
 
-    it('should track error reason when feature fails', async () => {
+    test('should track error reason when feature fails', async () => {
       featureManager.enable('feature1');
 
       await featureManager.execute(
@@ -97,7 +97,7 @@ describe('FeatureManager', () => {
   });
 
   describe('Sync feature execution', () => {
-    it('should execute available sync features', () => {
+    test('should execute available sync features', () => {
       featureManager.enable('feature1');
 
       const result = featureManager.executeSync(
@@ -109,7 +109,7 @@ describe('FeatureManager', () => {
       expect(result).toBe('success');
     });
 
-    it('should use fallback for unavailable sync features', () => {
+    test('should use fallback for unavailable sync features', () => {
       featureManager.disable('feature1', 'not available');
 
       const result = featureManager.executeSync(
@@ -121,7 +121,7 @@ describe('FeatureManager', () => {
       expect(result).toBe('fallback');
     });
 
-    it('should disable feature on sync error', () => {
+    test('should disable feature on sync error', () => {
       featureManager.enable('feature1');
 
       const result = featureManager.executeSync(
@@ -138,7 +138,7 @@ describe('FeatureManager', () => {
   });
 
   describe('Feature reporting', () => {
-    it('should list available features', () => {
+    test('should list available features', () => {
       featureManager.enable('feature1');
       featureManager.enable('feature2');
       featureManager.disable('feature3', 'not available');
@@ -149,7 +149,7 @@ describe('FeatureManager', () => {
       expect(available).not.toContain('feature3');
     });
 
-    it('should list unavailable features with reasons', () => {
+    test('should list unavailable features with reasons', () => {
       featureManager.disable('feature1', 'reason1');
       featureManager.disable('feature2', 'reason2');
 
@@ -158,7 +158,7 @@ describe('FeatureManager', () => {
       expect(unavailable.get('feature2')).toBe('reason2');
     });
 
-    it('should generate availability report', () => {
+    test('should generate availability report', () => {
       featureManager.enable('feature1');
       featureManager.enable('feature2');
       featureManager.disable('feature3', 'not available');
@@ -175,7 +175,7 @@ describe('FeatureManager', () => {
   });
 
   describe('Feature reset', () => {
-    it('should reset all features', () => {
+    test('should reset all features', () => {
       featureManager.enable('feature1');
       featureManager.enable('feature2');
       featureManager.disable('feature3', 'not available');
@@ -186,7 +186,7 @@ describe('FeatureManager', () => {
       expect(featureManager.getUnavailableFeatures().size).toBe(0);
     });
 
-    it('should allow re-enabling after reset', () => {
+    test('should allow re-enabling after reset', () => {
       featureManager.enable('feature1');
       featureManager.reset();
       featureManager.enable('feature1');
@@ -196,7 +196,7 @@ describe('FeatureManager', () => {
   });
 
   describe('Property-based tests', () => {
-    it('should maintain consistency between enable/disable and isAvailable', () => {
+    test('should maintain consistency between enable/disable and isAvailable', () => {
       const features = ['f1', 'f2', 'f3', 'f4', 'f5'];
 
       for (const feature of features) {
@@ -208,7 +208,7 @@ describe('FeatureManager', () => {
       }
     });
 
-    it('should never have feature in both available and unavailable lists', () => {
+    test('should never have feature in both available and unavailable lists', () => {
       featureManager.enable('feature1');
       featureManager.enable('feature2');
       featureManager.disable('feature3', 'reason');
@@ -225,7 +225,7 @@ describe('FeatureManager', () => {
       }
     });
 
-    it('should always return fallback when feature is unavailable', async () => {
+    test('should always return fallback when feature is unavailable', async () => {
       featureManager.disable('feature1', 'not available');
 
       const result = await featureManager.execute(
@@ -237,7 +237,7 @@ describe('FeatureManager', () => {
       expect(result).toBe('fallback');
     });
 
-    it('should handle rapid enable/disable cycles', () => {
+    test('should handle rapid enable/disable cycles', () => {
       for (let i = 0; i < 100; i++) {
         featureManager.enable('feature1');
         expect(featureManager.isAvailable('feature1')).toBe(true);

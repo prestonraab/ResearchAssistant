@@ -1,7 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { LiteratureIndexer } from './literatureIndexer';
-import { TextNormalizer } from './textNormalizer';
+import { TextNormalizer } from '@research-assistant/core';
 import { FuzzyMatcher } from '../core/fuzzyMatcher';
 
 export interface QuoteSearchResult {

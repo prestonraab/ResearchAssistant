@@ -94,7 +94,7 @@ describe('Phase1Initializer', () => {
   });
 
   describe('initialize', () => {
-    it('should complete initialization in < 500ms', async () => {
+    test('should complete initialization in < 500ms', async () => {
       const initializer = new Phase1Initializer();
       const startTime = Date.now();
 
@@ -104,7 +104,7 @@ describe('Phase1Initializer', () => {
       expect(duration).toBeLessThan(500);
     });
 
-    it('should register tree view providers', async () => {
+    test('should register tree view providers', async () => {
       const initializer = new Phase1Initializer();
 
       await initializer.initialize(mockContext, mockState);
@@ -124,7 +124,7 @@ describe('Phase1Initializer', () => {
       );
     });
 
-    it('should create and show loading status bar', async () => {
+    test('should create and show loading status bar', async () => {
       const initializer = new Phase1Initializer();
 
       await initializer.initialize(mockContext, mockState);
@@ -137,7 +137,7 @@ describe('Phase1Initializer', () => {
       expect(mockStatusBarItem.show).toHaveBeenCalled();
     });
 
-    it('should register command stubs', async () => {
+    test('should register command stubs', async () => {
       const initializer = new Phase1Initializer();
 
       await initializer.initialize(mockContext, mockState);
@@ -154,7 +154,7 @@ describe('Phase1Initializer', () => {
       expect(registeredCommands).toContain('researchAssistant.showDashboard');
     });
 
-    it('should add all disposables to context subscriptions', async () => {
+    test('should add all disposables to context subscriptions', async () => {
       const initializer = new Phase1Initializer();
 
       await initializer.initialize(mockContext, mockState);
@@ -168,7 +168,7 @@ describe('Phase1Initializer', () => {
   });
 
   describe('updateStatusBar', () => {
-    it('should update status bar text', async () => {
+    test('should update status bar text', async () => {
       const initializer = new Phase1Initializer();
       await initializer.initialize(mockContext, mockState);
 
@@ -177,7 +177,7 @@ describe('Phase1Initializer', () => {
       expect(mockStatusBarItem.text).toBe('$(book) Ready');
     });
 
-    it('should update status bar tooltip', async () => {
+    test('should update status bar tooltip', async () => {
       const initializer = new Phase1Initializer();
       await initializer.initialize(mockContext, mockState);
 
@@ -189,7 +189,7 @@ describe('Phase1Initializer', () => {
   });
 
   describe('getProviders', () => {
-    it('should return tree providers after initialization', async () => {
+    test('should return tree providers after initialization', async () => {
       const initializer = new Phase1Initializer();
       await initializer.initialize(mockContext, mockState);
 
@@ -200,7 +200,7 @@ describe('Phase1Initializer', () => {
       expect(providers.papers).toBeDefined();
     });
 
-    it('should throw error if called before initialization', () => {
+    test('should throw error if called before initialization', () => {
       const initializer = new Phase1Initializer();
 
       expect(() => initializer.getProviders()).toThrow(
@@ -210,7 +210,7 @@ describe('Phase1Initializer', () => {
   });
 
   describe('getStatusBarItem', () => {
-    it('should return status bar item after initialization', async () => {
+    test('should return status bar item after initialization', async () => {
       const initializer = new Phase1Initializer();
       await initializer.initialize(mockContext, mockState);
 
@@ -219,7 +219,7 @@ describe('Phase1Initializer', () => {
       expect(statusBar).toBe(mockStatusBarItem);
     });
 
-    it('should throw error if called before initialization', () => {
+    test('should throw error if called before initialization', () => {
       const initializer = new Phase1Initializer();
 
       expect(() => initializer.getStatusBarItem()).toThrow(
@@ -229,7 +229,7 @@ describe('Phase1Initializer', () => {
   });
 
   describe('command stubs', () => {
-    it('should show loading message when stub commands are called', async () => {
+    test('should show loading message when stub commands are called', async () => {
       const initializer = new Phase1Initializer();
       await initializer.initialize(mockContext, mockState);
 

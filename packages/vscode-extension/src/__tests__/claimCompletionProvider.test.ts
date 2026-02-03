@@ -21,7 +21,6 @@ describe('ClaimCompletionProvider', () => {
       .withId('C_01')
       .withText('Machine learning improves accuracy')
       .withCategory('Result')
-      .withSource('Smith2020', 1)
       .withContext('Study on ML algorithms')
       .withPrimaryQuote('ML algorithms showed 95% accuracy', 'Smith2020')
       .verified()
@@ -30,7 +29,6 @@ describe('ClaimCompletionProvider', () => {
       .withId('C_02')
       .withText('Data preprocessing is essential')
       .withCategory('Method')
-      .withSource('Jones2021', 2)
       .withContext('Best practices for data preparation')
       .withPrimaryQuote('Preprocessing significantly impacts model performance', 'Jones2021')
       .build(),
@@ -38,7 +36,6 @@ describe('ClaimCompletionProvider', () => {
       .withId('C_03')
       .withText('Neural networks require large datasets')
       .withCategory('Challenge')
-      .withSource('Brown2019', 3)
       .withContext('Limitations of deep learning')
       .withPrimaryQuote('Deep learning models need thousands of examples', 'Brown2019')
       .verified()
@@ -103,7 +100,7 @@ describe('ClaimCompletionProvider', () => {
   });
 
   describe('provideCompletionItems', () => {
-    it('should return undefined if line does not end with "C_"', async () => {
+    test('should return undefined if line does not end with "C_"', async () => {
       mockDocument.lineAt = jest.fn().mockReturnValue({ text: 'Some text' });
 
       const result = await provider.provideCompletionItems(
@@ -116,7 +113,7 @@ describe('ClaimCompletionProvider', () => {
       expect(result).toBeUndefined();
     });
 
-    it('should return undefined if no claims exist', async () => {
+    test('should return undefined if no claims exist', async () => {
       mockClaimsManager.getClaims.mockReturnValue([]);
 
       const result = await provider.provideCompletionItems(
@@ -129,7 +126,7 @@ describe('ClaimCompletionProvider', () => {
       expect(result).toBeUndefined();
     });
 
-    it('should return completion items for all claims', async () => {
+    test('should return completion items for all claims', async () => {
       const result = await provider.provideCompletionItems(
         mockDocument,
         mockPosition,
@@ -144,7 +141,7 @@ describe('ClaimCompletionProvider', () => {
       expect((result as any).items[2].label).toBe('C_03');
     });
 
-    it('should set correct details for completion items', async () => {
+    test('should set correct details for completion items', async () => {
       const result = await provider.provideCompletionItems(
         mockDocument,
         mockPosition,
@@ -158,7 +155,7 @@ describe('ClaimCompletionProvider', () => {
       expect(items[2].detail).toBe('Challenge - Brown2019');
     });
 
-    it('should prioritize claims from current section', async () => {
+    test('should prioritize claims from current section', async () => {
       // Mock document is in outline file at line 5 (within section-1)
       mockDocument = {
         uri: { fsPath: '/test/workspace/03_Drafting/outline.md' },
@@ -185,7 +182,7 @@ describe('ClaimCompletionProvider', () => {
       expect(c03.sortText).toMatch(/^0_/);
     });
 
-    it('should include claim preview in documentation', async () => {
+    test('should include claim preview in documentation', async () => {
       const result = await provider.provideCompletionItems(
         mockDocument,
         mockPosition,
@@ -203,7 +200,7 @@ describe('ClaimCompletionProvider', () => {
       expect(c01Doc).toContain('ML algorithms showed 95% accuracy');
     });
 
-    it('should truncate long quotes in preview', async () => {
+    test('should truncate long quotes in preview', async () => {
       const longQuoteClaim: Claim = {
         ...mockClaims[0],
         id: 'C_04',
@@ -225,7 +222,7 @@ describe('ClaimCompletionProvider', () => {
       expect(doc.length).toBeLessThan(500);
     });
 
-    it('should set insert text to claim ID', async () => {
+    test('should set insert text to claim ID', async () => {
       const result = await provider.provideCompletionItems(
         mockDocument,
         mockPosition,
@@ -239,7 +236,7 @@ describe('ClaimCompletionProvider', () => {
       expect(items[2].insertText).toBe('C_03');
     });
 
-    it('should include command for inserting full claim text', async () => {
+    test('should include command for inserting full claim text', async () => {
       const result = await provider.provideCompletionItems(
         mockDocument,
         mockPosition,
@@ -255,7 +252,7 @@ describe('ClaimCompletionProvider', () => {
       });
     });
 
-    it('should handle section detection from non-outline files', async () => {
+    test('should handle section detection from non-outline files', async () => {
       // Mock a draft file with a header matching an outline section
       const position = new vscode.Position(5, 12);
       
@@ -288,7 +285,7 @@ describe('ClaimCompletionProvider', () => {
       expect(c01.sortText).toMatch(/^0_/);
     });
 
-    it('should fall back to ID sorting when no section context', async () => {
+    test('should fall back to ID sorting when no section context', async () => {
       mockDocument = {
         uri: { fsPath: '/test/workspace/03_Drafting/notes.md' },
         lineAt: jest.fn().mockReturnValue({ text: 'Some text C_' })
@@ -309,7 +306,7 @@ describe('ClaimCompletionProvider', () => {
       });
     });
 
-    it('should handle embedding service errors gracefully', async () => {
+    test('should handle embedding service errors gracefully', async () => {
       mockState.embeddingService.generateEmbedding = jest.fn().mockRejectedValue(
         new Error('Embedding service unavailable')
       );
@@ -328,7 +325,7 @@ describe('ClaimCompletionProvider', () => {
   });
 
   describe('resolveCompletionItem', () => {
-    it('should return the item unchanged', async () => {
+    test('should return the item unchanged', async () => {
       const item = new vscode.CompletionItem('C_01', vscode.CompletionItemKind.Reference);
       
       const result = await provider.resolveCompletionItem(item, {} as any);

@@ -46,7 +46,7 @@ describe('CoverageAnalyzer', () => {
   });
 
   describe('analyzeCoverage', () => {
-    it('should map claims to sections using section IDs', () => {
+    test('should map claims to sections using section IDs', () => {
       const sections = [
         createSection('section-1', 2, 'Introduction', 1),
         createSection('section-2', 2, 'Methods', 10)
@@ -67,7 +67,7 @@ describe('CoverageAnalyzer', () => {
       expect(metrics[1].claimCount).toBe(1);
     });
 
-    it('should calculate coverage level as "none" for 0 claims', () => {
+    test('should calculate coverage level as "none" for 0 claims', () => {
       const sections = [createSection('section-1', 2, 'Introduction', 1)];
       const claims: Claim[] = [];
 
@@ -77,7 +77,7 @@ describe('CoverageAnalyzer', () => {
       expect(metrics[0].claimCount).toBe(0);
     });
 
-    it('should calculate coverage level as "low" for 1-3 claims', () => {
+    test('should calculate coverage level as "low" for 1-3 claims', () => {
       const sections = [createSection('section-1', 2, 'Introduction', 1)];
       
       // Test with 1 claim
@@ -106,7 +106,7 @@ describe('CoverageAnalyzer', () => {
       expect(metrics[0].claimCount).toBe(3);
     });
 
-    it('should calculate coverage level as "moderate" for 4-6 claims', () => {
+    test('should calculate coverage level as "moderate" for 4-6 claims', () => {
       const sections = [createSection('section-1', 2, 'Introduction', 1)];
       
       // Test with 4 claims
@@ -134,7 +134,7 @@ describe('CoverageAnalyzer', () => {
       expect(metrics[0].claimCount).toBe(6);
     });
 
-    it('should calculate coverage level as "strong" for 7+ claims', () => {
+    test('should calculate coverage level as "strong" for 7+ claims', () => {
       const sections = [createSection('section-1', 2, 'Introduction', 1)];
       
       const claims = [
@@ -152,7 +152,7 @@ describe('CoverageAnalyzer', () => {
       expect(metrics[0].claimCount).toBe(7);
     });
 
-    it('should include suggested queries for each section', () => {
+    test('should include suggested queries for each section', () => {
       const sections = [createSection('section-1', 2, 'Machine Learning Methods', 1)];
       const claims: Claim[] = [];
 
@@ -163,7 +163,7 @@ describe('CoverageAnalyzer', () => {
       expect(metrics[0].suggestedQueries.length).toBeLessThanOrEqual(5);
     });
 
-    it('should set lastUpdated timestamp', () => {
+    test('should set lastUpdated timestamp', () => {
       const sections = [createSection('section-1', 2, 'Introduction', 1)];
       const claims: Claim[] = [];
 
@@ -175,7 +175,7 @@ describe('CoverageAnalyzer', () => {
       expect(metrics[0].lastUpdated.getTime()).toBeLessThanOrEqual(after.getTime());
     });
 
-    it('should handle claims associated with multiple sections', () => {
+    test('should handle claims associated with multiple sections', () => {
       const sections = [
         createSection('section-1', 2, 'Introduction', 1),
         createSection('section-2', 2, 'Methods', 10)
@@ -194,7 +194,7 @@ describe('CoverageAnalyzer', () => {
   });
 
   describe('identifyGaps', () => {
-    it('should identify sections with fewer than 2 claims by default', () => {
+    test('should identify sections with fewer than 2 claims by default', () => {
       const sections = [
         createSection('section-1', 2, 'Introduction', 1),
         createSection('section-2', 2, 'Methods', 10),
@@ -216,7 +216,7 @@ describe('CoverageAnalyzer', () => {
       expect(gaps.some(g => g.sectionId === 'section-3')).toBe(true);
     });
 
-    it('should respect custom threshold parameter', () => {
+    test('should respect custom threshold parameter', () => {
       const sections = [
         createSection('section-1', 2, 'Introduction', 1),
         createSection('section-2', 2, 'Methods', 10)
@@ -235,7 +235,7 @@ describe('CoverageAnalyzer', () => {
       expect(gaps).toHaveLength(2);
     });
 
-    it('should rank gaps by section depth (level) - shallower sections first', () => {
+    test('should rank gaps by section depth (level) - shallower sections first', () => {
       const sections = [
         createSection('section-1', 3, 'Subsection', 10),
         createSection('section-2', 2, 'Main Section', 1)
@@ -250,7 +250,7 @@ describe('CoverageAnalyzer', () => {
       expect(gaps[1].sectionId).toBe('section-1');
     });
 
-    it('should rank gaps by position when depth is equal - earlier sections first', () => {
+    test('should rank gaps by position when depth is equal - earlier sections first', () => {
       const sections = [
         createSection('section-1', 2, 'Section B', 20),
         createSection('section-2', 2, 'Section A', 10)
@@ -265,7 +265,7 @@ describe('CoverageAnalyzer', () => {
       expect(gaps[1].sectionId).toBe('section-1');
     });
 
-    it('should return empty array when no gaps exist', () => {
+    test('should return empty array when no gaps exist', () => {
       const sections = [
         createSection('section-1', 2, 'Introduction', 1)
       ];
@@ -282,7 +282,7 @@ describe('CoverageAnalyzer', () => {
   });
 
   describe('suggestSearchQueries', () => {
-    it('should generate 2-5 queries for a section', () => {
+    test('should generate 2-5 queries for a section', () => {
       const section = createSection('section-1', 2, 'Machine Learning Methods', 1, [
         'What are the main approaches?',
         'How do neural networks work?'
@@ -294,7 +294,7 @@ describe('CoverageAnalyzer', () => {
       expect(queries.length).toBeLessThanOrEqual(5);
     });
 
-    it('should include the section title as a query', () => {
+    test('should include the section title as a query', () => {
       const section = createSection('section-1', 2, 'Deep Learning Applications', 1);
 
       const queries = analyzer.suggestSearchQueries(section);
@@ -302,7 +302,7 @@ describe('CoverageAnalyzer', () => {
       expect(queries).toContain('Deep Learning Applications');
     });
 
-    it('should extract key terms from content', () => {
+    test('should extract key terms from content', () => {
       const section = createSection('section-1', 2, 'Methods', 1, [
         'We use convolutional neural networks for image classification',
         'The model architecture includes attention mechanisms'
@@ -314,7 +314,7 @@ describe('CoverageAnalyzer', () => {
       expect(queries.length).toBeGreaterThan(1);
     });
 
-    it('should convert questions to search queries', () => {
+    test('should convert questions to search queries', () => {
       const section = createSection('section-1', 2, 'Research Questions', 1, [
         'What are the main challenges in climate modeling?',
         'How do we validate predictions?'
@@ -330,7 +330,7 @@ describe('CoverageAnalyzer', () => {
       expect(hasQuestionQuery).toBe(true);
     });
 
-    it('should extract domain-specific terms (acronyms, hyphenated terms)', () => {
+    test('should extract domain-specific terms (acronyms, hyphenated terms)', () => {
       const section = createSection('section-1', 2, 'NLP Methods', 1, [
         'We use BERT and GPT-3 for text generation',
         'The state-of-the-art models show improvements'
@@ -342,7 +342,7 @@ describe('CoverageAnalyzer', () => {
       expect(queries.length).toBeGreaterThan(1);
     });
 
-    it('should return unique queries only', () => {
+    test('should return unique queries only', () => {
       const section = createSection('section-1', 2, 'Methods', 1, [
         'Methods for analysis',
         'Analysis methods'
@@ -355,7 +355,7 @@ describe('CoverageAnalyzer', () => {
       expect(uniqueQueries.size).toBe(queries.length);
     });
 
-    it('should handle sections with no content', () => {
+    test('should handle sections with no content', () => {
       const section = createSection('section-1', 2, 'Introduction', 1, []);
 
       const queries = analyzer.suggestSearchQueries(section);
@@ -367,7 +367,7 @@ describe('CoverageAnalyzer', () => {
   });
 
   describe('generateReport', () => {
-    it('should calculate total sections correctly', () => {
+    test('should calculate total sections correctly', () => {
       const sections = [
         createSection('section-1', 2, 'Introduction', 1),
         createSection('section-2', 2, 'Methods', 10),
@@ -380,7 +380,7 @@ describe('CoverageAnalyzer', () => {
       expect(report.totalSections).toBe(3);
     });
 
-    it('should count sections by coverage level', () => {
+    test('should count sections by coverage level', () => {
       const sections = [
         createSection('section-1', 2, 'Introduction', 1),
         createSection('section-2', 2, 'Methods', 10),
@@ -418,7 +418,7 @@ describe('CoverageAnalyzer', () => {
       expect(report.sectionsWithStrongCoverage).toBe(1);
     });
 
-    it('should calculate overall coverage percentage', () => {
+    test('should calculate overall coverage percentage', () => {
       const sections = [
         createSection('section-1', 2, 'Introduction', 1),
         createSection('section-2', 2, 'Methods', 10),
@@ -454,7 +454,7 @@ describe('CoverageAnalyzer', () => {
       expect(report.overallCoveragePercentage).toBe(50);
     });
 
-    it('should include gaps in the report', () => {
+    test('should include gaps in the report', () => {
       const sections = [
         createSection('section-1', 2, 'Introduction', 1),
         createSection('section-2', 2, 'Methods', 10)
@@ -470,7 +470,7 @@ describe('CoverageAnalyzer', () => {
       expect(report.gaps).toHaveLength(2);
     });
 
-    it('should set timestamp', () => {
+    test('should set timestamp', () => {
       const sections = [createSection('section-1', 2, 'Introduction', 1)];
       const claims: Claim[] = [];
 
@@ -482,7 +482,7 @@ describe('CoverageAnalyzer', () => {
       expect(report.timestamp.getTime()).toBeLessThanOrEqual(after.getTime());
     });
 
-    it('should handle empty sections and claims', () => {
+    test('should handle empty sections and claims', () => {
       const sections: OutlineSection[] = [];
       const claims: Claim[] = [];
 
@@ -495,7 +495,7 @@ describe('CoverageAnalyzer', () => {
   });
 
   describe('edge cases', () => {
-    it('should handle sections with no associated claims', () => {
+    test('should handle sections with no associated claims', () => {
       const sections = [createSection('section-1', 2, 'Introduction', 1)];
       const claims = [createClaim('C_01', ['section-2'])]; // Different section
 
@@ -505,7 +505,7 @@ describe('CoverageAnalyzer', () => {
       expect(metrics[0].coverageLevel).toBe('none');
     });
 
-    it('should handle empty sections array', () => {
+    test('should handle empty sections array', () => {
       const sections: OutlineSection[] = [];
       const claims = [createClaim('C_01', ['section-1'])];
 
@@ -514,7 +514,7 @@ describe('CoverageAnalyzer', () => {
       expect(metrics).toHaveLength(0);
     });
 
-    it('should handle empty claims array', () => {
+    test('should handle empty claims array', () => {
       const sections = [createSection('section-1', 2, 'Introduction', 1)];
       const claims: Claim[] = [];
 
@@ -524,7 +524,7 @@ describe('CoverageAnalyzer', () => {
       expect(metrics[0].claimCount).toBe(0);
     });
 
-    it('should handle sections with special characters in title', () => {
+    test('should handle sections with special characters in title', () => {
       const section = createSection('section-1', 2, 'Methods: A/B Testing & Analysis', 1);
 
       const queries = analyzer.suggestSearchQueries(section);

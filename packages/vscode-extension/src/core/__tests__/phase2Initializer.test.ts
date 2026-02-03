@@ -84,7 +84,7 @@ describe('Phase2Initializer', () => {
   });
 
   describe('initialize', () => {
-    it('should complete initialization in < 2 seconds', async () => {
+    test('should complete initialization in < 2 seconds', async () => {
       const initializer = new Phase2Initializer(mockPhase1);
       const startTime = Date.now();
 
@@ -94,7 +94,7 @@ describe('Phase2Initializer', () => {
       expect(duration).toBeLessThan(2000);
     });
 
-    it('should load claims, parse outline, and load configuration in parallel', async () => {
+    test('should load claims, parse outline, and load configuration in parallel', async () => {
       const initializer = new Phase2Initializer(mockPhase1);
 
       await initializer.initialize(mockState);
@@ -104,7 +104,7 @@ describe('Phase2Initializer', () => {
       expect(mockState.configurationManager.initialize).toHaveBeenCalled();
     });
 
-    it('should update status bar during loading', async () => {
+    test('should update status bar during loading', async () => {
       const initializer = new Phase2Initializer(mockPhase1);
 
       await initializer.initialize(mockState);
@@ -115,7 +115,7 @@ describe('Phase2Initializer', () => {
       );
     });
 
-    it('should update status bar to ready state after loading', async () => {
+    test('should update status bar to ready state after loading', async () => {
       const initializer = new Phase2Initializer(mockPhase1);
 
       await initializer.initialize(mockState);
@@ -126,7 +126,7 @@ describe('Phase2Initializer', () => {
       );
     });
 
-    it('should refresh all tree views after loading', async () => {
+    test('should refresh all tree views after loading', async () => {
       const initializer = new Phase2Initializer(mockPhase1);
 
       await initializer.initialize(mockState);
@@ -136,7 +136,7 @@ describe('Phase2Initializer', () => {
       expect(mockProviders.papers.refresh).toHaveBeenCalled();
     });
 
-    it('should configure Zotero API service if credentials are available', async () => {
+    test('should configure Zotero API service if credentials are available', async () => {
       mockState.configurationManager.getUserPreferences = jest.fn().mockReturnValue({
         zoteroApiKey: 'test-key',
         zoteroUserId: 'test-user'
@@ -151,7 +151,7 @@ describe('Phase2Initializer', () => {
       );
     });
 
-    it('should not configure Zotero API service if credentials are missing', async () => {
+    test('should not configure Zotero API service if credentials are missing', async () => {
       mockState.configurationManager.getUserPreferences = jest.fn().mockReturnValue({});
 
       const initializer = new Phase2Initializer(mockPhase1);
@@ -162,7 +162,7 @@ describe('Phase2Initializer', () => {
   });
 
   describe('error handling', () => {
-    it('should continue if claims loading fails', async () => {
+    test('should continue if claims loading fails', async () => {
       mockState.claimsManager.loadClaims = jest.fn().mockRejectedValue(
         new Error('Claims file not found')
       );
@@ -177,7 +177,7 @@ describe('Phase2Initializer', () => {
       );
     });
 
-    it('should show warning message if claims loading fails', async () => {
+    test('should show warning message if claims loading fails', async () => {
       mockState.claimsManager.loadClaims = jest.fn().mockRejectedValue(
         new Error('Claims file not found')
       );
@@ -191,7 +191,7 @@ describe('Phase2Initializer', () => {
       );
     });
 
-    it('should continue if outline parsing fails', async () => {
+    test('should continue if outline parsing fails', async () => {
       mockState.outlineParser.parse = jest.fn().mockRejectedValue(
         new Error('Outline file not found')
       );
@@ -206,7 +206,7 @@ describe('Phase2Initializer', () => {
       );
     });
 
-    it('should show warning message if outline parsing fails', async () => {
+    test('should show warning message if outline parsing fails', async () => {
       mockState.outlineParser.parse = jest.fn().mockRejectedValue(
         new Error('Outline file not found')
       );
@@ -220,7 +220,7 @@ describe('Phase2Initializer', () => {
       );
     });
 
-    it('should continue if configuration loading fails', async () => {
+    test('should continue if configuration loading fails', async () => {
       mockState.configurationManager.initialize = jest.fn().mockRejectedValue(
         new Error('Config error')
       );
@@ -235,7 +235,7 @@ describe('Phase2Initializer', () => {
       );
     });
 
-    it('should show warning if multiple operations fail', async () => {
+    test('should show warning if multiple operations fail', async () => {
       mockState.claimsManager.loadClaims = jest.fn().mockRejectedValue(
         new Error('Claims error')
       );
@@ -252,7 +252,7 @@ describe('Phase2Initializer', () => {
       );
     });
 
-    it('should handle all operations failing gracefully', async () => {
+    test('should handle all operations failing gracefully', async () => {
       mockState.claimsManager.loadClaims = jest.fn().mockRejectedValue(
         new Error('Claims error')
       );
@@ -275,7 +275,7 @@ describe('Phase2Initializer', () => {
       );
     });
 
-    it('should continue if tree view update fails', async () => {
+    test('should continue if tree view update fails', async () => {
       mockProviders.outline.refresh = jest.fn().mockImplementation(() => {
         throw new Error('Refresh error');
       });
@@ -288,7 +288,7 @@ describe('Phase2Initializer', () => {
   });
 
   describe('graceful degradation', () => {
-    it('should allow extension to function with failed claims loading', async () => {
+    test('should allow extension to function with failed claims loading', async () => {
       mockState.claimsManager.loadClaims = jest.fn().mockRejectedValue(
         new Error('Claims error')
       );
@@ -302,7 +302,7 @@ describe('Phase2Initializer', () => {
       expect(mockProviders.outline.refresh).toHaveBeenCalled();
     });
 
-    it('should allow extension to function with failed outline parsing', async () => {
+    test('should allow extension to function with failed outline parsing', async () => {
       mockState.outlineParser.parse = jest.fn().mockRejectedValue(
         new Error('Outline error')
       );
@@ -316,7 +316,7 @@ describe('Phase2Initializer', () => {
       expect(mockProviders.claims.refresh).toHaveBeenCalled();
     });
 
-    it('should use default configuration if loading fails', async () => {
+    test('should use default configuration if loading fails', async () => {
       mockState.configurationManager.initialize = jest.fn().mockRejectedValue(
         new Error('Config error')
       );

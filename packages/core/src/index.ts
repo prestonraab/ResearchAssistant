@@ -354,6 +354,7 @@ export { LiteratureIndexer } from './services/LiteratureIndexer.js';
 export { EmbeddingStore, EmbeddedSnippet, QuantizedSnippet, EmbeddingIndex } from './services/EmbeddingStore.js';
 export { SnippetExtractor } from './services/SnippetExtractor.js';
 export { EmbeddingQuantizer } from './services/EmbeddingQuantizer.js';
+export { TextNormalizer } from './utils/text-normalizer.js';
 
 /**
  * Internet Paper Searcher
@@ -439,3 +440,14 @@ export { OutlineParser } from './parsers/OutlineParser.js';
 // Utils:
 // - export { normalizeText, cleanQuote } from './utils/text.js';
 // - export { validateClaim, validateSection } from './utils/validation.js';
+
+// ============================================================================
+// Utility Exports
+// ============================================================================
+
+/**
+ * Text Normalizer
+ * 
+ * Utility for normalizing text, handling OCR artifacts, and calculating text similarity.
+ */
+export { TextNormalizer } from './utils/text-normalizer.js';

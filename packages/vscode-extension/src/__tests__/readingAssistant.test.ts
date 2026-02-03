@@ -104,7 +104,7 @@ describe('ReadingAssistant', () => {
      * Test: Activation on file open from extracted text directory
      * Validates: Requirement 5.1
      */
-    it('should activate for documents from ExtractedText directory', () => {
+    test('should activate for documents from ExtractedText directory', () => {
       // Create mock document from extracted text directory
       const mockDocument = {
         uri: vscode.Uri.file('/mock/workspace/literature/ExtractedText/Smith2023.txt'),
@@ -141,7 +141,7 @@ describe('ReadingAssistant', () => {
      * Test: No activation for documents outside ExtractedText directory
      * Validates: Requirement 5.1
      */
-    it('should not activate for documents outside ExtractedText directory', () => {
+    test('should not activate for documents outside ExtractedText directory', () => {
       // Create mock document from different directory
       const mockDocument = {
         uri: vscode.Uri.file('/mock/workspace/03_Drafting/manuscript.md'),
@@ -166,7 +166,7 @@ describe('ReadingAssistant', () => {
      * Test: Extract claim from selection
      * Validates: Requirement 5.2, 5.3
      */
-    it('should extract claim from selected text', async () => {
+    test('should extract claim from selected text', async () => {
       const mockDocument = {
         uri: vscode.Uri.file('/mock/workspace/literature/ExtractedText/Smith2023.txt'),
         fileName: '/mock/workspace/literature/ExtractedText/Smith2023.txt',
@@ -199,7 +199,7 @@ describe('ReadingAssistant', () => {
      * Test: Handle empty selection
      * Validates: Requirement 5.2
      */
-    it('should return null for empty selection', async () => {
+    test('should return null for empty selection', async () => {
       const mockDocument = {
         uri: vscode.Uri.file('/mock/workspace/literature/ExtractedText/Smith2023.txt'),
         fileName: '/mock/workspace/literature/ExtractedText/Smith2023.txt',
@@ -226,7 +226,7 @@ describe('ReadingAssistant', () => {
      * Test: Track reading progress
      * Validates: Requirement 16.1, 16.2
      */
-    it('should track reading progress for papers', async () => {
+    test('should track reading progress for papers', async () => {
       const paperId = 'Smith2023';
 
       // Mark as reading
@@ -247,7 +247,7 @@ describe('ReadingAssistant', () => {
      * Test: Reading status persistence
      * Validates: Requirement 16.3
      */
-    it('should persist reading status across sessions', async () => {
+    test('should persist reading status across sessions', async () => {
       const paperId = 'Johnson2020';
 
       // Set status
@@ -267,7 +267,7 @@ describe('ReadingAssistant', () => {
      * Test: Code lens actions are provided
      * Validates: Requirement 5.2
      */
-    it('should provide code lens actions for extracted text files', () => {
+    test('should provide code lens actions for extracted text files', () => {
       // The code lens provider is registered during construction
       // Verify that registerCodeLensProvider was called
       expect(vscode.languages.registerCodeLensProvider).toHaveBeenCalled();
@@ -279,7 +279,7 @@ describe('ReadingAssistant', () => {
      * Test: Claim categorization
      * Validates: Requirement 5.3
      */
-    it('should categorize extracted claims correctly', async () => {
+    test('should categorize extracted claims correctly', async () => {
       const mockDocument = {
         uri: vscode.Uri.file('/mock/workspace/literature/ExtractedText/Test2023.txt'),
         fileName: '/mock/workspace/literature/ExtractedText/Test2023.txt',
@@ -312,7 +312,7 @@ describe('ReadingAssistant', () => {
     /**
      * Test: Handle invalid document paths
      */
-    it('should handle invalid document paths gracefully', () => {
+    test('should handle invalid document paths gracefully', () => {
       const mockDocument = {
         uri: vscode.Uri.file(''),
         fileName: '',
@@ -327,7 +327,7 @@ describe('ReadingAssistant', () => {
     /**
      * Test: Handle missing paper ID
      */
-    it('should handle documents without valid paper IDs', async () => {
+    test('should handle documents without valid paper IDs', async () => {
       const mockDocument = {
         uri: vscode.Uri.file('/mock/workspace/literature/ExtractedText/.txt'),
         fileName: '/mock/workspace/literature/ExtractedText/.txt',

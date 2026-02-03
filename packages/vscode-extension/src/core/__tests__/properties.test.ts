@@ -53,7 +53,7 @@ describe('Property-Based Tests', () => {
   // Property 1: Outline Parsing Completeness
   // Feature: research-assistant-extension, Property 1: Outline Parsing Completeness
   describe('Property 1: Outline Parsing Completeness', () => {
-    it('should extract all headers and content from valid markdown', async () => {
+    test('should extract all headers and content from valid markdown', async () => {
       await fc.assert(
         fc.asyncProperty(
           markdownArbitrary(),
@@ -93,7 +93,7 @@ describe('Property-Based Tests', () => {
   // Property 2: Coverage Calculation Accuracy
   // Feature: research-assistant-extension, Property 2: Coverage Calculation Accuracy
   describe('Property 2: Coverage Calculation Accuracy', () => {
-    it('should calculate coverage levels based on claim counts', async () => {
+    test('should calculate coverage levels based on claim counts', async () => {
       await fc.assert(
         fc.asyncProperty(
           outlineArbitrary(),
@@ -156,7 +156,7 @@ describe('Property-Based Tests', () => {
   // Property 8: Claim Serialization Round-Trip
   // Feature: research-assistant-extension, Property 8: Claim Serialization Round-Trip
   describe('Property 8: Claim Serialization Round-Trip', () => {
-    it('should preserve all claim data through serialization', async () => {
+    test('should preserve all claim data through serialization', async () => {
       await fc.assert(
         fc.asyncProperty(
           claimArbitrary(),
@@ -188,7 +188,7 @@ describe('Property-Based Tests', () => {
   // Property 3: Query Generation Bounds
   // Feature: research-assistant-extension, Property 3: Query Generation Bounds
   describe('Property 3: Query Generation Bounds', () => {
-    it('should generate 2-5 queries for any section', () => {
+    test('should generate 2-5 queries for any section', () => {
       fc.assert(
         fc.property(
           sectionArbitrary(),

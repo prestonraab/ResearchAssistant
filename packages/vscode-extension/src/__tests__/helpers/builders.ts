@@ -1,4 +1,4 @@
-import type { Claim, Quote } from '@research-assistant/core';
+import type { Claim, SourcedQuote } from '@research-assistant/core';
 import type { ZoteroItem } from '../../services/zoteroApiService';
 
 /**
@@ -15,9 +15,7 @@ export class ClaimBuilder {
       text: 'Test claim',
       category: 'Method',
       context: '',
-      source: 'Test2024',
-      sourceId: 1,
-      primaryQuote: '',
+      primaryQuote: { text: '', source: '', verified: false },
       supportingQuotes: [],
       sections: [],
       verified: false,
@@ -41,37 +39,35 @@ export class ClaimBuilder {
     return this;
   }
 
-  withSource(source: string, sourceId?: number): this {
-    this.claim.source = source;
-    if (sourceId !== undefined) {
-      this.claim.sourceId = sourceId;
-    }
-    return this;
-  }
-
   withContext(context: string): this {
     this.claim.context = context;
     return this;
   }
 
   withPrimaryQuote(quote: string, source?: string): this {
-    this.claim.primaryQuote = quote;
-    if (source) {
-      this.claim.source = source;
-    }
+    this.claim.primaryQuote = {
+      text: quote,
+      source: source || '',
+      verified: false
+    };
     return this;
   }
 
   withSupportingQuote(quote: string, source?: string): this {
-    this.claim.supportingQuotes.push(quote);
-    if (source && !this.claim.source) {
-      this.claim.source = source;
-    }
+    this.claim.supportingQuotes.push({
+      text: quote,
+      source: source || '',
+      verified: false
+    });
     return this;
   }
 
-  withSupportingQuotes(quotes: string[]): this {
-    this.claim.supportingQuotes = quotes;
+  withSupportingQuotes(quotes: Array<string | { text: string; source: string; verified?: boolean }>): this {
+    this.claim.supportingQuotes = quotes.map(q => 
+      typeof q === 'string' 
+        ? { text: q, source: '', verified: false }
+        : { text: q.text, source: q.source, verified: q.verified || false }
+    );
     return this;
   }
 
@@ -160,7 +156,7 @@ export class ZoteroItemBuilder {
   }
 
   withDOI(doi: string): this {
-    this.item.DOI = doi;
+    this.item.doi = doi;
     return this;
   }
 

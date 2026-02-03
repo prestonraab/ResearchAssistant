@@ -70,7 +70,7 @@ describe('QuickClaimExtractor', () => {
   });
 
   describe('autoDetectSource', () => {
-    it('should extract source from filename', () => {
+    test('should extract source from filename', () => {
       const mockDocument = createMockDocument({
         uri: vscode.Uri.file('/workspace/literature/ExtractedText/Smith2023.txt')
       });
@@ -79,7 +79,7 @@ describe('QuickClaimExtractor', () => {
       expect(source).toBe('Smith2023');
     });
 
-    it('should handle different file extensions', () => {
+    test('should handle different file extensions', () => {
       const mockDocument = createMockDocument({
         uri: vscode.Uri.file('/workspace/literature/ExtractedText/Johnson2020.md')
       });
@@ -88,7 +88,7 @@ describe('QuickClaimExtractor', () => {
       expect(source).toBe('Johnson2020');
     });
 
-    it('should handle complex filenames', () => {
+    test('should handle complex filenames', () => {
       const mockDocument = createMockDocument({
         uri: vscode.Uri.file('/workspace/literature/ExtractedText/VanDerWaal2019.txt')
       });
@@ -99,28 +99,28 @@ describe('QuickClaimExtractor', () => {
   });
 
   describe('autoDetectCategory', () => {
-    it('should detect method category', () => {
+    test('should detect method category', () => {
       const text = 'We propose a new algorithm for batch correction';
       const category = quickClaimExtractor.autoDetectCategory(text);
       expect(category).toBe('Method');
       expect(mockClaimExtractor.categorizeClaim).toHaveBeenCalledWith(text);
     });
 
-    it('should detect result category', () => {
+    test('should detect result category', () => {
       mockClaimExtractor.categorizeClaim.mockReturnValue('result');
       const text = 'Our results show a 95% accuracy improvement';
       const category = quickClaimExtractor.autoDetectCategory(text);
       expect(category).toBe('Result');
     });
 
-    it('should detect challenge category', () => {
+    test('should detect challenge category', () => {
       mockClaimExtractor.categorizeClaim.mockReturnValue('challenge');
       const text = 'However, batch effects remain a significant challenge';
       const category = quickClaimExtractor.autoDetectCategory(text);
       expect(category).toBe('Challenge');
     });
 
-    it('should default to Background for unknown types', () => {
+    test('should default to Background for unknown types', () => {
       mockClaimExtractor.categorizeClaim.mockReturnValue('unknown' as any);
       const text = 'Some general statement';
       const category = quickClaimExtractor.autoDetectCategory(text);
@@ -129,7 +129,7 @@ describe('QuickClaimExtractor', () => {
   });
 
   describe('suggestSections', () => {
-    it('should suggest relevant sections using embeddings', async () => {
+    test('should suggest relevant sections using embeddings', async () => {
       const text = 'We developed a new batch correction method';
       const sections = await quickClaimExtractor.suggestSections(text);
       
@@ -138,7 +138,7 @@ describe('QuickClaimExtractor', () => {
       expect(mockClaimExtractor.suggestSections).toHaveBeenCalledWith(text, expect.any(Array));
     });
 
-    it('should return empty array if no sections available', async () => {
+    test('should return empty array if no sections available', async () => {
       mockOutlineParser.parse.mockResolvedValue([]);
       const text = 'Some claim text';
       const sections = await quickClaimExtractor.suggestSections(text);
@@ -146,7 +146,7 @@ describe('QuickClaimExtractor', () => {
       expect(sections).toEqual([]);
     });
 
-    it('should handle errors gracefully', async () => {
+    test('should handle errors gracefully', async () => {
       mockOutlineParser.parse.mockRejectedValue(new Error('Parse error'));
       const text = 'Some claim text';
       const sections = await quickClaimExtractor.suggestSections(text);
@@ -154,7 +154,7 @@ describe('QuickClaimExtractor', () => {
       expect(sections).toEqual([]);
     });
 
-    it('should return top 3 sections at most', async () => {
+    test('should return top 3 sections at most', async () => {
       const allSections = [
         { id: 'section1', title: 'Methods', level: 2, content: [], parent: null, children: [], lineStart: 0, lineEnd: 10 },
         { id: 'section2', title: 'Results', level: 2, content: [], parent: null, children: [], lineStart: 11, lineEnd: 20 },
@@ -174,7 +174,7 @@ describe('QuickClaimExtractor', () => {
   });
 
   describe('saveAndVerify', () => {
-    it('should save claim to database', async () => {
+    test('should save claim to database', async () => {
       const claim = createMockClaim({
         id: 'C_01',
         text: 'Test claim',
@@ -199,7 +199,7 @@ describe('QuickClaimExtractor', () => {
       );
     });
 
-    it('should handle save errors', async () => {
+    test('should handle save errors', async () => {
       const claim = createMockClaim({
         id: 'C_01',
         text: 'Test claim',
@@ -223,7 +223,7 @@ describe('QuickClaimExtractor', () => {
   });
 
   describe('registerCommands', () => {
-    it('should register quickExtractClaim command', () => {
+    test('should register quickExtractClaim command', () => {
       // Mock registerCommand to return a disposable
       (vscode.commands.registerCommand as jest.Mock).mockReturnValue({
         dispose: jest.fn()
@@ -240,7 +240,7 @@ describe('QuickClaimExtractor', () => {
   });
 
   describe('extractFromSelection - validation', () => {
-    it('should warn if no active editor', async () => {
+    test('should warn if no active editor', async () => {
       (vscode.window as any).activeTextEditor = undefined;
 
       await quickClaimExtractor.extractFromSelection();
@@ -248,7 +248,7 @@ describe('QuickClaimExtractor', () => {
       expect(vscode.window.showWarningMessage).toHaveBeenCalledWith('No active editor');
     });
 
-    it('should warn if not in ExtractedText file', async () => {
+    test('should warn if not in ExtractedText file', async () => {
       const mockDocument = createMockDocument({
         uri: vscode.Uri.file('/workspace/manuscript.md')
       });
@@ -265,7 +265,7 @@ describe('QuickClaimExtractor', () => {
       );
     });
 
-    it('should warn if selection is empty', async () => {
+    test('should warn if selection is empty', async () => {
       const mockDocument = createMockDocument({
         uri: vscode.Uri.file('/workspace/literature/ExtractedText/Smith2023.txt'),
         getText: jest.fn<(range?: vscode.Range) => string>()
@@ -285,7 +285,7 @@ describe('QuickClaimExtractor', () => {
   });
 
   describe('Integration - full workflow', () => {
-    it('should complete full extraction workflow', async () => {
+    test('should complete full extraction workflow', async () => {
       const selectedText = 'We developed a novel batch correction algorithm';
       
       const mockDocument = createMockDocument({

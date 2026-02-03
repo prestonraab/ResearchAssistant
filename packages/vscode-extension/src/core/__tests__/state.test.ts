@@ -19,13 +19,6 @@ Object.defineProperty(MockClaimsManager.prototype, 'onClaimSaved', {
   configurable: true
 });
 
-// Mock MCPClientManager
-jest.mock('../../mcp/mcpClient', () => ({
-  MCPClientManager: jest.fn().mockImplementation(() => ({
-    dispose: jest.fn()
-  }))
-}));
-
 // Mock ReadingStatusManager
 jest.mock('../readingStatusManager', () => ({
   ReadingStatusManager: jest.fn().mockImplementation(() => ({
@@ -138,7 +131,7 @@ describe('ExtensionState', () => {
   });
 
   describe('File Watcher Setup', () => {
-    it('should create file watchers for outline and claims files', async () => {
+    test('should create file watchers for outline and claims files', async () => {
       const state = new ExtensionState(mockContext);
       await state.initialize();
 
@@ -151,7 +144,7 @@ describe('ExtensionState', () => {
       expect(mockContext.subscriptions).toHaveLength(2); // Only outline and claims are in subscriptions
     });
 
-    it('should watch the correct outline path', async () => {
+    test('should watch the correct outline path', async () => {
       const state = new ExtensionState(mockContext);
       await state.initialize();
 
@@ -162,7 +155,7 @@ describe('ExtensionState', () => {
       expect(calls[0][0]).toBeDefined();
     });
 
-    it('should watch the correct claims database path', async () => {
+    test('should watch the correct claims database path', async () => {
       const state = new ExtensionState(mockContext);
       await state.initialize();
 
@@ -175,7 +168,7 @@ describe('ExtensionState', () => {
   });
 
   describe('File Change Debouncing', () => {
-    it('should debounce outline file changes', async () => {
+    test('should debounce outline file changes', async () => {
       const state = new ExtensionState(mockContext);
       await state.initialize();
 
@@ -203,7 +196,7 @@ describe('ExtensionState', () => {
       expect(MockOutlineParser.prototype.parse).toHaveBeenCalledTimes(1);
     });
 
-    it('should reset debounce timer on each change', async () => {
+    test('should reset debounce timer on each change', async () => {
       const state = new ExtensionState(mockContext);
       await state.initialize();
 
@@ -231,7 +224,7 @@ describe('ExtensionState', () => {
       expect(MockOutlineParser.prototype.parse).toHaveBeenCalledTimes(1);
     });
 
-    it('should handle multiple separate change events', async () => {
+    test('should handle multiple separate change events', async () => {
       const state = new ExtensionState(mockContext);
       await state.initialize();
 
@@ -255,7 +248,7 @@ describe('ExtensionState', () => {
       expect(MockOutlineParser.prototype.parse).toHaveBeenCalledTimes(3);
     });
 
-    it('should use 500ms debounce delay', async () => {
+    test('should use 500ms debounce delay', async () => {
       const state = new ExtensionState(mockContext);
       await state.initialize();
 
@@ -278,7 +271,7 @@ describe('ExtensionState', () => {
       expect(MockOutlineParser.prototype.parse).toHaveBeenCalledTimes(1);
     });
 
-    it('should debounce claims file changes independently', async () => {
+    test('should debounce claims file changes independently', async () => {
       const state = new ExtensionState(mockContext);
       await state.initialize();
 
@@ -305,7 +298,7 @@ describe('ExtensionState', () => {
   });
 
   describe('Performance Requirements', () => {
-    it('should re-parse within 2 seconds of file change (requirement 1.5)', async () => {
+    test('should re-parse within 2 seconds of file change (requirement 1.5)', async () => {
       const state = new ExtensionState(mockContext);
       await state.initialize();
 
@@ -326,7 +319,7 @@ describe('ExtensionState', () => {
       expect(jest.getTimerCount()).toBe(0); // All timers completed
     });
 
-    it('should handle rapid successive changes efficiently', async () => {
+    test('should handle rapid successive changes efficiently', async () => {
       const state = new ExtensionState(mockContext);
       await state.initialize();
 
@@ -357,7 +350,7 @@ describe('ExtensionState', () => {
   });
 
   describe('Error Handling', () => {
-    it('should handle parse errors gracefully', async () => {
+    test('should handle parse errors gracefully', async () => {
       const state = new ExtensionState(mockContext);
       await state.initialize();
 
@@ -381,7 +374,7 @@ describe('ExtensionState', () => {
       expect(state.getWorkspaceRoot()).toBe('/test/workspace');
     });
 
-    it('should continue watching after parse errors', async () => {
+    test('should continue watching after parse errors', async () => {
       let parseCallCount = 0;
       MockOutlineParser.prototype.parse = jest.fn().mockImplementation(() => {
         parseCallCount++;
@@ -415,7 +408,7 @@ describe('ExtensionState', () => {
   });
 
   describe('Cleanup', () => {
-    it('should dispose watchers on extension dispose', async () => {
+    test('should dispose watchers on extension dispose', async () => {
       const state = new ExtensionState(mockContext);
       await state.initialize();
 
@@ -425,7 +418,7 @@ describe('ExtensionState', () => {
       expect(mockContext.subscriptions.length).toBeGreaterThan(0);
     });
 
-    it('should clear pending timers on dispose', async () => {
+    test('should clear pending timers on dispose', async () => {
       const state = new ExtensionState(mockContext);
       await state.initialize();
 
@@ -447,7 +440,7 @@ describe('ExtensionState', () => {
   });
 
   describe('Configuration', () => {
-    it('should use custom paths from configuration', async () => {
+    test('should use custom paths from configuration', async () => {
       (vscode.workspace as any).getConfiguration = jest.fn().mockReturnValue({
         get: jest.fn((key: string, defaultValue?: any) => {
           const config: Record<string, any> = {
@@ -474,7 +467,7 @@ describe('ExtensionState', () => {
   });
 
   describe('In-Memory Structure Updates', () => {
-    it('should update in-memory structure efficiently on file change', async () => {
+    test('should update in-memory structure efficiently on file change', async () => {
       const mockSections = [
         { id: 'section-1', title: 'Section 1', level: 2, content: [], parent: null, children: [], lineStart: 1, lineEnd: 5 }
       ];
@@ -499,7 +492,7 @@ describe('ExtensionState', () => {
       expect(state.outlineParser).toBeDefined();
     });
 
-    it('should emit change events after re-parsing', async () => {
+    test('should emit change events after re-parsing', async () => {
       const state = new ExtensionState(mockContext);
       await state.initialize();
 

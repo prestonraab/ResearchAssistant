@@ -22,7 +22,7 @@ describe('ClaimsManager', () => {
   });
 
   describe('parseClaimBlock', () => {
-    it('should parse a valid claim with all fields', async () => {
+    test('should parse a valid claim with all fields', async () => {
       const claimContent = `## C_01: ComBat uses Empirical Bayes to estimate location and scale parameters
 
 **Category**: Method  
@@ -53,7 +53,7 @@ describe('ClaimsManager', () => {
       expect(claims[0].supportingQuotes).toHaveLength(2);
     });
 
-    it('should handle malformed claim headers gracefully', async () => {
+    test('should handle malformed claim headers gracefully', async () => {
       const claimContent = `## Invalid Header
 
 **Category**: Method  
@@ -75,7 +75,7 @@ describe('ClaimsManager', () => {
       expect(claims[0].id).toBe('C_02');
     });
 
-    it('should handle missing optional fields', async () => {
+    test('should handle missing optional fields', async () => {
       const claimContent = `## C_03: Minimal claim
 
 **Category**: Method  
@@ -94,7 +94,7 @@ describe('ClaimsManager', () => {
       expect(claims[0].supportingQuotes).toHaveLength(0);
     });
 
-    it('should handle multi-line quotes correctly', async () => {
+    test('should handle multi-line quotes correctly', async () => {
       const claimContent = `## C_04: Multi-line quote test
 
 **Category**: Method  
@@ -117,7 +117,7 @@ describe('ClaimsManager', () => {
   });
 
   describe('loadFromCategoryFiles', () => {
-    it('should load claims from multiple category files', async () => {
+    test('should load claims from multiple category files', async () => {
       const claimsDir = path.join(tempDir, 'claims');
       await fs.mkdir(claimsDir, { recursive: true });
 
@@ -156,7 +156,7 @@ describe('ClaimsManager', () => {
       expect(claims.find((c: any) => c.id === 'C_02')).toBeDefined();
     });
 
-    it('should handle errors in individual category files gracefully', async () => {
+    test('should handle errors in individual category files gracefully', async () => {
       const claimsDir = path.join(tempDir, 'claims');
       await fs.mkdir(claimsDir, { recursive: true });
 
@@ -180,7 +180,7 @@ describe('ClaimsManager', () => {
   });
 
   describe('CRUD operations', () => {
-    it('should save a new claim', async () => {
+    test('should save a new claim', async () => {
       await fs.writeFile(claimsFilePath, '# Claims and Evidence\n');
       await manager.loadClaims();
 
@@ -206,7 +206,7 @@ describe('ClaimsManager', () => {
       expect(claims[0].id).toBe('C_01');
     });
 
-    it('should update an existing claim', async () => {
+    test('should update an existing claim', async () => {
       const claimContent = `## C_01: Original text
 
 **Category**: Method  
@@ -224,7 +224,7 @@ describe('ClaimsManager', () => {
       expect(claim?.context).toBe('New context');
     });
 
-    it('should delete a claim', async () => {
+    test('should delete a claim', async () => {
       const claimContent = `## C_01: Test claim
 
 **Category**: Method  
@@ -241,7 +241,7 @@ describe('ClaimsManager', () => {
       expect(claims).toHaveLength(0);
     });
 
-    it('should throw error when updating non-existent claim', async () => {
+    test('should throw error when updating non-existent claim', async () => {
       await fs.writeFile(claimsFilePath, '# Claims and Evidence\n');
       await manager.loadClaims();
 
@@ -249,7 +249,7 @@ describe('ClaimsManager', () => {
         .rejects.toThrow('Claim C_99 not found');
     });
 
-    it('should throw error when deleting non-existent claim', async () => {
+    test('should throw error when deleting non-existent claim', async () => {
       await fs.writeFile(claimsFilePath, '# Claims and Evidence\n');
       await manager.loadClaims();
 
@@ -259,7 +259,7 @@ describe('ClaimsManager', () => {
   });
 
   describe('generateClaimId', () => {
-    it('should generate C_01 for empty database', async () => {
+    test('should generate C_01 for empty database', async () => {
       await fs.writeFile(claimsFilePath, '# Claims and Evidence\n');
       await manager.loadClaims();
 
@@ -267,7 +267,7 @@ describe('ClaimsManager', () => {
       expect(id).toBe('C_01');
     });
 
-    it('should generate next sequential ID', async () => {
+    test('should generate next sequential ID', async () => {
       const claimContent = `## C_01: First claim
 
 ---
@@ -316,37 +316,37 @@ describe('ClaimsManager', () => {
       await manager.loadClaims();
     });
 
-    it('should find claims by text', async () => {
+    test('should find claims by text', async () => {
       const results = await manager.searchClaims('machine learning');
       expect(results).toHaveLength(1);
       expect(results[0].id).toBe('C_01');
     });
 
-    it('should find claims by quote', async () => {
+    test('should find claims by quote', async () => {
       const results = await manager.searchClaims('deep learning');
       expect(results).toHaveLength(1);
       expect(results[0].id).toBe('C_01');
     });
 
-    it('should find claims by context', async () => {
+    test('should find claims by context', async () => {
       const results = await manager.searchClaims('neural networks');
       expect(results).toHaveLength(1);
       expect(results[0].id).toBe('C_01');
     });
 
-    it('should return empty array for no matches', async () => {
+    test('should return empty array for no matches', async () => {
       const results = await manager.searchClaims('quantum computing');
       expect(results).toHaveLength(0);
     });
 
-    it('should be case-insensitive', async () => {
+    test('should be case-insensitive', async () => {
       const results = await manager.searchClaims('MACHINE LEARNING');
       expect(results).toHaveLength(1);
     });
   });
 
   describe('findClaimsBySection', () => {
-    it('should find claims associated with a section', async () => {
+    test('should find claims associated with a section', async () => {
       const claimContent = `## C_01: Test claim
 
 **Category**: Method  
@@ -365,7 +365,7 @@ describe('ClaimsManager', () => {
       expect(results[0].id).toBe('C_01');
     });
 
-    it('should return empty array for section with no claims', async () => {
+    test('should return empty array for section with no claims', async () => {
       await fs.writeFile(claimsFilePath, '# Claims and Evidence\n');
       await manager.loadClaims();
 
@@ -375,7 +375,7 @@ describe('ClaimsManager', () => {
   });
 
   describe('findClaimsBySource', () => {
-    it('should find claims from a specific source', async () => {
+    test('should find claims from a specific source', async () => {
       const claimContent = `## C_01: First claim
 
 **Category**: Method  
@@ -436,7 +436,7 @@ describe('ClaimsManager', () => {
       await manager.loadClaims();
     });
 
-    it('should detect similar claims above threshold', async () => {
+    test('should detect similar claims above threshold', async () => {
       const results = await manager.detectSimilarClaims('ComBat uses Empirical Bayes for batch correction', 0.5);
       
       expect(results.length).toBeGreaterThan(0);
@@ -444,13 +444,13 @@ describe('ClaimsManager', () => {
       expect(results[0].similarity).toBeGreaterThan(0.5);
     });
 
-    it('should return empty array when no similar claims found', async () => {
+    test('should return empty array when no similar claims found', async () => {
       const results = await manager.detectSimilarClaims('Quantum computing algorithms', 0.85);
       
       expect(results).toHaveLength(0);
     });
 
-    it('should sort results by similarity descending', async () => {
+    test('should sort results by similarity descending', async () => {
       const results = await manager.detectSimilarClaims('ComBat Empirical Bayes batch', 0.3);
       
       if (results.length > 1) {
@@ -460,7 +460,7 @@ describe('ClaimsManager', () => {
       }
     });
 
-    it('should respect similarity threshold', async () => {
+    test('should respect similarity threshold', async () => {
       const highThreshold = await manager.detectSimilarClaims('ComBat batch correction', 0.9);
       const lowThreshold = await manager.detectSimilarClaims('ComBat batch correction', 0.3);
       
@@ -507,7 +507,7 @@ describe('ClaimsManager', () => {
       await manager.updateClaim('C_02', { sections: ['section-2'] });
     });
 
-    it('should merge multiple claims into one', async () => {
+    test('should merge multiple claims into one', async () => {
       const merged = await manager.mergeClaims(['C_01', 'C_02']);
 
       expect(merged.id).toMatch(/C_\d+/);
@@ -518,14 +518,14 @@ describe('ClaimsManager', () => {
       expect(merged.context).toContain('Second context');
     });
 
-    it('should combine all quotes', async () => {
+    test('should combine all quotes', async () => {
       const merged = await manager.mergeClaims(['C_01', 'C_02']);
 
       expect(merged.primaryQuote).toBe('First quote');
       expect(merged.supportingQuotes.length).toBeGreaterThanOrEqual(3); // Second primary + 2 supporting
     });
 
-    it('should preserve all section associations', async () => {
+    test('should preserve all section associations', async () => {
       const merged = await manager.mergeClaims(['C_01', 'C_02']);
 
       expect(merged.sections).toContain('section-1');
@@ -533,19 +533,19 @@ describe('ClaimsManager', () => {
       expect(merged.sections).toHaveLength(2);
     });
 
-    it('should throw error for less than 2 claims', async () => {
+    test('should throw error for less than 2 claims', async () => {
       await expect(manager.mergeClaims(['C_01']))
         .rejects.toThrow('Must provide at least 2 claim IDs');
     });
 
-    it('should throw error for non-existent claims', async () => {
+    test('should throw error for non-existent claims', async () => {
       await expect(manager.mergeClaims(['C_01', 'C_99']))
         .rejects.toThrow('One or more claim IDs not found');
     });
   });
 
   describe('persistClaims', () => {
-    it('should write claims to file in correct format', async () => {
+    test('should write claims to file in correct format', async () => {
       await fs.writeFile(claimsFilePath, '# Claims and Evidence\n');
       await manager.loadClaims();
 
@@ -578,7 +578,7 @@ describe('ClaimsManager', () => {
       expect(claims[0].supportingQuotes).toHaveLength(2);
     });
 
-    it('should handle incremental updates without data loss', async () => {
+    test('should handle incremental updates without data loss', async () => {
       const claimContent = `## C_01: Original claim
 
 **Category**: Method  
@@ -609,14 +609,14 @@ describe('ClaimsManager', () => {
   });
 
   describe('edge cases', () => {
-    it('should handle empty file', async () => {
+    test('should handle empty file', async () => {
       await fs.writeFile(claimsFilePath, '');
       const claims = await manager.loadClaims();
 
       expect(claims).toHaveLength(0);
     });
 
-    it('should handle non-existent file', async () => {
+    test('should handle non-existent file', async () => {
       const nonExistentPath = path.join(tempDir, 'nonexistent.md');
       const newManager = new ClaimsManager(nonExistentPath);
       const claims = await newManager.loadClaims();
@@ -624,14 +624,14 @@ describe('ClaimsManager', () => {
       expect(claims).toHaveLength(0);
     });
 
-    it('should handle file with only headers', async () => {
+    test('should handle file with only headers', async () => {
       await fs.writeFile(claimsFilePath, '# Claims and Evidence\n\n## Notes\n\nSome notes here.');
       const claims = await manager.loadClaims();
 
       expect(claims).toHaveLength(0);
     });
 
-    it('should handle claims with special characters', async () => {
+    test('should handle claims with special characters', async () => {
       const claimContent = `## C_01: Claim with "quotes" and 'apostrophes'
 
 **Category**: Method  

@@ -1273,7 +1273,7 @@ function displayInternetResults(results) {
   container.className = 'internet-results-container';
   container.innerHTML = `
     <div class="internet-results-header">
-      <h3>Found ${results.length} Web Result${results.length !== 1 ? 's' : ''}</h3>
+      <h3>🌐 Found ${results.length} External Paper${results.length !== 1 ? 's' : ''}</h3>
       <button class="close-btn" data-action="closeResults">✕</button>
     </div>
     <div class="internet-results-list">
@@ -1282,8 +1282,12 @@ function displayInternetResults(results) {
           <div class="result-number">${i + 1}</div>
           <div class="result-details">
             <div class="result-title">${escapeHtml(r.title)}</div>
-            <div class="result-url"><a href="${escapeHtml(r.url)}" target="_blank">${escapeHtml(r.url)}</a></div>
-            <div class="result-snippet">${escapeHtml(r.snippet)}</div>
+            ${r.authors ? `<div class="result-authors">${escapeHtml(r.authors)} (${r.year || 'n.d.'})</div>` : ''}
+            ${r.venue ? `<div class="result-venue">${escapeHtml(r.venue)}</div>` : ''}
+            ${r.doi ? `<div class="result-doi">DOI: <a href="https://doi.org/${escapeHtml(r.doi)}" target="_blank">${escapeHtml(r.doi)}</a></div>` : ''}
+            ${r.url ? `<div class="result-url"><a href="${escapeHtml(r.url)}" target="_blank">View Paper</a></div>` : ''}
+            ${r.abstract ? `<div class="result-snippet">${escapeHtml(r.abstract.substring(0, 300))}${r.abstract.length > 300 ? '...' : ''}</div>` : ''}
+            <div class="result-source">Source: ${escapeHtml(r.source || 'unknown')}</div>
           </div>
         </div>
       `).join('')}
@@ -1303,6 +1307,8 @@ function displayInternetResults(results) {
   if (mainPanel) {
     mainPanel.insertBefore(container, mainPanel.firstChild);
   }
+  
+  showNotification(`Found ${results.length} paper${results.length !== 1 ? 's' : ''} from external sources`, 'success');
 }
 
 /**

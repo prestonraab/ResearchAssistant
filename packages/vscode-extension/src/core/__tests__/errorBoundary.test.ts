@@ -1,8 +1,9 @@
 import { ErrorBoundary } from '../errorBoundary';
+import * as vscode from 'vscode';
 
 describe('ErrorBoundary', () => {
   describe('wrap - successful operations', () => {
-    it('should return result on success', async () => {
+    test('should return result on success', async () => {
       const result = await ErrorBoundary.wrap(
         async () => 'success',
         { operationName: 'test' }
@@ -11,7 +12,7 @@ describe('ErrorBoundary', () => {
       expect(result).toBe('success');
     });
 
-    it('should handle different return types', async () => {
+    test('should handle different return types', async () => {
       const numberResult = await ErrorBoundary.wrap(
         async () => 42,
         { operationName: 'test' }
@@ -33,7 +34,7 @@ describe('ErrorBoundary', () => {
   });
 
   describe('wrap - timeout handling', () => {
-    it('should timeout after specified duration', async () => {
+    test('should timeout after specified duration', async () => {
       const slowOperation = async () => {
         await new Promise(resolve => setTimeout(resolve, 5000));
         return 'done';
@@ -47,7 +48,7 @@ describe('ErrorBoundary', () => {
       ).rejects.toThrow('timed out');
     });
 
-    it('should use default timeout of 5000ms', async () => {
+    test('should use default timeout of 5000ms', async () => {
       const operation = async () => {
         await new Promise(resolve => setTimeout(resolve, 100));
         return 'done';
@@ -57,7 +58,7 @@ describe('ErrorBoundary', () => {
       expect(result).toBe('done');
     });
 
-    it('should return fallback on timeout', async () => {
+    test('should return fallback on timeout', async () => {
       const slowOperation = async () => {
         await new Promise(resolve => setTimeout(resolve, 5000));
         return 'done';
@@ -74,7 +75,7 @@ describe('ErrorBoundary', () => {
   });
 
   describe('wrap - retry logic', () => {
-    it('should retry on failure', async () => {
+    test('should retry on failure', async () => {
       let attempts = 0;
       const operation = async () => {
         attempts++;
@@ -93,7 +94,7 @@ describe('ErrorBoundary', () => {
       expect(attempts).toBe(3);
     });
 
-    it('should use exponential backoff', async () => {
+    test('should use exponential backoff', async () => {
       const timings: number[] = [];
       let lastTime = Date.now();
 
@@ -121,7 +122,7 @@ describe('ErrorBoundary', () => {
       }
     });
 
-    it('should throw after max retries', async () => {
+    test('should throw after max retries', async () => {
       const operation = async () => {
         throw new Error('always fails');
       };
@@ -136,7 +137,7 @@ describe('ErrorBoundary', () => {
   });
 
   describe('wrap - fallback handling', () => {
-    it('should return fallback on error', async () => {
+    test('should return fallback on error', async () => {
       const operation = async () => {
         throw new Error('operation failed');
       };
@@ -149,7 +150,7 @@ describe('ErrorBoundary', () => {
       expect(result).toBe('fallback-value');
     });
 
-    it('should throw if no fallback provided', async () => {
+    test('should throw if no fallback provided', async () => {
       const operation = async () => {
         throw new Error('operation failed');
       };
@@ -161,7 +162,7 @@ describe('ErrorBoundary', () => {
       ).rejects.toThrow('operation failed');
     });
 
-    it('should call onError callback', async () => {
+    test('should call onError callback', async () => {
       const onError = jest.fn();
       const operation = async () => {
         throw new Error('operation failed');
@@ -178,7 +179,7 @@ describe('ErrorBoundary', () => {
   });
 
   describe('wrapSync - synchronous operations', () => {
-    it('should return result on success', () => {
+    test('should return result on success', () => {
       const result = ErrorBoundary.wrapSync(
         () => 'success',
         { operationName: 'test' }
@@ -187,7 +188,7 @@ describe('ErrorBoundary', () => {
       expect(result).toBe('success');
     });
 
-    it('should return fallback on error', () => {
+    test('should return fallback on error', () => {
       const operation = () => {
         throw new Error('operation failed');
       };
@@ -200,7 +201,7 @@ describe('ErrorBoundary', () => {
       expect(result).toBe('fallback-value');
     });
 
-    it('should call onError callback', () => {
+    test('should call onError callback', () => {
       const onError = jest.fn();
       const operation = () => {
         throw new Error('operation failed');
@@ -215,7 +216,7 @@ describe('ErrorBoundary', () => {
       expect(onError).toHaveBeenCalledWith(expect.any(Error));
     });
 
-    it('should throw if no fallback provided', () => {
+    test('should throw if no fallback provided', () => {
       const operation = () => {
         throw new Error('operation failed');
       };
@@ -229,7 +230,7 @@ describe('ErrorBoundary', () => {
   });
 
   describe('Property-based tests', () => {
-    it('should always return either result or fallback', async () => {
+    test('should always return either result or fallback', async () => {
       const fallback = 'fallback';
       const operation = async () => 'success';
 
@@ -238,7 +239,7 @@ describe('ErrorBoundary', () => {
       expect(result === 'success' || result === fallback).toBe(true);
     });
 
-    it('should not lose error information', async () => {
+    test('should not lose error information', async () => {
       const errorMessage = 'specific error message';
       const operation = async () => {
         throw new Error(errorMessage);
@@ -251,7 +252,7 @@ describe('ErrorBoundary', () => {
       }
     });
 
-    it('should handle any error type', async () => {
+    test('should handle any error type', async () => {
       const operation = async () => {
         throw 'string error';
       };

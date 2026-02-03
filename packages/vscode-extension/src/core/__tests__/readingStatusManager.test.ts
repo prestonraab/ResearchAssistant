@@ -42,7 +42,7 @@ describe('ReadingStatusManager', () => {
   });
 
   describe('Constructor and Initialization', () => {
-    it('should initialize with empty status map', () => {
+    test('should initialize with empty status map', () => {
       const manager = new ReadingStatusManager(mockContext);
       
       const stats = manager.getStatistics();
@@ -51,7 +51,7 @@ describe('ReadingStatusManager', () => {
       expect(stats.read).toBe(0);
     });
 
-    it('should load existing data from workspace state', () => {
+    test('should load existing data from workspace state', () => {
       // Pre-populate workspace state
       workspaceState.set('researchAssistant.readingProgress', {
         'paper1': {
@@ -70,7 +70,7 @@ describe('ReadingStatusManager', () => {
       expect(progress?.readingDuration).toBe(90);
     });
 
-    it('should handle corrupted workspace state gracefully', () => {
+    test('should handle corrupted workspace state gracefully', () => {
       // Set invalid data
       workspaceState.set('researchAssistant.readingProgress', null);
 
@@ -80,7 +80,7 @@ describe('ReadingStatusManager', () => {
   });
 
   describe('setStatus - to-read', () => {
-    it('should set status to to-read', async () => {
+    test('should set status to to-read', async () => {
       const manager = new ReadingStatusManager(mockContext);
       
       await manager.setStatus('paper1', 'to-read');
@@ -92,7 +92,7 @@ describe('ReadingStatusManager', () => {
       expect(progress?.readingDuration).toBeUndefined();
     });
 
-    it('should persist to-read status to workspace state', async () => {
+    test('should persist to-read status to workspace state', async () => {
       const manager = new ReadingStatusManager(mockContext);
       
       await manager.setStatus('paper1', 'to-read');
@@ -107,7 +107,7 @@ describe('ReadingStatusManager', () => {
       );
     });
 
-    it('should clear timestamps when changing to to-read', async () => {
+    test('should clear timestamps when changing to to-read', async () => {
       const manager = new ReadingStatusManager(mockContext);
       
       // First set to reading
@@ -124,7 +124,7 @@ describe('ReadingStatusManager', () => {
   });
 
   describe('setStatus - reading (Requirement 16.1)', () => {
-    it('should record timestamp when marking as reading', async () => {
+    test('should record timestamp when marking as reading', async () => {
       const manager = new ReadingStatusManager(mockContext);
       const beforeTime = new Date();
       
@@ -141,7 +141,7 @@ describe('ReadingStatusManager', () => {
       expect(progress?.readingDuration).toBeUndefined();
     });
 
-    it('should preserve original start time when re-marking as reading', async () => {
+    test('should preserve original start time when re-marking as reading', async () => {
       const manager = new ReadingStatusManager(mockContext);
       
       // First time marking as reading
@@ -159,7 +159,7 @@ describe('ReadingStatusManager', () => {
       expect(secondProgress?.startedAt).toEqual(originalStartTime);
     });
 
-    it('should persist reading status with timestamp to workspace state', async () => {
+    test('should persist reading status with timestamp to workspace state', async () => {
       const manager = new ReadingStatusManager(mockContext);
       
       await manager.setStatus('paper1', 'reading');
@@ -177,7 +177,7 @@ describe('ReadingStatusManager', () => {
   });
 
   describe('setStatus - read (Requirement 16.2)', () => {
-    it('should record completion time and calculate duration when marking as read', async () => {
+    test('should record completion time and calculate duration when marking as read', async () => {
       const manager = new ReadingStatusManager(mockContext);
       
       // First mark as reading
@@ -202,7 +202,7 @@ describe('ReadingStatusManager', () => {
       expect(progress?.readingDuration).toBeGreaterThanOrEqual(0);
     });
 
-    it('should calculate reading duration in minutes', async () => {
+    test('should calculate reading duration in minutes', async () => {
       const manager = new ReadingStatusManager(mockContext);
       
       // Manually set a start time
@@ -230,7 +230,7 @@ describe('ReadingStatusManager', () => {
       global.Date = originalDate;
     });
 
-    it('should handle marking as read without prior reading status', async () => {
+    test('should handle marking as read without prior reading status', async () => {
       const manager = new ReadingStatusManager(mockContext);
       
       // Mark as read directly without marking as reading first
@@ -246,7 +246,7 @@ describe('ReadingStatusManager', () => {
       expect(progress?.readingDuration).toBeLessThan(1);
     });
 
-    it('should persist read status with timestamps to workspace state', async () => {
+    test('should persist read status with timestamps to workspace state', async () => {
       const manager = new ReadingStatusManager(mockContext);
       
       await manager.setStatus('paper1', 'reading');
@@ -267,7 +267,7 @@ describe('ReadingStatusManager', () => {
   });
 
   describe('getStatus (Requirement 4.5)', () => {
-    it('should return undefined for unknown paper', () => {
+    test('should return undefined for unknown paper', () => {
       const manager = new ReadingStatusManager(mockContext);
       
       const progress = manager.getStatus('unknown-paper');
@@ -275,7 +275,7 @@ describe('ReadingStatusManager', () => {
       expect(progress).toBeUndefined();
     });
 
-    it('should return correct status for tracked paper', async () => {
+    test('should return correct status for tracked paper', async () => {
       const manager = new ReadingStatusManager(mockContext);
       
       await manager.setStatus('paper1', 'reading');
@@ -286,7 +286,7 @@ describe('ReadingStatusManager', () => {
       expect(progress?.status).toBe('reading');
     });
 
-    it('should return status after extension restart (Requirement 16.3)', () => {
+    test('should return status after extension restart (Requirement 16.3)', () => {
       // First manager instance
       const manager1 = new ReadingStatusManager(mockContext);
       manager1.setStatus('paper1', 'reading');
@@ -301,7 +301,7 @@ describe('ReadingStatusManager', () => {
   });
 
   describe('getPapersByStatus', () => {
-    it('should return empty array when no papers have the status', () => {
+    test('should return empty array when no papers have the status', () => {
       const manager = new ReadingStatusManager(mockContext);
       
       const papers = manager.getPapersByStatus('reading');
@@ -309,7 +309,7 @@ describe('ReadingStatusManager', () => {
       expect(papers).toEqual([]);
     });
 
-    it('should return papers with specific status', async () => {
+    test('should return papers with specific status', async () => {
       const manager = new ReadingStatusManager(mockContext);
       
       await manager.setStatus('paper1', 'to-read');
@@ -334,7 +334,7 @@ describe('ReadingStatusManager', () => {
   });
 
   describe('getStatistics (Requirement 16.3)', () => {
-    it('should return zero statistics for empty manager', () => {
+    test('should return zero statistics for empty manager', () => {
       const manager = new ReadingStatusManager(mockContext);
       
       const stats = manager.getStatistics();
@@ -346,7 +346,7 @@ describe('ReadingStatusManager', () => {
       expect(stats.averageReadingTime).toBe(0);
     });
 
-    it('should count papers by status', async () => {
+    test('should count papers by status', async () => {
       const manager = new ReadingStatusManager(mockContext);
       
       await manager.setStatus('paper1', 'to-read');
@@ -363,7 +363,7 @@ describe('ReadingStatusManager', () => {
       expect(stats.read).toBe(3);
     });
 
-    it('should calculate total reading time', async () => {
+    test('should calculate total reading time', async () => {
       const manager = new ReadingStatusManager(mockContext);
       
       // Manually create papers with known reading durations
@@ -382,7 +382,7 @@ describe('ReadingStatusManager', () => {
       expect(stats.averageReadingTime).toBe(38); // rounded average of 30 and 45
     });
 
-    it('should handle papers without reading duration', async () => {
+    test('should handle papers without reading duration', async () => {
       const manager = new ReadingStatusManager(mockContext);
       
       await manager.setStatus('paper1', 'read');
@@ -398,7 +398,7 @@ describe('ReadingStatusManager', () => {
       expect(stats.averageReadingTime).toBe(30); // 60 / 2 papers
     });
 
-    it('should calculate average reading time correctly', async () => {
+    test('should calculate average reading time correctly', async () => {
       const manager = new ReadingStatusManager(mockContext);
       
       await manager.setStatus('paper1', 'read');
@@ -419,7 +419,7 @@ describe('ReadingStatusManager', () => {
   });
 
   describe('removeStatus', () => {
-    it('should remove status for a paper', async () => {
+    test('should remove status for a paper', async () => {
       const manager = new ReadingStatusManager(mockContext);
       
       await manager.setStatus('paper1', 'reading');
@@ -431,7 +431,7 @@ describe('ReadingStatusManager', () => {
       expect(manager.getStatus('paper1')).toBeUndefined();
     });
 
-    it('should persist removal to workspace state', async () => {
+    test('should persist removal to workspace state', async () => {
       const manager = new ReadingStatusManager(mockContext);
       
       await manager.setStatus('paper1', 'reading');
@@ -442,7 +442,7 @@ describe('ReadingStatusManager', () => {
       expect(stored['paper1']).toBeUndefined();
     });
 
-    it('should not throw when removing non-existent paper', async () => {
+    test('should not throw when removing non-existent paper', async () => {
       const manager = new ReadingStatusManager(mockContext);
       
       await expect(manager.removeStatus('non-existent')).resolves.not.toThrow();
@@ -450,7 +450,7 @@ describe('ReadingStatusManager', () => {
   });
 
   describe('clearAll', () => {
-    it('should clear all reading status', async () => {
+    test('should clear all reading status', async () => {
       const manager = new ReadingStatusManager(mockContext);
       
       await manager.setStatus('paper1', 'to-read');
@@ -465,7 +465,7 @@ describe('ReadingStatusManager', () => {
       expect(stats.read).toBe(0);
     });
 
-    it('should persist clear to workspace state', async () => {
+    test('should persist clear to workspace state', async () => {
       const manager = new ReadingStatusManager(mockContext);
       
       await manager.setStatus('paper1', 'reading');
@@ -477,7 +477,7 @@ describe('ReadingStatusManager', () => {
   });
 
   describe('getAllProgress', () => {
-    it('should return empty map when no papers tracked', () => {
+    test('should return empty map when no papers tracked', () => {
       const manager = new ReadingStatusManager(mockContext);
       
       const allProgress = manager.getAllProgress();
@@ -485,7 +485,7 @@ describe('ReadingStatusManager', () => {
       expect(allProgress.size).toBe(0);
     });
 
-    it('should return all tracked papers', async () => {
+    test('should return all tracked papers', async () => {
       const manager = new ReadingStatusManager(mockContext);
       
       await manager.setStatus('paper1', 'to-read');
@@ -498,7 +498,7 @@ describe('ReadingStatusManager', () => {
       expect(allProgress.get('paper2')?.status).toBe('reading');
     });
 
-    it('should return a copy of the map', async () => {
+    test('should return a copy of the map', async () => {
       const manager = new ReadingStatusManager(mockContext);
       
       await manager.setStatus('paper1', 'reading');
@@ -512,13 +512,13 @@ describe('ReadingStatusManager', () => {
   });
 
   describe('hasStatus', () => {
-    it('should return false for untracked paper', () => {
+    test('should return false for untracked paper', () => {
       const manager = new ReadingStatusManager(mockContext);
       
       expect(manager.hasStatus('paper1')).toBe(false);
     });
 
-    it('should return true for tracked paper', async () => {
+    test('should return true for tracked paper', async () => {
       const manager = new ReadingStatusManager(mockContext);
       
       await manager.setStatus('paper1', 'to-read');
@@ -528,7 +528,7 @@ describe('ReadingStatusManager', () => {
   });
 
   describe('Persistence across restarts (Requirement 16.3)', () => {
-    it('should persist and restore all status types', async () => {
+    test('should persist and restore all status types', async () => {
       const manager1 = new ReadingStatusManager(mockContext);
       
       await manager1.setStatus('paper1', 'to-read');
@@ -543,7 +543,7 @@ describe('ReadingStatusManager', () => {
       expect(manager2.getStatus('paper3')?.status).toBe('read');
     });
 
-    it('should persist and restore timestamps', async () => {
+    test('should persist and restore timestamps', async () => {
       const manager1 = new ReadingStatusManager(mockContext);
       
       await manager1.setStatus('paper1', 'reading');
@@ -557,7 +557,7 @@ describe('ReadingStatusManager', () => {
       expect(restoredProgress?.startedAt).toEqual(originalStartTime);
     });
 
-    it('should persist and restore reading duration', async () => {
+    test('should persist and restore reading duration', async () => {
       const manager1 = new ReadingStatusManager(mockContext);
       
       await manager1.setStatus('paper1', 'reading');
@@ -573,7 +573,7 @@ describe('ReadingStatusManager', () => {
       expect(restoredProgress?.readingDuration).toBe(originalDuration);
     });
 
-    it('should maintain statistics across restarts', async () => {
+    test('should maintain statistics across restarts', async () => {
       const manager1 = new ReadingStatusManager(mockContext);
       
       await manager1.setStatus('paper1', 'to-read');
@@ -594,7 +594,7 @@ describe('ReadingStatusManager', () => {
   });
 
   describe('Edge Cases', () => {
-    it('should handle rapid status changes', async () => {
+    test('should handle rapid status changes', async () => {
       const manager = new ReadingStatusManager(mockContext);
       
       await manager.setStatus('paper1', 'to-read');
@@ -606,7 +606,7 @@ describe('ReadingStatusManager', () => {
       expect(progress?.status).toBe('to-read');
     });
 
-    it('should handle many papers efficiently', async () => {
+    test('should handle many papers efficiently', async () => {
       const manager = new ReadingStatusManager(mockContext);
       
       // Add 100 papers
@@ -620,7 +620,7 @@ describe('ReadingStatusManager', () => {
       expect(stats.toRead).toBe(100);
     });
 
-    it('should handle papers with special characters in IDs', async () => {
+    test('should handle papers with special characters in IDs', async () => {
       const manager = new ReadingStatusManager(mockContext);
       
       const specialId = 'paper-with-special_chars.123@test';

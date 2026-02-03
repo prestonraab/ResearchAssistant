@@ -6,34 +6,87 @@ import type { ExternalPaper } from '../types/index.js';
  * InternetPaperSearcher - Platform-agnostic academic paper search
  * 
  * Searches across 4 free academic APIs:
- * - CrossRef: Scholarly metadata
- * - PubMed: Biomedical literature
- * - arXiv: Preprints
- * - Semantic Scholar: Computer science and beyond
+ * - CrossRef: Scholarly metadata (1 req/sec public, 3 req/sec polite with mailto)
+ * - PubMed: Biomedical literature (3 req/sec unauthenticated, 10 req/sec with API key)
+ * - arXiv: Preprints (~1 req/sec, no official limit but 429 errors reported)
+ * - Semantic Scholar: Computer science and beyond (100 req/5min = 0.33 req/sec)
  * 
  * All APIs are free and require no authentication.
  * Results are deduplicated by DOI and title.
+ * 
+ * Features:
+ * - Request throttling to respect rate limits
+ * - Query result caching (24 hour TTL)
+ * - Graceful handling of rate limit errors
+ * - Independent backoff per API
+ * 
+ * Rate Limit Sources:
+ * - CrossRef: https://www.crossref.org/blog/announcing-changes-to-rest-api-rate-limits/
+ * - PubMed: https://support.nlm.nih.gov/kbArticle/?pn=KA-05318
+ * - arXiv: https://groups.google.com/a/arxiv.org/g/api/ (no official limit, conservative estimate)
+ * - Semantic Scholar: https://github.com/Coleridge-Initiative/RCGraph/issues/95
  */
 export class InternetPaperSearcher {
   private readonly SEARCH_TIMEOUT = 10000; // 10 seconds
   private readonly MAX_RESULTS = 10;
+  
+  // Rate limiting configuration (ms between requests per API)
+  // Based on official API documentation:
+  // - CrossRef: 1 req/sec (public pool) or 3 req/sec (polite pool with mailto)
+  // - PubMed: 3 req/sec (unauthenticated) or 10 req/sec (with API key)
+  // - arXiv: ~1 req/sec (conservative, no official limit but 429 errors reported)
+  // - Semantic Scholar: 100 req/5min = 0.33 req/sec (very strict)
+  private readonly RATE_LIMITS = {
+    crossref: 1000,        // 1 request per second (conservative for public pool)
+    pubmed: 333,           // ~3 requests per second (unauthenticated)
+    arxiv: 1000,           // 1 request per second (conservative)
+    semanticscholar: 3000, // 0.33 requests per second (100 per 5 minutes)
+  };
+  
+  // Last request timestamps for rate limiting
+  private lastRequestTime: Record<string, number> = {
+    crossref: 0,
+    pubmed: 0,
+    arxiv: 0,
+    semanticscholar: 0,
+  };
+  
+  // Query result cache with TTL
+  private queryCache: Map<string, { results: ExternalPaper[]; timestamp: number }> = new Map();
+  private readonly CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours
+  
+  // Rate limit backoff tracking
+  private rateLimitBackoff: Record<string, number> = {
+    crossref: 0,
+    pubmed: 0,
+    arxiv: 0,
+    semanticscholar: 0,
+  };
 
   /**
    * Search external sources for papers
-   * Searches all 4 academic sources in parallel
+   * Searches all 4 academic sources in parallel with independent rate limiting
    * @param query - Search query string
    * @returns Array of papers sorted by year (most recent first)
    */
   public async searchExternal(query: string): Promise<ExternalPaper[]> {
+    // Check cache first
+    const cacheKey = query.toLowerCase().trim();
+    const cached = this.queryCache.get(cacheKey);
+    if (cached && Date.now() - cached.timestamp < this.CACHE_TTL) {
+      console.log(`[InternetPaperSearcher] Cache hit for query: "${query}"`);
+      return cached.results;
+    }
+
     const results: ExternalPaper[] = [];
 
     try {
-      // Search all 4 sources in parallel
+      // Search all 4 sources in parallel - each applies its own rate limiting independently
       const [crossrefResults, pubmedResults, arxivResults, semanticScholarResults] = await Promise.allSettled([
-        this.searchCrossRef(query),
-        this.searchPubMed(query),
-        this.searchArxiv(query),
-        this.searchSemanticScholar(query),
+        this.applyRateLimitAndSearch('crossref', () => this.searchCrossRef(query)),
+        this.applyRateLimitAndSearch('pubmed', () => this.searchPubMed(query)),
+        this.applyRateLimitAndSearch('arxiv', () => this.searchArxiv(query)),
+        this.applyRateLimitAndSearch('semanticscholar', () => this.searchSemanticScholar(query)),
       ]);
 
       // Combine results
@@ -67,11 +120,61 @@ export class InternetPaperSearcher {
       // Sort by year (most recent first)
       uniqueResults.sort((a, b) => b.year - a.year);
 
-      return uniqueResults.slice(0, this.MAX_RESULTS);
+      const finalResults = uniqueResults.slice(0, this.MAX_RESULTS);
+      
+      // Cache results
+      this.queryCache.set(cacheKey, { results: finalResults, timestamp: Date.now() });
+
+      return finalResults;
     } catch (error) {
       console.error('External search failed:', error);
       throw new Error(`External search failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
+  }
+
+  /**
+   * Apply rate limiting and backoff for a specific API before executing search
+   * Each API backs off independently based on its own rate limit responses
+   */
+  private async applyRateLimitAndSearch<T>(
+    apiName: keyof typeof this.RATE_LIMITS,
+    searchFn: () => Promise<T>
+  ): Promise<T> {
+    // Check if we need to wait due to previous rate limit backoff
+    const backoff = this.rateLimitBackoff[apiName];
+    if (backoff > 0) {
+      const now = Date.now();
+      const timeSinceLastRequest = now - this.lastRequestTime[apiName];
+      if (timeSinceLastRequest < backoff) {
+        const waitTime = backoff - timeSinceLastRequest;
+        console.log(`[InternetPaperSearcher] ${apiName} in backoff: waiting ${waitTime}ms`);
+        await this.delay(waitTime);
+      }
+    }
+
+    this.lastRequestTime[apiName] = Date.now();
+
+    try {
+      const result = await searchFn();
+      // Reset backoff on success
+      this.rateLimitBackoff[apiName] = 0;
+      return result;
+    } catch (error) {
+      // Handle rate limit errors with exponential backoff
+      if (error instanceof Error && error.message.includes('429')) {
+        const currentBackoff = this.rateLimitBackoff[apiName] || this.RATE_LIMITS[apiName];
+        this.rateLimitBackoff[apiName] = Math.min(currentBackoff * 2, 30000); // Max 30s backoff
+        console.warn(`[InternetPaperSearcher] ${apiName} rate limited (429), backoff now ${this.rateLimitBackoff[apiName]}ms`);
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Utility to delay execution
+   */
+  private delay(ms: number): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, ms));
   }
 
   /**
@@ -282,6 +385,7 @@ export class InternetPaperSearcher {
   /**
    * Search Semantic Scholar for papers
    * Free API, no authentication required
+   * Note: Has stricter rate limits than other APIs
    */
   private async searchSemanticScholar(query: string): Promise<ExternalPaper[]> {
     try {
@@ -303,6 +407,13 @@ export class InternetPaperSearcher {
 
           res.on('end', () => {
             try {
+              // Handle rate limit responses
+              if (res.statusCode === 429) {
+                console.warn('[InternetPaperSearcher] Semantic Scholar rate limited (429)');
+                resolve([]);
+                return;
+              }
+
               if (res.statusCode === 200) {
                 const parsed = JSON.parse(data);
                 const results = (parsed.data || []).map((item: any) => ({
@@ -316,6 +427,7 @@ export class InternetPaperSearcher {
                 }));
                 resolve(results);
               } else {
+                console.warn(`[InternetPaperSearcher] Semantic Scholar returned ${res.statusCode}`);
                 resolve([]);
               }
             } catch (error) {

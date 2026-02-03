@@ -57,14 +57,71 @@ export class InternetPaperSearcher extends CoreInternetPaperSearcher {
         async (progress) => {
           progress.report({ message: 'Creating Zotero item...' });
 
-          // For now, we'll use a workaround since direct Zotero import via MCP
-          // may not be available. We'll create a note with the metadata
-          // and instruct the user to import manually.
-          
-          // In a full implementation, this would use Zotero's API or MCP
-          // to create a new item directly.
-          
-          const itemKey = await this.createZoteroItemViaNote(paper);
+          // Get ZoteroApiService instance
+          const { ZoteroApiService } = await import('../services/zoteroApiService');
+          const config = vscode.workspace.getConfiguration('researchAssistant');
+          const apiKey = config.get<string>('zoteroApiKey') || '';
+          const userId = config.get<string>('zoteroUserId') || '';
+
+          if (!apiKey || !userId) {
+            throw new Error('Zotero API credentials not configured. Please set zoteroApiKey and zoteroUserId in settings.');
+          }
+
+          const zoteroService = new ZoteroApiService();
+          zoteroService.initialize(apiKey, userId);
+
+          // Parse authors into Zotero creator format
+          const creators = paper.authors.map(author => {
+            // Handle "Last, First" format
+            if (author.includes(',')) {
+              const [lastName, firstName] = author.split(',').map(s => s.trim());
+              return {
+                creatorType: 'author',
+                firstName,
+                lastName
+              };
+            }
+            // Handle single name or organization
+            if (!author.includes(' ')) {
+              return {
+                creatorType: 'author',
+                name: author
+              };
+            }
+            // Handle "First Last" format
+            const parts = author.trim().split(/\s+/);
+            const lastName = parts.pop() || '';
+            const firstName = parts.join(' ');
+            return {
+              creatorType: 'author',
+              firstName,
+              lastName
+            };
+          });
+
+          // Prepare item data
+          const itemData: any = {
+            itemType: 'journalArticle',
+            title: paper.title,
+            creators,
+            abstractNote: paper.abstract,
+            date: paper.year.toString(),
+            url: paper.url
+          };
+
+          // Add optional fields
+          if (paper.doi) {
+            itemData.DOI = paper.doi;
+          }
+          if (paper.venue) {
+            itemData.publicationTitle = paper.venue;
+          }
+
+          // Add source tag
+          itemData.tags = [{ tag: `imported-from-${paper.source}` }];
+
+          // Create item in Zotero
+          const itemKey = await zoteroService.createItem(itemData);
           
           if (itemKey) {
             vscode.window.showInformationMessage(
@@ -87,59 +144,6 @@ export class InternetPaperSearcher extends CoreInternetPaperSearcher {
       );
       return null;
     }
-  }
-
-  /**
-   * Create a Zotero item via note (workaround for direct API)
-   * In production, this would use Zotero's proper API
-   */
-  private async createZoteroItemViaNote(paper: ExternalPaper): Promise<string | null> {
-    // This is a placeholder implementation
-    // In a real system, you would:
-    // 1. Use Zotero's web API to create an item
-    // 2. Or use a Zotero MCP method to create items
-    // 3. Or use Zotero's import from identifier (DOI)
-    
-    // For now, we'll show instructions to the user
-    const metadata = this.formatMetadataForImport(paper);
-    
-    const action = await vscode.window.showInformationMessage(
-      'Zotero import requires manual action. Copy metadata to clipboard?',
-      'Copy Metadata',
-      'Cancel'
-    );
-
-    if (action === 'Copy Metadata') {
-      await vscode.env.clipboard.writeText(metadata);
-      vscode.window.showInformationMessage(
-        'Metadata copied! Paste into Zotero to import.',
-        'Open Zotero'
-      );
-      
-      // Return a pseudo item key
-      return `external_${Date.now()}`;
-    }
-
-    return null;
-  }
-
-  /**
-   * Format paper metadata for import
-   */
-  private formatMetadataForImport(paper: ExternalPaper): string {
-    const lines = [
-      `Title: ${paper.title}`,
-      `Authors: ${paper.authors.join('; ')}`,
-      `Year: ${paper.year}`,
-      paper.venue ? `Venue: ${paper.venue}` : '',
-      paper.doi ? `DOI: ${paper.doi}` : '',
-      paper.url ? `URL: ${paper.url}` : '',
-      '',
-      'Abstract:',
-      paper.abstract,
-    ];
-
-    return lines.filter(Boolean).join('\n');
   }
 
   /**

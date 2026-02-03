@@ -37,7 +37,7 @@ describe('ClaimStrengthCalculator', () => {
 
   describe('Unit Tests', () => {
     describe('calculateStrength', () => {
-      it('should calculate strength score of 0 for claim with no supporting claims', async () => {
+      test('should calculate strength score of 0 for claim with no supporting claims', async () => {
         const claim = createClaim('C_01', 'Machine learning improves accuracy', 'Smith2020', 1);
         const allClaims = [claim];
 
@@ -49,7 +49,7 @@ describe('ClaimStrengthCalculator', () => {
         expect(result.contradictoryClaims.length).toBe(0);
       });
 
-      it('should find supporting claims from different sources', async () => {
+      test('should find supporting claims from different sources', async () => {
         const claim1 = createClaim('C_01', 'Machine learning improves classification accuracy', 'Smith2020', 1);
         const claim2 = createClaim('C_02', 'Machine learning enhances classification accuracy', 'Jones2021', 2);
         const claim3 = createClaim('C_03', 'Deep learning boosts classification accuracy', 'Brown2022', 3);
@@ -65,7 +65,7 @@ describe('ClaimStrengthCalculator', () => {
         expect(hasSameSource).toBe(false);
       });
 
-      it('should not count claims from the same source as supporting', async () => {
+      test('should not count claims from the same source as supporting', async () => {
         const claim1 = createClaim('C_01', 'Machine learning improves accuracy', 'Smith2020', 1);
         const claim2 = createClaim('C_02', 'Machine learning enhances accuracy', 'Smith2020', 1);
         const allClaims = [claim1, claim2];
@@ -76,7 +76,7 @@ describe('ClaimStrengthCalculator', () => {
         expect(result.strengthScore).toBe(0);
       });
 
-      it('should detect contradictory claims', async () => {
+      test('should detect contradictory claims', async () => {
         const claim1 = createClaim('C_01', 'Machine learning improves accuracy significantly', 'Smith2020', 1);
         const claim2 = createClaim('C_02', 'Machine learning does not improve accuracy significantly', 'Jones2021', 2);
         const allClaims = [claim1, claim2];
@@ -90,7 +90,7 @@ describe('ClaimStrengthCalculator', () => {
         }
       });
 
-      it('should calculate higher strength for claims with more supporting sources', async () => {
+      test('should calculate higher strength for claims with more supporting sources', async () => {
         const claim1 = createClaim('C_01', 'Batch correction improves classification', 'Smith2020', 1);
         const claim2 = createClaim('C_02', 'Batch correction enhances classification', 'Jones2021', 2);
         const claim3 = createClaim('C_03', 'Batch correction boosts classification', 'Brown2022', 3);
@@ -104,7 +104,7 @@ describe('ClaimStrengthCalculator', () => {
         expect(result.strengthScore).toBeGreaterThan(1);
       });
 
-      it('should handle claims with no semantic similarity', async () => {
+      test('should handle claims with no semantic similarity', async () => {
         const claim1 = createClaim('C_01', 'Machine learning improves accuracy', 'Smith2020', 1);
         const claim2 = createClaim('C_02', 'Cooking recipes are delicious', 'Jones2021', 2);
         const allClaims = [claim1, claim2];
@@ -116,7 +116,7 @@ describe('ClaimStrengthCalculator', () => {
         expect(result.strengthScore).toBe(0);
       });
 
-      it('should include similarity scores in supporting claims', async () => {
+      test('should include similarity scores in supporting claims', async () => {
         const claim1 = createClaim('C_01', 'Machine learning improves classification accuracy', 'Smith2020', 1);
         const claim2 = createClaim('C_02', 'Machine learning enhances classification accuracy', 'Jones2021', 2);
         const allClaims = [claim1, claim2];
@@ -131,7 +131,7 @@ describe('ClaimStrengthCalculator', () => {
     });
 
     describe('calculateStrengthBatch', () => {
-      it('should calculate strength for all claims in batch', async () => {
+      test('should calculate strength for all claims in batch', async () => {
         const claims = [
           createClaim('C_01', 'Machine learning improves accuracy', 'Smith2020', 1),
           createClaim('C_02', 'Deep learning enhances accuracy', 'Jones2021', 2),
@@ -146,7 +146,7 @@ describe('ClaimStrengthCalculator', () => {
         expect(results.has('C_03')).toBe(true);
       });
 
-      it('should produce consistent results with individual calculation', async () => {
+      test('should produce consistent results with individual calculation', async () => {
         const claims = [
           createClaim('C_01', 'Machine learning improves classification', 'Smith2020', 1),
           createClaim('C_02', 'Machine learning enhances classification', 'Jones2021', 2)
@@ -161,12 +161,12 @@ describe('ClaimStrengthCalculator', () => {
         expect(batchResult.supportingClaims.length).toBe(individualResult.supportingClaims.length);
       });
 
-      it('should handle empty claims array', async () => {
+      test('should handle empty claims array', async () => {
         const results = await calculator.calculateStrengthBatch([]);
         expect(results.size).toBe(0);
       });
 
-      it('should handle single claim', async () => {
+      test('should handle single claim', async () => {
         const claims = [createClaim('C_01', 'Test claim', 'Smith2020', 1)];
         const results = await calculator.calculateStrengthBatch(claims);
 
@@ -176,7 +176,7 @@ describe('ClaimStrengthCalculator', () => {
     });
 
     describe('contradiction detection', () => {
-      it('should detect negation-based contradictions', async () => {
+      test('should detect negation-based contradictions', async () => {
         // Use identical structure with only negation difference to maximize similarity
         const claim1 = createClaim('C_01', 'Batch correction significantly improves classification accuracy', 'Smith2020', 1);
         const claim2 = createClaim('C_02', 'Batch correction does not significantly improve classification accuracy', 'Jones2021', 2);
@@ -188,7 +188,7 @@ describe('ClaimStrengthCalculator', () => {
         expect(result.contradictoryClaims.length).toBeGreaterThan(0);
       });
 
-      it('should detect sentiment-based contradictions', async () => {
+      test('should detect sentiment-based contradictions', async () => {
         const claim1 = createClaim('C_01', 'The proposed method is highly effective and reliable for data analysis', 'Smith2020', 1);
         const claim2 = createClaim('C_02', 'The proposed method is highly ineffective and unreliable for data analysis', 'Jones2021', 2);
         const allClaims = [claim1, claim2];
@@ -198,7 +198,7 @@ describe('ClaimStrengthCalculator', () => {
         expect(result.contradictoryClaims.length).toBeGreaterThan(0);
       });
 
-      it('should detect contradictory keywords', async () => {
+      test('should detect contradictory keywords', async () => {
         const claim1 = createClaim('C_01', 'Treatment increases survival rate', 'Smith2020', 1);
         const claim2 = createClaim('C_02', 'Treatment decreases survival rate', 'Jones2021', 2);
         const allClaims = [claim1, claim2];
@@ -208,7 +208,7 @@ describe('ClaimStrengthCalculator', () => {
         expect(result.contradictoryClaims.length).toBeGreaterThan(0);
       });
 
-      it('should not flag very similar claims as contradictory', async () => {
+      test('should not flag very similar claims as contradictory', async () => {
         const claim1 = createClaim('C_01', 'Machine learning improves accuracy', 'Smith2020', 1);
         const claim2 = createClaim('C_02', 'Machine learning improves accuracy', 'Jones2021', 2);
         const allClaims = [claim1, claim2];
@@ -219,7 +219,7 @@ describe('ClaimStrengthCalculator', () => {
         expect(result.contradictoryClaims.length).toBe(0);
       });
 
-      it('should handle claims with multiple negations', async () => {
+      test('should handle claims with multiple negations', async () => {
         const claim1 = createClaim('C_01', 'Method is not ineffective', 'Smith2020', 1);
         const claim2 = createClaim('C_02', 'Method is effective', 'Jones2021', 2);
         const allClaims = [claim1, claim2];
@@ -232,7 +232,7 @@ describe('ClaimStrengthCalculator', () => {
     });
 
     describe('strength score calculation', () => {
-      it('should return score of 0 for no supporting claims', async () => {
+      test('should return score of 0 for no supporting claims', async () => {
         const claim = createClaim('C_01', 'Unique claim with no support', 'Smith2020', 1);
         const allClaims = [claim];
 
@@ -241,7 +241,7 @@ describe('ClaimStrengthCalculator', () => {
         expect(result.strengthScore).toBe(0);
       });
 
-      it('should return score of 1 for one supporting claim', async () => {
+      test('should return score of 1 for one supporting claim', async () => {
         const claim1 = createClaim('C_01', 'Machine learning improves classification', 'Smith2020', 1);
         const claim2 = createClaim('C_02', 'Machine learning enhances classification', 'Jones2021', 2);
         const allClaims = [claim1, claim2];
@@ -253,7 +253,7 @@ describe('ClaimStrengthCalculator', () => {
         }
       });
 
-      it('should return score of 2 for two supporting claims', async () => {
+      test('should return score of 2 for two supporting claims', async () => {
         const claim1 = createClaim('C_01', 'Batch correction improves results', 'Smith2020', 1);
         const claim2 = createClaim('C_02', 'Batch correction enhances results', 'Jones2021', 2);
         const claim3 = createClaim('C_03', 'Batch correction boosts results', 'Brown2022', 3);
@@ -266,7 +266,7 @@ describe('ClaimStrengthCalculator', () => {
         }
       });
 
-      it('should increase monotonically with more supporting claims', async () => {
+      test('should increase monotonically with more supporting claims', async () => {
         const baseClaim = createClaim('C_01', 'Method improves accuracy', 'Smith2020', 1);
         
         // Create claims with increasing support
@@ -296,7 +296,7 @@ describe('ClaimStrengthCalculator', () => {
     });
 
     describe('sortByStrength', () => {
-      it('should sort claims by strength score descending', async () => {
+      test('should sort claims by strength score descending', async () => {
         const claims = [
           createClaim('C_01', 'Widely supported claim', 'Smith2020', 1),
           createClaim('C_02', 'Moderately supported claim', 'Jones2021', 2),
@@ -312,14 +312,14 @@ describe('ClaimStrengthCalculator', () => {
         }
       });
 
-      it('should handle empty results', () => {
+      test('should handle empty results', () => {
         const results = new Map<string, ClaimStrengthResult>();
         const sorted = calculator.sortByStrength(results);
 
         expect(sorted.length).toBe(0);
       });
 
-      it('should handle single result', async () => {
+      test('should handle single result', async () => {
         const claim = createClaim('C_01', 'Test claim', 'Smith2020', 1);
         const results = await calculator.calculateStrengthBatch([claim]);
         const sorted = calculator.sortByStrength(results);
@@ -329,7 +329,7 @@ describe('ClaimStrengthCalculator', () => {
     });
 
     describe('filterByMinStrength', () => {
-      it('should filter claims by minimum strength score', async () => {
+      test('should filter claims by minimum strength score', async () => {
         const claims = [
           createClaim('C_01', 'Strong claim with support', 'Smith2020', 1),
           createClaim('C_02', 'Another strong claim', 'Jones2021', 2),
@@ -345,7 +345,7 @@ describe('ClaimStrengthCalculator', () => {
         });
       });
 
-      it('should return empty array when no claims meet threshold', async () => {
+      test('should return empty array when no claims meet threshold', async () => {
         const claim = createClaim('C_01', 'Unsupported claim', 'Smith2020', 1);
         const results = await calculator.calculateStrengthBatch([claim]);
         const filtered = calculator.filterByMinStrength(results, 5);
@@ -353,7 +353,7 @@ describe('ClaimStrengthCalculator', () => {
         expect(filtered.length).toBe(0);
       });
 
-      it('should return all claims when threshold is 0', async () => {
+      test('should return all claims when threshold is 0', async () => {
         const claims = [
           createClaim('C_01', 'Claim 1', 'Smith2020', 1),
           createClaim('C_02', 'Claim 2', 'Jones2021', 2)
@@ -367,7 +367,7 @@ describe('ClaimStrengthCalculator', () => {
     });
 
     describe('getClaimsWithContradictions', () => {
-      it('should return only claims with contradictions', async () => {
+      test('should return only claims with contradictions', async () => {
         const claim1 = createClaim('C_01', 'Method improves accuracy', 'Smith2020', 1);
         const claim2 = createClaim('C_02', 'Method does not improve accuracy', 'Jones2021', 2);
         const claim3 = createClaim('C_03', 'Unrelated claim about cooking', 'Brown2022', 3);
@@ -382,7 +382,7 @@ describe('ClaimStrengthCalculator', () => {
         });
       });
 
-      it('should return empty array when no contradictions exist', async () => {
+      test('should return empty array when no contradictions exist', async () => {
         const claims = [
           createClaim('C_01', 'Claim about topic A', 'Smith2020', 1),
           createClaim('C_02', 'Claim about topic B', 'Jones2021', 2)
@@ -396,7 +396,7 @@ describe('ClaimStrengthCalculator', () => {
     });
 
     describe('edge cases', () => {
-      it('should handle claims with empty text', async () => {
+      test('should handle claims with empty text', async () => {
         const claim = createClaim('C_01', '', 'Smith2020', 1);
         const allClaims = [claim];
 
@@ -406,7 +406,7 @@ describe('ClaimStrengthCalculator', () => {
         expect(result.strengthScore).toBe(0);
       });
 
-      it('should handle claims with very long text', async () => {
+      test('should handle claims with very long text', async () => {
         const longText = 'This is a very long claim. '.repeat(100);
         const claim = createClaim('C_01', longText, 'Smith2020', 1);
         const allClaims = [claim];
@@ -416,7 +416,7 @@ describe('ClaimStrengthCalculator', () => {
         expect(result).toBeDefined();
       });
 
-      it('should handle claims with special characters', async () => {
+      test('should handle claims with special characters', async () => {
         const claim1 = createClaim('C_01', 'Method @#$% improves accuracy!', 'Smith2020', 1);
         const claim2 = createClaim('C_02', 'Method enhances accuracy?', 'Jones2021', 2);
         const allClaims = [claim1, claim2];
@@ -426,7 +426,7 @@ describe('ClaimStrengthCalculator', () => {
         expect(result).toBeDefined();
       });
 
-      it('should handle claims with unicode characters', async () => {
+      test('should handle claims with unicode characters', async () => {
         const claim1 = createClaim('C_01', 'Método mejora precisión', 'Smith2020', 1);
         const claim2 = createClaim('C_02', 'Método aumenta precisión', 'Jones2021', 2);
         const allClaims = [claim1, claim2];
@@ -436,7 +436,7 @@ describe('ClaimStrengthCalculator', () => {
         expect(result).toBeDefined();
       });
 
-      it('should handle large number of claims efficiently', async () => {
+      test('should handle large number of claims efficiently', async () => {
         const claims: Claim[] = [];
         for (let i = 0; i < 100; i++) {
           claims.push(createClaim(`C_${i}`, `Claim ${i} about machine learning`, `Source${i}`, i));
@@ -453,7 +453,7 @@ describe('ClaimStrengthCalculator', () => {
     });
 
     describe('custom thresholds', () => {
-      it('should respect custom similarity threshold', async () => {
+      test('should respect custom similarity threshold', async () => {
         const strictCalculator = new ClaimStrengthCalculator(embeddingService, claimsManager, 0.95);
         
         const claim1 = createClaim('C_01', 'Machine learning improves accuracy', 'Smith2020', 1);
@@ -466,7 +466,7 @@ describe('ClaimStrengthCalculator', () => {
         expect(result.supportingClaims.length).toBe(0);
       });
 
-      it('should respect custom contradiction threshold', async () => {
+      test('should respect custom contradiction threshold', async () => {
         const lenientCalculator = new ClaimStrengthCalculator(embeddingService, claimsManager, 0.75);
         
         const claim1 = createClaim('C_01', 'Method improves results', 'Smith2020', 1);

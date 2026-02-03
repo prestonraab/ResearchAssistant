@@ -8,11 +8,11 @@ describe('EditingModeManager', () => {
   });
 
   describe('initialization', () => {
-    it('should not be initialized by default', () => {
+    test('should not be initialized by default', () => {
       expect(manager.isInitialized()).toBe(false);
     });
 
-    it('should initialize state', () => {
+    test('should initialize state', () => {
       const state = manager.initializeState();
 
       expect(state).toBeDefined();
@@ -21,7 +21,7 @@ describe('EditingModeManager', () => {
       expect(state.selectedSentences.size).toBe(0);
     });
 
-    it('should be initialized after initialization', () => {
+    test('should be initialized after initialization', () => {
       manager.initializeState();
       expect(manager.isInitialized()).toBe(true);
     });
@@ -32,12 +32,12 @@ describe('EditingModeManager', () => {
       manager.initializeState();
     });
 
-    it('should set current sentence', () => {
+    test('should set current sentence', () => {
       manager.setCurrentSentence('S_1');
       expect(manager.getCurrentSentence()).toBe('S_1');
     });
 
-    it('should return undefined if not set', () => {
+    test('should return undefined if not set', () => {
       expect(manager.getCurrentSentence()).toBeUndefined();
     });
   });
@@ -47,12 +47,12 @@ describe('EditingModeManager', () => {
       manager.initializeState();
     });
 
-    it('should set current claim', () => {
+    test('should set current claim', () => {
       manager.setCurrentClaim('C_1');
       expect(manager.getCurrentClaim()).toBe('C_1');
     });
 
-    it('should return undefined if not set', () => {
+    test('should return undefined if not set', () => {
       expect(manager.getCurrentClaim()).toBeUndefined();
     });
   });
@@ -62,7 +62,7 @@ describe('EditingModeManager', () => {
       manager.initializeState();
     });
 
-    it('should toggle claim expansion', () => {
+    test('should toggle claim expansion', () => {
       expect(manager.isClaimExpanded('S_1')).toBe(false);
 
       manager.toggleClaimExpansion('S_1');
@@ -72,7 +72,7 @@ describe('EditingModeManager', () => {
       expect(manager.isClaimExpanded('S_1')).toBe(false);
     });
 
-    it('should expand multiple sentences independently', () => {
+    test('should expand multiple sentences independently', () => {
       manager.toggleClaimExpansion('S_1');
       manager.toggleClaimExpansion('S_2');
 
@@ -81,7 +81,7 @@ describe('EditingModeManager', () => {
       expect(manager.isClaimExpanded('S_3')).toBe(false);
     });
 
-    it('should collapse all claims', () => {
+    test('should collapse all claims', () => {
       manager.toggleClaimExpansion('S_1');
       manager.toggleClaimExpansion('S_2');
 
@@ -97,18 +97,18 @@ describe('EditingModeManager', () => {
       manager.initializeState();
     });
 
-    it('should select a sentence', () => {
+    test('should select a sentence', () => {
       manager.selectSentence('S_1');
       expect(manager.getSelectedSentences()).toContain('S_1');
     });
 
-    it('should deselect a sentence', () => {
+    test('should deselect a sentence', () => {
       manager.selectSentence('S_1');
       manager.deselectSentence('S_1');
       expect(manager.getSelectedSentences()).not.toContain('S_1');
     });
 
-    it('should toggle sentence selection', () => {
+    test('should toggle sentence selection', () => {
       manager.toggleSentenceSelection('S_1');
       expect(manager.getSelectedSentences()).toContain('S_1');
 
@@ -116,7 +116,7 @@ describe('EditingModeManager', () => {
       expect(manager.getSelectedSentences()).not.toContain('S_1');
     });
 
-    it('should select multiple sentences', () => {
+    test('should select multiple sentences', () => {
       manager.selectSentence('S_1');
       manager.selectSentence('S_2');
       manager.selectSentence('S_3');
@@ -128,14 +128,14 @@ describe('EditingModeManager', () => {
       expect(selected).toContain('S_3');
     });
 
-    it('should not duplicate selections', () => {
+    test('should not duplicate selections', () => {
       manager.selectSentence('S_1');
       manager.selectSentence('S_1');
 
       expect(manager.getSelectedSentences()).toHaveLength(1);
     });
 
-    it('should clear selection', () => {
+    test('should clear selection', () => {
       manager.selectSentence('S_1');
       manager.selectSentence('S_2');
 
@@ -150,23 +150,23 @@ describe('EditingModeManager', () => {
       manager.initializeState();
     });
 
-    it('should save scroll position', () => {
+    test('should save scroll position', () => {
       manager.saveScrollPosition(100);
       expect(manager.getScrollPosition()).toBe(100);
     });
 
-    it('should return 0 by default', () => {
+    test('should return 0 by default', () => {
       expect(manager.getScrollPosition()).toBe(0);
     });
 
-    it('should handle large scroll positions', () => {
+    test('should handle large scroll positions', () => {
       manager.saveScrollPosition(999999);
       expect(manager.getScrollPosition()).toBe(999999);
     });
   });
 
   describe('clearState', () => {
-    it('should clear state', () => {
+    test('should clear state', () => {
       manager.initializeState();
       manager.clearState();
 
@@ -174,7 +174,7 @@ describe('EditingModeManager', () => {
       expect(manager.getState()).toBeNull();
     });
 
-    it('should allow re-initialization after clear', () => {
+    test('should allow re-initialization after clear', () => {
       manager.initializeState();
       manager.clearState();
       manager.initializeState();
@@ -188,7 +188,7 @@ describe('EditingModeManager', () => {
       manager.initializeState();
     });
 
-    it('should handle mixed operations', () => {
+    test('should handle mixed operations', () => {
       manager.setCurrentSentence('S_1');
       manager.setCurrentClaim('C_1');
       manager.selectSentence('S_1');
@@ -203,7 +203,7 @@ describe('EditingModeManager', () => {
       expect(manager.getScrollPosition()).toBe(150);
     });
 
-    it('should maintain state consistency', () => {
+    test('should maintain state consistency', () => {
       manager.selectSentence('S_1');
       manager.toggleClaimExpansion('S_1');
       manager.setCurrentSentence('S_1');
@@ -216,7 +216,7 @@ describe('EditingModeManager', () => {
   });
 
   describe('edge cases', () => {
-    it('should handle operations on uninitialized manager', () => {
+    test('should handle operations on uninitialized manager', () => {
       expect(() => {
         manager.setCurrentSentence('S_1');
       }).not.toThrow();
@@ -224,11 +224,11 @@ describe('EditingModeManager', () => {
       expect(manager.getCurrentSentence()).toBeUndefined();
     });
 
-    it('should handle empty selections', () => {
+    test('should handle empty selections', () => {
       expect(manager.getSelectedSentences()).toEqual([]);
     });
 
-    it('should handle negative scroll position', () => {
+    test('should handle negative scroll position', () => {
       manager.initializeState();
       manager.saveScrollPosition(-100);
       expect(manager.getScrollPosition()).toBe(-100);

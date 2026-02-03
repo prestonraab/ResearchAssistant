@@ -222,13 +222,10 @@ export class InstantSearchHandler {
         return;
       }
 
-      // Internet search functionality is not yet available
-      // TODO: Implement external paper search when InternetPaperSearcher is available
-      vscode.window.showInformationMessage(
-        'External paper search is not yet available. Please use Zotero search instead.'
-      );
-      
-      /*
+      // Import InternetPaperSearcher
+      const { InternetPaperSearcher } = await import('./internetPaperSearcher');
+      const searcher = new InternetPaperSearcher(this.workspaceRoot);
+
       // Search external sources
       const results = await vscode.window.withProgress(
         {
@@ -237,16 +234,16 @@ export class InstantSearchHandler {
           cancellable: false,
         },
         async () => {
-          return await this.internetSearcher.searchExternal(query);
+          return await searcher.searchExternal(query);
         }
       );
 
       // Display results
-      const selected = await this.internetSearcher.displayExternalResults(results);
+      const selected = await searcher.displayExternalResults(results);
 
       if (selected) {
         // Import to Zotero
-        const itemKey = await this.internetSearcher.importToZotero(selected);
+        const itemKey = await searcher.importToZotero(selected);
         
         if (itemKey) {
           vscode.window.showInformationMessage(
@@ -255,7 +252,6 @@ export class InstantSearchHandler {
           );
         }
       }
-      */
     } catch (error) {
       console.error('Internet search failed:', error);
       vscode.window.showErrorMessage(

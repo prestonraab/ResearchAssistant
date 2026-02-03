@@ -56,7 +56,7 @@ describe('FulltextStatusManager', () => {
      * Test: Scan detects existing extracted text
      * Validates: Requirement 44.1
      */
-    it('should detect papers with existing extracted text', async () => {
+    test('should detect papers with existing extracted text', async () => {
       // Mock PDF directory exists with files
       (fs.existsSync as jest.Mock).mockImplementation((filePath: string) => {
         if (filePath.includes('PDFs')) {
@@ -90,7 +90,7 @@ describe('FulltextStatusManager', () => {
      * Test: Scan handles local PDFs not in Zotero
      * Validates: Requirement 44.1
      */
-    it('should scan local PDF directory for papers', async () => {
+    test('should scan local PDF directory for papers', async () => {
       // Mock PDF directory exists with files
       (fs.existsSync as jest.Mock).mockImplementation((dirPath: string) => {
         return dirPath.includes('PDFs');
@@ -187,7 +187,7 @@ describe('FulltextStatusManager', () => {
      * Test: Cache clearing forces rescan
      * Validates: Internal functionality
      */
-    it('should clear cached statuses and reset scan time', async () => {
+    test('should clear cached statuses and reset scan time', async () => {
       // Mock PDF directory with files
       (fs.existsSync as jest.Mock).mockImplementation((dirPath: string) => {
         return dirPath.includes('PDFs');

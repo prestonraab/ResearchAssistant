@@ -36,7 +36,7 @@ describe('Word Export Integration - 11.1', () => {
   });
 
   describe('11.1 - Word command integration', () => {
-    it('should export manuscript to valid .docx file', async () => {
+    test('should export manuscript to valid .docx file', async () => {
       const manuscript = `# Introduction
 
 This is the introduction section.
@@ -70,7 +70,7 @@ We used the following methods.`;
       expect(buffer[1]).toBe(0x4b); // 'K'
     });
 
-    it('should create .docx file with correct structure', async () => {
+    test('should create .docx file with correct structure', async () => {
       const manuscript = `# Section 1
 
 Content for section 1.
@@ -94,7 +94,7 @@ Content for section 2.`;
       expect(buffer.length).toBeGreaterThan(0);
     });
 
-    it('should handle file dialog scenario with save path', async () => {
+    test('should handle file dialog scenario with save path', async () => {
       const manuscript = `# Test
 
 Test content.`;
@@ -114,7 +114,7 @@ Test content.`;
       expect(fs.existsSync(outputPath)).toBe(true);
     });
 
-    it('should throw error for invalid output path', async () => {
+    test('should throw error for invalid output path', async () => {
       const manuscript = `# Test
 
 Test content.`;
@@ -130,7 +130,7 @@ Test content.`;
       await expect(exportService.exportManuscriptWord(manuscript, options)).rejects.toThrow();
     });
 
-    it('should export with footnotes and bibliography', async () => {
+    test('should export with footnotes and bibliography', async () => {
       const manuscript = `# Introduction
 
 This is a sentence.`;
@@ -169,7 +169,7 @@ This is a sentence.`;
       expect(buffer.length).toBeGreaterThan(0);
     });
 
-    it('should export with document-scoped footnotes', async () => {
+    test('should export with document-scoped footnotes', async () => {
       const manuscript = `# Section 1
 
 Sentence 1.
@@ -210,7 +210,7 @@ Sentence 2.`;
       expect(fs.existsSync(outputPath)).toBe(true);
     });
 
-    it('should export with section-scoped footnotes', async () => {
+    test('should export with section-scoped footnotes', async () => {
       const manuscript = `# Section 1
 
 Sentence 1.
@@ -251,7 +251,7 @@ Sentence 2.`;
       expect(fs.existsSync(outputPath)).toBe(true);
     });
 
-    it('should export without footnotes when includeFootnotes is false', async () => {
+    test('should export without footnotes when includeFootnotes is false', async () => {
       const manuscript = `# Section
 
 Sentence with citation.`;
@@ -286,7 +286,7 @@ Sentence with citation.`;
       expect(fs.existsSync(outputPath)).toBe(true);
     });
 
-    it('should export without bibliography when includeBibliography is false', async () => {
+    test('should export without bibliography when includeBibliography is false', async () => {
       const manuscript = `# Section
 
 Sentence with citation.`;
@@ -321,7 +321,7 @@ Sentence with citation.`;
       expect(fs.existsSync(outputPath)).toBe(true);
     });
 
-    it('should handle empty manuscript gracefully', async () => {
+    test('should handle empty manuscript gracefully', async () => {
       const manuscript = '';
 
       const outputPath = path.join(tempDir, 'empty.docx');
@@ -339,7 +339,7 @@ Sentence with citation.`;
       expect(buffer.length).toBeGreaterThan(0);
     });
 
-    it('should handle manuscript with special characters', async () => {
+    test('should handle manuscript with special characters', async () => {
       const manuscript = `# Section with & Special Characters
 
 Content with $100, 50%, and other symbols.`;
@@ -357,7 +357,7 @@ Content with $100, 50%, and other symbols.`;
       expect(fs.existsSync(outputPath)).toBe(true);
     });
 
-    it('should create file with proper permissions', async () => {
+    test('should create file with proper permissions', async () => {
       const manuscript = `# Test
 
 Content.`;

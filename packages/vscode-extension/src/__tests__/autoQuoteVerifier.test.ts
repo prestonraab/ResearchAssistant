@@ -35,12 +35,11 @@ describe('AutoQuoteVerifier', () => {
   });
 
   describe('verifyOnSave', () => {
-    it('should skip verification if claim has no quote', () => {
+    test('should skip verification if claim has no quote', () => {
       const claim = aClaim()
         .withId('C_01')
         .withText('Test claim')
         .withCategory('Method')
-        .withSource('Author2020')
         .build();
       claim.primaryQuote = { text: '', source: '', verified: false };
 
@@ -49,12 +48,11 @@ describe('AutoQuoteVerifier', () => {
       expect(verifier.getQueueSize()).toBe(0);
     });
 
-    it('should skip verification if claim has no source', () => {
+    test('should skip verification if claim has no source', () => {
       const claim = aClaim()
         .withId('C_01')
         .withText('Test claim')
         .withCategory('Method')
-        .withSource('')
         .withPrimaryQuote('Test quote', '')
         .build();
 
@@ -63,12 +61,11 @@ describe('AutoQuoteVerifier', () => {
       expect(verifier.getQueueSize()).toBe(0);
     });
 
-    it('should add claim to queue if it has quote and source', () => {
+    test('should add claim to queue if it has quote and source', () => {
       const claim = aClaim()
         .withId('C_01')
         .withText('Test claim')
         .withCategory('Method')
-        .withSource('Author2020')
         .withPrimaryQuote('Test quote', 'Author2020')
         .build();
 
@@ -77,12 +74,11 @@ describe('AutoQuoteVerifier', () => {
       expect(verifier.getQueueSize()).toBe(1);
     });
 
-    it('should update existing queue item if claim already in queue', () => {
+    test('should update existing queue item if claim already in queue', () => {
       const claim = aClaim()
         .withId('C_01')
         .withText('Test claim')
         .withCategory('Method')
-        .withSource('Author2020')
         .withPrimaryQuote('Test quote', 'Author2020')
         .build();
 
@@ -94,7 +90,7 @@ describe('AutoQuoteVerifier', () => {
   });
 
   describe('verifyClaimManually', () => {
-    it('should return null if claim not found', async () => {
+    test('should return null if claim not found', async () => {
       mockClaimsManager.getClaim.mockReturnValue(null);
 
       const result = await verifier.verifyClaimManually('C_99');
@@ -102,12 +98,11 @@ describe('AutoQuoteVerifier', () => {
       expect(result).toBeNull();
     });
 
-    it('should return null if claim has no quote', async () => {
+    test('should return null if claim has no quote', async () => {
       const claim = aClaim()
         .withId('C_01')
         .withText('Test claim')
         .withCategory('Method')
-        .withSource('Author2020')
         .build();
       claim.primaryQuote = { text: '', source: '', verified: false };
 
@@ -118,12 +113,11 @@ describe('AutoQuoteVerifier', () => {
       expect(result).toBeNull();
     });
 
-    it('should verify quote and update claim on success', async () => {
+    test('should verify quote and update claim on success', async () => {
       const claim = aClaim()
         .withId('C_01')
         .withText('Test claim')
         .withCategory('Method')
-        .withSource('Author2020')
         .withPrimaryQuote('Test quote', 'Author2020')
         .build();
 
@@ -156,12 +150,11 @@ describe('AutoQuoteVerifier', () => {
       expect(mockClaimsManager.updateClaim).toHaveBeenCalledWith('C_01', { verified: true });
     });
 
-    it('should show warning on verification failure', async () => {
+    test('should show warning on verification failure', async () => {
       const claim = aClaim()
         .withId('C_01')
         .withText('Test claim')
         .withCategory('Method')
-        .withSource('Author2020')
         .withPrimaryQuote('Test quote', 'Author2020')
         .build();
 
@@ -195,16 +188,15 @@ describe('AutoQuoteVerifier', () => {
   });
 
   describe('getQueueSize', () => {
-    it('should return 0 for empty queue', () => {
+    test('should return 0 for empty queue', () => {
       expect(verifier.getQueueSize()).toBe(0);
     });
 
-    it('should return correct queue size', () => {
+    test('should return correct queue size', () => {
       const claim = aClaim()
         .withId('C_01')
         .withText('Test claim')
         .withCategory('Method')
-        .withSource('Author2020')
         .withPrimaryQuote('Test quote', 'Author2020')
         .build();
 
@@ -215,7 +207,7 @@ describe('AutoQuoteVerifier', () => {
   });
 
   describe('clearQueue', () => {
-    it('should clear the verification queue', () => {
+    test('should clear the verification queue', () => {
       // Clear queue starts at 0
       expect(verifier.getQueueSize()).toBe(0);
       
@@ -227,7 +219,7 @@ describe('AutoQuoteVerifier', () => {
   });
 
   describe('Error handling', () => {
-    it('should handle concurrent verification requests', async () => {
+    test('should handle concurrent verification requests', async () => {
       const claim1 = aClaim().withId('C_01').withPrimaryQuote('Quote 1', 'Author2020').build();
       const claim2 = aClaim().withId('C_02').withPrimaryQuote('Quote 2', 'Author2021').build();
 
@@ -237,7 +229,7 @@ describe('AutoQuoteVerifier', () => {
       expect(verifier.getQueueSize()).toBe(2);
     });
 
-    it('should handle queue processing errors gracefully', async () => {
+    test('should handle queue processing errors gracefully', async () => {
       const claim = aClaim()
         .withId('C_01')
         .withPrimaryQuote('Test quote', 'Author2020')

@@ -1,4 +1,4 @@
-import { TextNormalizer } from './textNormalizer';
+import { TextNormalizer } from '@research-assistant/core';
 
 /**
  * Extracts meaningful snippets from text for embedding

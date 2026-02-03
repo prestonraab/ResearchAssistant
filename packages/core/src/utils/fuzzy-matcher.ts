@@ -6,12 +6,17 @@
  * methods including whitespace variations, Unicode normalization, and hyphenation.
  * 
  * Uses TextNormalizer for consistent text normalization across the application.
- * 
- * @see Requirements 7.1, 7.3 - Zotero PDF Integration
  */
 
-import type { FuzzyMatchResult } from '@research-assistant/core';
-import { TextNormalizer } from '@research-assistant/core';
+import { TextNormalizer } from './text-normalizer.js';
+
+export interface FuzzyMatchResult {
+  matched: boolean;
+  startOffset?: number;
+  endOffset?: number;
+  confidence: number;
+  matchedText?: string;
+}
 
 /**
  * Minimum similarity threshold for accepting a match (85%)
@@ -45,8 +50,6 @@ export class FuzzyMatcher {
    * 
    * @param text - Raw text to normalize
    * @returns Normalized text ready for comparison
-   * 
-   * @see Requirements 7.1 - Text normalization for fuzzy matching
    */
   normalizeText(text: string): string {
     return TextNormalizer.normalizeForMatching(text);
@@ -70,8 +73,6 @@ export class FuzzyMatcher {
    * @param str1 - First string to compare
    * @param str2 - Second string to compare
    * @returns Similarity score between 0 and 1
-   * 
-   * @see Requirements 7.3 - Similarity metric for fuzzy matching
    */
   calculateSimilarity(str1: string, str2: string): number {
     return TextNormalizer.calculateSimilarity(str1, str2);
@@ -88,8 +89,6 @@ export class FuzzyMatcher {
    * @param documentText - Extracted text from document
    * @param pageNumber - Optional page number to limit search scope (not implemented in this task)
    * @returns Match result with location and confidence
-   * 
-   * @see Requirements 7.2, 7.4, 7.5, 7.6, 7.7 - Sliding window matching
    */
   findMatch(
     highlightText: string,

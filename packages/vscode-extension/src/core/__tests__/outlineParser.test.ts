@@ -16,7 +16,7 @@ describe('OutlineParser', () => {
   });
 
   describe('parse', () => {
-    it('should parse empty file', async () => {
+    test('should parse empty file', async () => {
       mockFs.readFile.mockResolvedValue('');
       
       const sections = await parser.parse();
@@ -24,7 +24,7 @@ describe('OutlineParser', () => {
       expect(sections).toEqual([]);
     });
 
-    it('should parse single section', async () => {
+    test('should parse single section', async () => {
       const content = '## Introduction\n\nSome content here.';
       mockFs.readFile.mockResolvedValue(content);
       
@@ -36,7 +36,7 @@ describe('OutlineParser', () => {
       expect(sections[0].content).toContain('Some content here.');
     });
 
-    it('should parse nested sections', async () => {
+    test('should parse nested sections', async () => {
       const content = `## Section 1
 ### Subsection 1.1
 #### Subsubsection 1.1.1
@@ -52,7 +52,7 @@ describe('OutlineParser', () => {
       expect(sections[3].level).toBe(2);
     });
 
-    it('should handle malformed headers gracefully', async () => {
+    test('should handle malformed headers gracefully', async () => {
       const content = `## Valid Header
 # Invalid (only one hash)
 ### Another Valid
@@ -66,7 +66,7 @@ Not a header at all`;
       expect(sections[1].title).toBe('Another Valid');
     });
 
-    it('should track line numbers correctly', async () => {
+    test('should track line numbers correctly', async () => {
       const content = `## Section 1
 Content line 1
 Content line 2
@@ -84,7 +84,7 @@ Content line 3`;
   });
 
   describe('getSectionById', () => {
-    it('should return section by id', async () => {
+    test('should return section by id', async () => {
       const content = '## Test Section';
       mockFs.readFile.mockResolvedValue(content);
       
@@ -96,7 +96,7 @@ Content line 3`;
       expect(section?.title).toBe('Test Section');
     });
 
-    it('should return null for non-existent id', async () => {
+    test('should return null for non-existent id', async () => {
       mockFs.readFile.mockResolvedValue('');
       await parser.parse();
       
@@ -107,7 +107,7 @@ Content line 3`;
   });
 
   describe('getHierarchy', () => {
-    it('should return only root sections', async () => {
+    test('should return only root sections', async () => {
       const content = `## Root 1
 ### Child 1.1
 ## Root 2`;
@@ -123,7 +123,7 @@ Content line 3`;
   });
 
   describe('Edge Cases', () => {
-    it('should handle empty file', async () => {
+    test('should handle empty file', async () => {
       mockFs.readFile.mockResolvedValue('');
       
       const sections = await parser.parse();
@@ -133,7 +133,7 @@ Content line 3`;
       expect(parser.getHierarchy()).toEqual([]);
     });
 
-    it('should handle file with only whitespace', async () => {
+    test('should handle file with only whitespace', async () => {
       mockFs.readFile.mockResolvedValue('   \n\n  \t\n   ');
       
       const sections = await parser.parse();
@@ -141,7 +141,7 @@ Content line 3`;
       expect(sections).toEqual([]);
     });
 
-    it('should handle file with no headers', async () => {
+    test('should handle file with no headers', async () => {
       const content = `This is just text
 No headers here
 Just plain content`;
@@ -152,7 +152,7 @@ Just plain content`;
       expect(sections).toEqual([]);
     });
 
-    it('should handle malformed headers with extra spaces', async () => {
+    test('should handle malformed headers with extra spaces', async () => {
       const content = `##    Title With Extra Spaces   
 ###   Another   Title  `;
       mockFs.readFile.mockResolvedValue(content);
@@ -164,7 +164,7 @@ Just plain content`;
       expect(sections[1].title).toBe('Another   Title');
     });
 
-    it('should handle headers with special characters', async () => {
+    test('should handle headers with special characters', async () => {
       const content = `## Section 1: Introduction & Overview
 ### Sub-section (Part A)
 #### Item #1 - Details`;
@@ -178,7 +178,7 @@ Just plain content`;
       expect(sections[2].title).toBe('Item #1 - Details');
     });
 
-    it('should handle deeply nested structures', async () => {
+    test('should handle deeply nested structures', async () => {
       const content = `## Level 2
 ### Level 3
 #### Level 4
@@ -207,7 +207,7 @@ Just plain content`;
       expect(level2_2.level).toBe(2);
     });
 
-    it('should handle missing content between headers', async () => {
+    test('should handle missing content between headers', async () => {
       const content = `## Section 1
 ## Section 2
 ## Section 3`;
@@ -221,7 +221,7 @@ Just plain content`;
       expect(sections[2].content).toEqual([]);
     });
 
-    it('should handle multiple content items under section', async () => {
+    test('should handle multiple content items under section', async () => {
       const content = `## Research Questions
 - What is the impact of X?
 - How does Y affect Z?
@@ -240,7 +240,7 @@ Another line of content`;
       expect(sections[0].content[5]).toBe('Another line of content');
     });
 
-    it('should handle empty lines between content', async () => {
+    test('should handle empty lines between content', async () => {
       const content = `## Section
 Content line 1
 
@@ -261,7 +261,7 @@ Content line 3`;
       ]);
     });
 
-    it('should handle level jumps (skip from ## to ####)', async () => {
+    test('should handle level jumps (skip from ## to ####)', async () => {
       const content = `## Section 1
 #### Subsection (skipped level 3)
 ## Section 2`;
@@ -276,7 +276,7 @@ Content line 3`;
       expect(sections[2].level).toBe(2);
     });
 
-    it('should handle headers at end of file', async () => {
+    test('should handle headers at end of file', async () => {
       const content = `## Section 1
 Content here
 ## Section 2`;
@@ -288,7 +288,7 @@ Content here
       expect(sections[1].lineEnd).toBe(3);
     });
 
-    it('should handle file read errors gracefully', async () => {
+    test('should handle file read errors gracefully', async () => {
       mockFs.readFile.mockRejectedValue(new Error('File not found'));
       
       const sections = await parser.parse();
@@ -297,7 +297,7 @@ Content here
       expect(parser.getSections()).toEqual([]);
     });
 
-    it('should ignore single # headers (H1)', async () => {
+    test('should ignore single # headers (H1)', async () => {
       const content = `# Title (H1 - should be ignored)
 ## Section 1 (H2 - should be parsed)
 ### Subsection (H3 - should be parsed)`;
@@ -310,7 +310,7 @@ Content here
       expect(sections[1].title).toBe('Subsection (H3 - should be parsed)');
     });
 
-    it('should ignore headers with more than 4 hashes', async () => {
+    test('should ignore headers with more than 4 hashes', async () => {
       const content = `## Valid H2
 ##### Invalid H5
 ###### Invalid H6
@@ -324,7 +324,7 @@ Content here
       expect(sections[1].title).toBe('Valid H3');
     });
 
-    it('should handle headers without space after hashes', async () => {
+    test('should handle headers without space after hashes', async () => {
       const content = `##No Space Header
 ## Proper Header`;
       mockFs.readFile.mockResolvedValue(content);
@@ -336,7 +336,7 @@ Content here
       expect(sections[0].title).toBe('Proper Header');
     });
 
-    it('should generate unique IDs for sections with same title', async () => {
+    test('should generate unique IDs for sections with same title', async () => {
       const content = `## Introduction
 ### Details
 ## Introduction
@@ -354,7 +354,7 @@ Content here
   });
 
   describe('getSectionAtPosition', () => {
-    it('should return section at given position', async () => {
+    test('should return section at given position', async () => {
       const content = `## Section 1
 Content line 1
 Content line 2
@@ -371,7 +371,7 @@ Content line 3`;
       expect(section?.title).toBe('Section 1');
     });
 
-    it('should return null for position outside any section', async () => {
+    test('should return null for position outside any section', async () => {
       const content = `Some text before headers
 ## Section 1`;
       mockFs.readFile.mockResolvedValue(content);

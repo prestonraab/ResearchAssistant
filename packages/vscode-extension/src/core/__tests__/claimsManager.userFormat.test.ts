@@ -26,7 +26,7 @@ describe('ClaimsManager - User Format Compatibility', () => {
   });
 
   describe('User Format Parsing', () => {
-    it('should parse claims with citation prefixes in quotes', async () => {
+    test('should parse claims with citation prefixes in quotes', async () => {
       const content = `# Claims and Evidence: Data Source
 
 This file contains all **Data Source** claims with their supporting evidence.
@@ -65,7 +65,7 @@ This file contains all **Data Source** claims with their supporting evidence.
       expect(claims[0].supportingQuotes[0]).toContain('widely used');
     });
 
-    it('should parse multiple category files', async () => {
+    test('should parse multiple category files', async () => {
       const dataSourceContent = `# Claims and Evidence: Data Source
 
 ---
@@ -114,7 +114,7 @@ This file contains all **Data Source** claims with their supporting evidence.
       expect(combatClaim?.category).toBe('Method - Batch Correction');
     });
 
-    it('should handle claims without Sections field', async () => {
+    test('should handle claims without Sections field', async () => {
       const content = `# Claims and Evidence: Method
 
 ---
@@ -139,7 +139,7 @@ This file contains all **Data Source** claims with their supporting evidence.
       expect(claims[0].sections).toEqual([]);
     });
 
-    it('should parse claims with Sections field', async () => {
+    test('should parse claims with Sections field', async () => {
       const content = `# Claims and Evidence: Method
 
 ---
@@ -188,14 +188,14 @@ This file contains all **Data Source** claims with their supporting evidence.
       await manager.loadClaims();
     });
 
-    it('should add section to claim', async () => {
+    test('should add section to claim', async () => {
       await manager.addSectionToClaim('C_01', 'section-1');
 
       const claim = manager.getClaim('C_01');
       expect(claim?.sections).toContain('section-1');
     });
 
-    it('should not add duplicate sections', async () => {
+    test('should not add duplicate sections', async () => {
       await manager.addSectionToClaim('C_01', 'section-1');
       await manager.addSectionToClaim('C_01', 'section-1');
 
@@ -203,7 +203,7 @@ This file contains all **Data Source** claims with their supporting evidence.
       expect(claim?.sections).toEqual(['section-1']);
     });
 
-    it('should remove section from claim', async () => {
+    test('should remove section from claim', async () => {
       await manager.addSectionToClaim('C_01', 'section-1');
       await manager.addSectionToClaim('C_01', 'section-2');
       await manager.removeSectionFromClaim('C_01', 'section-1');
@@ -212,7 +212,7 @@ This file contains all **Data Source** claims with their supporting evidence.
       expect(claim?.sections).toEqual(['section-2']);
     });
 
-    it('should persist sections when saving', async () => {
+    test('should persist sections when saving', async () => {
       await manager.addSectionToClaim('C_01', 'section-1');
 
       // Reload from file
@@ -225,7 +225,7 @@ This file contains all **Data Source** claims with their supporting evidence.
   });
 
   describe('Serialization with User Format', () => {
-    it('should serialize claims with citation prefixes preserved', async () => {
+    test('should serialize claims with citation prefixes preserved', async () => {
       const claim = {
         id: 'C_99',
         text: 'Test claim',

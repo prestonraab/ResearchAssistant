@@ -42,12 +42,12 @@ describe('SynthesisEngine', () => {
   });
 
   describe('groupClaimsByTheme', () => {
-    it('should return empty map for empty claims array', async () => {
+    test('should return empty map for empty claims array', async () => {
       const result = await synthesisEngine.groupClaimsByTheme([]);
       expect(result.size).toBe(0);
     });
 
-    it('should create single cluster for single claim', async () => {
+    test('should create single cluster for single claim', async () => {
       const claims = [
         createClaim('C_01', 'Machine learning improves classification accuracy', 'Smith2020')
       ];
@@ -60,7 +60,7 @@ describe('SynthesisEngine', () => {
       expect(clusters[0][0].id).toBe('C_01');
     });
 
-    it('should group similar claims together', async () => {
+    test('should group similar claims together', async () => {
       const claims = [
         createClaim('C_01', 'Machine learning improves classification accuracy', 'Smith2020'),
         createClaim('C_02', 'Deep learning enhances classification performance', 'Jones2021'),
@@ -74,7 +74,7 @@ describe('SynthesisEngine', () => {
       expect(result.size).toBeLessThanOrEqual(3);
     });
 
-    it('should respect similarity threshold', async () => {
+    test('should respect similarity threshold', async () => {
       const claims = [
         createClaim('C_01', 'Machine learning improves accuracy', 'Smith2020'),
         createClaim('C_02', 'Deep learning enhances performance', 'Jones2021'),
@@ -90,7 +90,7 @@ describe('SynthesisEngine', () => {
       expect(highThreshold.size).toBeGreaterThanOrEqual(lowThreshold.size);
     });
 
-    it('should generate meaningful theme labels', async () => {
+    test('should generate meaningful theme labels', async () => {
       const claims = [
         createClaim('C_01', 'Batch correction methods reduce technical variation', 'Smith2020'),
         createClaim('C_02', 'ComBat effectively removes batch effects', 'Jones2021')
@@ -104,7 +104,7 @@ describe('SynthesisEngine', () => {
       expect(themes[0].length).toBeGreaterThan(0);
     });
 
-    it('should handle claims with same category', async () => {
+    test('should handle claims with same category', async () => {
       const claims = [
         createClaim('C_01', 'Method A is effective', 'Smith2020', 'Method'),
         createClaim('C_02', 'Method B is efficient', 'Jones2021', 'Method'),
@@ -117,7 +117,7 @@ describe('SynthesisEngine', () => {
   });
 
   describe('generateParagraph', () => {
-    it('should return empty string for empty claims array', async () => {
+    test('should return empty string for empty claims array', async () => {
       const result = await synthesisEngine.generateParagraph({
         claims: [],
         style: 'narrative',
@@ -128,7 +128,7 @@ describe('SynthesisEngine', () => {
       expect(result).toBe('');
     });
 
-    it('should generate narrative paragraph with citations', async () => {
+    test('should generate narrative paragraph with citations', async () => {
       const claims = [
         createClaim('C_01', 'Machine learning improves accuracy', 'Smith2020'),
         createClaim('C_02', 'Deep learning enhances performance', 'Jones2021')
@@ -147,7 +147,7 @@ describe('SynthesisEngine', () => {
       expect(result.length).toBeGreaterThan(0);
     });
 
-    it('should generate analytical paragraph with citations', async () => {
+    test('should generate analytical paragraph with citations', async () => {
       const claims = [
         createClaim('C_01', 'Method A is effective', 'Smith2020'),
         createClaim('C_02', 'Method B is efficient', 'Jones2021')
@@ -165,7 +165,7 @@ describe('SynthesisEngine', () => {
       expect(result).toContain('(Jones2021)');
     });
 
-    it('should generate descriptive paragraph with citations', async () => {
+    test('should generate descriptive paragraph with citations', async () => {
       const claims = [
         createClaim('C_01', 'Finding one is significant', 'Smith2020'),
         createClaim('C_02', 'Finding two is important', 'Jones2021'),
@@ -185,7 +185,7 @@ describe('SynthesisEngine', () => {
       expect(result).toContain('(Smith2020)');
     });
 
-    it('should omit citations when includeCitations is false', async () => {
+    test('should omit citations when includeCitations is false', async () => {
       const claims = [
         createClaim('C_01', 'Machine learning improves accuracy', 'Smith2020')
       ];
@@ -201,7 +201,7 @@ describe('SynthesisEngine', () => {
       expect(result).not.toContain('(Smith2020)');
     });
 
-    it('should truncate paragraph when exceeding maxLength', async () => {
+    test('should truncate paragraph when exceeding maxLength', async () => {
       const claims = [
         createClaim('C_01', 'This is a very long claim text that will definitely exceed the maximum length', 'Smith2020')
       ];
@@ -217,7 +217,7 @@ describe('SynthesisEngine', () => {
       expect(result).toContain('...');
     });
 
-    it('should sort claims by year chronologically', async () => {
+    test('should sort claims by year chronologically', async () => {
       const claims = [
         createClaim('C_01', 'Recent finding', 'Smith2022'),
         createClaim('C_02', 'Earlier finding', 'Jones2019'),
@@ -240,7 +240,7 @@ describe('SynthesisEngine', () => {
       expect(brown2020Pos).toBeLessThan(smith2022Pos);
     });
 
-    it('should handle single claim gracefully', async () => {
+    test('should handle single claim gracefully', async () => {
       const claims = [
         createClaim('C_01', 'Single claim text', 'Smith2020')
       ];
@@ -259,7 +259,7 @@ describe('SynthesisEngine', () => {
   });
 
   describe('generateTransitions', () => {
-    it('should return empty array for single claim', async () => {
+    test('should return empty array for single claim', async () => {
       const claims = [
         createClaim('C_01', 'Single claim', 'Smith2020')
       ];
@@ -268,7 +268,7 @@ describe('SynthesisEngine', () => {
       expect(result).toHaveLength(0);
     });
 
-    it('should generate transitions for multiple claims', async () => {
+    test('should generate transitions for multiple claims', async () => {
       const claims = [
         createClaim('C_01', 'First claim', 'Smith2020'),
         createClaim('C_02', 'Second claim', 'Jones2021'),
@@ -279,7 +279,7 @@ describe('SynthesisEngine', () => {
       expect(result).toHaveLength(2); // n-1 transitions for n claims
     });
 
-    it('should use "In the same study," for same source', async () => {
+    test('should use "In the same study," for same source', async () => {
       const claims = [
         createClaim('C_01', 'First finding', 'Smith2020'),
         createClaim('C_02', 'Second finding', 'Smith2020')
@@ -289,7 +289,7 @@ describe('SynthesisEngine', () => {
       expect(result).toContain('In the same study,');
     });
 
-    it('should use "Similarly," for same category', async () => {
+    test('should use "Similarly," for same category', async () => {
       const claims = [
         createClaim('C_01', 'First method', 'Smith2020', 'Method'),
         createClaim('C_02', 'Second method', 'Jones2021', 'Method')
@@ -299,7 +299,7 @@ describe('SynthesisEngine', () => {
       expect(result).toContain('Similarly,');
     });
 
-    it('should use "Furthermore," for different source and category', async () => {
+    test('should use "Furthermore," for different source and category', async () => {
       const claims = [
         createClaim('C_01', 'Method claim', 'Smith2020', 'Method'),
         createClaim('C_02', 'Result claim', 'Jones2021', 'Result')
@@ -311,12 +311,12 @@ describe('SynthesisEngine', () => {
   });
 
   describe('formatCitations', () => {
-    it('should return empty string for empty claims array', () => {
+    test('should return empty string for empty claims array', () => {
       const result = synthesisEngine.formatCitations([]);
       expect(result).toBe('');
     });
 
-    it('should format single citation', () => {
+    test('should format single citation', () => {
       const claims = [
         createClaim('C_01', 'Claim text', 'Smith2020')
       ];
@@ -325,7 +325,7 @@ describe('SynthesisEngine', () => {
       expect(result).toBe(' (Smith2020)');
     });
 
-    it('should format two citations with semicolon', () => {
+    test('should format two citations with semicolon', () => {
       const claims = [
         createClaim('C_01', 'First claim', 'Smith2020'),
         createClaim('C_02', 'Second claim', 'Jones2021')
@@ -337,7 +337,7 @@ describe('SynthesisEngine', () => {
       expect(result).toContain(';');
     });
 
-    it('should format multiple citations with "et al."', () => {
+    test('should format multiple citations with "et al."', () => {
       const claims = [
         createClaim('C_01', 'First claim', 'Smith2020'),
         createClaim('C_02', 'Second claim', 'Jones2021'),
@@ -348,7 +348,7 @@ describe('SynthesisEngine', () => {
       expect(result).toContain('et al.');
     });
 
-    it('should deduplicate sources', () => {
+    test('should deduplicate sources', () => {
       const claims = [
         createClaim('C_01', 'First claim', 'Smith2020'),
         createClaim('C_02', 'Second claim', 'Smith2020')
@@ -358,7 +358,7 @@ describe('SynthesisEngine', () => {
       expect(result).toBe(' (Smith2020)');
     });
 
-    it('should sort sources alphabetically', () => {
+    test('should sort sources alphabetically', () => {
       const claims = [
         createClaim('C_01', 'First claim', 'Zebra2020'),
         createClaim('C_02', 'Second claim', 'Apple2021')
@@ -370,7 +370,7 @@ describe('SynthesisEngine', () => {
       expect(applePos).toBeLessThan(zebraPos);
     });
 
-    it('should handle claims without sources', () => {
+    test('should handle claims without sources', () => {
       const claims = [
         { ...createClaim('C_01', 'Claim text', ''), source: '' }
       ];
@@ -381,7 +381,7 @@ describe('SynthesisEngine', () => {
   });
 
   describe('edge cases', () => {
-    it('should handle claims with special characters in text', async () => {
+    test('should handle claims with special characters in text', async () => {
       const claims = [
         createClaim('C_01', 'Method uses "special" characters & symbols', 'Smith2020')
       ];
@@ -397,7 +397,7 @@ describe('SynthesisEngine', () => {
       expect(result.length).toBeGreaterThan(0);
     });
 
-    it('should handle very long claim texts', async () => {
+    test('should handle very long claim texts', async () => {
       const longText = 'This is a very long claim text that goes on and on '.repeat(10);
       const claims = [
         createClaim('C_01', longText, 'Smith2020')
@@ -413,7 +413,7 @@ describe('SynthesisEngine', () => {
       expect(result.length).toBeGreaterThan(0);
     });
 
-    it('should handle claims with empty text', async () => {
+    test('should handle claims with empty text', async () => {
       const claims = [
         createClaim('C_01', '', 'Smith2020')
       ];
@@ -429,7 +429,7 @@ describe('SynthesisEngine', () => {
       expect(result).toContain('(Smith2020)');
     });
 
-    it('should handle maxLength of 0', async () => {
+    test('should handle maxLength of 0', async () => {
       const claims = [
         createClaim('C_01', 'Claim text', 'Smith2020')
       ];
@@ -447,7 +447,7 @@ describe('SynthesisEngine', () => {
   });
 
   describe('citation preservation', () => {
-    it('should preserve all citation references in generated text', async () => {
+    test('should preserve all citation references in generated text', async () => {
       const claims = [
         createClaim('C_01', 'First finding', 'Smith2020'),
         createClaim('C_02', 'Second finding', 'Jones2021'),
@@ -467,7 +467,7 @@ describe('SynthesisEngine', () => {
       expect(result).toContain('Brown2019');
     });
 
-    it('should maintain citation format consistency', async () => {
+    test('should maintain citation format consistency', async () => {
       const claims = [
         createClaim('C_01', 'Finding one', 'Smith2020'),
         createClaim('C_02', 'Finding two', 'Jones2021')

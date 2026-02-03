@@ -140,12 +140,12 @@ export const setupActiveEditor = (document?: jest.Mocked<vscode.TextDocument>) =
     visibleRanges: [new vscode.Range(0, 0, 10, 0)],
     options: {},
     viewColumn: vscode.ViewColumn.One,
-    edit: jest.fn<(callback: (editBuilder: vscode.TextEditorEdit) => void) => Promise<boolean>>().mockResolvedValue(true),
-    insertSnippet: jest.fn().mockResolvedValue(true),
-    setDecorations: jest.fn(),
-    revealRange: jest.fn(),
-    show: jest.fn(),
-    hide: jest.fn()
+    edit: jest.fn<any>().mockResolvedValue(true),
+    insertSnippet: jest.fn<any>().mockResolvedValue(true),
+    setDecorations: jest.fn<any>(),
+    revealRange: jest.fn<any>(),
+    show: jest.fn<any>(),
+    hide: jest.fn<any>()
   };
   
   (vscode.window as any).activeTextEditor = mockEditor;
@@ -164,21 +164,21 @@ export const clearActiveEditor = () => {
  * Setup window to show information message and capture result
  */
 export const setupInformationMessage = (response?: string) => {
-  (vscode.window.showInformationMessage as jest.Mock).mockResolvedValue(response);
+  (vscode.window.showInformationMessage as jest.Mock<any>).mockResolvedValue(response);
 };
 
 /**
  * Setup window to show error message
  */
 export const setupErrorMessage = (response?: string) => {
-  (vscode.window.showErrorMessage as jest.Mock).mockResolvedValue(response);
+  (vscode.window.showErrorMessage as jest.Mock<any>).mockResolvedValue(response);
 };
 
 /**
  * Setup quick pick with items
  */
 export const setupQuickPick = <T>(items: T[], selectedItem?: T) => {
-  (vscode.window.showQuickPick as jest.Mock).mockResolvedValue(selectedItem);
+  (vscode.window.showQuickPick as jest.Mock<any>).mockResolvedValue(selectedItem);
   return items;
 };
 
@@ -186,7 +186,7 @@ export const setupQuickPick = <T>(items: T[], selectedItem?: T) => {
  * Setup input box with response
  */
 export const setupInputBox = (response?: string) => {
-  (vscode.window.showInputBox as jest.Mock).mockResolvedValue(response);
+  (vscode.window.showInputBox as jest.Mock<any>).mockResolvedValue(response);
 };
 
 // ============================================================================
@@ -199,7 +199,7 @@ export const setupInputBox = (response?: string) => {
 export const setupCommand = (commandId: string) => {
   let handler: ((...args: any[]) => any) | undefined;
   
-  (vscode.commands.registerCommand as jest.Mock).mockImplementation((id: string, h: any) => {
+  (vscode.commands.registerCommand as jest.Mock<any>).mockImplementation((id: string, h: any) => {
     if (id === commandId) {
       handler = h;
     }
@@ -216,7 +216,7 @@ export const setupCommand = (commandId: string) => {
  * Mock command execution
  */
 export const mockCommandExecution = (commandId: string, result?: any) => {
-  (vscode.commands.executeCommand as jest.Mock).mockImplementation((id: string, ...args: any[]) => {
+  (vscode.commands.executeCommand as jest.Mock<any>).mockImplementation((id: string, ...args: any[]) => {
     if (id === commandId) {
       return Promise.resolve(result);
     }
