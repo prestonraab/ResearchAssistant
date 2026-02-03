@@ -2,28 +2,20 @@ import * as vscode from 'vscode';
 import { InlineSearchProvider } from '../ui/inlineSearchProvider';
 import { MCPClientManager, ZoteroItem } from '../mcp/mcpClient';
 import { ManuscriptContextDetector } from '../core/manuscriptContextDetector';
+import { setupTest, createMockZoteroItem } from './helpers';
 
 describe('InlineSearchProvider', () => {
+  setupTest();
+
   let provider: InlineSearchProvider;
   let mockMcpClient: jest.Mocked<MCPClientManager>;
   let mockManuscriptContext: jest.Mocked<ManuscriptContextDetector>;
   let mockContext: jest.Mocked<vscode.ExtensionContext>;
   let mockWorkspaceState: Map<string, any>;
-
-  const mockZoteroItem: ZoteroItem = {
-    itemKey: 'TEST123',
-    title: 'Test Paper Title',
-    authors: ['Smith', 'Jones'],
-    year: 2023,
-    abstract: 'This is a test abstract for the paper.',
-    doi: '10.1234/test',
-  };
+  let mockZoteroItem: ZoteroItem;
 
   beforeEach(() => {
-    // Reset mocks
-    jest.clearAllMocks();
-
-    // Create workspace state mock
+    // Create fresh workspace state for each test
     mockWorkspaceState = new Map();
 
     // Create mock context
@@ -38,15 +30,25 @@ describe('InlineSearchProvider', () => {
       subscriptions: [],
     } as any;
 
+    // Create mock Zotero item using factory
+    mockZoteroItem = createMockZoteroItem({
+      key: 'TEST123',
+      title: 'Test Paper Title',
+      creators: [
+        { firstName: 'John', lastName: 'Smith' },
+        { firstName: 'Jane', lastName: 'Jones' }
+      ],
+      date: '2023',
+      abstractNote: 'This is a test abstract for the paper.',
+      DOI: '10.1234/test'
+    });
+
     // Create mock MCP client with proper jest mock functions
-    const mockSemanticSearch = jest.fn().mockResolvedValue([mockZoteroItem]);
-    const mockGetItemChildren = jest.fn().mockResolvedValue([]);
-    
     mockMcpClient = {
-      zotero: {
-        semanticSearch: mockSemanticSearch,
-        getItemChildren: mockGetItemChildren,
-      },
+      zoteroSemanticSearch: jest.fn().mockResolvedValue([mockZoteroItem]),
+      getItemChildren: jest.fn().mockResolvedValue([]),
+      isConnected: jest.fn().mockReturnValue(true),
+      dispose: jest.fn()
     } as any;
 
     // Create mock manuscript context detector
@@ -55,7 +57,7 @@ describe('InlineSearchProvider', () => {
       dispose: jest.fn(),
     } as any;
 
-    // Create provider
+    // Create provider with fresh mocks
     provider = new InlineSearchProvider(
       mockMcpClient,
       mockManuscriptContext,

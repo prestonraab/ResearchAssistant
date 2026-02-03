@@ -4,6 +4,7 @@ import { ClaimExtractor } from '../core/claimExtractor';
 import { ReadingStatusManager } from '../core/readingStatusManager';
 import { ClaimsManager } from '../core/claimsManagerWrapper';
 import { EmbeddingService } from '@research-assistant/core';
+import { setupTest } from './helpers';
 
 /**
  * Integration tests for ReadingAssistant class.
@@ -17,11 +18,13 @@ import { EmbeddingService } from '@research-assistant/core';
  * Validates: Requirements 5.1, 5.2, 5.3, 16.4
  */
 describe('ReadingAssistant', () => {
+  setupTest();
+
   let readingAssistant: ReadingAssistant;
-  let claimExtractor: ClaimExtractor;
-  let readingStatusManager: ReadingStatusManager;
-  let claimsManager: ClaimsManager;
-  let embeddingService: EmbeddingService;
+  let mockClaimExtractor: jest.Mocked<ClaimExtractor>;
+  let mockReadingStatusManager: jest.Mocked<ReadingStatusManager>;
+  let mockClaimsManager: jest.Mocked<ClaimsManager>;
+  let mockEmbeddingService: jest.Mocked<EmbeddingService>;
   let mockContext: vscode.ExtensionContext;
 
   beforeEach(() => {
@@ -55,17 +58,39 @@ describe('ReadingAssistant', () => {
       languageModelAccessInformation: {} as any
     } as unknown as vscode.ExtensionContext;
 
-    // Initialize services
-    embeddingService = new EmbeddingService('mock-api-key');
-    claimExtractor = new ClaimExtractor(embeddingService);
-    readingStatusManager = new ReadingStatusManager(mockContext);
-    claimsManager = new ClaimsManager('/mock/claims.md');
+    // Create fresh mocks for each test
+    mockEmbeddingService = {
+      generateEmbedding: jest.fn().mockResolvedValue([0.1, 0.2, 0.3]),
+      generateBatch: jest.fn(),
+      cosineSimilarity: jest.fn(),
+      cacheEmbedding: jest.fn(),
+      getCachedEmbedding: jest.fn()
+    } as any;
 
-    // Create reading assistant
+    mockClaimExtractor = {
+      categorizeClaim: jest.fn().mockReturnValue('method'),
+      suggestSections: jest.fn().mockResolvedValue([]),
+      extractClaim: jest.fn()
+    } as any;
+
+    mockReadingStatusManager = {
+      markAsRead: jest.fn().mockResolvedValue(undefined),
+      isRead: jest.fn().mockReturnValue(false),
+      getReadingProgress: jest.fn().mockReturnValue({ read: 0, total: 0 })
+    } as any;
+
+    mockClaimsManager = {
+      saveClaim: jest.fn().mockResolvedValue(undefined),
+      getClaim: jest.fn(),
+      getClaims: jest.fn().mockReturnValue([]),
+      generateClaimId: jest.fn().mockReturnValue('C_01')
+    } as any;
+
+    // Create reading assistant with mocks
     readingAssistant = new ReadingAssistant(
-      claimExtractor,
-      readingStatusManager,
-      claimsManager,
+      mockClaimExtractor,
+      mockReadingStatusManager,
+      mockClaimsManager,
       '/mock/workspace/literature/ExtractedText'
     );
   });

@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
-import { MCPClientManager, ZoteroItem } from '../mcp/mcpClient';
+import { ZoteroApiService, ZoteroItem } from '../services/zoteroApiService';
 import { ManuscriptContextDetector } from '../core/manuscriptContextDetector';
 
 interface RecentSearch {
@@ -27,7 +27,7 @@ export class InlineSearchProvider implements vscode.CompletionItemProvider {
   private context: vscode.ExtensionContext;
 
   constructor(
-    private mcpClient: MCPClientManager,
+    private zoteroApiService: ZoteroApiService,
     private manuscriptContextDetector: ManuscriptContextDetector,
     private workspaceRoot: string,
     private extractedTextPath: string,
@@ -141,8 +141,8 @@ export class InlineSearchProvider implements vscode.CompletionItemProvider {
           enhancedQuery = `${query} ${context.currentSection.title}`;
         }
 
-        // Perform semantic search via Zotero MCP
-        const results = await this.mcpClient.zotero.semanticSearch(enhancedQuery, 10);
+        // Perform semantic search via ZoteroApiService
+        const results = await this.zoteroApiService.semanticSearch(enhancedQuery, 10);
         
         // Cache results
         this.lastQuery = query;
@@ -191,11 +191,10 @@ export class InlineSearchProvider implements vscode.CompletionItemProvider {
     query: string,
     index: number
   ): vscode.CompletionItem {
-    const authors = item.authors.length > 0 
-      ? item.authors[0] + (item.authors.length > 1 ? ' et al.' : '')
-      : 'Unknown';
+    const authors = this.getAuthorsString(item);
+    const year = this.getYear(item);
     
-    const citation = `${authors} (${item.year})`;
+    const citation = `${authors} (${year})`;
     
     const completionItem = new vscode.CompletionItem(
       citation,
@@ -214,14 +213,14 @@ export class InlineSearchProvider implements vscode.CompletionItemProvider {
     documentation.appendMarkdown(`**${item.title}**\n\n`);
     documentation.appendMarkdown(`*${citation}*\n\n`);
     
-    if (item.abstract) {
-      const preview = item.abstract.length > 200 
-        ? item.abstract.substring(0, 200) + '...'
-        : item.abstract;
+    if (item.abstractNote) {
+      const preview = item.abstractNote.length > 200 
+        ? item.abstractNote.substring(0, 200) + '...'
+        : item.abstractNote;
       documentation.appendMarkdown(`${preview}\n\n`);
     }
     
-    documentation.appendMarkdown(`[Open Paper](command:researchAssistant.openPaperFromInlineSearch?${encodeURIComponent(JSON.stringify({ itemKey: item.itemKey, query }))})`);
+    documentation.appendMarkdown(`[Open Paper](command:researchAssistant.openPaperFromInlineSearch?${encodeURIComponent(JSON.stringify({ itemKey: item.key, query }))})`);
     
     completionItem.documentation = documentation;
     
@@ -251,11 +250,10 @@ export class InlineSearchProvider implements vscode.CompletionItemProvider {
     }
 
     const items = this.recentSearches.map((search, index) => {
-      const authors = search.result.authors.length > 0 
-        ? search.result.authors[0] + (search.result.authors.length > 1 ? ' et al.' : '')
-        : 'Unknown';
+      const authors = this.getAuthorsString(search.result);
+      const year = this.getYear(search.result);
       
-      const citation = `${authors} (${search.result.year})`;
+      const citation = `${authors} (${year})`;
       
       const item = new vscode.CompletionItem(
         `Recent: ${search.query}`,
@@ -308,6 +306,33 @@ export class InlineSearchProvider implements vscode.CompletionItemProvider {
   }
 
   /**
+   * Extract authors string from ZoteroItem
+   */
+  private getAuthorsString(item: ZoteroItem): string {
+    if (!item.creators || item.creators.length === 0) {
+      return 'Unknown';
+    }
+
+    const firstCreator = item.creators[0];
+    const authorName = firstCreator.lastName || firstCreator.name || 'Unknown';
+    
+    return item.creators.length > 1 ? `${authorName} et al.` : authorName;
+  }
+
+  /**
+   * Extract year from ZoteroItem date field
+   */
+  private getYear(item: ZoteroItem): string {
+    if (!item.date) {
+      return 'n.d.';
+    }
+
+    // Try to extract year from date string (format can vary)
+    const yearMatch = item.date.match(/\d{4}/);
+    return yearMatch ? yearMatch[0] : 'n.d.';
+  }
+
+  /**
    * Remembers a search for quick access later.
    * Requirement 45.5: Remember recent searches
    */
@@ -355,9 +380,9 @@ export class InlineSearchProvider implements vscode.CompletionItemProvider {
         
         if (choice === 'Extract') {
           // Try to get PDF path from Zotero item children
-          const children = await this.mcpClient.zotero.getItemChildren(itemKey);
-          const pdfAttachment = children.find((child: any) => 
-            child.itemType === 'attachment' && child.contentType === 'application/pdf'
+          const attachments = await this.zoteroApiService.getPdfAttachments(itemKey);
+          const pdfAttachment = attachments.find(attachment => 
+            attachment.contentType === 'application/pdf'
           );
           
           if (pdfAttachment && pdfAttachment.path) {

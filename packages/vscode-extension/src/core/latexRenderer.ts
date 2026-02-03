@@ -11,8 +11,12 @@ import type {
   DocumentParagraph,
   DocumentRun,
   DocumentFootnote,
-  BibliographyEntry
+  BibliographyEntry,
+  DocumentImage,
+  DocumentTable
 } from './documentModel';
+
+import * as path from 'path';
 
 /**
  * Renders a DocumentModel to LaTeX source code
@@ -77,6 +81,9 @@ export class LaTeXRenderer {
 \\usepackage[T1]{fontenc}
 \\usepackage{times}
 \\usepackage[margin=1in]{geometry}
+\\usepackage{graphicx}
+\\usepackage{booktabs}
+\\usepackage{array}
 
 \\title{}
 \\author{}
@@ -126,12 +133,17 @@ export class LaTeXRenderer {
   }
 
   /**
-   * Render a paragraph with text runs and footnote references (4.4)
+   * Render a paragraph with text runs, footnote references, images, and tables (4.4)
    * 
    * @param paragraph The paragraph to render
    * @returns LaTeX source for the paragraph
    */
   private renderParagraph(paragraph: DocumentParagraph): string {
+    // Check if this is a table paragraph
+    if (paragraph.runs.length === 1 && paragraph.runs[0].type === 'table') {
+      return this.renderTable(paragraph.runs[0].table!);
+    }
+
     const parts: string[] = [];
 
     for (const run of paragraph.runs) {
@@ -145,10 +157,98 @@ export class LaTeXRenderer {
           const footnoteContent = this.buildFootnoteContent(footnote);
           parts.push(`\\footnote{${footnoteContent}}`);
         }
+      } else if (run.type === 'image' && run.image) {
+        // Image - insert \includegraphics command
+        parts.push('\n\n');
+        parts.push(this.renderImage(run.image));
+        parts.push('\n\n');
       }
     }
 
     return parts.join('');
+  }
+
+  /**
+   * Render an image as LaTeX figure
+   * 
+   * @param image The image data
+   * @returns LaTeX source for the image
+   */
+  private renderImage(image: DocumentImage): string {
+    const lines: string[] = [];
+    
+    lines.push('\\begin{figure}[htbp]');
+    lines.push('\\centering');
+    
+    // Convert path to relative if needed and escape
+    const imagePath = this.escapeLatex(image.path);
+    
+    // Add width specification if provided
+    if (image.width) {
+      const widthInches = image.width / 72; // Convert pixels to inches (72 DPI)
+      lines.push(`\\includegraphics[width=${widthInches.toFixed(2)}in]{${imagePath}}`);
+    } else {
+      lines.push(`\\includegraphics[width=0.8\\textwidth]{${imagePath}}`);
+    }
+    
+    // Add caption if provided
+    if (image.caption) {
+      lines.push(`\\caption{${this.escapeLatex(image.caption)}}`);
+    }
+    
+    lines.push('\\end{figure}');
+    
+    return lines.join('\n');
+  }
+
+  /**
+   * Render a table as LaTeX tabular environment
+   * 
+   * @param table The table data
+   * @returns LaTeX source for the table
+   */
+  private renderTable(table: DocumentTable): string {
+    if (table.rows.length === 0) {
+      return '';
+    }
+
+    const lines: string[] = [];
+    const numCols = table.rows[0].length;
+    
+    // Start table environment
+    lines.push('\\begin{table}[htbp]');
+    lines.push('\\centering');
+    
+    // Add caption if provided
+    if (table.caption) {
+      lines.push(`\\caption{${this.escapeLatex(table.caption)}}`);
+    }
+    
+    // Start tabular with column specification (left-aligned columns)
+    const colSpec = 'l'.repeat(numCols);
+    lines.push(`\\begin{tabular}{${colSpec}}`);
+    lines.push('\\toprule');
+    
+    // Render rows
+    for (let i = 0; i < table.rows.length; i++) {
+      const row = table.rows[i];
+      const isHeader = table.hasHeader && i === 0;
+      
+      // Escape and join cells with &
+      const cells = row.map(cell => this.escapeLatex(cell));
+      lines.push(cells.join(' & ') + ' \\\\');
+      
+      // Add midrule after header
+      if (isHeader) {
+        lines.push('\\midrule');
+      }
+    }
+    
+    lines.push('\\bottomrule');
+    lines.push('\\end{tabular}');
+    lines.push('\\end{table}');
+    
+    return lines.join('\n');
   }
 
   /**

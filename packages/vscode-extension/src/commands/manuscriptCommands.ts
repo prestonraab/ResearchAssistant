@@ -575,6 +575,7 @@ export function registerManuscriptCommands(
         }
 
         const manuscriptText = fs.readFileSync(manuscriptPath, 'utf-8');
+        const manuscriptUri = vscode.Uri.file(manuscriptPath);
 
         // Prompt for export location
         const uri = await vscode.window.showSaveDialog({
@@ -613,7 +614,8 @@ export function registerManuscriptCommands(
               includeFootnotes: true,
               includeBibliography: true,
               footnoteStyle: 'pandoc',
-              footnoteScope: footnoteScope.value as 'document' | 'section'
+              footnoteScope: footnoteScope.value as 'document' | 'section',
+              manuscriptId: manuscriptUri.toString()
             };
 
             await extensionState!.exportService.exportManuscriptMarkdown(manuscriptText, options);
@@ -651,6 +653,7 @@ export function registerManuscriptCommands(
         }
 
         const manuscriptText = fs.readFileSync(manuscriptPath, 'utf-8');
+        const manuscriptUri = vscode.Uri.file(manuscriptPath);
 
         // Prompt for export location
         const uri = await vscode.window.showSaveDialog({
@@ -676,7 +679,8 @@ export function registerManuscriptCommands(
               includeFootnotes: true,
               includeBibliography: true,
               footnoteStyle: 'native',
-              footnoteScope: 'document'
+              footnoteScope: 'document',
+              manuscriptId: manuscriptUri.toString()
             };
 
             await extensionState!.exportService.exportManuscriptWord(manuscriptText, options);
@@ -712,6 +716,7 @@ export function registerManuscriptCommands(
         }
 
         const manuscriptText = fs.readFileSync(manuscriptPath, 'utf-8');
+        const manuscriptUri = vscode.Uri.file(manuscriptPath);
 
         // Prompt for export location
         const uri = await vscode.window.showSaveDialog({
@@ -737,7 +742,8 @@ export function registerManuscriptCommands(
               includeFootnotes: true,
               includeBibliography: true,
               footnoteStyle: 'native',
-              footnoteScope: 'document'
+              footnoteScope: 'document',
+              manuscriptId: manuscriptUri.toString()
             };
 
             await extensionState!.exportService.exportManuscriptLatex(manuscriptText, options);

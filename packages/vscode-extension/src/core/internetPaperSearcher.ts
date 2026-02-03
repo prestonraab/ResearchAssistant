@@ -1,7 +1,6 @@
 import * as vscode from 'vscode';
 import * as https from 'https';
 import * as http from 'http';
-import { MCPClientManager, ZoteroItem } from '../mcp/mcpClient';
 
 /**
  * Represents a paper found from external sources
@@ -23,15 +22,14 @@ export interface ExternalPaper {
  * and import them into Zotero.
  * 
  * Requirements: 47.1, 47.2, 47.3, 47.4, 47.5
+ * 
+ * No MCP dependencies - operates independently using public APIs
  */
 export class InternetPaperSearcher {
   private readonly SEARCH_TIMEOUT = 10000; // 10 seconds
   private readonly MAX_RESULTS = 10;
 
-  constructor(
-    private mcpClient: MCPClientManager,
-    private workspaceRoot: string
-  ) {}
+  constructor(private workspaceRoot: string) {}
 
   /**
    * Search external sources for papers
@@ -376,24 +374,12 @@ export class InternetPaperSearcher {
   /**
    * Extract fulltext after import
    * Requirement 47.5: Auto-trigger fulltext extraction after import
+   * 
+   * Triggers the extraction command which will handle PDF lookup and extraction
    */
   public async extractFulltext(itemKey: string): Promise<void> {
     try {
-      // Check if PDF is available
-      const children = await this.mcpClient.zotero.getItemChildren(itemKey);
-      const pdfAttachment = children.find((child: any) => 
-        child.contentType === 'application/pdf'
-      );
-
-      if (!pdfAttachment) {
-        vscode.window.showWarningMessage(
-          'No PDF attachment found. Please attach PDF in Zotero first.',
-          'Open Zotero'
-        );
-        return;
-      }
-
-      // Trigger extraction via command
+      // Trigger extraction via command - the command will handle PDF lookup
       await vscode.commands.executeCommand(
         'researchAssistant.extractPdfForItem',
         itemKey

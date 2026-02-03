@@ -12,7 +12,14 @@ import {
   HeadingLevel,
   FootnoteReferenceRun,
   Packer,
-  convertInchesToTwip
+  convertInchesToTwip,
+  ImageRun,
+  Table,
+  TableRow,
+  TableCell,
+  WidthType,
+  BorderStyle,
+  AlignmentType
 } from 'docx';
 
 import type {
@@ -21,8 +28,13 @@ import type {
   DocumentParagraph,
   DocumentRun,
   DocumentFootnote,
-  BibliographyEntry
+  BibliographyEntry,
+  DocumentImage,
+  DocumentTable
 } from './documentModel';
+
+import * as fs from 'fs';
+import * as path from 'path';
 
 /**
  * Configuration for Word document styles
@@ -121,26 +133,31 @@ export class WordRenderer {
    * @param model The document model
    * @returns Array of Word Paragraph objects
    */
-  private buildContent(model: DocumentModel): Paragraph[] {
-    const paragraphs: Paragraph[] = [];
+  private buildContent(model: DocumentModel): Array<Paragraph | Table> {
+    const content: Array<Paragraph | Table> = [];
 
     // Render sections and their content
     for (const section of model.sections) {
       // Add heading paragraph (6.2)
-      paragraphs.push(this.createHeadingParagraph(section.heading, section.level));
+      content.push(this.createHeadingParagraph(section.heading, section.level));
 
       // Add section paragraphs (6.3)
       for (const paragraph of section.paragraphs) {
-        paragraphs.push(this.createBodyParagraph(paragraph));
+        const result = this.createBodyContent(paragraph);
+        if (Array.isArray(result)) {
+          content.push(...result);
+        } else {
+          content.push(result);
+        }
       }
     }
 
     // Add bibliography section if included (6.5)
     if (model.metadata.includeBibliography && model.bibliography.length > 0) {
-      paragraphs.push(...this.createBibliographySection(model.bibliography));
+      content.push(...this.createBibliographySection(model.bibliography));
     }
 
-    return paragraphs;
+    return content;
   }
 
   /**
@@ -193,6 +210,176 @@ export class WordRenderer {
       default:
         return WORD_STYLES.heading1;
     }
+  }
+
+  /**
+   * Create body content from a paragraph (may include text, images, or tables)
+   * 
+   * @param paragraph The document paragraph
+   * @returns Paragraph, Table, or array of mixed content
+   */
+  private createBodyContent(paragraph: DocumentParagraph): Paragraph | Table | Array<Paragraph | Table> {
+    // Check if this is a table paragraph
+    if (paragraph.runs.length === 1 && paragraph.runs[0].type === 'table') {
+      return this.createTable(paragraph.runs[0].table!);
+    }
+    
+    // Check if paragraph contains images
+    const hasImages = paragraph.runs.some(run => run.type === 'image');
+    
+    if (hasImages) {
+      // Split into multiple paragraphs if needed
+      const content: Array<Paragraph | Table> = [];
+      let currentRuns: (TextRun | FootnoteReferenceRun | ImageRun)[] = [];
+      
+      for (const run of paragraph.runs) {
+        if (run.type === 'image') {
+          // Flush current runs as a paragraph
+          if (currentRuns.length > 0) {
+            content.push(new Paragraph({
+              children: currentRuns,
+              spacing: {
+                line: 480,
+                lineRule: 'auto'
+              }
+            }));
+            currentRuns = [];
+          }
+          
+          // Add image as its own paragraph
+          const imageRun = this.createImageRun(run.image!);
+          if (imageRun) {
+            content.push(new Paragraph({
+              children: [imageRun],
+              spacing: {
+                before: 200,
+                after: 200
+              }
+            }));
+          }
+        } else if (run.type === 'text') {
+          currentRuns.push(
+            new TextRun({
+              text: run.content,
+              font: WORD_STYLES.body.font,
+              size: WORD_STYLES.body.size
+            })
+          );
+        } else if (run.type === 'footnote-ref' && run.footnoteId !== undefined) {
+          currentRuns.push(new FootnoteReferenceRun(run.footnoteId));
+        }
+      }
+      
+      // Flush remaining runs
+      if (currentRuns.length > 0) {
+        content.push(new Paragraph({
+          children: currentRuns,
+          spacing: {
+            line: 480,
+            lineRule: 'auto'
+          }
+        }));
+      }
+      
+      return content;
+    }
+    
+    // Regular paragraph with text and footnotes
+    return this.createBodyParagraph(paragraph);
+  }
+
+  /**
+   * Create an image run from DocumentImage
+   * 
+   * @param image The image data
+   * @returns ImageRun or null if image file not found
+   */
+  private createImageRun(image: DocumentImage): ImageRun | null {
+    try {
+      // Check if file exists
+      if (!fs.existsSync(image.path)) {
+        console.warn(`Image file not found: ${image.path}`);
+        return null;
+      }
+      
+      // Read image data
+      const imageData = fs.readFileSync(image.path);
+      
+      // Determine image dimensions (use provided or default)
+      const width = image.width || 600;
+      const height = image.height || 400;
+      
+      // Determine image type from extension
+      const ext = path.extname(image.path).toLowerCase();
+      const imageType = ext === '.png' ? 'png' : 'jpg';
+      
+      return new ImageRun({
+        data: imageData,
+        transformation: {
+          width,
+          height
+        },
+        type: imageType
+      });
+    } catch (error) {
+      console.error(`Error loading image ${image.path}:`, error);
+      return null;
+    }
+  }
+
+  /**
+   * Create a Word table from DocumentTable
+   * 
+   * @param table The table data
+   * @returns Table object
+   */
+  private createTable(table: DocumentTable): Table {
+    const rows: TableRow[] = [];
+    
+    for (let i = 0; i < table.rows.length; i++) {
+      const rowData = table.rows[i];
+      const isHeader = table.hasHeader && i === 0;
+      
+      const cells = rowData.map(cellText => 
+        new TableCell({
+          children: [
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: cellText,
+                  font: WORD_STYLES.body.font,
+                  size: WORD_STYLES.body.size,
+                  bold: isHeader
+                })
+              ]
+            })
+          ],
+          shading: isHeader ? {
+            fill: 'D9D9D9' // Light gray for header
+          } : undefined
+        })
+      );
+      
+      rows.push(new TableRow({
+        children: cells
+      }));
+    }
+    
+    return new Table({
+      rows,
+      width: {
+        size: 100,
+        type: WidthType.PERCENTAGE
+      },
+      borders: {
+        top: { style: BorderStyle.SINGLE, size: 1 },
+        bottom: { style: BorderStyle.SINGLE, size: 1 },
+        left: { style: BorderStyle.SINGLE, size: 1 },
+        right: { style: BorderStyle.SINGLE, size: 1 },
+        insideHorizontal: { style: BorderStyle.SINGLE, size: 1 },
+        insideVertical: { style: BorderStyle.SINGLE, size: 1 }
+      }
+    });
   }
 
   /**

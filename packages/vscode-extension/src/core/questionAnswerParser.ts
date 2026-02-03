@@ -1,6 +1,11 @@
 /**
  * QuestionAnswerParser - Parses manuscript with embedded questions/answers
  * Extracts question-answer pairs with status and associated claims
+ * 
+ * Supports two formats:
+ * 1. Legacy format: **Question?** <!-- [STATUS] --> Answer <!-- Source: C_01 -->
+ * 2. Obsidian format: > [!question]- Question? (status:: STATUS)
+ *                     > Answer [source:: C_01]
  */
 
 import { SentenceParser } from './sentenceParser';
@@ -17,15 +22,17 @@ export interface QuestionAnswerPair {
   question: string;
   status: 'ANSWERED' | 'RESEARCH NEEDED' | 'PARTIAL' | 'UNKNOWN';
   answer: string;
-  claims: string[]; // Claim IDs from Source comments
+  claims: string[]; // Claim IDs from source inline fields
   section: string; // Section header this belongs to
   position: number; // Line number in manuscript
   linkedSources?: LinkedSource[]; // Linked sources with quotes for citation
+  format?: 'legacy' | 'obsidian'; // Track which format this pair uses
 }
 
 export class QuestionAnswerParser {
   /**
    * Parse manuscript into question-answer pairs
+   * Supports both legacy and Obsidian callout formats
    */
   parseManuscript(text: string): QuestionAnswerPair[] {
     const pairs: QuestionAnswerPair[] = [];
@@ -43,7 +50,33 @@ export class QuestionAnswerParser {
         continue;
       }
       
-      // Look for question pattern: **Question text?** <!-- [STATUS] -->
+      // Try Obsidian callout format first: > [!question]- Question text? (status:: STATUS)
+      const calloutMatch = line.match(/^>\s*\[!question\][-+]?\s*(.+?)(?:\s*\(status::\s*([^)]+)\))?$/);
+      
+      if (calloutMatch) {
+        const question = calloutMatch[1].trim();
+        const status = this.parseStatus(calloutMatch[2]?.trim() || 'UNKNOWN');
+        
+        // Collect answer from following callout lines
+        const { answer, claims, endLine } = this.collectCalloutAnswer(lines, i + 1);
+        
+        pairs.push({
+          id: `QA_${pairIndex}`,
+          question,
+          status,
+          answer,
+          claims,
+          section: currentSection,
+          position: i,
+          format: 'obsidian'
+        });
+        
+        pairIndex++;
+        i = endLine;
+        continue;
+      }
+      
+      // Fall back to legacy format: **Question text?** <!-- [STATUS] -->
       const questionMatch = line.match(/^\*\*(.+?)\*\*\s*<!--\s*\[([^\]]+)\]\s*-->/);
       
       if (questionMatch) {
@@ -63,7 +96,8 @@ export class QuestionAnswerParser {
           answer,
           claims,
           section: currentSection,
-          position: i
+          position: i,
+          format: 'legacy'
         });
         
         pairIndex++;
@@ -75,18 +109,66 @@ export class QuestionAnswerParser {
   }
   
   /**
-   * Parse status from comment
+   * Parse status from comment or inline field
    */
   private parseStatus(statusText: string): 'ANSWERED' | 'RESEARCH NEEDED' | 'PARTIAL' | 'UNKNOWN' {
+    if (!statusText) return 'UNKNOWN';
     const upper = statusText.toUpperCase();
     if (upper.includes('ANSWERED')) return 'ANSWERED';
-    if (upper.includes('RESEARCH NEEDED')) return 'RESEARCH NEEDED';
+    if (upper.includes('RESEARCH NEEDED') || upper.includes('RESEARCH_NEEDED')) return 'RESEARCH NEEDED';
     if (upper.includes('PARTIAL')) return 'PARTIAL';
     return 'UNKNOWN';
   }
   
   /**
-   * Collect answer text and claims from following lines
+   * Collect answer from Obsidian callout lines (lines starting with >)
+   * Extracts claims from [source:: C_XX] inline fields
+   */
+  private collectCalloutAnswer(lines: string[], startLine: number): { answer: string; claims: string[]; endLine: number } {
+    let answer = '';
+    const claims: string[] = [];
+    let i = startLine;
+    
+    while (i < lines.length) {
+      const line = lines[i];
+      const trimmed = line.trim();
+      
+      // Stop if we hit a non-callout line (doesn't start with >)
+      if (!trimmed.startsWith('>')) {
+        break;
+      }
+      
+      // Remove the > prefix and any leading space
+      let content = trimmed.replace(/^>\s*/, '');
+      
+      // Skip empty callout lines
+      if (content.length === 0) {
+        i++;
+        continue;
+      }
+      
+      // Extract claims from [source:: C_XX] inline fields
+      const sourceMatches = content.matchAll(/\[source::\s*([^\]]+)\]/g);
+      for (const match of sourceMatches) {
+        const claimIds = this.extractClaimIds(match[1]);
+        claims.push(...claimIds);
+      }
+      
+      // Remove inline fields from display text but keep for storage
+      // Store original with inline fields
+      if (answer) {
+        answer += ' ';
+      }
+      answer += content;
+      
+      i++;
+    }
+    
+    return { answer: answer.trim(), claims, endLine: i - 1 };
+  }
+  
+  /**
+   * Collect answer text and claims from following lines (legacy format)
    * Keeps Source comments in answer text for sentence-level parsing
    */
   private collectAnswer(lines: string[], startLine: number, initialText: string = ''): { answer: string; claims: string[]; endLine: number } {
@@ -94,19 +176,29 @@ export class QuestionAnswerParser {
     const claims: string[] = [];
     let i = startLine + 1; // Start from next line
     
-    // Extract claims from initial text but keep comment in text for sentence parsing
-    const initialSourceMatch = initialText.match(/<!--\s*Source:\s*([^-]+?)-->/);
-    if (initialSourceMatch) {
-      const claimIds = this.extractClaimIds(initialSourceMatch[1]);
+    // Extract claims from initial text (both legacy and new format)
+    const initialLegacyMatch = initialText.match(/<!--\s*Source:\s*([^-]+?)-->/);
+    if (initialLegacyMatch) {
+      const claimIds = this.extractClaimIds(initialLegacyMatch[1]);
       claims.push(...claimIds);
       answer = initialText.trim();
+    }
+    
+    // Also check for new inline field format
+    const initialInlineMatches = initialText.matchAll(/\[source::\s*([^\]]+)\]/g);
+    for (const match of initialInlineMatches) {
+      const claimIds = this.extractClaimIds(match[1]);
+      claims.push(...claimIds);
     }
     
     while (i < lines.length) {
       const line = lines[i].trim();
       
-      // Stop at next question or section header
-      if (line.match(/^\*\*(.+?)\*\*\s*<!--/) || line.startsWith('#') || line === '---') {
+      // Stop at next question (either format), section header, or callout
+      if (line.match(/^\*\*(.+?)\*\*\s*<!--/) || 
+          line.match(/^>\s*\[!question\]/) ||
+          line.startsWith('#') || 
+          line === '---') {
         break;
       }
       
@@ -116,14 +208,21 @@ export class QuestionAnswerParser {
         continue;
       }
       
-      // Extract claims from Source comments
+      // Extract claims from legacy Source comments
       const sourceMatch = line.match(/<!--\s*Source:\s*([^-]+?)-->/);
       if (sourceMatch) {
         const claimIds = this.extractClaimIds(sourceMatch[1]);
         claims.push(...claimIds);
       }
       
-      // Keep line with Source comments for sentence parsing
+      // Extract claims from new inline field format
+      const inlineMatches = line.matchAll(/\[source::\s*([^\]]+)\]/g);
+      for (const match of inlineMatches) {
+        const claimIds = this.extractClaimIds(match[1]);
+        claims.push(...claimIds);
+      }
+      
+      // Keep line with Source comments/inline fields for sentence parsing
       if (line.length > 0) {
         answer += (answer ? ' ' : '') + line;
       }
@@ -151,7 +250,7 @@ export class QuestionAnswerParser {
   
   /**
    * Reconstruct manuscript from question-answer pairs
-   * Uses new format with sentence-level claim attribution
+   * Uses Obsidian callout format with inline fields
    */
   reconstructManuscript(pairs: QuestionAnswerPair[]): string {
     let output = '';
@@ -169,12 +268,71 @@ export class QuestionAnswerParser {
         currentSection = pair.section;
       }
       
-      // Add question with status
+      // Use Obsidian callout format
+      // > [!question]- Question text? (status:: STATUS)
+      output += `> [!question]- ${trimmedQuestion} (status:: ${pair.status})\n`;
+      
+      // Convert answer to callout lines
+      // Split answer into sentences/lines and prefix with >
+      const answerLines = this.formatAnswerAsCallout(trimmedAnswer);
+      output += answerLines;
+      
+      output += '\n\n';
+    }
+    
+    return output;
+  }
+  
+  /**
+   * Format answer text as callout lines (prefixed with >)
+   * Converts legacy <!-- Source: --> to [source:: ] inline fields
+   */
+  private formatAnswerAsCallout(answer: string): string {
+    // Convert legacy Source comments to inline fields
+    let converted = answer.replace(/<!--\s*Source:\s*([^-]+?)-->/g, '[source:: $1]');
+    
+    // Split into reasonable line lengths for readability
+    // Keep sentences together when possible
+    const sentences = converted.split(/(?<=[.!?])\s+/);
+    const lines: string[] = [];
+    let currentLine = '';
+    
+    for (const sentence of sentences) {
+      if (currentLine.length + sentence.length > 100 && currentLine.length > 0) {
+        lines.push('> ' + currentLine.trim());
+        currentLine = sentence;
+      } else {
+        currentLine += (currentLine ? ' ' : '') + sentence;
+      }
+    }
+    
+    if (currentLine.trim()) {
+      lines.push('> ' + currentLine.trim());
+    }
+    
+    return lines.join('\n');
+  }
+  
+  /**
+   * Reconstruct manuscript in legacy format (for backward compatibility)
+   */
+  reconstructManuscriptLegacy(pairs: QuestionAnswerPair[]): string {
+    let output = '';
+    let currentSection = '';
+    
+    for (const pair of pairs) {
+      const trimmedQuestion = pair.question.trim();
+      const trimmedAnswer = pair.answer.trim();
+
+      if (pair.section !== currentSection) {
+        if (output) output += '\n\n';
+        output += `## ${pair.section}\n\n`;
+        currentSection = pair.section;
+      }
+      
+      // Legacy format
       output += `**${trimmedQuestion}** <!-- [${pair.status}] --> `;
-      
-      // Add answer (already contains Source comments in the right places)
       output += trimmedAnswer;
-      
       output += '\n\n';
     }
     
@@ -182,61 +340,42 @@ export class QuestionAnswerParser {
   }
 
   /**
-   * Detect if manuscript uses old format (claims at Q&A level) vs new format (claims at sentence level)
+   * Detect if manuscript uses old format (legacy HTML comments) vs new format (Obsidian callouts)
    */
   isOldFormat(text: string): boolean {
-    // The current format already has Source comments after specific sentences - this is the NEW format
-    // Old format would have had claims only in the Q&A pair metadata, not in the answer text
-    // Since we're seeing Source comments in the text, this is actually the new format
-    // Return false to skip migration
-    return false;
+    // Check for legacy format markers
+    const hasLegacyQuestions = /\*\*[^*]+\*\*\s*<!--\s*\[[^\]]+\]\s*-->/.test(text);
+    const hasLegacySources = /<!--\s*Source:\s*[^-]+?-->/.test(text);
+    const hasCallouts = /^>\s*\[!question\]/m.test(text);
+    
+    // If it has callouts, it's new format
+    if (hasCallouts) {
+      return false;
+    }
+    
+    // If it has legacy markers, it's old format
+    return hasLegacyQuestions || hasLegacySources;
   }
 
   /**
-   * Migrate manuscript from old format to new format
-   * Old format: Claims listed once per Q&A pair
-   * New format: Claims associated with specific sentences
+   * Migrate manuscript from legacy format to Obsidian callout format
+   * Legacy: **Question?** <!-- [STATUS] --> Answer <!-- Source: C_01 -->
+   * New: > [!question]- Question? (status:: STATUS)
+   *      > Answer [source:: C_01]
    */
   migrateToNewFormat(text: string): string {
-    // Parse the manuscript in old format
+    // Parse the manuscript (handles both formats)
     const pairs = this.parseManuscript(text);
     
-    // For each pair, distribute claims across all sentences in the answer
-    for (const pair of pairs) {
-      if (pair.claims.length === 0) {
-        continue; // No claims to distribute
-      }
-      
-      // Parse the answer into sentences
-      const sentenceParser = new SentenceParser();
-      const sentences = sentenceParser.parseSentences(pair.answer, `qa_${pair.id}`);
-      
-      if (sentences.length === 0) {
-        continue;
-      }
-      
-      // Strategy: Attach all claims to the LAST sentence of the answer
-      // This preserves the semantic meaning that claims support the entire answer
-      const claimComment = ` <!-- Source: ${pair.claims.join(', ')} -->`;
-      
-      // Reconstruct the answer with the claim comment after the last sentence
-      let newAnswer = '';
-      for (let i = 0; i < sentences.length; i++) {
-        if (i > 0) {
-          newAnswer += ' ';
-        }
-        newAnswer += sentences[i].text;
-        
-        // Add claim comment after the last sentence
-        if (i === sentences.length - 1) {
-          newAnswer += claimComment;
-        }
-      }
-      
-      pair.answer = newAnswer;
-    }
-    
-    // Reconstruct the manuscript
+    // Reconstruct using new Obsidian format
     return this.reconstructManuscript(pairs);
+  }
+  
+  /**
+   * Migrate a single Q&A pair's answer from legacy to new format
+   * Converts <!-- Source: C_XX --> to [source:: C_XX]
+   */
+  migrateAnswerFormat(answer: string): string {
+    return answer.replace(/<!--\s*Source:\s*([^-]+?)-->/g, '[source:: $1]');
   }
 }

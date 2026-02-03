@@ -2,37 +2,33 @@ import { QuoteVerificationService, QuoteVerificationResult, BatchVerificationRes
 import { MCPClientManager, VerificationResult } from '../../mcp/mcpClient';
 import { ClaimsManager } from '../claimsManagerWrapper';
 import type { Claim } from '@research-assistant/core';
+import { setupTest, createMockClaim, createMockVerificationResult } from '../../__tests__/helpers';
 
 // Mock the dependencies
 jest.mock('../../mcp/mcpClient');
 jest.mock('../claimsManagerWrapper');
 
 describe('QuoteVerificationService', () => {
+  setupTest();
+
   let service: QuoteVerificationService;
   let mockMcpClient: jest.Mocked<MCPClientManager>;
   let mockClaimsManager: jest.Mocked<ClaimsManager>;
 
   beforeEach(() => {
-    // Create mock instances
     mockMcpClient = new MCPClientManager() as jest.Mocked<MCPClientManager>;
     mockClaimsManager = new ClaimsManager('test.md') as jest.Mocked<ClaimsManager>;
-    
-    // Create service instance
     service = new QuoteVerificationService(mockMcpClient, mockClaimsManager);
-  });
-
-  afterEach(() => {
-    jest.clearAllMocks();
   });
 
   describe('verifyQuote', () => {
     it('should verify a quote successfully', async () => {
       const quote = 'This is a test quote';
       const authorYear = 'Johnson2007';
-      const expectedResult: VerificationResult = {
+      const expectedResult = createMockVerificationResult({
         verified: true,
         similarity: 1.0
-      };
+      });
 
       mockMcpClient.verifyQuote = jest.fn().mockResolvedValue(expectedResult);
 
@@ -45,12 +41,12 @@ describe('QuoteVerificationService', () => {
     it('should return closest match when verification fails', async () => {
       const quote = 'This is a test quote';
       const authorYear = 'Johnson2007';
-      const expectedResult: VerificationResult = {
+      const expectedResult = createMockVerificationResult({
         verified: false,
         similarity: 0.85,
         closestMatch: 'This is a similar quote',
         context: 'surrounding context'
-      };
+      });
 
       mockMcpClient.verifyQuote = jest.fn().mockResolvedValue(expectedResult);
 
@@ -81,25 +77,19 @@ describe('QuoteVerificationService', () => {
 
   describe('verifyClaim', () => {
     it('should verify a claim successfully', async () => {
-      const claim: Claim = {
+      const claim = createMockClaim({
         id: 'C_01',
         text: 'Test claim',
         category: 'Method',
         source: 'Johnson2007',
         sourceId: 1,
-        context: 'Test context',
-        primaryQuote: 'This is a test quote',
-        supportingQuotes: [],
-        sections: [],
-        verified: false,
-        createdAt: new Date(),
-        modifiedAt: new Date()
-      };
+        primaryQuote: { text: 'This is a test quote', source: 'Johnson2007', verified: false }
+      });
 
-      const verificationResult: VerificationResult = {
+      const verificationResult = createMockVerificationResult({
         verified: true,
         similarity: 1.0
-      };
+      });
 
       mockClaimsManager.getClaim = jest.fn().mockReturnValue(claim);
       mockMcpClient.verifyQuote = jest.fn().mockResolvedValue(verificationResult);

@@ -16,7 +16,10 @@
     "Other"
   ],
   "activationEvents": [
-    "onLanguage:markdown"
+    "onCommand:researchAssistant.activate",
+    "onCommand:researchAssistant.openWritingMode",
+    "onCommand:researchAssistant.openEditingMode",
+    "onView:researchAssistant.outline"
   ],
   "main": "./dist/extension.js",
   "contributes": {
@@ -210,6 +213,21 @@
         "command": "researchAssistant.showReadingStatistics",
         "title": "Research Assistant: Show Reading Statistics",
         "icon": "$(graph)"
+      },
+      {
+        "command": "researchAssistant.importZoteroHighlights",
+        "title": "Research Assistant: Import Highlights from Zotero",
+        "icon": "$(cloud-download)"
+      },
+      {
+        "command": "researchAssistant.syncZoteroHighlights",
+        "title": "Research Assistant: Sync Zotero Highlights",
+        "icon": "$(sync)"
+      },
+      {
+        "command": "researchAssistant.jumpToPDF",
+        "title": "Jump to PDF in Zotero",
+        "icon": "$(link-external)"
       }
     ],
     "viewsContainers": {
@@ -292,6 +310,16 @@
           "group": "navigation@1"
         },
         {
+          "command": "researchAssistant.importZoteroHighlights",
+          "when": "view == researchAssistant.papers",
+          "group": "navigation@1b"
+        },
+        {
+          "command": "researchAssistant.syncZoteroHighlights",
+          "when": "view == researchAssistant.papers",
+          "group": "navigation@1c"
+        },
+        {
           "command": "researchAssistant.showReadingStatistics",
           "when": "view == researchAssistant.papers",
           "group": "navigation@2"
@@ -362,6 +390,16 @@
           "command": "researchAssistant.markPaperDeeplyRead",
           "when": "view == researchAssistant.papers && (viewItem == pdfExtracted || viewItem == extractedOnly)",
           "group": "2_reading@6"
+        },
+        {
+          "command": "researchAssistant.importZoteroHighlights",
+          "when": "view == researchAssistant.papers && (viewItem == pdfExtracted || viewItem == extractedOnly)",
+          "group": "3_zotero@1"
+        },
+        {
+          "command": "researchAssistant.jumpToPDF",
+          "when": "view == researchAssistant.papers && (viewItem == pdfExtracted || viewItem == extractedOnly)",
+          "group": "3_zotero@2"
         }
       ]
     },
@@ -481,6 +519,11 @@
           "default": "",
           "description": "Zotero API key (optional, for private libraries). Get it from https://www.zotero.org/settings/keys",
           "markdownDescription": "Zotero API key (optional, for private libraries). [Get it here](https://www.zotero.org/settings/keys)"
+        },
+        "researchAssistant.autoActivate": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically activate Research Assistant when a research workspace is detected"
         }
       }
     }

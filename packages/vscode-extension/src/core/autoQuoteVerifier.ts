@@ -1,10 +1,16 @@
 import * as vscode from 'vscode';
 import type { Claim } from '@research-assistant/core';
 import { ClaimsManager } from './claimsManagerWrapper';
-import { MCPClientManager, VerificationResult } from '../mcp/mcpClient';
 import { getLogger } from './loggingService';
 import { UnifiedQuoteSearch } from '../services/unifiedQuoteSearch';
 import { LiteratureIndexer } from '../services/literatureIndexer';
+
+interface VerificationResult {
+  verified: boolean;
+  similarity: number;
+  closestMatch?: string;
+  context?: string;
+}
 
 interface VerificationQueueItem {
   claim: Claim;
@@ -28,8 +34,7 @@ export class AutoQuoteVerifier {
   private unifiedQuoteSearch: UnifiedQuoteSearch;
 
   constructor(
-    private claimsManager: ClaimsManager,
-    private mcpClient: MCPClientManager
+    private claimsManager: ClaimsManager
   ) {
     this.logger.info('AutoQuoteVerifier initialized');
     
@@ -99,7 +104,7 @@ export class AutoQuoteVerifier {
 
     try {
       while (this.verificationQueue.length > 0) {
-        // Process in batches to avoid overwhelming the MCP server
+        // Process in batches to avoid overwhelming the system
         const batch = this.verificationQueue.splice(0, this.BATCH_SIZE);
         
         this.logger.debug(`Processing batch of ${batch.length} verifications`);
@@ -331,10 +336,16 @@ export class AutoQuoteVerifier {
     try {
       this.logger.info(`Manual verification requested for ${claimId}`);
       
-      const result = await this.mcpClient.citation.verifyQuote(
-        claim.primaryQuote.text,
-        claim.primaryQuote.source
-      );
+      // Use unified quote search to find best match
+      const results = await this.unifiedQuoteSearch.search(claim.primaryQuote.text, 5);
+      
+      // Create verification result
+      const verified = results.length > 0 && results[0].similarity >= 0.9;
+      const result: VerificationResult = {
+        verified,
+        similarity: results.length > 0 ? results[0].similarity : 0,
+        closestMatch: results.length > 0 ? results[0].matchedText : undefined
+      };
 
       await this.updateVerificationStatus(claimId, result);
       

@@ -7,6 +7,7 @@ import { SentenceClaimQuoteLinkManager } from './sentenceClaimQuoteLinkManager';
 import { ClaimsManager } from './claimsManagerWrapper';
 import { WordRenderer } from './wordRenderer';
 import { LaTeXRenderer } from './latexRenderer';
+import { SentenceParser, Sentence } from './sentenceParser';
 import type {
   DocumentModel,
   DocumentSection,
@@ -14,7 +15,9 @@ import type {
   DocumentRun,
   DocumentFootnote,
   BibliographyEntry,
-  DocumentMetadata
+  DocumentMetadata,
+  DocumentImage,
+  DocumentTable
 } from './documentModel';
 
 export type ExportFormat = 'markdown' | 'csv' | 'json';
@@ -25,6 +28,7 @@ export interface ManuscriptExportOptions {
   includeBibliography?: boolean;
   footnoteStyle?: 'pandoc' | 'native'; // pandoc for markdown, native for Word
   footnoteScope?: 'document' | 'section'; // continuous or per-section numbering
+  manuscriptId?: string; // Document URI for sentence ID generation
 }
 
 export interface ExportOptions {
@@ -48,7 +52,8 @@ export interface CitedQuote {
 export class ExportService {
   constructor(
     private sentenceClaimQuoteLinkManager?: SentenceClaimQuoteLinkManager,
-    private claimsManager?: ClaimsManager
+    private claimsManager?: ClaimsManager,
+    private sentenceParser?: SentenceParser
   ) {}
 
   /**
@@ -266,6 +271,7 @@ export class ExportService {
     const allCitations: CitedQuote[] = [];
     const footnotes: DocumentFootnote[] = [];
     let footnoteIndex = 1;
+    const manuscriptId = options.manuscriptId || 'default';
 
     // Process each section
     for (const section of sections) {
@@ -274,38 +280,143 @@ export class ExportService {
 
       // Process each paragraph in the section
       for (const paragraphText of section.paragraphs) {
-        const runs: DocumentRun[] = [];
-        const sentences = this.parseSentences(paragraphText);
-
-        // Process each sentence
-        for (const sentence of sentences) {
-          // Add text run for the sentence
-          runs.push({ type: 'text', content: sentence.text });
-
-          // Collect citations for this sentence if footnotes are enabled
-          if (options.includeFootnotes !== false) {
-            const citations = await this.collectCitationsForSentence(sentence.id);
-            
-            for (const citation of citations) {
-              allCitations.push(citation);
-              
-              // Create footnote entry
-              const footnote: DocumentFootnote = {
-                id: footnoteIndex,
-                quoteText: citation.quoteText,
-                source: citation.source,
-                year: citation.year
-              };
-              footnotes.push(footnote);
-              
-              // Add footnote reference run
-              runs.push({
-                type: 'footnote-ref',
+        // Check if this paragraph is a table
+        if (this.isMarkdownTable(paragraphText)) {
+          const table = this.parseMarkdownTable(paragraphText);
+          if (table) {
+            paragraphs.push({
+              runs: [{
+                type: 'table',
                 content: '',
-                footnoteId: footnoteIndex
-              });
+                table
+              }]
+            });
+            continue;
+          }
+        }
+
+        const runs: DocumentRun[] = [];
+        
+        // Check for images in the paragraph
+        const images = this.parseMarkdownImages(paragraphText);
+        
+        if (images.length > 0) {
+          // Split paragraph by images
+          let lastIndex = 0;
+          
+          for (const { match, image, index } of images) {
+            // Add text before image
+            if (index > lastIndex) {
+              const textBefore = paragraphText.substring(lastIndex, index);
+              const sentences = this.parseSentencesWithParser(textBefore, manuscriptId);
               
-              footnoteIndex++;
+              for (const sentence of sentences) {
+                runs.push({ type: 'text', content: sentence.text });
+                
+                // Collect citations for this sentence if footnotes are enabled
+                if (options.includeFootnotes !== false) {
+                  const citations = await this.collectCitationsForSentence(sentence.id);
+                  
+                  for (const citation of citations) {
+                    allCitations.push(citation);
+                    
+                    const footnote: DocumentFootnote = {
+                      id: footnoteIndex,
+                      quoteText: citation.quoteText,
+                      source: citation.source,
+                      year: citation.year
+                    };
+                    footnotes.push(footnote);
+                    
+                    runs.push({
+                      type: 'footnote-ref',
+                      content: '',
+                      footnoteId: footnoteIndex
+                    });
+                    
+                    footnoteIndex++;
+                  }
+                }
+              }
+            }
+            
+            // Add image
+            runs.push({
+              type: 'image',
+              content: '',
+              image
+            });
+            
+            lastIndex = index + match.length;
+          }
+          
+          // Add remaining text after last image
+          if (lastIndex < paragraphText.length) {
+            const textAfter = paragraphText.substring(lastIndex);
+            const sentences = this.parseSentencesWithParser(textAfter, manuscriptId);
+            
+            for (const sentence of sentences) {
+              runs.push({ type: 'text', content: sentence.text });
+              
+              if (options.includeFootnotes !== false) {
+                const citations = await this.collectCitationsForSentence(sentence.id);
+                
+                for (const citation of citations) {
+                  allCitations.push(citation);
+                  
+                  const footnote: DocumentFootnote = {
+                    id: footnoteIndex,
+                    quoteText: citation.quoteText,
+                    source: citation.source,
+                    year: citation.year
+                  };
+                  footnotes.push(footnote);
+                  
+                  runs.push({
+                    type: 'footnote-ref',
+                    content: '',
+                    footnoteId: footnoteIndex
+                  });
+                  
+                  footnoteIndex++;
+                }
+              }
+            }
+          }
+        } else {
+          // No images, process normally
+          const sentences = this.parseSentencesWithParser(paragraphText, manuscriptId);
+
+          // Process each sentence
+          for (const sentence of sentences) {
+            // Add text run for the sentence
+            runs.push({ type: 'text', content: sentence.text });
+
+            // Collect citations for this sentence if footnotes are enabled
+            if (options.includeFootnotes !== false) {
+              const citations = await this.collectCitationsForSentence(sentence.id);
+              
+              for (const citation of citations) {
+                allCitations.push(citation);
+                
+                // Create footnote entry
+                const footnote: DocumentFootnote = {
+                  id: footnoteIndex,
+                  quoteText: citation.quoteText,
+                  source: citation.source,
+                  year: citation.year
+                };
+                footnotes.push(footnote);
+                
+                // Add footnote reference run
+                runs.push({
+                  type: 'footnote-ref',
+                  content: '',
+                  footnoteId: footnoteIndex
+                });
+                
+                footnoteIndex++;
+              }
             }
           }
         }
@@ -415,6 +526,7 @@ export class ExportService {
 
   /**
    * Generate markdown with Pandoc-style footnotes
+   * Removes HTML comment markers (<!-- [undefined] -->) from the manuscript
    */
   private async generateMarkdownWithFootnotes(
     manuscriptText: string,
@@ -424,8 +536,9 @@ export class ExportService {
     const footnotes: Map<number, string> = new Map();
     const allCitations: CitedQuote[] = [];
     let footnoteIndex = 1;
+    const manuscriptId = options.manuscriptId || 'default';
 
-    // Parse manuscript into sections
+    // Parse manuscript into sections (this now removes HTML comments)
     const sections = this.parseManuscriptSections(manuscriptText);
 
     for (const section of sections) {
@@ -436,8 +549,8 @@ export class ExportService {
       for (const paragraph of section.paragraphs) {
         let processedParagraph = paragraph;
 
-        // Parse sentences in paragraph
-        const sentences = this.parseSentences(paragraph);
+        // Parse sentences in paragraph (this now removes HTML comments)
+        const sentences = this.parseSentencesWithParser(paragraph, manuscriptId);
 
         for (const sentence of sentences) {
           // Get citations for this sentence
@@ -505,6 +618,9 @@ export class ExportService {
 
   /**
    * Parse manuscript into sections (headings + paragraphs)
+   * Removes HTML comment markers (<!-- [undefined] -->) that appear in the manuscript
+   * Removes question markers (legacy **Question?** and Obsidian callouts) and combines answers into paragraphs
+   * Removes inline fields like (status:: X) and [source:: X] for clean export
    */
   private parseManuscriptSections(text: string): Array<{ heading: string; paragraphs: string[] }> {
     const sections: Array<{ heading: string; paragraphs: string[] }> = [];
@@ -512,9 +628,59 @@ export class ExportService {
 
     let currentSection = { heading: '', paragraphs: [] as string[] };
     let currentParagraph = '';
+    let inCallout = false;
 
     for (const line of lines) {
-      if (line.startsWith('#')) {
+      let cleanedLine = line.trim();
+      
+      // Remove HTML comment markers from the line (legacy format)
+      cleanedLine = cleanedLine.replace(/<!--\s*\[undefined\]\s*-->/g, '');
+      cleanedLine = cleanedLine.replace(/<!--\s*\[[^\]]+\]\s*-->/g, '');
+      cleanedLine = cleanedLine.replace(/<!--\s*Source:[^>]+?-->/g, '');
+      
+      // Remove legacy question markers (bold text ending with ?)
+      cleanedLine = cleanedLine.replace(/\*\*[^*]+\?\*\*\s*/g, '');
+      
+      // Handle Obsidian callout format
+      // Skip question line: > [!question]- Question text? (status:: X)
+      if (cleanedLine.match(/^>\s*\[!question\]/)) {
+        inCallout = true;
+        continue; // Skip the question line entirely
+      }
+      
+      // Process callout content lines (lines starting with >)
+      if (cleanedLine.startsWith('>')) {
+        inCallout = true;
+        // Remove the > prefix
+        cleanedLine = cleanedLine.replace(/^>\s*/, '');
+        
+        // Remove inline fields: (status:: X) and [source:: X]
+        cleanedLine = cleanedLine.replace(/\(status::\s*[^)]+\)/g, '');
+        cleanedLine = cleanedLine.replace(/\[source::\s*[^\]]+\]/g, '');
+        cleanedLine = cleanedLine.trim();
+        
+        if (cleanedLine.length > 0) {
+          currentParagraph += (currentParagraph ? ' ' : '') + cleanedLine;
+        }
+        continue;
+      }
+      
+      // Non-callout line after callout ends the callout
+      if (inCallout && !cleanedLine.startsWith('>')) {
+        inCallout = false;
+        // End the current paragraph when exiting callout
+        if (currentParagraph.trim()) {
+          currentSection.paragraphs.push(currentParagraph.trim());
+          currentParagraph = '';
+        }
+      }
+      
+      // Remove inline fields from non-callout lines too
+      cleanedLine = cleanedLine.replace(/\(status::\s*[^)]+\)/g, '');
+      cleanedLine = cleanedLine.replace(/\[source::\s*[^\]]+\]/g, '');
+      cleanedLine = cleanedLine.trim();
+      
+      if (cleanedLine.startsWith('#')) {
         // Save previous section
         if (currentSection.heading || currentParagraph) {
           if (currentParagraph.trim()) {
@@ -526,9 +692,9 @@ export class ExportService {
         }
 
         // Start new section
-        currentSection = { heading: line, paragraphs: [] };
+        currentSection = { heading: cleanedLine, paragraphs: [] };
         currentParagraph = '';
-      } else if (line.trim() === '') {
+      } else if (cleanedLine === '') {
         // End of paragraph
         if (currentParagraph.trim()) {
           currentSection.paragraphs.push(currentParagraph.trim());
@@ -536,7 +702,7 @@ export class ExportService {
         }
       } else {
         // Add to current paragraph
-        currentParagraph += (currentParagraph ? ' ' : '') + line.trim();
+        currentParagraph += (currentParagraph ? ' ' : '') + cleanedLine;
       }
     }
 
@@ -552,17 +718,153 @@ export class ExportService {
   }
 
   /**
-   * Parse paragraph into sentences
+   * Parse paragraph into sentences using the SentenceParser
+   * This generates proper sentence IDs that match the citation system
+   * Also extracts images and tables from markdown
    */
-  private parseSentences(paragraph: string): Array<{ id: string; text: string }> {
+  private parseSentencesWithParser(paragraph: string, manuscriptId: string): Sentence[] {
+    if (!this.sentenceParser) {
+      // Fallback to simple parsing if SentenceParser not available
+      return this.parseSentencesSimple(paragraph);
+    }
+    
+    return this.sentenceParser.parseSentences(paragraph, manuscriptId);
+  }
+
+  /**
+   * Parse markdown images from text
+   * Format: ![alt text](path/to/image.png)
+   */
+  private parseMarkdownImages(text: string): Array<{ match: string; image: DocumentImage; index: number }> {
+    const images: Array<{ match: string; image: DocumentImage; index: number }> = [];
+    const imageRegex = /!\[([^\]]*)\]\(([^)]+)\)/g;
+    let match;
+    
+    while ((match = imageRegex.exec(text)) !== null) {
+      images.push({
+        match: match[0],
+        image: {
+          path: match[2],
+          altText: match[1] || 'Image',
+          caption: match[1] || undefined
+        },
+        index: match.index
+      });
+    }
+    
+    return images;
+  }
+
+  /**
+   * Parse markdown tables from text
+   * Supports standard markdown table format with | delimiters
+   */
+  private parseMarkdownTable(text: string): DocumentTable | null {
+    const lines = text.trim().split('\n');
+    if (lines.length < 2) {
+      return null;
+    }
+    
+    // Check if this looks like a table (has | characters)
+    if (!lines[0].includes('|')) {
+      return null;
+    }
+    
+    const rows: string[][] = [];
+    let hasHeader = false;
+    
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i].trim();
+      
+      // Skip separator line (e.g., |---|---|)
+      if (line.match(/^\|?[\s\-:|]+\|?$/)) {
+        hasHeader = i > 0; // If we see a separator, previous row was header
+        continue;
+      }
+      
+      // Parse table row
+      const cells = line
+        .split('|')
+        .map(cell => cell.trim())
+        .filter(cell => cell.length > 0);
+      
+      if (cells.length > 0) {
+        rows.push(cells);
+      }
+    }
+    
+    if (rows.length === 0) {
+      return null;
+    }
+    
+    return {
+      rows,
+      hasHeader
+    };
+  }
+
+  /**
+   * Check if a paragraph is a markdown table
+   */
+  private isMarkdownTable(paragraph: string): boolean {
+    const lines = paragraph.trim().split('\n');
+    if (lines.length < 2) {
+      return false;
+    }
+    
+    // Check if first line has pipes and second line is a separator
+    return lines[0].includes('|') && 
+           (lines[1].match(/^\|?[\s\-:|]+\|?$/) !== null);
+  }
+
+  /**
+   * Simple sentence parsing fallback
+   * Removes HTML comment markers and inline fields that appear in the manuscript
+   * Removes question markers (legacy and Obsidian callout format) and keeps only the answers
+   */
+  private parseSentencesSimple(paragraph: string): Sentence[] {
+    // Remove HTML comment markers (legacy format)
+    let cleanedParagraph = paragraph.replace(/<!--\s*\[undefined\]\s*-->/g, '');
+    cleanedParagraph = cleanedParagraph.replace(/<!--\s*\[[^\]]+\]\s*-->/g, '');
+    cleanedParagraph = cleanedParagraph.replace(/<!--\s*Source:[^>]+?-->/g, '');
+    
+    // Remove legacy question markers (bold text ending with ?)
+    cleanedParagraph = cleanedParagraph.replace(/\*\*[^*]+\?\*\*\s*/g, '');
+    
+    // Remove Obsidian callout markers
+    cleanedParagraph = cleanedParagraph.replace(/^>\s*\[!question\][^\n]*\n?/gm, '');
+    cleanedParagraph = cleanedParagraph.replace(/^>\s*/gm, ''); // Remove > prefix from callout lines
+    
+    // Remove inline fields: (status:: X) and [source:: X]
+    cleanedParagraph = cleanedParagraph.replace(/\(status::\s*[^)]+\)/g, '');
+    cleanedParagraph = cleanedParagraph.replace(/\[source::\s*[^\]]+\]/g, '');
+    
+    cleanedParagraph = cleanedParagraph.trim();
+    
     // Simple sentence parsing - split by period, exclamation, question mark
     const sentenceRegex = /[^.!?]+[.!?]+/g;
-    const matches = paragraph.match(sentenceRegex) || [];
+    const matches = cleanedParagraph.match(sentenceRegex) || [];
 
     return matches.map((text, index) => ({
       id: `sentence_${index}`,
-      text: text.trim()
+      text: text.trim(),
+      originalText: text.trim(),
+      position: 0,
+      claims: [],
+      createdAt: new Date(),
+      updatedAt: new Date()
     }));
+  }
+
+  /**
+   * Parse paragraph into sentences (deprecated - use parseSentencesWithParser)
+   * Removes HTML comment markers (<!-- [undefined] -->) that appear in the manuscript
+   * Removes question markers (e.g., **Question?**) and keeps only the answers
+   * @deprecated Use parseSentencesWithParser instead
+   */
+  private parseSentences(paragraph: string): Array<{ id: string; text: string }> {
+    const sentences = this.parseSentencesSimple(paragraph);
+    return sentences.map(s => ({ id: s.id, text: s.text }));
   }
 
   /**

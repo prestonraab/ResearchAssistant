@@ -621,6 +621,36 @@ Content here.`;
       expect(model.sections[0].heading).toBe('Section 1: Introduction & Overview');
     });
 
+    it('should remove HTML comment markers from manuscript', async () => {
+      const manuscript = `# Introduction
+
+**What is the question?** <!-- [undefined] --> This is the answer to the question.
+**Another question?** <!-- [undefined] --> Another answer here.`;
+
+      const options: ManuscriptExportOptions = {
+        outputPath: '/tmp/test.docx',
+        includeFootnotes: false,
+        includeBibliography: false
+      };
+
+      const model = await exportService.buildDocumentModel(manuscript, options);
+
+      expect(model.sections).toHaveLength(1);
+      expect(model.sections[0].heading).toBe('Introduction');
+      expect(model.sections[0].paragraphs).toHaveLength(1);
+      
+      // Check that HTML comments and questions are removed from paragraph text
+      const paragraphText = model.sections[0].paragraphs[0].runs
+        .map(run => run.content)
+        .join('');
+      
+      expect(paragraphText).not.toContain('<!-- [undefined] -->');
+      expect(paragraphText).not.toContain('**What is the question?**');
+      expect(paragraphText).not.toContain('**Another question?**');
+      expect(paragraphText).toContain('This is the answer to the question.');
+      expect(paragraphText).toContain('Another answer here.');
+    });
+
     it('should handle multiple citations in same sentence', async () => {
       const manuscript = `# Section
 

@@ -1,20 +1,12 @@
 import { InternetPaperSearcher, ExternalPaper } from '../core/internetPaperSearcher';
-import { MCPClientManager } from '../mcp/mcpClient';
 import * as vscode from 'vscode';
 
 describe('InternetPaperSearcher', () => {
   let searcher: InternetPaperSearcher;
-  let mockMcpClient: jest.Mocked<MCPClientManager>;
   const workspaceRoot = '/test/workspace';
 
   beforeEach(() => {
-    mockMcpClient = {
-      zotero: {
-        getItemChildren: jest.fn(),
-      },
-    } as any;
-
-    searcher = new InternetPaperSearcher(mockMcpClient, workspaceRoot);
+    searcher = new InternetPaperSearcher(workspaceRoot);
   });
 
   afterEach(() => {

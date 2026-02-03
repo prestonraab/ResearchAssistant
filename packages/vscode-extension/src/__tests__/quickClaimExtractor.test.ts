@@ -4,8 +4,11 @@ import { ClaimExtractor } from '../core/claimExtractor';
 import { OutlineParser } from '../core/outlineParserWrapper';
 import { EmbeddingService } from '@research-assistant/core';
 import * as vscode from 'vscode';
+import { setupTest, createMockClaim } from './helpers';
 
 describe('QuickClaimExtractor', () => {
+  setupTest();
+
   let quickClaimExtractor: QuickClaimExtractor;
   let mockClaimsManager: jest.Mocked<ClaimsManager>;
   let mockClaimExtractor: jest.Mocked<ClaimExtractor>;
@@ -14,9 +17,9 @@ describe('QuickClaimExtractor', () => {
   const extractedTextPath = '/workspace/literature/ExtractedText';
 
   beforeEach(() => {
-    // Create mocks
+    // Create fresh mocks for each test
     mockClaimsManager = {
-      saveClaim: jest.fn(),
+      saveClaim: jest.fn().mockResolvedValue(undefined),
       generateClaimId: jest.fn().mockReturnValue('C_01'),
       getClaims: jest.fn().mockReturnValue([])
     } as any;
@@ -155,20 +158,18 @@ describe('QuickClaimExtractor', () => {
 
   describe('saveAndVerify', () => {
     it('should save claim to database', async () => {
-      const claim = {
+      const claim = createMockClaim({
         id: 'C_01',
         text: 'Test claim',
         category: 'Method',
-        source: 'Smith2023',
-        sourceId: 1,
-        context: '',
-        primaryQuote: 'Test quote',
-        supportingQuotes: [],
-        sections: ['section1'],
-        verified: false,
-        createdAt: new Date(),
-        modifiedAt: new Date()
-      };
+        primaryQuote: {
+          text: 'Test quote',
+          source: 'Smith2023',
+          sourceId: 1,
+          verified: false
+        },
+        sections: ['section1']
+      });
 
       (vscode.window.showInformationMessage as jest.Mock).mockResolvedValue(undefined);
 
@@ -182,20 +183,17 @@ describe('QuickClaimExtractor', () => {
     });
 
     it('should handle save errors', async () => {
-      const claim = {
+      const claim = createMockClaim({
         id: 'C_01',
         text: 'Test claim',
         category: 'Method',
-        source: 'Smith2023',
-        sourceId: 1,
-        context: '',
-        primaryQuote: 'Test quote',
-        supportingQuotes: [],
-        sections: [],
-        verified: false,
-        createdAt: new Date(),
-        modifiedAt: new Date()
-      };
+        primaryQuote: {
+          text: 'Test quote',
+          source: 'Smith2023',
+          sourceId: 1,
+          verified: false
+        }
+      });
 
       mockClaimsManager.saveClaim.mockRejectedValue(new Error('Save failed'));
 

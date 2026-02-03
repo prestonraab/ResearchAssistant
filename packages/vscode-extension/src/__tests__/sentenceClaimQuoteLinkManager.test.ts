@@ -1,19 +1,17 @@
 import { SentenceClaimQuoteLinkManager } from '../core/sentenceClaimQuoteLinkManager';
 import { ClaimsManager } from '../core/claimsManagerWrapper';
+import { setupTest, createMockClaimsManager } from './helpers';
 
 describe('SentenceClaimQuoteLinkManager', () => {
+  setupTest();
+
   let manager: SentenceClaimQuoteLinkManager;
-  let claimsManager: any;
+  let mockClaimsManager: jest.Mocked<ClaimsManager>;
 
   beforeEach(() => {
-    // Mock ClaimsManager
-    claimsManager = {
-      getClaim: () => null,
-      updateClaim: () => Promise.resolve(),
-      deleteClaim: () => Promise.resolve()
-    };
-
-    manager = new SentenceClaimQuoteLinkManager(claimsManager);
+    // Create fresh mock for each test
+    mockClaimsManager = createMockClaimsManager();
+    manager = new SentenceClaimQuoteLinkManager(mockClaimsManager);
   });
 
   describe('markQuoteForCitation', () => {

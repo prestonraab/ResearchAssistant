@@ -2,8 +2,7 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import { OutlineParser } from './outlineParserWrapper';
 import { ClaimsManager } from './claimsManagerWrapper';
-import { MCPClientManager } from '../mcp/mcpClient';
-import { EmbeddingService, PaperRanker } from '@research-assistant/core';
+import { EmbeddingService, PaperRanker, QuoteManager } from '@research-assistant/core';
 import { CoverageAnalyzer } from './coverageAnalyzer';
 import { ReadingStatusManager } from './readingStatusManager';
 import { ClaimExtractor } from './claimExtractor';
@@ -20,6 +19,10 @@ import { FulltextStatusManager } from './fulltextStatusManager';
 import { ManuscriptContextDetector } from './manuscriptContextDetector';
 import { VerificationFeedbackLoop } from '../services/verificationFeedbackLoop';
 import { LiteratureIndexer } from '../services/literatureIndexer';
+import { ZoteroAvailabilityManager } from '../services/zoteroAvailabilityManager';
+import { ZoteroApiService } from '../services/zoteroApiService';
+import { SentenceClaimQuoteLinkManager } from './sentenceClaimQuoteLinkManager';
+import { SentenceParser } from './sentenceParser';
 
 export interface ExtensionConfig {
   outlinePath: string;
@@ -42,7 +45,6 @@ export class ExtensionState {
 
   public outlineParser: OutlineParser;
   public claimsManager: ClaimsManager;
-  public mcpClient: MCPClientManager;
   public embeddingService: EmbeddingService;
   public paperRanker: PaperRanker;
   public coverageAnalyzer: CoverageAnalyzer;
@@ -61,6 +63,11 @@ export class ExtensionState {
   public fulltextStatusManager: FulltextStatusManager;
   public manuscriptContextDetector: ManuscriptContextDetector;
   public verificationFeedbackLoop: VerificationFeedbackLoop;
+  public zoteroAvailabilityManager: ZoteroAvailabilityManager;
+  public zoteroApiService: ZoteroApiService;
+  public quoteManager: QuoteManager;
+  public sentenceClaimQuoteLinkManager: SentenceClaimQuoteLinkManager;
+  public sentenceParser: SentenceParser;
 
   constructor(context: vscode.ExtensionContext) {
     this.context = context;
@@ -78,7 +85,6 @@ export class ExtensionState {
     // Initialize components
     this.outlineParser = new OutlineParser(this.getAbsolutePath(this.config.outlinePath));
     this.claimsManager = new ClaimsManager(this.getAbsolutePath(this.config.claimsDatabasePath));
-    this.mcpClient = new MCPClientManager();
 
     // Initialize EmbeddingService with OpenAI API key from settings
     const config = vscode.workspace.getConfiguration('researchAssistant');
@@ -100,7 +106,7 @@ export class ExtensionState {
 
     const cacheDir = path.join(this.workspaceRoot, '.cache', 'embeddings');
     const embeddingModel = config.get<string>('embeddingModel') || 'text-embedding-3-small';
-    const maxCacheSize = config.get<number>('embeddingCacheSize') || 1000;
+    const maxCacheSize = config.get<number>('embeddingCacheSize') || 100; // Reduced from 1000
 
     this.embeddingService = new EmbeddingService(
       apiKey || '',
@@ -113,8 +119,17 @@ export class ExtensionState {
     this.readingStatusManager = new ReadingStatusManager(context);
     this.claimExtractor = new ClaimExtractor(this.embeddingService);
     this.configurationManager = new ConfigurationManager(context);
-    this.quoteVerificationService = new QuoteVerificationService(this.mcpClient, this.claimsManager, this.workspaceRoot);
-    this.autoQuoteVerifier = new AutoQuoteVerifier(this.claimsManager, this.mcpClient);
+    
+    // Initialize configuration manager synchronously (it's mostly synchronous)
+    this.configurationManager.initialize().catch(error => {
+      console.error('Failed to initialize configuration manager:', error);
+    });
+    this.quoteVerificationService = new QuoteVerificationService(this.claimsManager, this.workspaceRoot);
+    
+    // Initialize sentence managers for citation tracking
+    this.sentenceParser = new SentenceParser();
+    this.sentenceClaimQuoteLinkManager = new SentenceClaimQuoteLinkManager(this.claimsManager);
+    this.autoQuoteVerifier = new AutoQuoteVerifier(this.claimsManager);
 
     // Updated constructor call: removed mcpClient as it's no longer used
     this.pdfExtractionService = new PDFExtractionService(this.workspaceRoot);
@@ -125,16 +140,23 @@ export class ExtensionState {
       this.readingStatusManager,
       this.quoteVerificationService
     );
-    this.exportService = new ExportService();
+    this.exportService = new ExportService(
+      this.sentenceClaimQuoteLinkManager,
+      this.claimsManager,
+      this.sentenceParser
+    );
+    
+    // Initialize Zotero API service (will be configured after ConfigurationManager loads)
+    this.zoteroApiService = new ZoteroApiService();
+    
     this.unifiedSearchService = new UnifiedSearchService(
-      this.mcpClient,
+      this.zoteroApiService,
       this.claimsManager,
       this.embeddingService,
       this.workspaceRoot
     );
     this.literatureIndexer = new LiteratureIndexer(this.workspaceRoot, this.config.extractedTextPath);
     this.fulltextStatusManager = new FulltextStatusManager(
-      this.mcpClient,
       this.pdfExtractionService,
       this.outlineParser,
       this.workspaceRoot
@@ -146,11 +168,17 @@ export class ExtensionState {
     );
     this.verificationFeedbackLoop = new VerificationFeedbackLoop(
       this.literatureIndexer,
-      this.mcpClient,
+      undefined,
       apiKey || '',
       this.getAbsolutePath(this.config.extractedTextPath),
       this.workspaceRoot
     );
+
+    // Initialize Zotero availability manager with API service
+    this.zoteroAvailabilityManager = new ZoteroAvailabilityManager(this.zoteroApiService);
+
+    // Initialize Quote Manager
+    this.quoteManager = new QuoteManager();
 
     // Hook up auto-verification to claim save events (Requirement 43.1)
     this.claimsManager.onClaimSaved((claim) => {
@@ -163,6 +191,23 @@ export class ExtensionState {
     this.setupFileWatchers();
 
     console.log('[ResearchAssistant] Starting data load...');
+
+    try {
+      // Initialize configuration manager first
+      await this.configurationManager.initialize();
+      console.log('[ResearchAssistant] Configuration manager initialized');
+      
+      // Now configure Zotero API service with loaded preferences
+      const prefs = this.configurationManager.getUserPreferences();
+      if (prefs.zoteroApiKey && prefs.zoteroUserId) {
+        this.zoteroApiService.initialize(prefs.zoteroApiKey, prefs.zoteroUserId);
+        console.log('[ResearchAssistant] Zotero API service configured');
+      } else {
+        console.log('[ResearchAssistant] Zotero API credentials not configured');
+      }
+    } catch (error) {
+      console.error('Failed to initialize configuration:', error);
+    }
 
     try {
       // Load claims synchronously before setting up watchers
@@ -180,6 +225,14 @@ export class ExtensionState {
         .catch(error => console.error('Failed to parse outline:', error));
     } catch (error) {
       console.error('Failed to parse outline:', error);
+    }
+
+    try {
+      // Initialize Zotero availability manager
+      await this.zoteroAvailabilityManager.initialize();
+      console.log('[ResearchAssistant] Zotero availability manager initialized');
+    } catch (error) {
+      console.error('Failed to initialize Zotero availability manager:', error);
     }
   }
 
@@ -297,9 +350,9 @@ export class ExtensionState {
     this.fileWatchers = [];
 
     // Cleanup resources
-    this.mcpClient.dispose();
     this.embeddingService.clearCache();
     this.positionMapper?.dispose();
     this.manuscriptContextDetector.dispose();
+    this.zoteroAvailabilityManager.dispose();
   }
 }

@@ -1,9 +1,16 @@
-import { MCPClientManager, VerificationResult, VerificationReport } from '../mcp/mcpClient';
 import { ClaimsManager } from './claimsManagerWrapper';
 import { QuoteVerificationCache } from '@research-assistant/core';
 import type { Claim } from '@research-assistant/core';
 import { UnifiedQuoteSearch } from '../services/unifiedQuoteSearch';
 import { LiteratureIndexer } from '../services/literatureIndexer';
+
+// Type definitions for verification results
+export interface VerificationResult {
+  verified: boolean;
+  similarity: number;
+  closestMatch?: string;
+  context?: string;
+}
 
 export interface QuoteVerificationResult {
   claimId: string;
@@ -36,7 +43,6 @@ export class QuoteVerificationService {
   private unifiedQuoteSearch: UnifiedQuoteSearch;
 
   constructor(
-    private mcpClient: MCPClientManager,
     private claimsManager: ClaimsManager,
     private workspaceRoot?: string
   ) {

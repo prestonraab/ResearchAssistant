@@ -2,15 +2,21 @@ import { ClaimSupportValidator } from '../core/claimSupportValidator';
 import type { Claim, EmbeddingService } from '@research-assistant/core';
 import { MCPClientManager } from '../mcp/mcpClient';
 import * as fs from 'fs/promises';
+import { setupTest, createMockClaim } from './helpers';
+
+// Mock fs/promises
+jest.mock('fs/promises');
 
 describe('ClaimSupportValidator', () => {
+  setupTest();
+
   let validator: ClaimSupportValidator;
   let mockEmbeddingService: jest.Mocked<EmbeddingService>;
   let mockMCPClient: jest.Mocked<MCPClientManager>;
   const extractedTextPath = '/test/literature/ExtractedText';
 
   beforeEach(() => {
-    // Create mock EmbeddingService
+    // Create fresh mocks for each test
     mockEmbeddingService = {
       generateEmbedding: jest.fn(),
       generateBatch: jest.fn(),
@@ -20,10 +26,9 @@ describe('ClaimSupportValidator', () => {
     } as any;
 
     // Create mock MCPClient
-    const mockSearchQuotes = jest.fn();
     mockMCPClient = {
       citation: {
-        searchQuotes: mockSearchQuotes
+        searchQuotes: jest.fn().mockResolvedValue([])
       }
     } as any;
 
@@ -91,20 +96,22 @@ describe('ClaimSupportValidator', () => {
   });
 
   describe('validateSupport', () => {
-    const testClaim: Claim = {
-      id: 'C_01',
-      text: 'Batch correction improves data quality',
-      category: 'Method',
-      source: 'Author2020',
-      sourceId: 1,
-      context: '',
-      primaryQuote: 'Our method significantly improves data quality through batch correction',
-      supportingQuotes: [],
-      sections: [],
-      verified: false,
-      createdAt: new Date(),
-      modifiedAt: new Date()
-    };
+    let testClaim: Claim;
+
+    beforeEach(() => {
+      // Create fresh test claim for each test
+      testClaim = createMockClaim({
+        id: 'C_01',
+        text: 'Batch correction improves data quality',
+        category: 'Method',
+        primaryQuote: {
+          text: 'Our method significantly improves data quality through batch correction',
+          source: 'Author2020',
+          sourceId: 1,
+          verified: false
+        }
+      });
+    });
 
     it('should validate claim with strong support', async () => {
       mockEmbeddingService.generateEmbedding
@@ -253,36 +260,35 @@ describe('ClaimSupportValidator', () => {
   });
 
   describe('batchValidate', () => {
-    const claims: Claim[] = [
-      {
-        id: 'C_01',
-        text: 'Claim 1',
-        category: 'Method',
-        source: 'Author2020',
-        sourceId: 1,
-        context: '',
-        primaryQuote: 'Quote 1',
-        supportingQuotes: [],
-        sections: [],
-        verified: false,
-        createdAt: new Date(),
-        modifiedAt: new Date()
-      },
-      {
-        id: 'C_02',
-        text: 'Claim 2',
-        category: 'Result',
-        source: 'Author2021',
-        sourceId: 2,
-        context: '',
-        primaryQuote: 'Quote 2',
-        supportingQuotes: [],
-        sections: [],
-        verified: false,
-        createdAt: new Date(),
-        modifiedAt: new Date()
-      }
-    ];
+    let claims: Claim[];
+
+    beforeEach(() => {
+      // Create fresh test claims for each test
+      claims = [
+        createMockClaim({
+          id: 'C_01',
+          text: 'Claim 1',
+          category: 'Method',
+          primaryQuote: {
+            text: 'Quote 1',
+            source: 'Author2020',
+            sourceId: 1,
+            verified: false
+          }
+        }),
+        createMockClaim({
+          id: 'C_02',
+          text: 'Claim 2',
+          category: 'Result',
+          primaryQuote: {
+            text: 'Quote 2',
+            source: 'Author2021',
+            sourceId: 2,
+            verified: false
+          }
+        })
+      ];
+    });
 
     it('should validate all claims in batch', async () => {
       mockEmbeddingService.generateEmbedding.mockResolvedValue([0.5, 0.5]);
@@ -308,36 +314,35 @@ describe('ClaimSupportValidator', () => {
   });
 
   describe('flagWeakSupport', () => {
-    const claims: Claim[] = [
-      {
-        id: 'C_01',
-        text: 'Strong claim',
-        category: 'Method',
-        source: 'Author2020',
-        sourceId: 1,
-        context: '',
-        primaryQuote: 'Strong supporting quote',
-        supportingQuotes: [],
-        sections: [],
-        verified: false,
-        createdAt: new Date(),
-        modifiedAt: new Date()
-      },
-      {
-        id: 'C_02',
-        text: 'Weak claim',
-        category: 'Result',
-        source: 'Author2021',
-        sourceId: 2,
-        context: '',
-        primaryQuote: 'Unrelated quote',
-        supportingQuotes: [],
-        sections: [],
-        verified: false,
-        createdAt: new Date(),
-        modifiedAt: new Date()
-      }
-    ];
+    let claims: Claim[];
+
+    beforeEach(() => {
+      // Create fresh test claims for each test
+      claims = [
+        createMockClaim({
+          id: 'C_01',
+          text: 'Strong claim',
+          category: 'Method',
+          primaryQuote: {
+            text: 'Strong supporting quote',
+            source: 'Author2020',
+            sourceId: 1,
+            verified: false
+          }
+        }),
+        createMockClaim({
+          id: 'C_02',
+          text: 'Weak claim',
+          category: 'Result',
+          primaryQuote: {
+            text: 'Unrelated quote',
+            source: 'Author2021',
+            sourceId: 2,
+            verified: false
+          }
+        })
+      ];
+    });
 
     it('should flag only claims with weak support', async () => {
       mockEmbeddingService.generateEmbedding.mockResolvedValue([0.5, 0.5]);

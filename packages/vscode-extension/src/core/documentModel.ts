@@ -45,17 +45,57 @@ export interface DocumentParagraph {
 }
 
 /**
- * A run of content within a paragraph - either text or a footnote reference.
+ * A run of content within a paragraph - text, footnote reference, image, or table.
  */
 export interface DocumentRun {
-  /** Type of run: 'text' for regular text, 'footnote-ref' for a footnote reference */
-  type: 'text' | 'footnote-ref';
+  /** Type of run: 'text', 'footnote-ref', 'image', or 'table' */
+  type: 'text' | 'footnote-ref' | 'image' | 'table';
   
-  /** Content of the run (text content or empty string for footnote-ref) */
+  /** Content of the run (text content or empty string for footnote-ref/image/table) */
   content: string;
   
   /** ID of the footnote this run references (only for type: 'footnote-ref') */
   footnoteId?: number;
+  
+  /** Image data (only for type: 'image') */
+  image?: DocumentImage;
+  
+  /** Table data (only for type: 'table') */
+  table?: DocumentTable;
+}
+
+/**
+ * An image embedded in the document.
+ */
+export interface DocumentImage {
+  /** Path to the image file (absolute or relative to manuscript) */
+  path: string;
+  
+  /** Alt text for the image */
+  altText: string;
+  
+  /** Optional caption */
+  caption?: string;
+  
+  /** Width in pixels (optional, for sizing) */
+  width?: number;
+  
+  /** Height in pixels (optional, for sizing) */
+  height?: number;
+}
+
+/**
+ * A table in the document.
+ */
+export interface DocumentTable {
+  /** Array of rows, each containing an array of cell contents */
+  rows: string[][];
+  
+  /** Whether the first row is a header row */
+  hasHeader: boolean;
+  
+  /** Optional caption */
+  caption?: string;
 }
 
 /**

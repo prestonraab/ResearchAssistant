@@ -1,6 +1,29 @@
 // This file must be loaded before any tests to mock vscode
 import { jest } from '@jest/globals';
 
+// Mock loggingService before any imports
+jest.mock('../core/loggingService', () => {
+  const mockLogger = {
+    info: jest.fn(),
+    warn: jest.fn(),
+    error: jest.fn(),
+    debug: jest.fn(),
+    dispose: jest.fn(),
+  };
+  
+  return {
+    LoggingService: jest.fn(() => mockLogger),
+    getLogger: jest.fn(() => mockLogger),
+    initializeLogger: jest.fn(() => mockLogger),
+    LogLevel: {
+      DEBUG: 0,
+      INFO: 1,
+      WARN: 2,
+      ERROR: 3
+    }
+  };
+});
+
 // Mock vscode module before any imports
 jest.mock('vscode', () => {
   class MockEventEmitter {
@@ -16,6 +39,31 @@ jest.mock('vscode', () => {
     };
     
     dispose = jest.fn<any>();
+  }
+
+  class MockMarkdownString {
+    value: string;
+    isTrusted: boolean = false;
+    supportHtml: boolean = false;
+
+    constructor(value?: string) {
+      this.value = value || '';
+    }
+
+    appendText(text: string) {
+      this.value += text;
+      return this;
+    }
+
+    appendMarkdown(text: string) {
+      this.value += text;
+      return this;
+    }
+
+    appendCodeblock(code: string, language?: string) {
+      this.value += `\`\`\`${language || ''}\n${code}\n\`\`\``;
+      return this;
+    }
   }
 
   return {
@@ -120,23 +168,7 @@ jest.mock('vscode', () => {
       union: jest.fn<any>(),
       with: jest.fn<any>(),
     })),
-    MarkdownString: jest.fn<any>().mockImplementation((value?: string) => ({
-      value: value || '',
-      isTrusted: false,
-      supportHtml: false,
-      appendText: jest.fn<any>(function(this: any, text: string) {
-        this.value += text;
-        return this;
-      }),
-      appendMarkdown: jest.fn<any>(function(this: any, text: string) {
-        this.value += text;
-        return this;
-      }),
-      appendCodeblock: jest.fn<any>(function(this: any, code: string, language?: string) {
-        this.value += `\`\`\`${language || ''}\n${code}\n\`\`\``;
-        return this;
-      }),
-    })),
+    MarkdownString: MockMarkdownString,
     Hover: jest.fn<any>().mockImplementation((contents: any, range?: any) => ({
       contents: Array.isArray(contents) ? contents : [contents],
       range,

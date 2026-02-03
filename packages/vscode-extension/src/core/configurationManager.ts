@@ -21,6 +21,8 @@ export interface UserPreferences {
   autoVerifyQuotes: boolean;
   showInlineSuggestions: boolean;
   dashboardLayout: string;
+  zoteroApiKey?: string;
+  zoteroUserId?: string;
 }
 
 export class ConfigurationManager {
@@ -306,7 +308,9 @@ export class ConfigurationManager {
       },
       autoVerifyQuotes: config.get('autoVerifyQuotes', false),
       showInlineSuggestions: config.get('showInlineSuggestions', true),
-      dashboardLayout: config.get('dashboardLayout', 'default')
+      dashboardLayout: config.get('dashboardLayout', 'default'),
+      zoteroApiKey: config.get('zoteroApiKey', ''),
+      zoteroUserId: config.get('zoteroUserId', '')
     };
   }
 

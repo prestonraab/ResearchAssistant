@@ -1,7 +1,6 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
-import { MCPClientManager, ZoteroItem } from '../mcp/mcpClient';
 import { PDFExtractionService } from './pdfExtractionService';
 import { OutlineParser } from './outlineParserWrapper';
 
@@ -45,7 +44,6 @@ export class FulltextStatusManager {
   private pdfDir: string;
 
   constructor(
-    private readonly mcpClient: MCPClientManager,
     private readonly pdfExtractionService: PDFExtractionService,
     private readonly outlineParser: OutlineParser,
     private readonly workspaceRoot: string
@@ -59,28 +57,18 @@ export class FulltextStatusManager {
    */
   public async scanLibrary(): Promise<FulltextStatus[]> {
     try {
-      // Get all items from Zotero (using recent items as proxy for library)
-      // In a real implementation, we'd want to get all items or use collections
-      const items = await this.mcpClient.zotero.getRecent(1000);
-
-      const statuses: FulltextStatus[] = [];
-
-      for (const item of items) {
-        const status = await this.checkFulltextStatus(item);
-        statuses.push(status);
-        this.fulltextStatuses.set(item.itemKey, status);
+      // Scan local files directly since we're not using MCP anymore
+      const statuses = this.scanLocalPDFs();
+      
+      for (const status of statuses) {
+        this.fulltextStatuses.set(status.itemKey, status);
       }
-
-      // Also check local PDFs that might not be in Zotero
-      const localStatuses = this.scanLocalPDFs();
-      statuses.push(...localStatuses);
 
       this.lastScanTime = new Date();
       return statuses;
     } catch (error) {
       console.error('Failed to scan library:', error);
-      // Fall back to local scan only
-      return this.scanLocalPDFs();
+      return [];
     }
   }
 
@@ -89,36 +77,72 @@ export class FulltextStatusManager {
    */
   private scanLocalPDFs(): FulltextStatus[] {
     const statuses: FulltextStatus[] = [];
+    const processedBasenames = new Set<string>();
 
-    if (!fs.existsSync(this.pdfDir)) {
-      return statuses;
+    // First, scan PDFs directory
+    if (fs.existsSync(this.pdfDir)) {
+      const pdfFiles = fs.readdirSync(this.pdfDir)
+        .filter(f => f.toLowerCase().endsWith('.pdf'));
+
+      for (const pdfFile of pdfFiles) {
+        const basename = path.basename(pdfFile, '.pdf');
+        const pdfPath = path.join(this.pdfDir, pdfFile);
+        
+        // Check if extracted text exists
+        const hasFulltext = this.checkLocalFulltext(basename);
+
+        // Parse author-year from filename (e.g., "Smith2023.pdf")
+        const match = basename.match(/^([A-Za-z]+)(\d{4})/);
+        const author = match ? match[1] : basename;
+        const year = match ? parseInt(match[2]) : new Date().getFullYear();
+
+        statuses.push({
+          itemKey: basename,
+          title: basename,
+          authors: [author],
+          year,
+          hasFulltext,
+          extractedTextPath: hasFulltext ? this.getExtractedTextPath(basename) : undefined,
+          priority: 50,
+          pdfPath
+        });
+        
+        processedBasenames.add(basename);
+      }
     }
 
-    const pdfFiles = fs.readdirSync(this.pdfDir)
-      .filter(f => f.toLowerCase().endsWith('.pdf'));
+    // Also scan ExtractedText directory for files without PDFs
+    if (fs.existsSync(this.extractedTextPath)) {
+      const extractedFiles = fs.readdirSync(this.extractedTextPath)
+        .filter(f => f.toLowerCase().endsWith('.txt') || f.toLowerCase().endsWith('.md'));
 
-    for (const pdfFile of pdfFiles) {
-      const basename = path.basename(pdfFile, '.pdf');
-      const pdfPath = path.join(this.pdfDir, pdfFile);
-      
-      // Check if extracted text exists
-      const hasFulltext = this.checkLocalFulltext(basename);
+      for (const extractedFile of extractedFiles) {
+        const basename = path.basename(extractedFile, path.extname(extractedFile));
+        
+        // Skip if already processed from PDF directory
+        if (processedBasenames.has(basename)) {
+          continue;
+        }
 
-      // Parse author-year from filename (e.g., "Smith2023.pdf")
-      const match = basename.match(/^([A-Za-z]+)(\d{4})/);
-      const author = match ? match[1] : basename;
-      const year = match ? parseInt(match[2]) : new Date().getFullYear();
+        const extractedPath = path.join(this.extractedTextPath, extractedFile);
+        const pdfPath = this.findPdfPath(basename);
 
-      statuses.push({
-        itemKey: basename, // Use filename as key for local files
-        title: basename,
-        authors: [author],
-        year,
-        hasFulltext,
-        extractedTextPath: hasFulltext ? this.getExtractedTextPath(basename) : undefined,
-        priority: 50, // Default priority
-        pdfPath
-      });
+        // Parse author-year from filename
+        const match = basename.match(/^([A-Za-z]+)(\d{4})/);
+        const author = match ? match[1] : basename;
+        const year = match ? parseInt(match[2]) : new Date().getFullYear();
+
+        statuses.push({
+          itemKey: basename,
+          title: basename,
+          authors: [author],
+          year,
+          hasFulltext: true,
+          extractedTextPath: extractedPath,
+          priority: 50,
+          pdfPath
+        });
+      }
     }
 
     return statuses;
@@ -147,36 +171,6 @@ export class FulltextStatusManager {
       return mdPath;
     }
     return undefined;
-  }
-
-  /**
-   * Check fulltext status for a single Zotero item
-   */
-  private async checkFulltextStatus(item: ZoteroItem): Promise<FulltextStatus> {
-    // Generate expected filename from author-year
-    const authorYear = this.generateAuthorYear(item);
-    const hasFulltext = this.checkLocalFulltext(authorYear);
-
-    return {
-      itemKey: item.itemKey,
-      title: item.title,
-      authors: item.authors,
-      year: item.year,
-      hasFulltext,
-      extractedTextPath: hasFulltext ? this.getExtractedTextPath(authorYear) : undefined,
-      priority: 50, // Will be updated by prioritization
-      pdfPath: this.findPdfPath(authorYear)
-    };
-  }
-
-  /**
-   * Generate author-year identifier from Zotero item
-   */
-  private generateAuthorYear(item: ZoteroItem): string {
-    const firstAuthor = item.authors[0] || 'Unknown';
-    // Remove spaces and special characters from author name
-    const cleanAuthor = firstAuthor.replace(/[^A-Za-z]/g, '');
-    return `${cleanAuthor}${item.year}`;
   }
 
   /**

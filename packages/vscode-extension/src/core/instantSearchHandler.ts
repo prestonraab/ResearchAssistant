@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
-import { MCPClientManager, ZoteroItem } from '../mcp/mcpClient';
+import { ZoteroApiService, ZoteroItem } from '../services/zoteroApiService';
 import { ManuscriptContextDetector } from './manuscriptContextDetector';
 import { InternetPaperSearcher } from './internetPaperSearcher';
 
@@ -25,12 +25,12 @@ export class InstantSearchHandler {
   private internetSearcher: InternetPaperSearcher;
 
   constructor(
-    private mcpClient: MCPClientManager,
+    private zoteroApiService: ZoteroApiService,
     private manuscriptContextDetector: ManuscriptContextDetector,
     private workspaceRoot: string,
     private extractedTextPath: string
   ) {
-    this.internetSearcher = new InternetPaperSearcher(mcpClient, workspaceRoot);
+    this.internetSearcher = new InternetPaperSearcher(workspaceRoot);
   }
 
   /**
@@ -119,7 +119,7 @@ export class InstantSearchHandler {
           progress.report({ message: 'Querying Zotero library' });
 
           // Perform search with timeout
-          const searchPromise = this.mcpClient.zotero.semanticSearch(query, 10);
+          const searchPromise = this.zoteroApiService.semanticSearch(query, 10);
           const timeoutPromise = new Promise<ZoteroItem[]>((_, reject) =>
             setTimeout(() => reject(new Error('Search timeout')), this.SEARCH_TIMEOUT)
           );
@@ -177,13 +177,20 @@ export class InstantSearchHandler {
     }
 
     // Format results for quick pick
-    const items = results.map((item, index) => ({
-      label: `$(file-text) ${item.title}`,
-      description: `${item.authors.slice(0, 2).join(', ')}${item.authors.length > 2 ? ' et al.' : ''} (${item.year})`,
-      detail: item.abstract?.substring(0, 150) + (item.abstract && item.abstract.length > 150 ? '...' : ''),
-      item,
-      index,
-    }));
+    const items = results.map((item, index) => {
+      // Extract authors from creators array
+      const authors = item.creators?.map(c => c.name || `${c.firstName || ''} ${c.lastName || ''}`.trim()) || [];
+      // Extract year from date field
+      const year = item.date ? new Date(item.date).getFullYear() : 'Unknown';
+      
+      return {
+        label: `$(file-text) ${item.title}`,
+        description: `${authors.slice(0, 2).join(', ')}${authors.length > 2 ? ' et al.' : ''} (${year})`,
+        detail: item.abstractNote?.substring(0, 150) + (item.abstractNote && item.abstractNote.length > 150 ? '...' : ''),
+        item,
+        index,
+      };
+    });
 
     // Show quick pick
     const selected = await vscode.window.showQuickPick(items, {
@@ -317,13 +324,18 @@ export class InstantSearchHandler {
    * Format: FirstAuthorLastName_Year.txt
    */
   private generateFilename(item: ZoteroItem): string {
-    const firstAuthor = item.authors[0] || 'Unknown';
+    // Extract first author from creators array
+    const firstCreator = item.creators?.[0];
+    const firstAuthor = firstCreator?.name || firstCreator?.lastName || 'Unknown';
+    
     // Split by comma first (for "Last, First" format), then by space
     const parts = firstAuthor.includes(',') 
-      ? firstAuthor.split(',').map(p => p.trim())
+      ? firstAuthor.split(',').map((p: string) => p.trim())
       : firstAuthor.split(' ');
     const lastName = parts[0] || firstAuthor;
-    const year = item.year || 'Unknown';
+    
+    // Extract year from date field
+    const year = item.date ? new Date(item.date).getFullYear() : 'Unknown';
     
     // Clean filename
     const cleanName = lastName.replace(/[^a-zA-Z0-9]/g, '');

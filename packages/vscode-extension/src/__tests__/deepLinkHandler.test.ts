@@ -1,25 +1,6 @@
-import { DeepLinkHandler } from '../services/deepLinkHandler';
 import { jest } from '@jest/globals';
-
-// Mock loggingService BEFORE importing vscode
-jest.mock('../core/loggingService', () => ({
-  getLogger: jest.fn(() => ({
-    info: jest.fn(),
-    warn: jest.fn(),
-    error: jest.fn(),
-    debug: jest.fn(),
-    dispose: jest.fn(),
-  })),
-  initializeLogger: jest.fn(),
-  LogLevel: {
-    DEBUG: 0,
-    INFO: 1,
-    WARN: 2,
-    ERROR: 3
-  }
-}));
-
 import * as vscode from 'vscode';
+import { DeepLinkHandler } from '../services/deepLinkHandler';
 
 describe('DeepLinkHandler', () => {
   let handler: DeepLinkHandler;

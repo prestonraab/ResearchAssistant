@@ -1,10 +1,10 @@
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
-import { MCPClientManager } from '../mcp/mcpClient';
 import { ClaimsManager } from './claimsManagerWrapper';
 import { EmbeddingService } from '@research-assistant/core';
 import type { Claim } from '@research-assistant/core';
+import { ZoteroApiService } from '../services/zoteroApiService';
 
 export type SearchResultType = 'paper' | 'claim' | 'draft' | 'extracted_text';
 
@@ -33,7 +33,7 @@ export class UnifiedSearchService {
   private readonly MAX_HISTORY = 20;
 
   constructor(
-    private readonly mcpClient: MCPClientManager,
+    private readonly zoteroApiService: ZoteroApiService,
     private readonly claimsManager: ClaimsManager,
     private readonly embeddingService: EmbeddingService,
     private readonly workspaceRoot: string
@@ -104,7 +104,7 @@ export class UnifiedSearchService {
     maxResults: number
   ): Promise<SearchResult[]> {
     try {
-      if (!this.mcpClient.isConnected('zotero')) {
+      if (!this.zoteroApiService.isConfigured()) {
         return [];
       }
 
@@ -112,23 +112,23 @@ export class UnifiedSearchService {
 
       // Try semantic search first if enabled
       if (semantic) {
-        papers = await this.mcpClient.zoteroSemanticSearch(query, maxResults);
+        papers = await this.zoteroApiService.semanticSearch(query, maxResults);
       }
 
       // Fall back to keyword search if semantic fails or is disabled
       if ((!papers || papers.length === 0) && keyword) {
-        papers = await this.mcpClient.zoteroSemanticSearch(query, maxResults);
+        papers = await this.zoteroApiService.semanticSearch(query, maxResults);
       }
 
       return papers.map(paper => ({
         type: 'paper' as SearchResultType,
         id: paper.key || paper.itemKey,
         title: paper.title || 'Untitled',
-        snippet: this.truncate(paper.abstract || '', 200),
+        snippet: this.truncate(paper.abstractNote || '', 200),
         relevanceScore: paper.score || 0.5,
         metadata: {
-          authors: paper.authors,
-          year: paper.year,
+          authors: paper.creators?.map((c: any) => c.name || `${c.firstName || ''} ${c.lastName || ''}`.trim()) || [],
+          year: paper.date ? new Date(paper.date).getFullYear() : undefined,
           doi: paper.doi
         }
       }));

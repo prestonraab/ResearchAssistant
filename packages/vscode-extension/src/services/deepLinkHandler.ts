@@ -1,5 +1,4 @@
 import * as vscode from 'vscode';
-import { getLogger } from '../core/loggingService';
 
 /**
  * DeepLinkHandler manages the construction and opening of Zotero deep links.
@@ -7,7 +6,22 @@ import { getLogger } from '../core/loggingService';
  * handles errors when Zotero is not available.
  */
 export class DeepLinkHandler {
-  private logger = getLogger();
+  private getLogger() {
+    try {
+      // Lazy load the logger to allow mocking in tests
+      const loggingService = require('../core/loggingService');
+      return loggingService.getLogger();
+    } catch (error) {
+      // Return a no-op logger if loggingService is not available
+      return {
+        info: () => {},
+        warn: () => {},
+        error: () => {},
+        debug: () => {},
+        dispose: () => {},
+      };
+    }
+  }
 
   /**
    * Construct a zotero:// URL for opening a PDF to a specific annotation
@@ -54,14 +68,16 @@ export class DeepLinkHandler {
       }
 
       const url = `zotero://open-pdf/library/items/${encodeURIComponent(itemKey)}?annotation=${encodeURIComponent(annotationKey)}`;
+      this.getLogger().info(`Opening Zotero annotation URL: ${url}`);
       const uri = vscode.Uri.parse(url);
 
       await vscode.env.openExternal(uri);
-      this.logger.info(`Opened Zotero annotation: ${annotationKey}`);
+      this.getLogger().info(`Opened Zotero annotation: ${annotationKey}`);
       return true;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
-      this.logger.error(`Failed to open Zotero annotation: ${errorMessage}`);
+      this.getLogger().error(`Failed to open Zotero annotation: ${errorMessage}`);
+      this.getLogger().error(`annotationKey: ${annotationKey}, itemKey: ${itemKey}`);
 
       // Show user-friendly error message
       if (errorMessage.includes('annotationKey') || errorMessage.includes('itemKey')) {
@@ -70,7 +86,7 @@ export class DeepLinkHandler {
         vscode.window.showErrorMessage(
           'Failed to open PDF in Zotero. Make sure Zotero is running.',
           'Open Zotero'
-        ).then(selection => {
+        ).then((selection: any) => {
           if (selection === 'Open Zotero') {
             // Try to open Zotero application
             vscode.env.openExternal(vscode.Uri.parse('zotero://'));
@@ -97,14 +113,16 @@ export class DeepLinkHandler {
       }
 
       const url = this.buildPageUrl(itemKey, pageNumber);
+      this.getLogger().info(`Opening Zotero page URL: ${url}`);
       const uri = vscode.Uri.parse(url);
 
       await vscode.env.openExternal(uri);
-      this.logger.info(`Opened Zotero PDF: ${itemKey} at page ${pageNumber}`);
+      this.getLogger().info(`Opened Zotero PDF: ${itemKey} at page ${pageNumber}`);
       return true;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
-      this.logger.error(`Failed to open Zotero PDF: ${errorMessage}`);
+      this.getLogger().error(`Failed to open Zotero PDF: ${errorMessage}`);
+      this.getLogger().error(`itemKey: ${itemKey}, pageNumber: ${pageNumber}`);
 
       // Show user-friendly error message
       if (errorMessage.includes('itemKey') || errorMessage.includes('pageNumber')) {
@@ -113,7 +131,7 @@ export class DeepLinkHandler {
         vscode.window.showErrorMessage(
           'Failed to open PDF in Zotero. Make sure Zotero is running.',
           'Open Zotero'
-        ).then(selection => {
+        ).then((selection: any) => {
           if (selection === 'Open Zotero') {
             // Try to open Zotero application
             vscode.env.openExternal(vscode.Uri.parse('zotero://'));

@@ -1,11 +1,14 @@
 import { MCPClientManager, ZoteroItem, VerificationResult } from '../mcp/mcpClient';
 import * as vscode from 'vscode';
 import * as fs from 'fs/promises';
+import { setupTest, waitForAsync } from './helpers';
 
 // Mock fs modules
 jest.mock('fs/promises');
 
 describe('MCPClientManager', () => {
+  setupTest();
+
   let mcpClient: MCPClientManager;
   const mockWorkspaceFolder = {
     uri: { fsPath: '/test/workspace' },
@@ -14,8 +17,6 @@ describe('MCPClientManager', () => {
   };
 
   beforeEach(() => {
-    jest.clearAllMocks();
-    
     // Mock workspace folders
     (vscode.workspace as any).workspaceFolders = [mockWorkspaceFolder];
     
@@ -39,9 +40,7 @@ describe('MCPClientManager', () => {
   describe('Configuration Loading', () => {
     test('should load MCP configuration from .kiro/settings/mcp.json', async () => {
       mcpClient = new MCPClientManager();
-      
-      // Wait for async constructor to complete
-      await new Promise(resolve => setTimeout(resolve, 10));
+      await waitForAsync();
       
       expect(fs.readFile).toHaveBeenCalledWith(
         '/test/workspace/.kiro/settings/mcp.json',
@@ -53,9 +52,8 @@ describe('MCPClientManager', () => {
       (fs.readFile as jest.Mock).mockRejectedValue(new Error('File not found'));
       
       mcpClient = new MCPClientManager();
-      await new Promise(resolve => setTimeout(resolve, 10));
+      await waitForAsync();
       
-      // Should not throw, just log warning
       expect(mcpClient.isConnected('zotero')).toBe(false);
     });
 
@@ -63,7 +61,7 @@ describe('MCPClientManager', () => {
       (fs.readFile as jest.Mock).mockResolvedValue('{ invalid json }');
       
       mcpClient = new MCPClientManager();
-      await new Promise(resolve => setTimeout(resolve, 10));
+      await waitForAsync();
       
       expect(mcpClient.isConnected('zotero')).toBe(false);
     });
