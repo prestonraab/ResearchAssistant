@@ -6,7 +6,10 @@
     "outDir": "out",
     "rootDir": "src",
     "types": ["node", "vscode", "jest"],
-    "moduleResolution": "node"
+    "moduleResolution": "node",
+    "strict": true,
+    "noImplicitAny": true,
+    "noImplicitThis": true
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "out", "dist", "**/*.test.ts", "**/__tests__/**"]

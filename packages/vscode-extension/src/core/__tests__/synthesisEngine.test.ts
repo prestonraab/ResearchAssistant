@@ -1,3 +1,4 @@
+import { jest } from '@jest/globals';
 import { SynthesisEngine } from '../synthesisEngine';
 import type { Claim } from '@research-assistant/core';
 
@@ -33,7 +34,7 @@ describe('SynthesisEngine', () => {
     source,
     sourceId: parseInt(id.replace('C_', ''), 10),
     context: '',
-    primaryQuote: `Quote for ${text}`,
+    primaryQuote: { text: `Quote for ${text}`, source },
     supportingQuotes: [],
     sections: [],
     verified: false,

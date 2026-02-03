@@ -1,3 +1,4 @@
+import { jest } from '@jest/globals';
 import { AutoQuoteVerifier } from '../core/autoQuoteVerifier';
 import { ClaimsManager } from '../core/claimsManagerWrapper';
 import type { Claim } from '@research-assistant/core';

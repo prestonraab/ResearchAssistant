@@ -1,3 +1,4 @@
+import { jest } from '@jest/globals';
 import { QuickClaimExtractor } from '../core/quickClaimExtractor';
 import type { ClaimsManager } from '../core/claimsManagerWrapper';
 import type { ClaimExtractor } from '../core/claimExtractor';

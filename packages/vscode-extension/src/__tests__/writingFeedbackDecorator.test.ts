@@ -1,3 +1,4 @@
+import { jest } from '@jest/globals';
 import * as vscode from 'vscode';
 import { WritingFeedbackDecorator } from '../ui/writingFeedbackDecorator';
 import { ExtensionState } from '../core/state';

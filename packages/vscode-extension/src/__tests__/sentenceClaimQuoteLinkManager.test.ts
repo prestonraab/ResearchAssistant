@@ -1,3 +1,4 @@
+import { jest } from '@jest/globals';
 import { SentenceClaimQuoteLinkManager } from '../core/sentenceClaimQuoteLinkManager';
 import { ClaimsManager } from '../core/claimsManagerWrapper';
 import { setupTest, createMockClaimsManager } from './helpers';

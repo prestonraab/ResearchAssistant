@@ -1,3 +1,4 @@
+import { jest } from '@jest/globals';
 import { QuoteVerificationService, QuoteVerificationResult, BatchVerificationResult } from '../quoteVerificationService';
 import { VerificationResult } from '@research-assistant/core';
 import { ClaimsManager } from '../claimsManagerWrapper';
@@ -10,11 +11,11 @@ import {
   createMockUnifiedQuoteSearch,
   aClaim
 } from '../../__tests__/helpers';
-import { UnifiedQuoteSearch } from '../unifiedQuoteSearch';
+import { UnifiedQuoteSearch } from '../../services/unifiedQuoteSearch';
 
 // Mock the dependencies
 jest.mock('../claimsManagerWrapper');
-jest.mock('../unifiedQuoteSearch');
+jest.mock('../../services/unifiedQuoteSearch');
 
 describe('QuoteVerificationService', () => {
   setupTest();

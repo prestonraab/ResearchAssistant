@@ -1,3 +1,4 @@
+import { jest } from '@jest/globals';
 import { InternetPaperSearcher, ExternalPaper } from '../core/internetPaperSearcher';
 import * as vscode from 'vscode';
 import { setupTest } from './helpers';

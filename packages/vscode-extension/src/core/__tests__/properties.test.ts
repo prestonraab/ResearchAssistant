@@ -1,3 +1,4 @@
+import { jest } from '@jest/globals';
 /**
  * Property-based tests for Research Assistant Extension
  * These tests validate correctness properties across randomized inputs

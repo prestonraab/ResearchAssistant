@@ -1,3 +1,4 @@
+import { jest } from '@jest/globals';
 import * as vscode from 'vscode';
 import { ClaimCompletionProvider } from '../ui/claimCompletionProvider';
 import { ExtensionState } from '../core/state';

@@ -1,6 +1,9 @@
 // This file must be loaded before any tests to mock vscode
 import { jest } from '@jest/globals';
 
+// jest is already available globally from @jest/globals
+// No need to redeclare it
+
 // Mock loggingService before any imports
 jest.mock('../core/loggingService', () => {
   const mockLogger = {

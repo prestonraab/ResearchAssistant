@@ -1,3 +1,4 @@
+import { jest } from '@jest/globals';
 import { LaTeXRenderer } from '../latexRenderer';
 import type { DocumentModel, DocumentSection, DocumentParagraph, DocumentRun } from '../documentModel';
 

@@ -83,16 +83,6 @@ export class ClaimBuilder {
     return this;
   }
 
-  withSource(source: string): this {
-    this.claim.source = source;
-    return this;
-  }
-
-  withSourceId(sourceId: number): this {
-    this.claim.sourceId = sourceId;
-    return this;
-  }
-
   verified(): this {
     this.claim.verified = true;
     return this;

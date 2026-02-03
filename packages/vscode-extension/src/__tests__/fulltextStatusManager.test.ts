@@ -1,3 +1,4 @@
+import { jest } from '@jest/globals';
 import { FulltextStatusManager, FulltextStatus } from '../core/fulltextStatusManager';
 import { PDFExtractionService } from '../core/pdfExtractionService';
 import { OutlineParser } from '../core/outlineParserWrapper';

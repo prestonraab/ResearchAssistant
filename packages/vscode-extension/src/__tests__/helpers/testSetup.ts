@@ -347,7 +347,7 @@ export const setupMockToThrowAlways = (mock: jest.Mock, error: Error) => {
 /**
  * Setup a mock to return different values on consecutive calls
  */
-export const setupMockSequence = (mock: jest.Mock, values: any[]) => {
+export const setupMockSequence = (mock: jest.Mock<any>, values: any[]) => {
   values.forEach(value => {
     if (value instanceof Error) {
       mock.mockRejectedValueOnce(value);
@@ -373,4 +373,277 @@ export const expectCalledWithType = (mock: jest.Mock, expectedType: string) => {
 export const expectCalledWithInstance = (mock: jest.Mock, expectedClass: any) => {
   const lastCall = getLastCallArgs(mock)[0];
   expect(lastCall).toBeInstanceOf(expectedClass);
+};
+
+
+// ============================================================================
+// Lightweight Assertion Helpers (Quick Checks)
+// ============================================================================
+
+/**
+ * Quick assertion: mock was called exactly once
+ */
+export const expectCalledOnce = (mock: jest.Mock) => {
+  expect(mock).toHaveBeenCalledTimes(1);
+};
+
+/**
+ * Quick assertion: mock was never called
+ */
+export const expectNeverCalled = (mock: jest.Mock) => {
+  expect(mock).not.toHaveBeenCalled();
+};
+
+/**
+ * Quick assertion: mock was called at least once
+ */
+export const expectCalled = (mock: jest.Mock) => {
+  expect(mock).toHaveBeenCalled();
+};
+
+/**
+ * Quick assertion: mock was called with specific value
+ */
+export const expectCalledWithValue = (mock: jest.Mock, value: any) => {
+  expect(mock).toHaveBeenCalledWith(value);
+};
+
+/**
+ * Get the arguments from the last call
+ */
+export const getLastCall = (mock: jest.Mock): any[] => {
+  const calls = mock.mock.calls;
+  return calls.length > 0 ? calls[calls.length - 1] : [];
+};
+
+/**
+ * Get the first argument from the last call
+ */
+export const getLastCallArg = (mock: jest.Mock, index: number = 0): any => {
+  return getLastCall(mock)[index];
+};
+
+/**
+ * Get all arguments from all calls
+ */
+export const getAllCalls = (mock: jest.Mock): any[][] => {
+  return mock.mock.calls;
+};
+
+/**
+ * Get the return value from the last call
+ */
+export const getLastReturnValue = (mock: jest.Mock): any => {
+  const results = mock.mock.results;
+  return results.length > 0 ? results[results.length - 1].value : undefined;
+};
+
+/**
+ * Quick check: was mock called with a specific number of arguments
+ */
+export const expectCalledWithArgCount = (mock: jest.Mock, count: number) => {
+  const lastCall = getLastCall(mock);
+  expect(lastCall.length).toBe(count);
+};
+
+/**
+ * Quick check: was mock called with first argument being a specific type
+ */
+export const expectFirstArgType = (mock: jest.Mock, expectedType: string) => {
+  const firstArg = getLastCallArg(mock, 0);
+  expect(typeof firstArg).toBe(expectedType);
+};
+
+/**
+ * Quick check: was mock called with first argument being instance of class
+ */
+export const expectFirstArgInstance = (mock: jest.Mock, expectedClass: any) => {
+  const firstArg = getLastCallArg(mock, 0);
+  expect(firstArg).toBeInstanceOf(expectedClass);
+};
+
+/**
+ * Quick check: was mock called with first argument being truthy
+ */
+export const expectFirstArgTruthy = (mock: jest.Mock) => {
+  const firstArg = getLastCallArg(mock, 0);
+  expect(firstArg).toBeTruthy();
+};
+
+/**
+ * Quick check: was mock called with first argument being falsy
+ */
+export const expectFirstArgFalsy = (mock: jest.Mock) => {
+  const firstArg = getLastCallArg(mock, 0);
+  expect(firstArg).toBeFalsy();
+};
+
+/**
+ * Quick check: was mock called with first argument being null
+ */
+export const expectFirstArgNull = (mock: jest.Mock) => {
+  const firstArg = getLastCallArg(mock, 0);
+  expect(firstArg).toBeNull();
+};
+
+/**
+ * Quick check: was mock called with first argument being undefined
+ */
+export const expectFirstArgUndefined = (mock: jest.Mock) => {
+  const firstArg = getLastCallArg(mock, 0);
+  expect(firstArg).toBeUndefined();
+};
+
+/**
+ * Quick check: was mock called with first argument being defined
+ */
+export const expectFirstArgDefined = (mock: jest.Mock) => {
+  const firstArg = getLastCallArg(mock, 0);
+  expect(firstArg).toBeDefined();
+};
+
+/**
+ * Quick check: was mock called with first argument being an array
+ */
+export const expectFirstArgArray = (mock: jest.Mock) => {
+  const firstArg = getLastCallArg(mock, 0);
+  expect(Array.isArray(firstArg)).toBe(true);
+};
+
+/**
+ * Quick check: was mock called with first argument being an object
+ */
+export const expectFirstArgObject = (mock: jest.Mock) => {
+  const firstArg = getLastCallArg(mock, 0);
+  expect(typeof firstArg).toBe('object');
+  expect(firstArg).not.toBeNull();
+};
+
+/**
+ * Quick check: was mock called with first argument being a string
+ */
+export const expectFirstArgString = (mock: jest.Mock) => {
+  const firstArg = getLastCallArg(mock, 0);
+  expect(typeof firstArg).toBe('string');
+};
+
+/**
+ * Quick check: was mock called with first argument being a number
+ */
+export const expectFirstArgNumber = (mock: jest.Mock) => {
+  const firstArg = getLastCallArg(mock, 0);
+  expect(typeof firstArg).toBe('number');
+};
+
+/**
+ * Quick check: was mock called with first argument being a boolean
+ */
+export const expectFirstArgBoolean = (mock: jest.Mock) => {
+  const firstArg = getLastCallArg(mock, 0);
+  expect(typeof firstArg).toBe('boolean');
+};
+
+/**
+ * Quick check: was mock called with first argument being a function
+ */
+export const expectFirstArgFunction = (mock: jest.Mock) => {
+  const firstArg = getLastCallArg(mock, 0);
+  expect(typeof firstArg).toBe('function');
+};
+
+/**
+ * Quick check: was mock called with first argument having a specific property
+ */
+export const expectFirstArgHasProperty = (mock: jest.Mock, property: string) => {
+  const firstArg = getLastCallArg(mock, 0);
+  expect(firstArg).toHaveProperty(property);
+};
+
+/**
+ * Quick check: was mock called with first argument having a specific property value
+ */
+export const expectFirstArgPropertyValue = (mock: jest.Mock, property: string, value: any) => {
+  const firstArg = getLastCallArg(mock, 0);
+  expect(firstArg[property]).toBe(value);
+};
+
+/**
+ * Quick check: was mock called with first argument being an array with specific length
+ */
+export const expectFirstArgArrayLength = (mock: jest.Mock, length: number) => {
+  const firstArg = getLastCallArg(mock, 0);
+  expect(Array.isArray(firstArg)).toBe(true);
+  expect(firstArg.length).toBe(length);
+};
+
+/**
+ * Quick check: was mock called with first argument being an array containing item
+ */
+export const expectFirstArgArrayContains = (mock: jest.Mock, item: any) => {
+  const firstArg = getLastCallArg(mock, 0);
+  expect(Array.isArray(firstArg)).toBe(true);
+  expect(firstArg).toContain(item);
+};
+
+/**
+ * Quick check: was mock called with first argument being a string containing substring
+ */
+export const expectFirstArgStringContains = (mock: jest.Mock, substring: string) => {
+  const firstArg = getLastCallArg(mock, 0);
+  expect(typeof firstArg).toBe('string');
+  expect(firstArg).toContain(substring);
+};
+
+/**
+ * Quick check: was mock called with first argument being a string matching pattern
+ */
+export const expectFirstArgStringMatches = (mock: jest.Mock, pattern: RegExp) => {
+  const firstArg = getLastCallArg(mock, 0);
+  expect(typeof firstArg).toBe('string');
+  expect(firstArg).toMatch(pattern);
+};
+
+/**
+ * Quick check: was mock called with first argument being a string starting with prefix
+ */
+export const expectFirstArgStringStartsWith = (mock: jest.Mock, prefix: string) => {
+  const firstArg = getLastCallArg(mock, 0);
+  expect(typeof firstArg).toBe('string');
+  expect(firstArg).toMatch(new RegExp(`^${prefix}`));
+};
+
+/**
+ * Quick check: was mock called with first argument being a string ending with suffix
+ */
+export const expectFirstArgStringEndsWith = (mock: jest.Mock, suffix: string) => {
+  const firstArg = getLastCallArg(mock, 0);
+  expect(typeof firstArg).toBe('string');
+  expect(firstArg).toMatch(new RegExp(`${suffix}$`));
+};
+
+/**
+ * Quick check: was mock called with first argument being a number greater than value
+ */
+export const expectFirstArgGreaterThan = (mock: jest.Mock, value: number) => {
+  const firstArg = getLastCallArg(mock, 0);
+  expect(typeof firstArg).toBe('number');
+  expect(firstArg).toBeGreaterThan(value);
+};
+
+/**
+ * Quick check: was mock called with first argument being a number less than value
+ */
+export const expectFirstArgLessThan = (mock: jest.Mock, value: number) => {
+  const firstArg = getLastCallArg(mock, 0);
+  expect(typeof firstArg).toBe('number');
+  expect(firstArg).toBeLessThan(value);
+};
+
+/**
+ * Quick check: was mock called with first argument being a number equal to value
+ */
+export const expectFirstArgEquals = (mock: jest.Mock, value: number) => {
+  const firstArg = getLastCallArg(mock, 0);
+  expect(typeof firstArg).toBe('number');
+  expect(firstArg).toBe(value);
 };

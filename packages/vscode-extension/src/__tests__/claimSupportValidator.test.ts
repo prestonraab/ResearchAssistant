@@ -1,3 +1,4 @@
+import { jest } from '@jest/globals';
 import { ClaimSupportValidator } from '../core/claimSupportValidator';
 import type { Claim, EmbeddingService } from '@research-assistant/core';
 import * as fs from 'fs/promises';

@@ -1,3 +1,4 @@
+import { jest } from '@jest/globals';
 import * as vscode from 'vscode';
 import { ReadingAssistant } from '../core/readingAssistant';
 import { ClaimExtractor } from '../core/claimExtractor';

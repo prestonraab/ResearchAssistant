@@ -9,7 +9,6 @@
  * - builders: Fluent builders for creating complex test objects
  * - vscodeHelpers: VSCode-specific setup and assertion utilities
  * - apiMockHelpers: HTTP response mocks and API simulation helpers
- * - typeSafetyUtils: Advanced type-safe mocking utilities
  * 
  * QUICK START:
  * 
@@ -42,4 +41,3 @@ export * from './fixtures';
 export * from './builders';
 export * from './vscodeHelpers';
 export * from './apiMockHelpers';
-export * from './typeSafetyUtils';

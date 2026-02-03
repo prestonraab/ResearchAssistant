@@ -1,3 +1,4 @@
+import { jest } from '@jest/globals';
 import { ExportService } from '../exportService';
 import { WordRenderer } from '../wordRenderer';
 import { LaTeXRenderer } from '../latexRenderer';

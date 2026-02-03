@@ -160,7 +160,7 @@ export const createMockExtensionState = (overrides?: {
  * Provides all required methods with sensible defaults
  * Lazy-loads vscode constants to avoid issues with mock initialization order
  */
-export const createMockDocument = (overrides?: Partial<vscode.TextDocument>): vscode.TextDocument => {
+export const createMockDocument = (overrides?: Partial<vscode.TextDocument>): any => {
   // Lazy-load vscode constants to handle mock initialization timing
   const eol = vscode.EndOfLine?.LF ?? 1;
   
@@ -190,7 +190,7 @@ export const createMockDocument = (overrides?: Partial<vscode.TextDocument>): vs
     } as vscode.TextLine),
     save: jest.fn<() => Thenable<boolean>>().mockResolvedValue(true),
     ...overrides
-  } as vscode.TextDocument;
+  };
 };
 
 /**
@@ -430,7 +430,7 @@ export const createMockUnifiedQuoteSearch = () => {
  * Creates a mock SentenceClaimQuoteLinkManager
  * Used for managing relationships between sentences, claims, and quotes
  */
-export const createMockSentenceClaimQuoteLinkManager = () => {
+export const createMockSentenceClaimQuoteLinkManager = (): jest.Mocked<any> => {
   return {
     getCitationsForSentence: jest.fn<(sentenceId: string) => any[]>().mockReturnValue([]),
     addCitation: jest.fn<(sentenceId: string, claimId: string, quoteIndex: number) => void>(),
@@ -439,7 +439,7 @@ export const createMockSentenceClaimQuoteLinkManager = () => {
     clearCitations: jest.fn<() => void>(),
     saveCitations: jest.fn<() => Promise<void>>().mockResolvedValue(undefined),
     loadCitations: jest.fn<() => Promise<void>>().mockResolvedValue(undefined)
-  };
+  } as jest.Mocked<any>;
 };
 
 /**

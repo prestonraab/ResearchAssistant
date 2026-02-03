@@ -1,3 +1,4 @@
+import { jest } from '@jest/globals';
 import { InstantSearchHandler } from '../core/instantSearchHandler';
 import { ZoteroClient, ZoteroItem } from '@research-assistant/core';
 import { ManuscriptContextDetector } from '../core/manuscriptContextDetector';

@@ -1,3 +1,4 @@
+import { jest } from '@jest/globals';
 import { ClaimsManager } from '../claimsManagerWrapper';
 import type { Claim } from '@research-assistant/core';
 import * as fs from 'fs/promises';

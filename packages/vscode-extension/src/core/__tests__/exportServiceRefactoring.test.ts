@@ -1,3 +1,4 @@
+import { jest } from '@jest/globals';
 import { ExportService } from '../exportService';
 import { MarkdownExporter } from '../exporters/MarkdownExporter';
 import { WordExporter } from '../exporters/WordExporter';

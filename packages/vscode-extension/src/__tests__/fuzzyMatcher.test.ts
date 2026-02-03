@@ -1,3 +1,4 @@
+import { jest } from '@jest/globals';
 import { FuzzyMatcher, MATCH_THRESHOLD } from '@research-assistant/core';
 import fc from 'fast-check';
 import { setupTest } from './helpers';

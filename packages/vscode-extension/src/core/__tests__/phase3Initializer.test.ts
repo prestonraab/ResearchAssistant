@@ -1,3 +1,4 @@
+import { jest } from '@jest/globals';
 import * as vscode from 'vscode';
 import { Phase3Initializer } from '../initializers/phase3';
 import { ExtensionState } from '../state';
@@ -105,8 +106,6 @@ describe('Phase3Initializer', () => {
     });
 
     test('should not throw if MCP initialization fails', async () => {
-      mockState.mcpClient = null as any;
-
       const initializer = new Phase3Initializer();
 
       await expect(initializer.initialize(mockState)).resolves.not.toThrow();

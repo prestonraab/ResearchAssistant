@@ -1,3 +1,4 @@
+import { jest } from '@jest/globals';
 import { modeStateManager } from '../modeSwitching';
 
 describe('Mode Switching Integration', () => {

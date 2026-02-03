@@ -1,3 +1,4 @@
+import { jest } from '@jest/globals';
 import * as vscode from 'vscode';
 import { InlineSearchProvider } from '../ui/inlineSearchProvider';
 import { ZoteroClient, ZoteroItem } from '@research-assistant/core';

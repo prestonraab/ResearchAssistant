@@ -1,3 +1,4 @@
+import { jest } from '@jest/globals';
 import { FeatureManager } from '../featureManager';
 import { setupTest } from '../../__tests__/helpers';
 

@@ -1,3 +1,4 @@
+import { jest } from '@jest/globals';
 import { SentenceParser } from '@research-assistant/core';
 import { setupTest } from '../../__tests__/helpers';
 

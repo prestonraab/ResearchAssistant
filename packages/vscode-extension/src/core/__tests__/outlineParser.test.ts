@@ -1,3 +1,4 @@
+import { jest } from '@jest/globals';
 import { OutlineParser } from '../outlineParserWrapper';
 import * as fs from 'fs/promises';
 import * as path from 'path';

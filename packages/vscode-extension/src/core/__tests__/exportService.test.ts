@@ -1,3 +1,4 @@
+import { jest } from '@jest/globals';
 import { ExportService, ManuscriptExportOptions } from '../exportService';
 import { setupTest, createMockSentenceClaimQuoteLinkManager, createMockClaimsManager, aClaim } from '../../__tests__/helpers';
 

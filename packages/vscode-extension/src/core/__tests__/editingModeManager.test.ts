@@ -1,3 +1,4 @@
+import { jest } from '@jest/globals';
 import { EditingModeManager } from '../editingModeManager';
 import { setupTest } from '../../__tests__/helpers';
 

@@ -1,3 +1,4 @@
+import { jest } from '@jest/globals';
 import * as vscode from 'vscode';
 import { Phase2Initializer } from '../initializers/phase2';
 import { Phase1Initializer } from '../initializers/phase1';

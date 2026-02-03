@@ -1,3 +1,4 @@
+import { jest } from '@jest/globals';
 import { WritingModeManager } from '../writingModeManager';
 
 describe('WritingModeManager', () => {
@@ -18,7 +19,7 @@ describe('WritingModeManager', () => {
       expect(state).toBeDefined();
       expect(state.manuscriptPath).toBe('manuscript.md');
       expect(state.outlinePath).toBe('outline.md');
-      expect(state.scrollPosition).toBe(0);
+      expect(state.centerItemPosition).toBeUndefined();
     });
 
     test('should be initialized after initialization', () => {

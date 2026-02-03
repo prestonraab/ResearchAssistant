@@ -1,3 +1,4 @@
+import { jest } from '@jest/globals';
 import * as vscode from 'vscode';
 import { Phase1Initializer } from '../initializers/phase1';
 import { ExtensionState } from '../state';

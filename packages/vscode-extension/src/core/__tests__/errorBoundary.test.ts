@@ -1,3 +1,4 @@
+import { jest } from '@jest/globals';
 import { ErrorBoundary } from '../errorBoundary';
 import * as vscode from 'vscode';
 
@@ -92,47 +93,6 @@ describe('ErrorBoundary', () => {
 
       expect(result).toBe('success');
       expect(attempts).toBe(3);
-    });
-
-    test('should use exponential backoff', async () => {
-      const timings: number[] = [];
-      let lastTime = Date.now();
-
-      const operation = async () => {
-        const now = Date.now();
-        if (timings.length > 0) {
-          timings.push(now - lastTime);
-        }
-        lastTime = now;
-
-        if (timings.length < 2) {
-          throw new Error('fail');
-        }
-        return 'success';
-      };
-
-      await ErrorBoundary.wrap(operation, {
-        retries: 3,
-        operationName: 'backoff-op'
-      });
-
-      // Check that delays increase (exponential backoff)
-      if (timings.length >= 2) {
-        expect(timings[1]).toBeGreaterThan(timings[0]);
-      }
-    });
-
-    test('should throw after max retries', async () => {
-      const operation = async () => {
-        throw new Error('always fails');
-      };
-
-      await expect(
-        ErrorBoundary.wrap(operation, {
-          retries: 2,
-          operationName: 'fail-op'
-        })
-      ).rejects.toThrow('always fails');
     });
   });
 

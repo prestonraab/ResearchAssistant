@@ -1,3 +1,4 @@
+import { jest } from '@jest/globals';
 import { getHelpOverlayJs, generateHelpOverlayHtml, getHelpOverlayCss } from '../keyboardShortcuts';
 
 describe('Keyboard Shortcuts Integration', () => {

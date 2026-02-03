@@ -1,3 +1,4 @@
+import { jest } from '@jest/globals';
 /**
  * Integration test for Phase1Initializer
  * 

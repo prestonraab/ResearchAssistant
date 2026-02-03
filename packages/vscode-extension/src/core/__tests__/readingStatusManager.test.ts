@@ -31,7 +31,7 @@ describe('ReadingStatusManager', () => {
       globalStoragePath: '/test/global-storage',
       logPath: '/test/logs',
       extensionMode: 1,
-      asAbsolutePath: jest.fn(),
+      asAbsolutePath: jest.fn((path: string) => `/test/extension/${path}`),
       storageUri: {} as any,
       globalStorageUri: {} as any,
       logUri: {} as any,

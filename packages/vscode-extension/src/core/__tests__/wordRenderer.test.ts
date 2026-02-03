@@ -1,3 +1,4 @@
+import { jest } from '@jest/globals';
 import { WordRenderer } from '../wordRenderer';
 import type { DocumentModel, DocumentSection, DocumentParagraph, DocumentRun } from '../documentModel';
 

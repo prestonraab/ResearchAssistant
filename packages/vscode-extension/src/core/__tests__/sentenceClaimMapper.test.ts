@@ -1,3 +1,4 @@
+import { jest } from '@jest/globals';
 import { SentenceClaimMapper } from '../sentenceClaimMapper';
 
 describe('SentenceClaimMapper', () => {
