@@ -57,7 +57,6 @@ export class ClaimReviewProvider {
       this.literatureIndexer,
       undefined,
       undefined,
-      undefined,
       workspaceRoot
     );
     
@@ -173,14 +172,8 @@ export class ClaimReviewProvider {
         'Data Source', 'Data Trend', 'Impact', 'Application', 'Phenomenon'
       ];
       
-      try {
-        const categorization = await this.extensionState.mcpClient.categorizeClaim(claim.text);
-        suggestedCategory = categorization.displayCategory;
-        availableCategories = categorization.availableCategories;
-      } catch (error) {
-        console.warn('Failed to auto-categorize claim:', error);
-        // Fall back to existing category
-      }
+      // Note: Auto-categorization via MCP has been removed
+      // The claim will use its existing category or default categories
 
       // Auto-verify quotes on load
       const verificationResults = await this.verifyAllQuotes(claim);

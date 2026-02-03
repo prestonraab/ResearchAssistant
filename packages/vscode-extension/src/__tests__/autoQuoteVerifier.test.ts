@@ -1,6 +1,7 @@
 import { AutoQuoteVerifier } from '../core/autoQuoteVerifier';
 import { ClaimsManager } from '../core/claimsManagerWrapper';
 import type { Claim } from '@research-assistant/core';
+import { setupTest, createMockClaim, aClaim } from './helpers';
 
 interface VerificationResult {
   verified: boolean;
@@ -10,47 +11,8 @@ interface VerificationResult {
 }
 
 describe('AutoQuoteVerifier', () => {
-    }))
-  },
-  commands: {
-    executeCommand: jest.fn()
-  },
-  ProgressLocation: {
-    Notification: 15
-  }
-}));
+  setupTest();
 
-// Mock logger
-jest.mock('../core/loggingService', () => ({
-  getLogger: jest.fn(() => ({
-    info: jest.fn(),
-    warn: jest.fn(),
-    error: jest.fn(),
-    debug: jest.fn(),
-    dispose: jest.fn()
-  })),
-  initializeLogger: jest.fn(),
-  LogLevel: {
-    DEBUG: 0,
-    INFO: 1,
-    WARN: 2,
-    ERROR: 3
-  }
-}));
-
-// Mock UnifiedQuoteSearch
-jest.mock('../services/unifiedQuoteSearch', () => ({
-  UnifiedQuoteSearch: jest.fn().mockImplementation(() => ({
-    search: jest.fn().mockResolvedValue([])
-  }))
-}));
-
-// Mock LiteratureIndexer
-jest.mock('../services/literatureIndexer', () => ({
-  LiteratureIndexer: jest.fn().mockImplementation(() => ({}))
-}));
-
-describe('AutoQuoteVerifier', () => {
   let verifier: AutoQuoteVerifier;
   let mockClaimsManager: jest.Mocked<ClaimsManager>;
 
@@ -74,20 +36,13 @@ describe('AutoQuoteVerifier', () => {
 
   describe('verifyOnSave', () => {
     it('should skip verification if claim has no quote', () => {
-      const claim: Claim = {
-        id: 'C_01',
-        text: 'Test claim',
-        category: 'Method',
-        source: 'Author2020',
-        sourceId: 1,
-        context: '',
-        primaryQuote: undefined, // No quote
-        supportingQuotes: [],
-        sections: [],
-        verified: false,
-        createdAt: new Date(),
-        modifiedAt: new Date()
-      };
+      const claim = aClaim()
+        .withId('C_01')
+        .withText('Test claim')
+        .withCategory('Method')
+        .withSource('Author2020')
+        .build();
+      claim.primaryQuote = { text: '', source: '', verified: false };
 
       verifier.verifyOnSave(claim);
 
@@ -95,23 +50,13 @@ describe('AutoQuoteVerifier', () => {
     });
 
     it('should skip verification if claim has no source', () => {
-      const claim: Claim = {
-        id: 'C_01',
-        text: 'Test claim',
-        category: 'Method',
-        source: '', // No source
-        sourceId: 1,
-        context: '',
-        primaryQuote: {
-          text: 'Test quote',
-          source: ''
-        },
-        supportingQuotes: [],
-        sections: [],
-        verified: false,
-        createdAt: new Date(),
-        modifiedAt: new Date()
-      };
+      const claim = aClaim()
+        .withId('C_01')
+        .withText('Test claim')
+        .withCategory('Method')
+        .withSource('')
+        .withPrimaryQuote('Test quote', '')
+        .build();
 
       verifier.verifyOnSave(claim);
 
@@ -119,23 +64,13 @@ describe('AutoQuoteVerifier', () => {
     });
 
     it('should add claim to queue if it has quote and source', () => {
-      const claim: Claim = {
-        id: 'C_01',
-        text: 'Test claim',
-        category: 'Method',
-        source: 'Author2020',
-        sourceId: 1,
-        context: '',
-        primaryQuote: {
-          text: 'Test quote',
-          source: 'Author2020'
-        },
-        supportingQuotes: [],
-        sections: [],
-        verified: false,
-        createdAt: new Date(),
-        modifiedAt: new Date()
-      };
+      const claim = aClaim()
+        .withId('C_01')
+        .withText('Test claim')
+        .withCategory('Method')
+        .withSource('Author2020')
+        .withPrimaryQuote('Test quote', 'Author2020')
+        .build();
 
       verifier.verifyOnSave(claim);
 
@@ -143,23 +78,13 @@ describe('AutoQuoteVerifier', () => {
     });
 
     it('should update existing queue item if claim already in queue', () => {
-      const claim: Claim = {
-        id: 'C_01',
-        text: 'Test claim',
-        category: 'Method',
-        source: 'Author2020',
-        sourceId: 1,
-        context: '',
-        primaryQuote: {
-          text: 'Test quote',
-          source: 'Author2020'
-        },
-        supportingQuotes: [],
-        sections: [],
-        verified: false,
-        createdAt: new Date(),
-        modifiedAt: new Date()
-      };
+      const claim = aClaim()
+        .withId('C_01')
+        .withText('Test claim')
+        .withCategory('Method')
+        .withSource('Author2020')
+        .withPrimaryQuote('Test quote', 'Author2020')
+        .build();
 
       verifier.verifyOnSave(claim);
       verifier.verifyOnSave(claim); // Add same claim again
@@ -178,20 +103,13 @@ describe('AutoQuoteVerifier', () => {
     });
 
     it('should return null if claim has no quote', async () => {
-      const claim: Claim = {
-        id: 'C_01',
-        text: 'Test claim',
-        category: 'Method',
-        source: 'Author2020',
-        sourceId: 1,
-        context: '',
-        primaryQuote: '', // No quote
-        supportingQuotes: [],
-        sections: [],
-        verified: false,
-        createdAt: new Date(),
-        modifiedAt: new Date()
-      };
+      const claim = aClaim()
+        .withId('C_01')
+        .withText('Test claim')
+        .withCategory('Method')
+        .withSource('Author2020')
+        .build();
+      claim.primaryQuote = { text: '', source: '', verified: false };
 
       mockClaimsManager.getClaim.mockReturnValue(claim);
 
@@ -201,23 +119,13 @@ describe('AutoQuoteVerifier', () => {
     });
 
     it('should verify quote and update claim on success', async () => {
-      const claim: Claim = {
-        id: 'C_01',
-        text: 'Test claim',
-        category: 'Method',
-        source: 'Author2020',
-        sourceId: 1,
-        context: '',
-        primaryQuote: {
-          text: 'Test quote',
-          source: 'Author2020'
-        },
-        supportingQuotes: [],
-        sections: [],
-        verified: false,
-        createdAt: new Date(),
-        modifiedAt: new Date()
-      };
+      const claim = aClaim()
+        .withId('C_01')
+        .withText('Test claim')
+        .withCategory('Method')
+        .withSource('Author2020')
+        .withPrimaryQuote('Test quote', 'Author2020')
+        .build();
 
       const mockSearchResults = [
         {
@@ -249,23 +157,13 @@ describe('AutoQuoteVerifier', () => {
     });
 
     it('should show warning on verification failure', async () => {
-      const claim: Claim = {
-        id: 'C_01',
-        text: 'Test claim',
-        category: 'Method',
-        source: 'Author2020',
-        sourceId: 1,
-        context: '',
-        primaryQuote: {
-          text: 'Test quote',
-          source: 'Author2020'
-        },
-        supportingQuotes: [],
-        sections: [],
-        verified: false,
-        createdAt: new Date(),
-        modifiedAt: new Date()
-      };
+      const claim = aClaim()
+        .withId('C_01')
+        .withText('Test claim')
+        .withCategory('Method')
+        .withSource('Author2020')
+        .withPrimaryQuote('Test quote', 'Author2020')
+        .build();
 
       const mockSearchResults = [
         {
@@ -302,20 +200,13 @@ describe('AutoQuoteVerifier', () => {
     });
 
     it('should return correct queue size', () => {
-      const claim: Claim = {
-        id: 'C_01',
-        text: 'Test claim',
-        category: 'Method',
-        source: 'Author2020',
-        sourceId: 1,
-        context: '',
-        primaryQuote: 'Test quote',
-        supportingQuotes: [],
-        sections: [],
-        verified: false,
-        createdAt: new Date(),
-        modifiedAt: new Date()
-      };
+      const claim = aClaim()
+        .withId('C_01')
+        .withText('Test claim')
+        .withCategory('Method')
+        .withSource('Author2020')
+        .withPrimaryQuote('Test quote', 'Author2020')
+        .build();
 
       verifier.verifyOnSave(claim);
 
@@ -332,6 +223,32 @@ describe('AutoQuoteVerifier', () => {
       
       // Still 0 after clear
       expect(verifier.getQueueSize()).toBe(0);
+    });
+  });
+
+  describe('Error handling', () => {
+    it('should handle concurrent verification requests', async () => {
+      const claim1 = aClaim().withId('C_01').withPrimaryQuote('Quote 1', 'Author2020').build();
+      const claim2 = aClaim().withId('C_02').withPrimaryQuote('Quote 2', 'Author2021').build();
+
+      verifier.verifyOnSave(claim1);
+      verifier.verifyOnSave(claim2);
+
+      expect(verifier.getQueueSize()).toBe(2);
+    });
+
+    it('should handle queue processing errors gracefully', async () => {
+      const claim = aClaim()
+        .withId('C_01')
+        .withPrimaryQuote('Test quote', 'Author2020')
+        .build();
+
+      mockClaimsManager.getClaim.mockReturnValue(claim);
+      mockClaimsManager.updateClaim.mockRejectedValue(new Error('Update failed'));
+
+      verifier.verifyOnSave(claim);
+
+      expect(verifier.getQueueSize()).toBe(1);
     });
   });
 });

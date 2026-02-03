@@ -41,6 +41,13 @@ export interface ZoteroAttachment {
   path?: string;
 }
 
+export interface VerificationResult {
+  verified: boolean;
+  similarity: number;
+  closestMatch?: string;
+  context?: string;
+}
+
 export class ZoteroApiService {
   private apiKey: string = '';
   private userID: string = '';

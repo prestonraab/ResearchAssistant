@@ -1,5 +1,5 @@
 import type { Claim, Quote } from '@research-assistant/core';
-import type { ZoteroItem } from '../../mcp/mcpClient';
+import type { ZoteroItem } from '../../services/zoteroApiService';
 
 /**
  * Builder pattern for creating complex test objects

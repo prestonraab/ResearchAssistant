@@ -9,6 +9,7 @@ import { ClaimMatchingProvider } from '../ui/claimMatchingProvider';
 import { ManuscriptExportOptions } from '../core/exportService';
 import { SectionTagger } from '../core/sectionTagger';
 import { QuestionAnswerParser } from '../core/questionAnswerParser';
+import { ZoteroAttachment } from '../services/zoteroApiService';
 
 export function registerManuscriptCommands(
   context: vscode.ExtensionContext,
@@ -161,7 +162,7 @@ export function registerManuscriptCommands(
               }
 
               try {
-                const results = await extensionState!.mcpClient.zotero.semanticSearch(basename, 1);
+                const results = await extensionState!.zoteroApiService.semanticSearch(basename, 1);
 
                 if (results.length === 0) {
                   failed++;
@@ -169,15 +170,15 @@ export function registerManuscriptCommands(
                 }
 
                 const item = results[0];
-                const children = await extensionState!.mcpClient.zotero.getItemChildren(item.itemKey);
+                const children = await extensionState!.zoteroApiService.getItemChildren(item.key);
 
-                const pdfAttachment = children.find((child: any) =>
-                  child.data?.contentType === 'application/pdf' ||
-                  child.data?.filename?.endsWith('.pdf')
+                const pdfAttachment = children.find((child: ZoteroAttachment) =>
+                  child.contentType === 'application/pdf' ||
+                  child.title?.endsWith('.pdf')
                 );
 
-                if (pdfAttachment && pdfAttachment.data?.path) {
-                  const zoteroPath = pdfAttachment.data.path;
+                if (pdfAttachment && pdfAttachment.path) {
+                  const zoteroPath = pdfAttachment.path;
                   if (fs.existsSync(zoteroPath)) {
                     fs.copyFileSync(zoteroPath, pdfPath);
                     downloaded++;

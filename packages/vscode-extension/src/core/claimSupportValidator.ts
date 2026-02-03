@@ -2,7 +2,6 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs/promises';
 import type { Claim, EmbeddingService } from '@research-assistant/core';
-import { MCPClientManager } from '../mcp/mcpClient';
 
 export interface SupportValidation {
   claimId: string;
@@ -20,18 +19,15 @@ export interface SupportValidation {
  */
 export class ClaimSupportValidator {
   private embeddingService: EmbeddingService;
-  private mcpClient: MCPClientManager;
   private readonly WEAK_SUPPORT_THRESHOLD = 0.6;
   private readonly STRONG_SUPPORT_THRESHOLD = 0.75;
   private extractedTextPath: string;
 
   constructor(
     embeddingService: EmbeddingService,
-    mcpClient: MCPClientManager,
     extractedTextPath: string
   ) {
     this.embeddingService = embeddingService;
-    this.mcpClient = mcpClient;
     this.extractedTextPath = extractedTextPath;
   }
 

@@ -1,6 +1,6 @@
 import { createMockClaim, createMockZoteroItem, createMockVerificationResult } from './mockFactories';
 import type { Claim } from '@research-assistant/core';
-import type { ZoteroItem, VerificationResult } from '../../mcp/mcpClient';
+import type { ZoteroItem, VerificationResult } from '../../services/zoteroApiService';
 
 /**
  * Shared test fixtures for common test scenarios
@@ -16,13 +16,11 @@ export const TEST_CLAIMS: Record<string, Claim> = {
     id: 'C_01',
     category: 'Method',
     text: 'ComBat uses Empirical Bayes to estimate location and scale parameters',
-    source: 'Johnson2007',
-    sourceId: 1,
     context: 'Assumes Gaussian distribution',
-    primaryQuote: 'We propose parametric and non-parametric empirical Bayes frameworks for adjusting data for batch effects',
+    primaryQuote: { text: 'We propose parametric and non-parametric empirical Bayes frameworks for adjusting data for batch effects', source: 'Johnson2007', verified: false },
     supportingQuotes: [
-      'Location and scale (L/S) adjustments can be defined as a wide family of adjustments',
-      'The γ ig and δ ig represent the additive and multiplicative batch effects'
+      { text: 'Location and scale (L/S) adjustments can be defined as a wide family of adjustments', source: 'Johnson2007', verified: false },
+      { text: 'The γ ig and δ ig represent the additive and multiplicative batch effects', source: 'Johnson2007', verified: false }
     ],
     verified: true
   }),
@@ -31,11 +29,9 @@ export const TEST_CLAIMS: Record<string, Claim> = {
     id: 'C_02',
     category: 'Result',
     text: 'ComBat improved classification accuracy by 15%',
-    source: 'Zhang2020',
-    sourceId: 2,
     context: 'Tested on tuberculosis dataset',
-    primaryQuote: 'Batch correction with ComBat significantly improved model performance',
-    supportingQuotes: ['Accuracy increased from 0.75 to 0.90'],
+    primaryQuote: { text: 'Batch correction with ComBat significantly improved model performance', source: 'Zhang2020', verified: false },
+    supportingQuotes: [{ text: 'Accuracy increased from 0.75 to 0.90', source: 'Zhang2020', verified: false }],
     verified: true
   }),
 
@@ -43,10 +39,8 @@ export const TEST_CLAIMS: Record<string, Claim> = {
     id: 'C_03',
     category: 'Challenge',
     text: 'Batch effects can confound biological signals',
-    source: 'Leek2010',
-    sourceId: 3,
     context: 'Major issue in genomics',
-    primaryQuote: 'Batch effects are widespread and critical in high-throughput data',
+    primaryQuote: { text: 'Batch effects are widespread and critical in high-throughput data', source: 'Leek2010', verified: false },
     supportingQuotes: [],
     verified: false
   }),
@@ -55,10 +49,8 @@ export const TEST_CLAIMS: Record<string, Claim> = {
     id: 'C_04',
     category: 'Method',
     text: 'SVA removes unwanted variation',
-    source: 'Leek2007',
-    sourceId: 4,
     context: '',
-    primaryQuote: 'Surrogate variable analysis captures heterogeneity',
+    primaryQuote: { text: 'Surrogate variable analysis captures heterogeneity', source: 'Leek2007', verified: false },
     supportingQuotes: [],
     verified: false
   }),
@@ -67,10 +59,8 @@ export const TEST_CLAIMS: Record<string, Claim> = {
     id: 'C_05',
     category: '',
     text: 'Minimal claim with no details',
-    source: '',
-    sourceId: 0,
     context: '',
-    primaryQuote: '',
+    primaryQuote: { text: '', source: '', verified: false },
     supportingQuotes: [],
     verified: false
   })
@@ -92,7 +82,7 @@ export const TEST_ZOTERO_ITEMS: Record<string, ZoteroItem> = {
     date: '2007',
     itemType: 'journalArticle',
     abstractNote: 'Non-biological experimental variation or "batch effects" are commonly observed across multiple batches of microarray experiments',
-    DOI: '10.1093/biostatistics/kxj037'
+    doi: '10.1093/biostatistics/kxj037'
   }),
 
   zhang2020: createMockZoteroItem({
@@ -106,7 +96,7 @@ export const TEST_ZOTERO_ITEMS: Record<string, ZoteroItem> = {
     date: '2020',
     itemType: 'journalArticle',
     abstractNote: 'Batch effects are technical sources of variation that have been widely observed in high-throughput experiments',
-    DOI: '10.1093/nargab/lqaa078'
+    doi: '10.1093/nargab/lqaa078'
   }),
 
   leek2010: createMockZoteroItem({
@@ -120,7 +110,7 @@ export const TEST_ZOTERO_ITEMS: Record<string, ZoteroItem> = {
     date: '2010',
     itemType: 'journalArticle',
     abstractNote: 'High-throughput technologies are widely used, for example to assay genetic variants, gene and protein expression',
-    DOI: '10.1038/nrg2825'
+    doi: '10.1038/nrg2825'
   }),
 
   book: createMockZoteroItem({

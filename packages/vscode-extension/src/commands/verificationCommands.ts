@@ -102,25 +102,19 @@ export function registerVerificationCommands(
 
       try {
         vscode.window.showInformationMessage('Verifying all claims... This may take a moment.');
-        const result = await extensionState.mcpClient.research.verifyAllClaims(false, 0.8);
+        
+        // Use the existing quote verification service instead of MCP client
+        const result = await extensionState.quoteVerificationService.verifyAllClaims();
 
-        if (result.error) {
-          vscode.window.showErrorMessage(`Verification failed: ${result.error}`);
-          return;
-        }
-
-        const verified = result.verified_count || 0;
-        const total = result.total_count || 0;
-        const problematic = result.problematic_claims || [];
-
-        let message = `Verification complete: ${verified}/${total} claims verified`;
-        if (problematic.length > 0) {
-          message += `\n\n${problematic.length} claims need review:\n`;
-          problematic.slice(0, 5).forEach((claim: any) => {
-            message += `\n• ${claim.id}: ${claim.issue}`;
+        let message = `Verification complete: ${result.verified}/${result.totalClaims} claims verified`;
+        
+        if (result.failures.length > 0) {
+          message += `\n\n${result.failures.length} claims need review:\n`;
+          result.failures.slice(0, 5).forEach((failure: any) => {
+            message += `\n• ${failure.claimId}: ${(failure.similarity * 100).toFixed(1)}% similarity`;
           });
-          if (problematic.length > 5) {
-            message += `\n\n... and ${problematic.length - 5} more`;
+          if (result.failures.length > 5) {
+            message += `\n\n... and ${result.failures.length - 5} more`;
           }
         }
 

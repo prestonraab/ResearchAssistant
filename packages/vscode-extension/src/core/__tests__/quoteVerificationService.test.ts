@@ -1,24 +1,25 @@
 import { QuoteVerificationService, QuoteVerificationResult, BatchVerificationResult } from '../quoteVerificationService';
-import { MCPClientManager, VerificationResult } from '../../mcp/mcpClient';
+import { VerificationResult } from '../../services/zoteroApiService';
 import { ClaimsManager } from '../claimsManagerWrapper';
 import type { Claim } from '@research-assistant/core';
 import { setupTest, createMockClaim, createMockVerificationResult } from '../../__tests__/helpers';
+import { UnifiedQuoteSearch } from '../unifiedQuoteSearch';
 
 // Mock the dependencies
-jest.mock('../../mcp/mcpClient');
 jest.mock('../claimsManagerWrapper');
+jest.mock('../unifiedQuoteSearch');
 
 describe('QuoteVerificationService', () => {
   setupTest();
 
   let service: QuoteVerificationService;
-  let mockMcpClient: jest.Mocked<MCPClientManager>;
+  let mockUnifiedQuoteSearch: jest.Mocked<UnifiedQuoteSearch>;
   let mockClaimsManager: jest.Mocked<ClaimsManager>;
 
   beforeEach(() => {
-    mockMcpClient = new MCPClientManager() as jest.Mocked<MCPClientManager>;
+    mockUnifiedQuoteSearch = new UnifiedQuoteSearch() as jest.Mocked<UnifiedQuoteSearch>;
     mockClaimsManager = new ClaimsManager('test.md') as jest.Mocked<ClaimsManager>;
-    service = new QuoteVerificationService(mockMcpClient, mockClaimsManager);
+    service = new QuoteVerificationService(mockUnifiedQuoteSearch, mockClaimsManager);
   });
 
   describe('verifyQuote', () => {
@@ -30,11 +31,11 @@ describe('QuoteVerificationService', () => {
         similarity: 1.0
       });
 
-      mockMcpClient.verifyQuote = jest.fn().mockResolvedValue(expectedResult);
+      mockUnifiedQuoteSearch.findBestMatch = jest.fn().mockResolvedValue(expectedResult);
 
       const result = await service.verifyQuote(quote, authorYear);
 
-      expect(mockMcpClient.verifyQuote).toHaveBeenCalledWith(quote, authorYear);
+      expect(mockUnifiedQuoteSearch.findBestMatch).toHaveBeenCalledWith(quote, authorYear);
       expect(result).toEqual(expectedResult);
     });
 
@@ -48,7 +49,7 @@ describe('QuoteVerificationService', () => {
         context: 'surrounding context'
       });
 
-      mockMcpClient.verifyQuote = jest.fn().mockResolvedValue(expectedResult);
+      mockUnifiedQuoteSearch.findBestMatch = jest.fn().mockResolvedValue(expectedResult);
 
       const result = await service.verifyQuote(quote, authorYear);
 
@@ -69,7 +70,7 @@ describe('QuoteVerificationService', () => {
       const quote = 'This is a test quote';
       const authorYear = 'Johnson2007';
 
-      mockMcpClient.verifyQuote = jest.fn().mockRejectedValue(new Error('MCP connection failed'));
+      mockUnifiedQuoteSearch.findBestMatch = jest.fn().mockRejectedValue(new Error('MCP connection failed'));
 
       await expect(service.verifyQuote(quote, authorYear)).rejects.toThrow('Failed to verify quote: MCP connection failed');
     });
@@ -92,13 +93,13 @@ describe('QuoteVerificationService', () => {
       });
 
       mockClaimsManager.getClaim = jest.fn().mockReturnValue(claim);
-      mockMcpClient.verifyQuote = jest.fn().mockResolvedValue(verificationResult);
+      mockUnifiedQuoteSearch.findBestMatch = jest.fn().mockResolvedValue(verificationResult);
       mockClaimsManager.updateClaim = jest.fn().mockResolvedValue(undefined);
 
       const result = await service.verifyClaim('C_01');
 
       expect(mockClaimsManager.getClaim).toHaveBeenCalledWith('C_01');
-      expect(mockMcpClient.verifyQuote).toHaveBeenCalledWith(claim.primaryQuote.text, claim.primaryQuote.source);
+      expect(mockUnifiedQuoteSearch.findBestMatch).toHaveBeenCalledWith(claim.primaryQuote.text, claim.primaryQuote.source);
       expect(mockClaimsManager.updateClaim).toHaveBeenCalledWith('C_01', { verified: true });
       expect(result.verified).toBe(true);
       expect(result.claimId).toBe('C_01');
@@ -184,7 +185,7 @@ describe('QuoteVerificationService', () => {
       };
 
       mockClaimsManager.getClaim = jest.fn().mockReturnValue(claim);
-      mockMcpClient.verifyQuote = jest.fn().mockResolvedValue(verificationResult);
+      mockUnifiedQuoteSearch.findBestMatch = jest.fn().mockResolvedValue(verificationResult);
       mockClaimsManager.updateClaim = jest.fn().mockResolvedValue(undefined);
 
       const result = await service.verifyClaim('C_01');
@@ -211,7 +212,7 @@ describe('QuoteVerificationService', () => {
       };
 
       mockClaimsManager.getClaim = jest.fn().mockReturnValue(claim);
-      mockMcpClient.verifyQuote = jest.fn().mockRejectedValue(new Error('Network error'));
+      mockUnifiedQuoteSearch.findBestMatch = jest.fn().mockRejectedValue(new Error('Network error'));
 
       const result = await service.verifyClaim('C_01');
 
@@ -231,7 +232,7 @@ describe('QuoteVerificationService', () => {
         context: 'surrounding context'
       };
 
-      mockMcpClient.verifyQuote = jest.fn().mockResolvedValue(expectedResult);
+      mockUnifiedQuoteSearch.findBestMatch = jest.fn().mockResolvedValue(expectedResult);
 
       const result = await service.findClosestMatch(quote, authorYear);
 
@@ -240,7 +241,7 @@ describe('QuoteVerificationService', () => {
     });
 
     it('should handle errors when finding closest match', async () => {
-      mockMcpClient.verifyQuote = jest.fn().mockRejectedValue(new Error('Source not found'));
+      mockUnifiedQuoteSearch.findBestMatch = jest.fn().mockRejectedValue(new Error('Source not found'));
 
       await expect(service.findClosestMatch('test', 'Unknown2000')).rejects.toThrow('Source not found');
     });
@@ -284,7 +285,7 @@ describe('QuoteVerificationService', () => {
         .mockReturnValueOnce(claims[0])
         .mockReturnValueOnce(claims[1]);
       
-      mockMcpClient.verifyQuote = jest.fn()
+      mockUnifiedQuoteSearch.findBestMatch = jest.fn()
         .mockResolvedValueOnce({ verified: true, similarity: 1.0 })
         .mockResolvedValueOnce({ verified: false, similarity: 0.75, closestMatch: 'Similar quote' });
       
@@ -335,7 +336,7 @@ describe('QuoteVerificationService', () => {
 
       mockClaimsManager.getClaims = jest.fn().mockReturnValue(claims);
       mockClaimsManager.getClaim = jest.fn().mockReturnValueOnce(claims[0]);
-      mockMcpClient.verifyQuote = jest.fn().mockResolvedValue({ verified: true, similarity: 1.0 });
+      mockUnifiedQuoteSearch.findBestMatch = jest.fn().mockResolvedValue({ verified: true, similarity: 1.0 });
       mockClaimsManager.updateClaim = jest.fn().mockResolvedValue(undefined);
 
       const result = await service.verifyAllClaims();
@@ -365,7 +366,7 @@ describe('QuoteVerificationService', () => {
 
       mockClaimsManager.getClaims = jest.fn().mockReturnValue(claims);
       mockClaimsManager.getClaim = jest.fn().mockReturnValue(claims[0]);
-      mockMcpClient.verifyQuote = jest.fn().mockRejectedValue(new Error('Network error'));
+      mockUnifiedQuoteSearch.findBestMatch = jest.fn().mockRejectedValue(new Error('Network error'));
 
       const result = await service.verifyAllClaims();
 
@@ -415,7 +416,7 @@ describe('QuoteVerificationService', () => {
         return claims.find(c => c.id === id) || null;
       });
       
-      mockMcpClient.verifyQuote = jest.fn()
+      mockUnifiedQuoteSearch.findBestMatch = jest.fn()
         .mockResolvedValueOnce({ verified: true, similarity: 1.0 })
         .mockResolvedValueOnce({ verified: true, similarity: 1.0 });
       

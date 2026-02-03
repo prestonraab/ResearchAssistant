@@ -7,7 +7,6 @@ import { EmbeddedSnippet } from './embeddingStore';
 import { EmbeddingService } from './embeddingService';
 import { ClaimQuoteConfidenceCache, ClaimValidationCache } from '@research-assistant/core';
 import type { Claim } from '@research-assistant/core';
-import { MCPClientManager } from '../mcp/mcpClient';
 
 export interface VerificationResult {
   snippet: EmbeddedSnippet;
@@ -44,7 +43,6 @@ export interface SupportValidation {
 export class VerificationFeedbackLoop {
   private literatureIndexer: LiteratureIndexer;
   private embeddingService: EmbeddingService;
-  private mcpClient: MCPClientManager;
   private confidenceCache: ClaimQuoteConfidenceCache | null = null;
   private validationCache: ClaimValidationCache | null = null;
   private openaiApiKey: string;
@@ -55,13 +53,11 @@ export class VerificationFeedbackLoop {
 
   constructor(
     literatureIndexer: LiteratureIndexer,
-    mcpClient?: MCPClientManager,
     openaiApiKey?: string,
     extractedTextPath: string = 'literature/ExtractedText',
     workspaceRoot?: string
   ) {
     this.literatureIndexer = literatureIndexer;
-    this.mcpClient = mcpClient || ({} as MCPClientManager);
     this.embeddingService = new EmbeddingService(openaiApiKey);
     this.openaiApiKey = openaiApiKey || this.getSettingValue('openaiApiKey') || process.env.OPENAI_API_KEY || '';
     this.extractedTextPath = extractedTextPath;
@@ -346,12 +342,30 @@ Generate a refined search query (2-5 words) that would find more relevant papers
 
   /**
    * Web search for supporting evidence
+   * Uses free academic search APIs:
+   * - arXiv (preprints)
+   * - Semantic Scholar (peer-reviewed)
+   * - CrossRef (scholarly metadata)
+   * - PubMed (biomedical)
+   * All free, no authentication required
    */
   private async webSearch(claim: string): Promise<Array<{ title: string; url: string; snippet: string }>> {
-    // This would integrate with a web search API (Google, Bing, etc.)
-    // For now, return empty array - user can implement with their preferred API
-    console.log('[VerificationFeedbackLoop] Web search not yet implemented');
-    return [];
+    try {
+      // Import InternetPaperSearcher from core to reuse unified search
+      const { InternetPaperSearcher } = await import('@research-assistant/core');
+      const searcher = new InternetPaperSearcher();
+      
+      const papers = await searcher.searchExternal(claim);
+      
+      return papers.map(paper => ({
+        title: paper.title,
+        url: paper.url || '',
+        snippet: paper.abstract || `${paper.authors.join(', ')} (${paper.year})`,
+      })).filter(r => r.url);
+    } catch (error) {
+      console.error('[VerificationFeedbackLoop] Web search failed:', error);
+      return [];
+    }
   }
 
   /**

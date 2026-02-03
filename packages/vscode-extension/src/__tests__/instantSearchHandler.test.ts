@@ -1,30 +1,34 @@
 import { InstantSearchHandler } from '../core/instantSearchHandler';
-import { MCPClientManager, ZoteroItem } from '../mcp/mcpClient';
+import { ZoteroApiService, ZoteroItem } from '../services/zoteroApiService';
 import { ManuscriptContextDetector } from '../core/manuscriptContextDetector';
 import * as vscode from 'vscode';
 import * as fs from 'fs';
+import { setupTest, aZoteroItem } from './helpers';
 
 // Mock modules
 jest.mock('fs');
-jest.mock('../mcp/mcpClient');
+jest.mock('../services/zoteroApiService');
 jest.mock('../core/manuscriptContextDetector');
 
 describe('InstantSearchHandler', () => {
+  setupTest();
+
   let handler: InstantSearchHandler;
-  let mockMcpClient: jest.Mocked<MCPClientManager>;
+  let mockZoteroApiService: jest.Mocked<ZoteroApiService>;
   let mockManuscriptContextDetector: jest.Mocked<ManuscriptContextDetector>;
   let mockSemanticSearch: jest.Mock;
   const workspaceRoot = '/test/workspace';
   const extractedTextPath = '/test/workspace/literature/ExtractedText';
 
-  const mockZoteroItem: ZoteroItem = {
-    itemKey: 'ABC123',
-    title: 'Test Paper on Machine Learning',
-    authors: ['Smith, John', 'Doe, Jane'],
-    year: 2023,
-    abstract: 'This is a test abstract about machine learning and neural networks.',
-    doi: '10.1234/test',
-  };
+  const mockZoteroItem: ZoteroItem = aZoteroItem()
+    .withKey('ABC123')
+    .withTitle('Test Paper on Machine Learning')
+    .withAuthor('John', 'Smith')
+    .withAuthor('Jane', 'Doe')
+    .withYear(2023)
+    .withAbstract('This is a test abstract about machine learning and neural networks.')
+    .withDOI('10.1234/test')
+    .build();
 
   const mockSection: any = {
     id: 'section-1',
@@ -38,14 +42,12 @@ describe('InstantSearchHandler', () => {
   };
 
   beforeEach(() => {
-    jest.clearAllMocks();
-
     // Create mock instances with proper jest.fn() mocks
     mockSemanticSearch = jest.fn();
-    mockMcpClient = {
-      zotero: {
-        semanticSearch: mockSemanticSearch,
-      },
+    mockZoteroApiService = {
+      semanticSearch: mockSemanticSearch,
+      isConfigured: jest.fn().mockReturnValue(true),
+      getPdfAttachments: jest.fn(),
     } as any;
 
     mockManuscriptContextDetector = {
@@ -53,7 +55,7 @@ describe('InstantSearchHandler', () => {
     } as any;
 
     handler = new InstantSearchHandler(
-      mockMcpClient,
+      mockZoteroApiService,
       mockManuscriptContextDetector,
       workspaceRoot,
       extractedTextPath
@@ -96,7 +98,7 @@ describe('InstantSearchHandler', () => {
 
       const results = await handler.searchFromSelection('machine learning');
 
-      expect(mockMcpClient.zotero.semanticSearch).toHaveBeenCalledWith(
+      expect(mockZoteroApiService.semanticSearch).toHaveBeenCalledWith(
         'machine learning',
         10
       );

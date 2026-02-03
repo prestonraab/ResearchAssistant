@@ -3,7 +3,6 @@ import * as path from 'path';
 import * as fs from 'fs';
 import { ZoteroApiService, ZoteroItem } from '../services/zoteroApiService';
 import { ManuscriptContextDetector } from './manuscriptContextDetector';
-import { InternetPaperSearcher } from './internetPaperSearcher';
 
 /**
  * InstantSearchHandler enables instant paper search from any selected text in manuscript.md.
@@ -22,7 +21,6 @@ export class InstantSearchHandler {
   private readonly CACHE_TTL = 5 * 60 * 1000; // 5 minutes
   private readonly SEARCH_TIMEOUT = 2000; // 2 seconds max
   private disposables: vscode.Disposable[] = [];
-  private internetSearcher: InternetPaperSearcher;
 
   constructor(
     private zoteroApiService: ZoteroApiService,
@@ -30,7 +28,6 @@ export class InstantSearchHandler {
     private workspaceRoot: string,
     private extractedTextPath: string
   ) {
-    this.internetSearcher = new InternetPaperSearcher(workspaceRoot);
   }
 
   /**
@@ -225,6 +222,13 @@ export class InstantSearchHandler {
         return;
       }
 
+      // Internet search functionality is not yet available
+      // TODO: Implement external paper search when InternetPaperSearcher is available
+      vscode.window.showInformationMessage(
+        'External paper search is not yet available. Please use Zotero search instead.'
+      );
+      
+      /*
       // Search external sources
       const results = await vscode.window.withProgress(
         {
@@ -251,6 +255,7 @@ export class InstantSearchHandler {
           );
         }
       }
+      */
     } catch (error) {
       console.error('Internet search failed:', error);
       vscode.window.showErrorMessage(
@@ -392,6 +397,5 @@ export class InstantSearchHandler {
   public dispose(): void {
     this.disposables.forEach(d => d?.dispose());
     this.searchCache.clear();
-    this.internetSearcher.dispose();
   }
 }

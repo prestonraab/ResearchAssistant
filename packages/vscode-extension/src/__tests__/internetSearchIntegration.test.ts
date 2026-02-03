@@ -1,23 +1,23 @@
 import { InstantSearchHandler } from '../core/instantSearchHandler';
 import { InternetPaperSearcher } from '../core/internetPaperSearcher';
-import { MCPClientManager, ZoteroItem } from '../mcp/mcpClient';
+import { ZoteroApiService, ZoteroItem } from '../services/zoteroApiService';
 import { ManuscriptContextDetector } from '../core/manuscriptContextDetector';
 import * as vscode from 'vscode';
+import { setupTest, aZoteroItem } from './helpers';
 
 describe('Internet Search Integration', () => {
+  setupTest();
+
   let instantSearchHandler: InstantSearchHandler;
   let internetSearcher: InternetPaperSearcher;
-  let mockMcpClient: jest.Mocked<MCPClientManager>;
+  let mockZoteroService: jest.Mocked<ZoteroApiService>;
   let mockContextDetector: jest.Mocked<ManuscriptContextDetector>;
   const workspaceRoot = '/test/workspace';
   const extractedTextPath = '/test/workspace/literature/ExtractedText';
 
   beforeEach(() => {
-    mockMcpClient = {
-      zotero: {
-        semanticSearch: jest.fn(),
-        getItemChildren: jest.fn(),
-      },
+    mockZoteroService = {
+      semanticSearch: jest.fn(),
     } as any;
 
     mockContextDetector = {
@@ -25,23 +25,24 @@ describe('Internet Search Integration', () => {
     } as any;
 
     instantSearchHandler = new InstantSearchHandler(
-      mockMcpClient,
+      mockZoteroService,
       mockContextDetector,
       workspaceRoot,
       extractedTextPath
     );
 
-    internetSearcher = new InternetPaperSearcher(mockMcpClient, workspaceRoot);
+    internetSearcher = new InternetPaperSearcher(workspaceRoot);
   });
 
   afterEach(() => {
-    jest.clearAllMocks();
+    instantSearchHandler.dispose?.();
+    internetSearcher.dispose?.();
   });
 
   describe('Complete workflow: Zotero search fails -> Internet search -> Import', () => {
     it('should offer internet search when Zotero returns no results', async () => {
       // Mock Zotero search returning empty results
-      const mockSemanticSearch = mockMcpClient.zotero.semanticSearch as jest.Mock;
+      const mockSemanticSearch = mockZoteroService.semanticSearch as jest.Mock;
       mockSemanticSearch.mockResolvedValue([]);
 
       const mockShowInfo = vscode.window.showInformationMessage as jest.Mock;

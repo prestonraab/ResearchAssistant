@@ -356,6 +356,13 @@ export { SnippetExtractor } from './services/SnippetExtractor.js';
 export { EmbeddingQuantizer } from './services/EmbeddingQuantizer.js';
 
 /**
+ * Internet Paper Searcher
+ * 
+ * Platform-agnostic academic paper search across free APIs.
+ */
+export { InternetPaperSearcher } from './services/InternetPaperSearcher.js';
+
+/**
  * Quote Verification Service
  * 
  * Service for verifying quotes against source texts with caching.

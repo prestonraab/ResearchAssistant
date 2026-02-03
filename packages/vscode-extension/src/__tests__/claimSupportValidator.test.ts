@@ -1,6 +1,5 @@
 import { ClaimSupportValidator } from '../core/claimSupportValidator';
 import type { Claim, EmbeddingService } from '@research-assistant/core';
-import { MCPClientManager } from '../mcp/mcpClient';
 import * as fs from 'fs/promises';
 import { setupTest, createMockClaim } from './helpers';
 
@@ -12,7 +11,6 @@ describe('ClaimSupportValidator', () => {
 
   let validator: ClaimSupportValidator;
   let mockEmbeddingService: jest.Mocked<EmbeddingService>;
-  let mockMCPClient: jest.Mocked<MCPClientManager>;
   const extractedTextPath = '/test/literature/ExtractedText';
 
   beforeEach(() => {
@@ -25,16 +23,8 @@ describe('ClaimSupportValidator', () => {
       getCachedEmbedding: jest.fn()
     } as any;
 
-    // Create mock MCPClient
-    mockMCPClient = {
-      citation: {
-        searchQuotes: jest.fn().mockResolvedValue([])
-      }
-    } as any;
-
     validator = new ClaimSupportValidator(
       mockEmbeddingService,
-      mockMCPClient,
       extractedTextPath
     );
   });
@@ -183,7 +173,6 @@ describe('ClaimSupportValidator', () => {
   describe('findBetterQuotes', () => {
     it('should return empty array if source text not found', async () => {
       (fs.readFile as jest.Mock).mockRejectedValue(new Error('File not found'));
-      (mockMCPClient.citation.searchQuotes as jest.Mock).mockResolvedValue([]);
 
       const quotes = await validator.findBetterQuotes(
         'Test claim',
@@ -251,7 +240,6 @@ describe('ClaimSupportValidator', () => {
 
     it('should handle errors gracefully', async () => {
       (fs.readFile as jest.Mock).mockRejectedValue(new Error('Read error'));
-      (mockMCPClient.citation.searchQuotes as jest.Mock).mockRejectedValue(new Error('MCP error'));
 
       const quotes = await validator.findBetterQuotes('claim', 'Author2020');
 

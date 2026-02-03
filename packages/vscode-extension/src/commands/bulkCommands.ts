@@ -75,21 +75,24 @@ export function registerBulkCommands(
 
             switch (choice.value) {
               case 'collection':
-                const collections = await extensionState!.mcpClient.zotero.getCollections();
-                const selectedCollection = await vscode.window.showQuickPick(
-                  collections.map((c: any) => ({
-                    label: c.name,
-                    description: c.key,
-                    key: c.key
-                  })),
-                  { placeHolder: 'Select a collection to import' }
-                );
+                // Note: getCollections() is not available in ZoteroApiService
+                // Users need to provide collection key manually
+                const collectionKey = await vscode.window.showInputBox({
+                  prompt: 'Enter Zotero collection key',
+                  placeHolder: 'e.g., ABC123XYZ',
+                  validateInput: (value) => {
+                    if (!value || value.trim().length === 0) {
+                      return 'Collection key cannot be empty';
+                    }
+                    return null;
+                  }
+                });
 
-                if (!selectedCollection) {
+                if (!collectionKey) {
                   return;
                 }
 
-                result = await service.importFromCollection(selectedCollection.key);
+                result = await service.importFromCollection(collectionKey);
                 break;
 
               case 'recent':

@@ -57,7 +57,7 @@ export async function autoSyncPDFs(state: ExtensionState, papersProvider: Papers
       const pdfPath = path.join(pdfDir, `${basename}.pdf`);
 
       try {
-        const results = await state.mcpClient.zotero.semanticSearch(basename, 1);
+        const results = await state.zoteroApiService.semanticSearch(basename, 1);
 
         if (results.length === 0) {
           failed++;
@@ -65,15 +65,15 @@ export async function autoSyncPDFs(state: ExtensionState, papersProvider: Papers
         }
 
         const item = results[0];
-        const children = await state.mcpClient.zotero.getItemChildren(item.itemKey);
+        const children = await state.zoteroApiService.getPdfAttachments(item.key);
 
         const pdfAttachment = children.find((child: any) =>
-          child.data?.contentType === 'application/pdf' ||
-          child.data?.filename?.endsWith('.pdf')
+          child.contentType === 'application/pdf' ||
+          child.title?.endsWith('.pdf')
         );
 
-        if (pdfAttachment && pdfAttachment.data?.path) {
-          const zoteroPath = pdfAttachment.data.path;
+        if (pdfAttachment && pdfAttachment.path) {
+          const zoteroPath = pdfAttachment.path;
           if (fs.existsSync(zoteroPath)) {
             fs.copyFileSync(zoteroPath, pdfPath);
             downloaded++;

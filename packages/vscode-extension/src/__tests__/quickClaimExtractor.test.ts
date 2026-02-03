@@ -1,10 +1,10 @@
 import { QuickClaimExtractor } from '../core/quickClaimExtractor';
-import { ClaimsManager } from '../core/claimsManagerWrapper';
-import { ClaimExtractor } from '../core/claimExtractor';
-import { OutlineParser } from '../core/outlineParserWrapper';
-import { EmbeddingService } from '@research-assistant/core';
+import type { ClaimsManager } from '../core/claimsManagerWrapper';
+import type { ClaimExtractor } from '../core/claimExtractor';
+import type { OutlineParser } from '../core/outlineParserWrapper';
+import type { EmbeddingService } from '@research-assistant/core';
 import * as vscode from 'vscode';
-import { setupTest, createMockClaim } from './helpers';
+import { setupTest, createMockClaim, createMockDocument } from './helpers';
 
 describe('QuickClaimExtractor', () => {
   setupTest();
@@ -17,30 +17,47 @@ describe('QuickClaimExtractor', () => {
   const extractedTextPath = '/workspace/literature/ExtractedText';
 
   beforeEach(() => {
-    // Create fresh mocks for each test
     mockClaimsManager = {
-      saveClaim: jest.fn().mockResolvedValue(undefined),
-      generateClaimId: jest.fn().mockReturnValue('C_01'),
-      getClaims: jest.fn().mockReturnValue([])
+      saveClaim: jest.fn<() => Promise<void>>().mockResolvedValue(undefined),
+      generateClaimId: jest.fn<() => string>().mockReturnValue('C_01'),
+      getClaims: jest.fn<() => any[]>().mockReturnValue([]),
+      getClaim: jest.fn(),
+      updateClaim: jest.fn(),
+      deleteClaim: jest.fn(),
+      loadClaims: jest.fn(),
+      searchClaims: jest.fn(),
+      findClaimsBySection: jest.fn(),
+      findClaimsBySource: jest.fn(),
+      detectSimilarClaims: jest.fn(),
+      mergeClaims: jest.fn()
     } as any;
 
     mockClaimExtractor = {
-      categorizeClaim: jest.fn().mockReturnValue('method'),
-      suggestSections: jest.fn().mockResolvedValue([
+      categorizeClaim: jest.fn<(text: string) => string>().mockReturnValue('method'),
+      suggestSections: jest.fn<() => Promise<any[]>>().mockResolvedValue([
         { id: 'section1', title: 'Methods', level: 2, content: [], parent: null, children: [], lineStart: 0, lineEnd: 10 }
-      ])
+      ]),
+      extractClaims: jest.fn(),
+      extractFromText: jest.fn()
     } as any;
 
     mockOutlineParser = {
-      parse: jest.fn().mockResolvedValue([
+      parse: jest.fn<() => Promise<any[]>>().mockResolvedValue([
         { id: 'section1', title: 'Methods', level: 2, content: [], parent: null, children: [], lineStart: 0, lineEnd: 10 },
         { id: 'section2', title: 'Results', level: 2, content: [], parent: null, children: [], lineStart: 11, lineEnd: 20 }
-      ])
+      ]),
+      getSectionAtPosition: jest.fn(),
+      getSectionById: jest.fn(),
+      getSections: jest.fn(),
+      getFilePath: jest.fn()
     } as any;
 
     mockEmbeddingService = {
-      generateEmbedding: jest.fn().mockResolvedValue([0.1, 0.2, 0.3]),
-      cosineSimilarity: jest.fn().mockReturnValue(0.8)
+      generateEmbedding: jest.fn<() => Promise<number[]>>().mockResolvedValue([0.1, 0.2, 0.3]),
+      cosineSimilarity: jest.fn<() => number>().mockReturnValue(0.8),
+      generateBatch: jest.fn(),
+      cacheEmbedding: jest.fn(),
+      getCachedEmbedding: jest.fn()
     } as any;
 
     quickClaimExtractor = new QuickClaimExtractor(
@@ -54,27 +71,27 @@ describe('QuickClaimExtractor', () => {
 
   describe('autoDetectSource', () => {
     it('should extract source from filename', () => {
-      const mockDocument = {
-        uri: { fsPath: '/workspace/literature/ExtractedText/Smith2023.txt' }
-      } as any;
+      const mockDocument = createMockDocument({
+        uri: vscode.Uri.file('/workspace/literature/ExtractedText/Smith2023.txt')
+      });
 
       const source = quickClaimExtractor.autoDetectSource(mockDocument);
       expect(source).toBe('Smith2023');
     });
 
     it('should handle different file extensions', () => {
-      const mockDocument = {
-        uri: { fsPath: '/workspace/literature/ExtractedText/Johnson2020.md' }
-      } as any;
+      const mockDocument = createMockDocument({
+        uri: vscode.Uri.file('/workspace/literature/ExtractedText/Johnson2020.md')
+      });
 
       const source = quickClaimExtractor.autoDetectSource(mockDocument);
       expect(source).toBe('Johnson2020');
     });
 
     it('should handle complex filenames', () => {
-      const mockDocument = {
-        uri: { fsPath: '/workspace/literature/ExtractedText/VanDerWaal2019.txt' }
-      } as any;
+      const mockDocument = createMockDocument({
+        uri: vscode.Uri.file('/workspace/literature/ExtractedText/VanDerWaal2019.txt')
+      });
 
       const source = quickClaimExtractor.autoDetectSource(mockDocument);
       expect(source).toBe('VanDerWaal2019');
@@ -232,10 +249,12 @@ describe('QuickClaimExtractor', () => {
     });
 
     it('should warn if not in ExtractedText file', async () => {
+      const mockDocument = createMockDocument({
+        uri: vscode.Uri.file('/workspace/manuscript.md')
+      });
+      
       (vscode.window as any).activeTextEditor = {
-        document: {
-          uri: { fsPath: '/workspace/manuscript.md' }
-        },
+        document: mockDocument,
         selection: { isEmpty: false }
       };
 
@@ -247,11 +266,13 @@ describe('QuickClaimExtractor', () => {
     });
 
     it('should warn if selection is empty', async () => {
+      const mockDocument = createMockDocument({
+        uri: vscode.Uri.file('/workspace/literature/ExtractedText/Smith2023.txt'),
+        getText: jest.fn<(range?: vscode.Range) => string>()
+      });
+      
       (vscode.window as any).activeTextEditor = {
-        document: {
-          uri: { fsPath: '/workspace/literature/ExtractedText/Smith2023.txt' },
-          getText: jest.fn()
-        },
+        document: mockDocument,
         selection: { isEmpty: true }
       };
 
@@ -267,15 +288,16 @@ describe('QuickClaimExtractor', () => {
     it('should complete full extraction workflow', async () => {
       const selectedText = 'We developed a novel batch correction algorithm';
       
+      const mockDocument = createMockDocument({
+        uri: vscode.Uri.file('/workspace/literature/ExtractedText/Smith2023.txt'),
+        getText: jest.fn<(range?: vscode.Range) => string>().mockReturnValue(selectedText)
+      });
+      
       (vscode.window as any).activeTextEditor = {
-        document: {
-          uri: { fsPath: '/workspace/literature/ExtractedText/Smith2023.txt' },
-          getText: jest.fn().mockReturnValue(selectedText)
-        },
+        document: mockDocument,
         selection: { isEmpty: false }
       };
 
-      // Mock user inputs
       (vscode.window.showInputBox as jest.Mock).mockResolvedValue(selectedText);
       (vscode.window.showQuickPick as jest.Mock).mockResolvedValue({ action: 'save' });
       (vscode.window.showInformationMessage as jest.Mock).mockResolvedValue(undefined);

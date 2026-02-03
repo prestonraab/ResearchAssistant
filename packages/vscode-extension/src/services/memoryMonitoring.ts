@@ -7,17 +7,15 @@ export function startMemoryMonitoring(state: ExtensionState, logger: any): NodeJ
     const heapTotalMB = Math.round(usage.heapTotal / 1024 / 1024);
 
     const embeddingCacheSize = state.embeddingService.getCacheSize();
-    const mcpStats = state.mcpClient.getCacheStats();
 
     if (heapUsedMB > heapTotalMB * 0.5) {
-      logger.info(`Memory: ${heapUsedMB}/${heapTotalMB} MB | Embeddings: ${embeddingCacheSize}/${state.embeddingService['maxCacheSize']} | MCP: ${mcpStats.size}`);
+      logger.info(`Memory: ${heapUsedMB}/${heapTotalMB} MB | Embeddings: ${embeddingCacheSize}/${state.embeddingService['maxCacheSize']}`);
     }
 
     if (heapUsedMB > heapTotalMB * 0.7) {
       logger.warn(`High memory usage (${heapUsedMB}MB), triggering cleanup...`);
 
       state.embeddingService.trimCache(50);
-      state.mcpClient.clearCache();
 
       if (global.gc) {
         global.gc();

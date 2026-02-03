@@ -465,8 +465,8 @@
         },
         "researchAssistant.embeddingCacheSize": {
           "type": "number",
-          "default": 1000,
-          "description": "Maximum number of embeddings to cache in memory"
+          "default": 100,
+          "description": "Maximum number of embeddings to cache in memory. Reduced from 1000 to optimize memory usage. Each embedding uses ~3KB, so 100 items = ~300KB in-memory cache."
         },
         "researchAssistant.mcpCacheTTL": {
           "type": "number",

@@ -336,10 +336,13 @@ export interface RankingConfig {
 export interface ExternalPaper {
   title: string;                 // Paper title
   authors: string[];             // Author list
-  year?: number;                 // Publication year
-  abstract?: string;             // Abstract text
-  url?: string;                  // Paper URL
-  doi?: string;                  // DOI
+  year: number;                  // Publication year
+  abstract: string;              // Abstract text
+  doi?: string;                  // DOI (optional)
+  url?: string;                  // Paper URL (optional)
+  pdfUrl?: string;               // PDF URL (optional)
+  source: 'scholar' | 'pubmed' | 'crossref'; // Source API
+  venue?: string;                // Publication venue (optional)
 }
 
 // ============================================================================

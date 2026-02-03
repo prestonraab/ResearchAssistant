@@ -4,8 +4,11 @@ import { ExtensionState } from '../core/state';
 import { ClaimsManager } from '../core/claimsManagerWrapper';
 import type { Claim, OutlineSection } from '@research-assistant/core';
 import { OutlineParser } from '../core/outlineParserWrapper';
+import { setupTest, aClaim, aZoteroItem } from './helpers';
 
 describe('ClaimCompletionProvider', () => {
+  setupTest();
+
   let provider: ClaimCompletionProvider;
   let mockState: jest.Mocked<ExtensionState>;
   let mockClaimsManager: jest.Mocked<ClaimsManager>;
@@ -14,48 +17,32 @@ describe('ClaimCompletionProvider', () => {
   let mockPosition: vscode.Position;
 
   const mockClaims: Claim[] = [
-    {
-      id: 'C_01',
-      text: 'Machine learning improves accuracy',
-      category: 'Result',
-      source: 'Smith2020',
-      sourceId: 1,
-      context: 'Study on ML algorithms',
-      primaryQuote: 'ML algorithms showed 95% accuracy',
-      supportingQuotes: [],
-      sections: ['section-1'],
-      verified: true,
-      createdAt: new Date(),
-      modifiedAt: new Date()
-    },
-    {
-      id: 'C_02',
-      text: 'Data preprocessing is essential',
-      category: 'Method',
-      source: 'Jones2021',
-      sourceId: 2,
-      context: 'Best practices for data preparation',
-      primaryQuote: 'Preprocessing significantly impacts model performance',
-      supportingQuotes: [],
-      sections: ['section-2'],
-      verified: false,
-      createdAt: new Date(),
-      modifiedAt: new Date()
-    },
-    {
-      id: 'C_03',
-      text: 'Neural networks require large datasets',
-      category: 'Challenge',
-      source: 'Brown2019',
-      sourceId: 3,
-      context: 'Limitations of deep learning',
-      primaryQuote: 'Deep learning models need thousands of examples',
-      supportingQuotes: [],
-      sections: ['section-1'],
-      verified: true,
-      createdAt: new Date(),
-      modifiedAt: new Date()
-    }
+    aClaim()
+      .withId('C_01')
+      .withText('Machine learning improves accuracy')
+      .withCategory('Result')
+      .withSource('Smith2020', 1)
+      .withContext('Study on ML algorithms')
+      .withPrimaryQuote('ML algorithms showed 95% accuracy', 'Smith2020')
+      .verified()
+      .build(),
+    aClaim()
+      .withId('C_02')
+      .withText('Data preprocessing is essential')
+      .withCategory('Method')
+      .withSource('Jones2021', 2)
+      .withContext('Best practices for data preparation')
+      .withPrimaryQuote('Preprocessing significantly impacts model performance', 'Jones2021')
+      .build(),
+    aClaim()
+      .withId('C_03')
+      .withText('Neural networks require large datasets')
+      .withCategory('Challenge')
+      .withSource('Brown2019', 3)
+      .withContext('Limitations of deep learning')
+      .withPrimaryQuote('Deep learning models need thousands of examples', 'Brown2019')
+      .verified()
+      .build()
   ];
 
   const mockSections: OutlineSection[] = [
@@ -220,7 +207,7 @@ describe('ClaimCompletionProvider', () => {
       const longQuoteClaim: Claim = {
         ...mockClaims[0],
         id: 'C_04',
-        primaryQuote: 'A'.repeat(200)
+        primaryQuote: { text: 'A'.repeat(200), source: 'Test2024', verified: false }
       };
       mockClaimsManager.getClaims.mockReturnValue([longQuoteClaim]);
 

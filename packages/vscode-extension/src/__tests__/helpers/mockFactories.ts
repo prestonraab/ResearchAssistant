@@ -1,7 +1,7 @@
 import { jest } from '@jest/globals';
 import type { Claim, SourcedQuote } from '@research-assistant/core';
 import * as vscode from 'vscode';
-import type { MCPClientManager, VerificationResult } from '../../mcp/mcpClient';
+import type { VerificationResult } from '../../services/zoteroApiService';
 import type { ZoteroItem } from '../../services/zoteroApiService';
 import type { ClaimsManager } from '../../core/claimsManagerWrapper';
 

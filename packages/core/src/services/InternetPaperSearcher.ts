@@ -1,48 +1,39 @@
-import * as vscode from 'vscode';
 import * as https from 'https';
 import * as http from 'http';
+import type { ExternalPaper } from '../types/index.js';
 
 /**
- * Represents a paper found from external sources
- */
-export interface ExternalPaper {
-  title: string;
-  authors: string[];
-  year: number;
-  abstract: string;
-  doi?: string;
-  url?: string;
-  pdfUrl?: string;
-  source: 'scholar' | 'pubmed' | 'crossref';
-  venue?: string;
-}
-
-/**
- * InternetPaperSearcher integrates with external APIs to search for papers
- * and import them into Zotero.
+ * InternetPaperSearcher - Platform-agnostic academic paper search
  * 
- * Requirements: 47.1, 47.2, 47.3, 47.4, 47.5
+ * Searches across 4 free academic APIs:
+ * - CrossRef: Scholarly metadata
+ * - PubMed: Biomedical literature
+ * - arXiv: Preprints
+ * - Semantic Scholar: Computer science and beyond
  * 
- * No MCP dependencies - operates independently using public APIs
+ * All APIs are free and require no authentication.
+ * Results are deduplicated by DOI and title.
  */
 export class InternetPaperSearcher {
   private readonly SEARCH_TIMEOUT = 10000; // 10 seconds
   private readonly MAX_RESULTS = 10;
 
-  constructor(private workspaceRoot: string) {}
-
   /**
    * Search external sources for papers
-   * Requirement 47.2: Search external sources using the query
+   * Searches all 4 academic sources in parallel
+   * @param query - Search query string
+   * @returns Array of papers sorted by year (most recent first)
    */
   public async searchExternal(query: string): Promise<ExternalPaper[]> {
     const results: ExternalPaper[] = [];
 
     try {
-      // Search multiple sources in parallel
-      const [crossrefResults, pubmedResults] = await Promise.allSettled([
+      // Search all 4 sources in parallel
+      const [crossrefResults, pubmedResults, arxivResults, semanticScholarResults] = await Promise.allSettled([
         this.searchCrossRef(query),
         this.searchPubMed(query),
+        this.searchArxiv(query),
+        this.searchSemanticScholar(query),
       ]);
 
       // Combine results
@@ -56,6 +47,18 @@ export class InternetPaperSearcher {
         results.push(...pubmedResults.value);
       } else {
         console.warn('PubMed search failed:', pubmedResults.reason);
+      }
+
+      if (arxivResults.status === 'fulfilled') {
+        results.push(...arxivResults.value);
+      } else {
+        console.warn('arXiv search failed:', arxivResults.reason);
+      }
+
+      if (semanticScholarResults.status === 'fulfilled') {
+        results.push(...semanticScholarResults.value);
+      } else {
+        console.warn('Semantic Scholar search failed:', semanticScholarResults.reason);
       }
 
       // Deduplicate by DOI and title
@@ -214,9 +217,127 @@ export class InternetPaperSearcher {
   }
 
   /**
+   * Search arXiv for preprints
+   * Free API, no authentication required
+   */
+  private async searchArxiv(query: string): Promise<ExternalPaper[]> {
+    try {
+      const encodedQuery = encodeURIComponent(query);
+      const url = `https://export.arxiv.org/api/query?search_query=all:${encodedQuery}&start=0&max_results=10&sortBy=relevance&sortOrder=descending`;
+
+      return await new Promise((resolve) => {
+        https.get(url, { timeout: this.SEARCH_TIMEOUT }, (res) => {
+          let data = '';
+
+          res.on('data', (chunk) => {
+            data += chunk;
+          });
+
+          res.on('end', () => {
+            try {
+              // Parse Atom XML response
+              const entries = data.match(/<entry>[\s\S]*?<\/entry>/g) || [];
+              const results = entries.map((entry: string) => {
+                const titleMatch = entry.match(/<title>(.*?)<\/title>/);
+                const idMatch = entry.match(/<id>(.*?)<\/id>/);
+                const summaryMatch = entry.match(/<summary>(.*?)<\/summary>/);
+                const authorMatches = entry.match(/<author>[\s\S]*?<name>(.*?)<\/name>/g) || [];
+                const publishedMatch = entry.match(/<published>(.*?)<\/published>/);
+
+                const authors = authorMatches.map((a: string) => {
+                  const nameMatch = a.match(/<name>(.*?)<\/name>/);
+                  return nameMatch ? nameMatch[1] : 'Unknown';
+                });
+
+                const year = publishedMatch ? parseInt(publishedMatch[1].substring(0, 4)) : new Date().getFullYear();
+
+                return {
+                  title: titleMatch ? titleMatch[1].trim() : 'arXiv Paper',
+                  authors: authors.length > 0 ? authors : ['Unknown'],
+                  year,
+                  abstract: summaryMatch ? summaryMatch[1].trim() : '',
+                  url: idMatch ? idMatch[1].replace('http://arxiv.org/abs/', 'https://arxiv.org/abs/') : '',
+                  source: 'scholar' as const,
+                  venue: 'arXiv',
+                };
+              }).filter((r: any) => r.url && r.title);
+
+              resolve(results);
+            } catch (error) {
+              console.warn('[InternetPaperSearcher] Error parsing arXiv response:', error);
+              resolve([]);
+            }
+          });
+        }).on('error', (error) => {
+          console.warn('[InternetPaperSearcher] arXiv search error:', error);
+          resolve([]);
+        });
+      });
+    } catch (error) {
+      console.error('[InternetPaperSearcher] arXiv search failed:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Search Semantic Scholar for papers
+   * Free API, no authentication required
+   */
+  private async searchSemanticScholar(query: string): Promise<ExternalPaper[]> {
+    try {
+      const encodedQuery = encodeURIComponent(query);
+      const url = `https://api.semanticscholar.org/graph/v1/paper/search?query=${encodedQuery}&limit=10&fields=title,url,abstract,year,authors`;
+
+      return await new Promise((resolve) => {
+        https.get(url, {
+          timeout: this.SEARCH_TIMEOUT,
+          headers: {
+            'User-Agent': 'Research-Assistant/1.0',
+          },
+        }, (res) => {
+          let data = '';
+
+          res.on('data', (chunk) => {
+            data += chunk;
+          });
+
+          res.on('end', () => {
+            try {
+              if (res.statusCode === 200) {
+                const parsed = JSON.parse(data);
+                const results = (parsed.data || []).map((item: any) => ({
+                  title: item.title,
+                  authors: (item.authors || []).map((a: any) => a.name || 'Unknown'),
+                  year: item.year || new Date().getFullYear(),
+                  abstract: item.abstract || '',
+                  url: item.url || `https://www.semanticscholar.org/paper/${item.paperId}`,
+                  source: 'scholar' as const,
+                  venue: 'Semantic Scholar',
+                }));
+                resolve(results);
+              } else {
+                resolve([]);
+              }
+            } catch (error) {
+              console.warn('[InternetPaperSearcher] Error parsing Semantic Scholar response:', error);
+              resolve([]);
+            }
+          });
+        }).on('error', (error) => {
+          console.warn('[InternetPaperSearcher] Semantic Scholar search error:', error);
+          resolve([]);
+        });
+      });
+    } catch (error) {
+      console.error('[InternetPaperSearcher] Semantic Scholar search failed:', error);
+      return [];
+    }
+  }
+
+  /**
    * Deduplicate results by DOI and title similarity
    */
-  private deduplicateResults(results: ExternalPaper[]): ExternalPaper[] {
+  public deduplicateResults(results: ExternalPaper[]): ExternalPaper[] {
     const seen = new Set<string>();
     const unique: ExternalPaper[] = [];
 
@@ -244,155 +365,6 @@ export class InternetPaperSearcher {
   }
 
   /**
-   * Display external search results in a quick pick
-   * Requirement 47.3: Display external results with metadata
-   */
-  public async displayExternalResults(results: ExternalPaper[]): Promise<ExternalPaper | null> {
-    if (results.length === 0) {
-      vscode.window.showInformationMessage('No papers found from external sources.');
-      return null;
-    }
-
-    const items = results.map((paper, index) => ({
-      label: `$(globe) ${paper.title}`,
-      description: `${paper.authors.slice(0, 2).join(', ')}${paper.authors.length > 2 ? ' et al.' : ''} (${paper.year})`,
-      detail: `${paper.abstract.substring(0, 150)}${paper.abstract.length > 150 ? '...' : ''} [${paper.source.toUpperCase()}]${paper.doi ? ` DOI: ${paper.doi}` : ''}`,
-      paper,
-      index,
-    }));
-
-    const selected = await vscode.window.showQuickPick(items, {
-      placeHolder: `Found ${results.length} paper${results.length !== 1 ? 's' : ''} from external sources - Select to import`,
-      matchOnDescription: true,
-      matchOnDetail: true,
-    });
-
-    return selected ? selected.paper : null;
-  }
-
-  /**
-   * Import a paper to Zotero
-   * Requirement 47.4: Import paper into Zotero with full metadata
-   */
-  public async importToZotero(paper: ExternalPaper): Promise<string | null> {
-    try {
-      // Show progress
-      return await vscode.window.withProgress(
-        {
-          location: vscode.ProgressLocation.Notification,
-          title: `Importing "${paper.title.substring(0, 50)}..." to Zotero`,
-          cancellable: false,
-        },
-        async (progress) => {
-          progress.report({ message: 'Creating Zotero item...' });
-
-          // For now, we'll use a workaround since direct Zotero import via MCP
-          // may not be available. We'll create a note with the metadata
-          // and instruct the user to import manually.
-          
-          // In a full implementation, this would use Zotero's API or MCP
-          // to create a new item directly.
-          
-          const itemKey = await this.createZoteroItemViaNote(paper);
-          
-          if (itemKey) {
-            vscode.window.showInformationMessage(
-              `Successfully imported "${paper.title.substring(0, 50)}..." to Zotero`,
-              'Extract Fulltext'
-            ).then(action => {
-              if (action === 'Extract Fulltext' && itemKey) {
-                this.extractFulltext(itemKey);
-              }
-            });
-          }
-
-          return itemKey;
-        }
-      );
-    } catch (error) {
-      console.error('Failed to import to Zotero:', error);
-      vscode.window.showErrorMessage(
-        `Failed to import paper: ${error instanceof Error ? error.message : 'Unknown error'}`
-      );
-      return null;
-    }
-  }
-
-  /**
-   * Create a Zotero item via note (workaround for direct API)
-   * In production, this would use Zotero's proper API
-   */
-  private async createZoteroItemViaNote(paper: ExternalPaper): Promise<string | null> {
-    // This is a placeholder implementation
-    // In a real system, you would:
-    // 1. Use Zotero's web API to create an item
-    // 2. Or use a Zotero MCP method to create items
-    // 3. Or use Zotero's import from identifier (DOI)
-    
-    // For now, we'll show instructions to the user
-    const metadata = this.formatMetadataForImport(paper);
-    
-    const action = await vscode.window.showInformationMessage(
-      'Zotero import requires manual action. Copy metadata to clipboard?',
-      'Copy Metadata',
-      'Cancel'
-    );
-
-    if (action === 'Copy Metadata') {
-      await vscode.env.clipboard.writeText(metadata);
-      vscode.window.showInformationMessage(
-        'Metadata copied! Paste into Zotero to import.',
-        'Open Zotero'
-      );
-      
-      // Return a pseudo item key
-      return `external_${Date.now()}`;
-    }
-
-    return null;
-  }
-
-  /**
-   * Format paper metadata for import
-   */
-  private formatMetadataForImport(paper: ExternalPaper): string {
-    const lines = [
-      `Title: ${paper.title}`,
-      `Authors: ${paper.authors.join('; ')}`,
-      `Year: ${paper.year}`,
-      paper.venue ? `Venue: ${paper.venue}` : '',
-      paper.doi ? `DOI: ${paper.doi}` : '',
-      paper.url ? `URL: ${paper.url}` : '',
-      '',
-      'Abstract:',
-      paper.abstract,
-    ];
-
-    return lines.filter(Boolean).join('\n');
-  }
-
-  /**
-   * Extract fulltext after import
-   * Requirement 47.5: Auto-trigger fulltext extraction after import
-   * 
-   * Triggers the extraction command which will handle PDF lookup and extraction
-   */
-  public async extractFulltext(itemKey: string): Promise<void> {
-    try {
-      // Trigger extraction via command - the command will handle PDF lookup
-      await vscode.commands.executeCommand(
-        'researchAssistant.extractPdfForItem',
-        itemKey
-      );
-    } catch (error) {
-      console.error('Failed to extract fulltext:', error);
-      vscode.window.showErrorMessage(
-        `Failed to extract fulltext: ${error instanceof Error ? error.message : 'Unknown error'}`
-      );
-    }
-  }
-
-  /**
    * Helper method to make HTTPS GET requests
    */
   private httpsGet(url: string): Promise<string> {
@@ -401,7 +373,7 @@ export class InternetPaperSearcher {
       
       const request = protocol.get(url, {
         headers: {
-          'User-Agent': 'VSCode-Research-Assistant/1.0',
+          'User-Agent': 'Research-Assistant/1.0',
         },
         timeout: this.SEARCH_TIMEOUT,
       }, (response) => {
@@ -429,12 +401,5 @@ export class InternetPaperSearcher {
         reject(new Error('Request timeout'));
       });
     });
-  }
-
-  /**
-   * Dispose resources
-   */
-  public dispose(): void {
-    // Cleanup if needed
   }
 }

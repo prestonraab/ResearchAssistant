@@ -128,7 +128,7 @@ export class ExtensionState {
     
     // Initialize sentence managers for citation tracking
     this.sentenceParser = new SentenceParser();
-    this.sentenceClaimQuoteLinkManager = new SentenceClaimQuoteLinkManager(this.claimsManager);
+    this.sentenceClaimQuoteLinkManager = new SentenceClaimQuoteLinkManager(this.claimsManager, this.workspaceRoot);
     this.autoQuoteVerifier = new AutoQuoteVerifier(this.claimsManager);
 
     // Updated constructor call: removed mcpClient as it's no longer used
@@ -168,7 +168,6 @@ export class ExtensionState {
     );
     this.verificationFeedbackLoop = new VerificationFeedbackLoop(
       this.literatureIndexer,
-      undefined,
       apiKey || '',
       this.getAbsolutePath(this.config.extractedTextPath),
       this.workspaceRoot
@@ -216,6 +215,14 @@ export class ExtensionState {
       console.log('[ResearchAssistant] Claims loaded');
     } catch (error) {
       console.error('Failed to load claims:', error);
+    }
+
+    try {
+      // Load citation links from persistent storage
+      await this.sentenceClaimQuoteLinkManager.loadLinks();
+      console.log('[ResearchAssistant] Citation links loaded');
+    } catch (error) {
+      console.error('Failed to load citation links:', error);
     }
 
     try {

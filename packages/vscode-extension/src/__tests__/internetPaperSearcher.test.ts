@@ -1,7 +1,10 @@
 import { InternetPaperSearcher, ExternalPaper } from '../core/internetPaperSearcher';
 import * as vscode from 'vscode';
+import { setupTest } from './helpers';
 
 describe('InternetPaperSearcher', () => {
+  setupTest();
+
   let searcher: InternetPaperSearcher;
   const workspaceRoot = '/test/workspace';
 
@@ -10,7 +13,7 @@ describe('InternetPaperSearcher', () => {
   });
 
   afterEach(() => {
-    jest.clearAllMocks();
+    searcher.dispose?.();
   });
 
   describe('searchExternal', () => {
@@ -74,10 +77,64 @@ describe('InternetPaperSearcher', () => {
       expect(deduped.length).toBe(1);
     });
 
-    it('should deduplicate without changing order', async () => {
+    it('should preserve order during deduplication', async () => {
       const papers: ExternalPaper[] = [
         {
-          title: 'Old Paper',
+          title: 'Paper A',
+          authors: ['Author A'],
+          year: 2023,
+          abstract: 'Abstract A',
+          doi: '10.1111/a',
+          source: 'crossref',
+        },
+        {
+          title: 'Paper B',
+          authors: ['Author B'],
+          year: 2023,
+          abstract: 'Abstract B',
+          doi: '10.2222/b',
+          source: 'pubmed',
+        },
+        {
+          title: 'Paper A',
+          authors: ['Author A'],
+          year: 2023,
+          abstract: 'Abstract A',
+          doi: '10.1111/a',
+          source: 'arxiv',
+        },
+      ];
+
+      const deduped = (searcher as any).deduplicateResults(papers);
+      
+      expect(deduped.length).toBe(2);
+      expect(deduped[0].doi).toBe('10.1111/a');
+      expect(deduped[1].doi).toBe('10.2222/b');
+    });
+
+    it('should handle papers with missing DOI and title', async () => {
+      const papers: ExternalPaper[] = [
+        {
+          title: '',
+          authors: ['Author A'],
+          year: 2023,
+          abstract: 'Abstract',
+          source: 'crossref',
+        },
+        {
+          title: '',
+          authors: ['Author B'],
+          year: 2023,
+          abstract: 'Abstract',
+          source: 'pubmed',
+        },
+      ];
+
+      const deduped = (searcher as any).deduplicateResults(papers);
+      
+      // Should keep both since they can't be matched
+      expect(deduped.length).toBe(2);
+    });
           authors: ['Author A'],
           year: 2020,
           abstract: 'Abstract',
@@ -254,27 +311,7 @@ describe('InternetPaperSearcher', () => {
   });
 
   describe('extractFulltext', () => {
-    it('should check for PDF attachment', async () => {
-      const mockGetChildren = mockMcpClient.zotero.getItemChildren as jest.Mock;
-      mockGetChildren.mockResolvedValue([]);
-
-      const mockShowWarning = vscode.window.showWarningMessage as jest.Mock;
-
-      await searcher.extractFulltext('test-item-key');
-
-      expect(mockGetChildren).toHaveBeenCalledWith('test-item-key');
-      expect(mockShowWarning).toHaveBeenCalledWith(
-        expect.stringContaining('No PDF attachment'),
-        'Open Zotero'
-      );
-    });
-
-    it('should trigger extraction command when PDF exists', async () => {
-      const mockGetChildren = mockMcpClient.zotero.getItemChildren as jest.Mock;
-      mockGetChildren.mockResolvedValue([
-        { contentType: 'application/pdf', key: 'pdf-key' },
-      ]);
-
+    it('should trigger extraction command', async () => {
       const mockExecuteCommand = vscode.commands.executeCommand as jest.Mock;
 
       await searcher.extractFulltext('test-item-key');
@@ -282,6 +319,19 @@ describe('InternetPaperSearcher', () => {
       expect(mockExecuteCommand).toHaveBeenCalledWith(
         'researchAssistant.extractPdfForItem',
         'test-item-key'
+      );
+    });
+
+    it('should handle command execution errors', async () => {
+      const mockExecuteCommand = vscode.commands.executeCommand as jest.Mock;
+      mockExecuteCommand.mockRejectedValue(new Error('Command failed'));
+
+      const mockShowError = vscode.window.showErrorMessage as jest.Mock;
+
+      await searcher.extractFulltext('test-item-key');
+
+      expect(mockShowError).toHaveBeenCalledWith(
+        expect.stringContaining('Failed to extract fulltext')
       );
     });
   });

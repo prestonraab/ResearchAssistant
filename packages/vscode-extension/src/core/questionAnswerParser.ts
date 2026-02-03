@@ -20,7 +20,7 @@ export interface LinkedSource {
 export interface QuestionAnswerPair {
   id: string;
   question: string;
-  status: 'ANSWERED' | 'RESEARCH NEEDED' | 'PARTIAL' | 'UNKNOWN';
+  status: 'ANSWERED' | 'RESEARCH NEEDED' | 'PARTIAL' | 'DRAFT';
   answer: string;
   claims: string[]; // Claim IDs from source inline fields
   section: string; // Section header this belongs to
@@ -110,14 +110,16 @@ export class QuestionAnswerParser {
   
   /**
    * Parse status from comment or inline field
+   * Default status is DRAFT if not specified
    */
-  private parseStatus(statusText: string): 'ANSWERED' | 'RESEARCH NEEDED' | 'PARTIAL' | 'UNKNOWN' {
-    if (!statusText) return 'UNKNOWN';
+  private parseStatus(statusText: string): 'ANSWERED' | 'RESEARCH NEEDED' | 'PARTIAL' | 'DRAFT' {
+    if (!statusText) return 'DRAFT';
     const upper = statusText.toUpperCase();
     if (upper.includes('ANSWERED')) return 'ANSWERED';
     if (upper.includes('RESEARCH NEEDED') || upper.includes('RESEARCH_NEEDED')) return 'RESEARCH NEEDED';
     if (upper.includes('PARTIAL')) return 'PARTIAL';
-    return 'UNKNOWN';
+    if (upper.includes('DRAFT')) return 'DRAFT';
+    return 'DRAFT';
   }
   
   /**

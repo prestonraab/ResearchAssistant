@@ -29,7 +29,6 @@ export class Phase3Initializer {
     // Each handles its own errors and logs appropriately
     this.initializationPromises = [
       this.initializeEmbeddings(state).catch(error => this.handleError('Embeddings', error)),
-      this.initializeMCP(state).catch(error => this.handleError('MCP', error)),
       this.initializeZotero(state).catch(error => this.handleError('Zotero', error)),
       this.setupFileWatchers(state).catch(error => this.handleError('File Watchers', error))
     ];
@@ -76,28 +75,6 @@ export class Phase3Initializer {
       }
     } catch (error) {
       console.error('[Phase3] Failed to initialize embeddings:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Initialize MCP client
-   */
-  private async initializeMCP(state: ExtensionState): Promise<void> {
-    console.log('[Phase3] Initializing MCP client...');
-
-    try {
-      // MCP client is already created in ExtensionState constructor
-      // Check if it's available and ready
-      if (state.mcpClient) {
-        console.log('[Phase3] MCP client already initialized');
-        
-        // Optionally test connection or initialize any MCP-specific resources
-        // For now, just log that it's ready
-        console.log('[Phase3] MCP client ready');
-      }
-    } catch (error) {
-      console.error('[Phase3] Failed to initialize MCP client:', error);
       throw error;
     }
   }

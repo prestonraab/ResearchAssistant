@@ -1,8 +1,11 @@
 import * as vscode from 'vscode';
 import { WritingFeedbackDecorator } from '../ui/writingFeedbackDecorator';
 import { ExtensionState } from '../core/state';
+import { setupTest, aClaim } from './helpers';
 
 describe('WritingFeedbackDecorator', () => {
+  setupTest();
+
   let decorator: WritingFeedbackDecorator;
   let mockExtensionState: jest.Mocked<ExtensionState>;
   let mockEditor: jest.Mocked<vscode.TextEditor>;
@@ -14,20 +17,15 @@ describe('WritingFeedbackDecorator', () => {
       getAbsolutePath: jest.fn((path: string) => `/workspace/${path}`),
       claimsManager: {
         getAllClaims: jest.fn(() => [
-          {
-            id: 'C_01',
-            text: 'Machine learning models require large datasets for training',
-            category: 'Method',
-            source: 'Smith2020',
-            sourceId: 1,
-            context: '',
-            primaryQuote: 'Large datasets are essential for ML',
-            supportingQuotes: [],
-            sections: [],
-            verified: true,
-            createdAt: new Date(),
-            modifiedAt: new Date()
-          }
+          aClaim()
+            .withId('C_01')
+            .withText('Machine learning models require large datasets for training')
+            .withCategory('Method')
+            .withSource('Smith2020')
+            .withContext('')
+            .withPrimaryQuote('Large datasets are essential for ML', 'Smith2020')
+            .verified()
+            .build()
         ])
       }
     } as any;

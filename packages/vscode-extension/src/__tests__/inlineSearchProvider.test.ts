@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { InlineSearchProvider } from '../ui/inlineSearchProvider';
-import { MCPClientManager, ZoteroItem } from '../mcp/mcpClient';
+import { ZoteroApiService, ZoteroItem } from '../services/zoteroApiService';
 import { ManuscriptContextDetector } from '../core/manuscriptContextDetector';
 import { setupTest, createMockZoteroItem } from './helpers';
 
@@ -8,7 +8,7 @@ describe('InlineSearchProvider', () => {
   setupTest();
 
   let provider: InlineSearchProvider;
-  let mockMcpClient: jest.Mocked<MCPClientManager>;
+  let mockZoteroApiService: jest.Mocked<ZoteroApiService>;
   let mockManuscriptContext: jest.Mocked<ManuscriptContextDetector>;
   let mockContext: jest.Mocked<vscode.ExtensionContext>;
   let mockWorkspaceState: Map<string, any>;
@@ -43,12 +43,11 @@ describe('InlineSearchProvider', () => {
       DOI: '10.1234/test'
     });
 
-    // Create mock MCP client with proper jest mock functions
-    mockMcpClient = {
-      zoteroSemanticSearch: jest.fn().mockResolvedValue([mockZoteroItem]),
-      getItemChildren: jest.fn().mockResolvedValue([]),
-      isConnected: jest.fn().mockReturnValue(true),
-      dispose: jest.fn()
+    // Create mock ZoteroApiService with proper jest mock functions
+    mockZoteroApiService = {
+      semanticSearch: jest.fn().mockResolvedValue([mockZoteroItem]),
+      getPdfAttachments: jest.fn().mockResolvedValue([]),
+      isConfigured: jest.fn().mockReturnValue(true),
     } as any;
 
     // Create mock manuscript context detector
@@ -59,7 +58,7 @@ describe('InlineSearchProvider', () => {
 
     // Create provider with fresh mocks
     provider = new InlineSearchProvider(
-      mockMcpClient,
+      mockZoteroApiService,
       mockManuscriptContext,
       '/workspace',
       'literature/ExtractedText',
@@ -287,12 +286,12 @@ describe('InlineSearchProvider', () => {
   describe('Keyboard Navigation (Requirement 45.3)', () => {
     test('should return completion list with multiple items', async () => {
       const multipleItems: ZoteroItem[] = [
-        { ...mockZoteroItem, itemKey: 'ITEM1', title: 'Paper 1' },
-        { ...mockZoteroItem, itemKey: 'ITEM2', title: 'Paper 2' },
-        { ...mockZoteroItem, itemKey: 'ITEM3', title: 'Paper 3' },
+        { ...mockZoteroItem, itemKey: 'ITEM1', key: 'ITEM1', title: 'Paper 1' },
+        { ...mockZoteroItem, itemKey: 'ITEM2', key: 'ITEM2', title: 'Paper 2' },
+        { ...mockZoteroItem, itemKey: 'ITEM3', key: 'ITEM3', title: 'Paper 3' },
       ];
 
-      (mockMcpClient.zotero.semanticSearch as jest.Mock).mockResolvedValue(multipleItems);
+      (mockZoteroApiService.semanticSearch as jest.Mock).mockResolvedValue(multipleItems);
 
       const document = {
         languageId: 'markdown',
@@ -457,7 +456,7 @@ describe('InlineSearchProvider', () => {
       );
       (vscode.window.showInformationMessage as jest.Mock).mockResolvedValue('Extract');
 
-      (mockMcpClient.zotero.getItemChildren as jest.Mock).mockResolvedValue([
+      (mockZoteroApiService.getPdfAttachments as jest.Mock).mockResolvedValue([
         {
           itemType: 'attachment',
           contentType: 'application/pdf',
@@ -497,7 +496,7 @@ describe('InlineSearchProvider', () => {
 
   describe('Error Handling', () => {
     test('should handle search errors gracefully', async () => {
-      (mockMcpClient.zotero.semanticSearch as jest.Mock).mockRejectedValue(
+      (mockZoteroApiService.semanticSearch as jest.Mock).mockRejectedValue(
         new Error('Search failed')
       );
 
@@ -523,7 +522,7 @@ describe('InlineSearchProvider', () => {
       );
       (vscode.window.showInformationMessage as jest.Mock).mockResolvedValue('Extract');
 
-      (mockMcpClient.zotero.getItemChildren as jest.Mock).mockResolvedValue([]);
+      (mockZoteroApiService.getPdfAttachments as jest.Mock).mockResolvedValue([]);
 
       await provider.openPaper('TEST123', 'test query');
 

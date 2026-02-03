@@ -138,7 +138,7 @@ export async function activate(context: vscode.ExtensionContext) {
       const claimCompletionProvider = new ClaimCompletionProvider(extensionState);
 
       inlineSearchProvider = new InlineSearchProvider(
-        extensionState.mcpClient,
+        extensionState.zoteroApiService,
         extensionState.manuscriptContextDetector,
         extensionState.getWorkspaceRoot(),
         extensionState.getAbsolutePath(extensionState.getConfig().extractedTextPath),
@@ -157,7 +157,7 @@ export async function activate(context: vscode.ExtensionContext) {
       );
 
       instantSearchHandler = new InstantSearchHandler(
-        extensionState.mcpClient,
+        extensionState.zoteroApiService,
         extensionState.manuscriptContextDetector,
         extensionState.getWorkspaceRoot(),
         extensionState.getAbsolutePath(extensionState.getConfig().extractedTextPath)
