@@ -214,21 +214,23 @@ function setupEventListeners() {
       // Clear height cache to force recalculation
       state.itemHeights.clear();
 
-      // Measure new heights
+      // Measure new heights after layout recalculation
       requestAnimationFrame(() => {
-        const pairRows = document.querySelectorAll('.pair-row');
-        pairRows.forEach(row => {
-          const pairId = row.dataset.pairId;
-          const actualHeight = row.offsetHeight;
-          state.itemHeights.set(pairId, actualHeight);
-        });
+        requestAnimationFrame(() => {
+          const pairRows = document.querySelectorAll('.pair-row');
+          pairRows.forEach(row => {
+            const pairId = row.dataset.pairId;
+            const actualHeight = row.offsetHeight;
+            state.itemHeights.set(pairId, actualHeight);
+          });
 
-        // Restore scroll position to keep center item in view
-        if (state.centerItemId) {
-          scrollToCenterItem(state.centerItemId);
-        }
+          // Restore scroll position to keep center item in view
+          if (state.centerItemId) {
+            scrollToCenterItem(state.centerItemId);
+          }
+        });
       });
-    }, 150); // Debounce resize events
+    }, 100); // Debounce resize events
   });
 }
 
@@ -341,6 +343,8 @@ function renderPairs() {
         html += renderInsertZone(-1);
       }
       html += renderSectionHeader(pair.section, index);
+      // Add insert zone after section header (before first question in section)
+      html += renderInsertZone(index - 1);
     }
     
     html += renderPair(pair);
@@ -454,18 +458,13 @@ function renderPair(pair) {
           </div>
         </div>
         
-        <!-- Middle column: Answer and Citations -->
+        <!-- Middle column: Answer -->
         <div class="middle-column">
           <textarea 
             class="answer-editor" 
             data-pair-id="${pair.id}"
             placeholder="Write your answer here..."
           >${escapeHtml(displayText || '')}</textarea>
-          
-          <!-- Citations section (expandable within middle column) -->
-          <div class="citations-section" data-pair-id="${pair.id}" style="display: none;">
-            ${citationSidebarHtml}
-          </div>
         </div>
         
         <!-- Right column: Metadata -->
@@ -484,6 +483,11 @@ function renderPair(pair) {
             </div>
           </div>
         </div>
+      </div>
+      
+      <!-- Citations section (expandable, spans all columns) -->
+      <div class="citations-section" data-pair-id="${pair.id}" style="display: none;">
+        ${citationSidebarHtml}
       </div>
     </div>
   `;
@@ -647,12 +651,21 @@ function attachPairListeners() {
       
       // Auto-expand textarea
       e.target.style.height = 'auto';
-      e.target.style.height = Math.min(e.target.scrollHeight, 600) + 'px';
+      const newHeight = Math.min(e.target.scrollHeight, 400);
+      e.target.style.height = newHeight + 'px';
+      
+      // Recalculate pair height for scroll positioning
+      const pairRow = e.target.closest('.pair-row');
+      if (pairRow) {
+        const pairId = pairRow.dataset.pairId;
+        state.itemHeights.set(pairId, pairRow.offsetHeight);
+      }
     });
     
     // Initial height calculation
     editor.style.height = 'auto';
-    editor.style.height = Math.min(editor.scrollHeight, 600) + 'px';
+    const initialHeight = Math.min(editor.scrollHeight, 400);
+    editor.style.height = initialHeight + 'px';
     
     // Add hover listener for orphan citation tooltips
     editor.addEventListener('mouseover', (e) => {
@@ -1476,9 +1489,13 @@ function findMatchesInElement(element, searchTerm) {
   const lowerText = text.toLowerCase();
   let startIndex = 0;
   
+  console.log(`[WritingMode] Searching for "${searchTerm}" in element with text: "${text.substring(0, 50)}..."`);
+  
   while (true) {
     const index = lowerText.indexOf(searchTerm, startIndex);
     if (index === -1) break;
+    
+    console.log(`[WritingMode] Found match at index ${index}`);
     
     state.findState.matches.push({
       element: element,
@@ -1510,11 +1527,8 @@ function highlightMatch(matchIndex) {
     return;
   }
   
-  // For contenteditable elements, just focus and scroll into view
-  // Don't modify the DOM as it breaks subsequent searches
-  element.focus();
-  
-  // Try to scroll the match into view
+  // For contenteditable elements, create a selection but don't focus
+  // This prevents the user's typing in the search box from replacing the selected text
   const range = document.createRange();
   const sel = window.getSelection();
   
@@ -1555,6 +1569,9 @@ function highlightMatch(matchIndex) {
       range.setEnd(endNode, endOffset);
       sel.removeAllRanges();
       sel.addRange(range);
+      
+      // Scroll the element into view
+      element.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
   } catch (e) {
     // Silently fail if we can't set selection

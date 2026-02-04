@@ -323,8 +323,11 @@ export class DocumentBuilder {
       return [{
         id: `S_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         text: cleanedText,
-        startIndex: 0,
-        endIndex: cleanedText.length
+        originalText: cleanedText,
+        position: 0,
+        claims: [],
+        createdAt: new Date(),
+        updatedAt: new Date()
       }];
     }
     
@@ -332,8 +335,11 @@ export class DocumentBuilder {
     return [{
       id: `S_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       text: paragraph,
-      startIndex: 0,
-      endIndex: paragraph.length
+      originalText: paragraph,
+      position: 0,
+      claims: [],
+      createdAt: new Date(),
+      updatedAt: new Date()
     }];
   }
 

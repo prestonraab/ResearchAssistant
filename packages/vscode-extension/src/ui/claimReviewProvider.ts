@@ -15,6 +15,7 @@ import { getModeContextManager } from '../core/modeContextManager';
 import { DataValidationService } from '../core/dataValidationService';
 import { SentenceClaimMapper } from '../core/sentenceClaimMapper';
 import { UnifiedQuoteSearch } from '../services/unifiedQuoteSearch';
+import { getOperationTracker } from '../services/operationTracker';
 
 /**
  * ClaimReviewProvider - Webview panel provider for claim review mode
@@ -424,6 +425,10 @@ export class ClaimReviewProvider {
    * Supports cancellation via AbortSignal
    */
   private async verifyAllQuotes(claim: any, signal?: AbortSignal): Promise<any[]> {
+    const tracker = getOperationTracker();
+    const operationId = `verify-${claim.id}-${Date.now()}`;
+    tracker.startOperation('ClaimReview', operationId, `Verifying quotes for ${claim.id}`);
+    
     try {
       const results: any[] = [];
       let totalQuotes = 0;
@@ -672,6 +677,7 @@ export class ClaimReviewProvider {
         }
       }
 
+      tracker.endOperation('ClaimReview', operationId);
       return results;
     } catch (error: any) {
       if (error.name === 'AbortError') {
@@ -679,6 +685,7 @@ export class ClaimReviewProvider {
         throw error;
       }
       console.error('Failed to verify quotes:', error);
+      tracker.endOperation('ClaimReview', operationId);
       return [];
     }
   }

@@ -4,6 +4,7 @@ import { LiteratureIndexer } from './literatureIndexer';
 import { TextNormalizer } from '@research-assistant/core';
 import { FuzzyMatcher } from '../core/fuzzyMatcher';
 import { TrigramIndex, NgramMatch } from './trigramIndex';
+import { getOperationTracker } from './operationTracker';
 
 export interface QuoteSearchResult {
   similarity: number;
@@ -63,41 +64,53 @@ export class UnifiedQuoteSearch {
    * @returns Array of search results sorted by similarity (highest first)
    */
   async search(quoteText: string, topK: number = 5, signal?: AbortSignal): Promise<QuoteSearchResult[]> {
-    // Check cancellation early
-    if (signal?.aborted) {
-      throw new DOMException('Operation cancelled', 'AbortError');
-    }
+    const tracker = getOperationTracker();
+    const operationId = `search-${Date.now()}`;
+    tracker.startOperation('UnifiedQuoteSearch', operationId, `Searching for: "${quoteText.substring(0, 30)}..."`);
     
-    // Normalize query for better matching
-    const normalizedQuery = TextNormalizer.normalizeForEmbedding(quoteText);
+    try {
+      // Check cancellation early
+      if (signal?.aborted) {
+        throw new DOMException('Operation cancelled', 'AbortError');
+      }
+      
+      // Normalize query for better matching
+      const normalizedQuery = TextNormalizer.normalizeForEmbedding(quoteText);
 
-    // Run embedding search first (faster)
-    const embeddingResults = await this.searchByEmbedding(normalizedQuery, topK);
-    
-    // Check cancellation after embedding search
-    if (signal?.aborted) {
-      throw new DOMException('Operation cancelled', 'AbortError');
-    }
-    
-    // If we found a very high confidence match (>= 0.95), skip expensive fuzzy search
-    if (embeddingResults.length > 0 && embeddingResults[0].similarity >= 0.95) {
-      console.log('[UnifiedQuoteSearch] High confidence embedding match found, skipping fuzzy search');
-      return embeddingResults;
-    }
-    
-    // Yield to event loop before fuzzy search
-    await new Promise(resolve => setImmediate(resolve));
-    
-    // Check cancellation before fuzzy search
-    if (signal?.aborted) {
-      throw new DOMException('Operation cancelled', 'AbortError');
-    }
-    
-    // Run fuzzy search (slower, more thorough)
-    const fuzzyResults = await this.searchByFuzzyMatching(quoteText, topK, signal);
+      // Run embedding search first (faster)
+      const embeddingResults = await this.searchByEmbedding(normalizedQuery, topK);
+      
+      // Check cancellation after embedding search
+      if (signal?.aborted) {
+        throw new DOMException('Operation cancelled', 'AbortError');
+      }
+      
+      // If we found a very high confidence match (>= 0.95), skip expensive fuzzy search
+      if (embeddingResults.length > 0 && embeddingResults[0].similarity >= 0.95) {
+        console.log('[UnifiedQuoteSearch] High confidence embedding match found, skipping fuzzy search');
+        tracker.endOperation('UnifiedQuoteSearch', operationId);
+        return embeddingResults;
+      }
+      
+      // Yield to event loop before fuzzy search
+      await new Promise(resolve => setImmediate(resolve));
+      
+      // Check cancellation before fuzzy search
+      if (signal?.aborted) {
+        throw new DOMException('Operation cancelled', 'AbortError');
+      }
+      
+      // Run fuzzy search (slower, more thorough)
+      const fuzzyResults = await this.searchByFuzzyMatching(quoteText, topK, signal);
 
-    // Combine results with deduplication
-    return this.combineResults(embeddingResults, fuzzyResults, topK);
+      // Combine results with deduplication
+      const results = this.combineResults(embeddingResults, fuzzyResults, topK);
+      tracker.endOperation('UnifiedQuoteSearch', operationId);
+      return results;
+    } catch (error) {
+      tracker.endOperation('UnifiedQuoteSearch', operationId);
+      throw error;
+    }
   }
 
   /**
