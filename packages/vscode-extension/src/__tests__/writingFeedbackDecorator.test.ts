@@ -260,7 +260,9 @@ describe('WritingFeedbackDecorator', () => {
 
       decorator.activate(nonMarkdownEditor);
 
-      expect(nonMarkdownEditor.setDecorations).not.toHaveBeenCalled();
+      // Verify output behavior: no decorations set for non-markdown files
+      const calls = nonMarkdownEditor.setDecorations.mock.calls;
+      expect(calls.length).toBe(0);
     });
 
     test('should only process files in drafting directory', () => {

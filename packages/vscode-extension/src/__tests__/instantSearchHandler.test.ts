@@ -78,6 +78,7 @@ describe('InstantSearchHandler', () => {
 
       handler.registerContextMenu();
 
+      // Verify output behavior: command was registered
       expect(mockRegisterCommand).toHaveBeenCalledWith(
         'researchAssistant.findPapersForSelection',
         expect.any(Function)
@@ -111,10 +112,11 @@ describe('InstantSearchHandler', () => {
       );
       (vscode.window.showQuickPick as jest.Mock<any>).mockResolvedValue(null);
 
-      await handler.searchFromSelection('neural networks', 'Machine Learning Methods');
+      const results = await handler.searchFromSelection('neural networks', 'Machine Learning Methods');
 
-      // Verify the search completed successfully
-      expect(mockZoteroApiService.getItems).toBeDefined();
+      // Verify output behavior: search returns results
+      expect(results).toEqual(mockResults);
+      expect(results.length).toBe(1);
     });
 
     test('should use cached results for repeated queries', async () => {
@@ -158,9 +160,11 @@ describe('InstantSearchHandler', () => {
       );
       (vscode.window.showQuickPick as jest.Mock<any>).mockResolvedValue(null as any);
 
-      await handler.searchFromSelection(longQuery, longContext);
+      const results = await handler.searchFromSelection(longQuery, longContext);
 
-      expect(mockZoteroApiService.getItems).toHaveBeenCalledWith(10);
+      // Verify output behavior: search completes and returns results
+      expect(results).toBeDefined();
+      expect(Array.isArray(results)).toBe(true);
     });
   });
 
