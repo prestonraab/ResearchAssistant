@@ -161,8 +161,8 @@ export class LiteratureIndexer {
 
     console.log('[LiteratureIndexer] Query embedding generated, searching store');
     
-    // Search in store with similarity scores
-    const results = this.embeddingStore.searchByEmbeddingWithSimilarity(queryEmbedding, limit);
+    // Search in store with similarity scores (now async)
+    const results = await this.embeddingStore.searchByEmbeddingWithSimilarity(queryEmbedding, limit);
     console.log('[LiteratureIndexer] Search returned', results.length, 'results with similarity scores');
     
     return results;

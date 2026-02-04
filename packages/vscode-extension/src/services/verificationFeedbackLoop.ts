@@ -92,7 +92,14 @@ export class VerificationFeedbackLoop {
    * Run full verification feedback loop
    * Streams results instead of keeping all rounds in memory
    */
-  async findSupportingEvidence(claim: string, onRoundComplete?: (round: SearchRound) => void): Promise<SearchRound[]> {
+  async findSupportingEvidence(
+    claim: string, 
+    onRoundComplete?: (round: SearchRound) => void,
+    streamCallbacks?: { 
+      onCandidatesFound?: (round: number, candidates: EmbeddedSnippet[]) => void;
+      onVerificationUpdate?: (round: number, snippetId: string, result: VerificationResult) => void;
+    }
+  ): Promise<SearchRound[]> {
     let currentQuery = claim;
     let supportingSnippets: EmbeddedSnippet[] = [];
     const completedRounds: SearchRound[] = [];
@@ -131,6 +138,11 @@ export class VerificationFeedbackLoop {
             break;
           }
 
+          // Stream candidates immediately if callback provided
+          if (streamCallbacks?.onCandidatesFound) {
+            streamCallbacks.onCandidatesFound(round, snippets);
+          }
+
           // Generate claim embedding for similarity calculation (only on first round)
           let claimEmbedding: number[] = [];
           if (round === 1) {
@@ -138,8 +150,14 @@ export class VerificationFeedbackLoop {
             claimEmbedding = embedding || [];
           }
 
-          // Step 2: Verify with LLM
-          const verifications = await this.verifySnippets(claim, snippets, claimEmbedding);
+          // Step 2: Verify with LLM (with streaming updates)
+          const verifications = await this.verifySnippetsWithStreaming(
+            claim, 
+            snippets, 
+            claimEmbedding,
+            round,
+            streamCallbacks?.onVerificationUpdate
+          );
           const roundSupportingSnippets = snippets.filter((_, i) => verifications[i].supports);
 
           supportingSnippets.push(...roundSupportingSnippets);
@@ -221,6 +239,19 @@ export class VerificationFeedbackLoop {
    * Verify if snippets support the claim using LLM
    */
   private async verifySnippets(claim: string, snippets: EmbeddedSnippet[], claimEmbedding: number[]): Promise<VerificationResult[]> {
+    return this.verifySnippetsWithStreaming(claim, snippets, claimEmbedding, 0, undefined);
+  }
+
+  /**
+   * Verify snippets with optional streaming updates
+   */
+  private async verifySnippetsWithStreaming(
+    claim: string, 
+    snippets: EmbeddedSnippet[], 
+    claimEmbedding: number[],
+    round: number,
+    onVerificationUpdate?: (round: number, snippetId: string, result: VerificationResult) => void
+  ): Promise<VerificationResult[]> {
     const results: VerificationResult[] = [];
 
     for (const snippet of snippets) {
@@ -228,6 +259,11 @@ export class VerificationFeedbackLoop {
       const similarity = this.calculateCosineSimilarity(claimEmbedding, snippet.embedding);
       const result = await this.verifySnippet(claim, snippet, similarity);
       results.push(result);
+      
+      // Stream verification result if callback provided
+      if (onVerificationUpdate) {
+        onVerificationUpdate(round, snippet.id, result);
+      }
     }
 
     return results;
@@ -437,6 +473,27 @@ Generate a refined search query (2-5 words) that would find more relevant papers
       req.write(payload);
       req.end();
     });
+  }
+
+  /**
+   * Check if cached validation exists for a claim without running validation.
+   * Returns the cached result if available, null otherwise.
+   */
+  getCachedValidation(claimText: string): SupportValidation | null {
+    if (!this.validationCache) {
+      return null;
+    }
+    const cached = this.validationCache.get(claimText);
+    if (cached) {
+      return {
+        claimId: '',  // Will be filled in by caller
+        similarity: cached.similarity,
+        supported: cached.supported,
+        suggestedQuotes: cached.suggestedQuotes,
+        analysis: cached.analysis
+      };
+    }
+    return null;
   }
 
   /**

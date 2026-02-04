@@ -157,10 +157,10 @@ body[data-vscode-theme-kind="vscode-high-contrast-light"] {
 
 /* Section Header */
 .section-header {
-  padding: 24px 16px 12px 16px;
+  padding: 16px 16px 8px 16px;
   background-color: var(--vscode-editor-background);
   border-bottom: 2px solid var(--vscode-panel-border);
-  margin-top: 16px;
+  margin-top: 12px;
   position: relative;
 }
 
@@ -169,16 +169,17 @@ body[data-vscode-theme-kind="vscode-high-contrast-light"] {
 }
 
 .section-title {
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 600;
   color: var(--vscode-editor-foreground);
   margin: 0;
-  padding: 8px;
+  padding: 4px 0;
   border: 2px solid transparent;
-  border-radius: 4px;
+  border-radius: 2px;
   cursor: text;
   outline: none;
   transition: border-color 0.2s;
+  line-height: 1.3;
 }
 
 .section-title:hover {
@@ -213,6 +214,11 @@ body[data-vscode-theme-kind="vscode-high-contrast-light"] {
 
 .pair-wrapper:first-child {
   border-radius: 8px 8px 0 0;
+}
+
+.pair-wrapper:first-child ~ .insert-zone {
+  /* Ensure insert zones are always hoverable */
+  pointer-events: auto;
 }
 
 .pair-wrapper:last-child {
@@ -289,35 +295,42 @@ body[data-vscode-theme-kind="vscode-high-contrast-light"] {
 /* Insert Zone - Appears between items */
 .insert-zone {
   position: relative;
-  height: 8px;
+  min-height: 8px;
+  height: 0;
   margin: 0;
-  opacity: 0;
-  transition: opacity 0.2s 0.15s, height 0.2s 0.15s;
+  overflow: visible;
+  transition: height 0.2s ease;
   display: grid;
   grid-template-columns: 1fr 2fr 200px;
   gap: 0 8px;
   align-items: center;
   background-color: transparent;
+  padding: 0;
 }
 
 .insert-zone:hover {
-  opacity: 1;
   height: 40px;
   background-color: var(--vscode-editor-background);
   border: 1px dashed var(--vscode-focusBorder);
   border-left: none;
   border-right: none;
+  padding: 8px 0;
+  min-height: 40px;
 }
 
 .insert-zone-left {
-  display: none;
+  display: flex;
   justify-content: center;
   padding-left: 8px;
+  opacity: 0;
+  transition: opacity 0.2s ease;
 }
 
 .insert-zone-center {
-  display: none;
+  display: flex;
   justify-content: center;
+  opacity: 0;
+  transition: opacity 0.2s ease;
 }
 
 .insert-zone-right {
@@ -326,8 +339,7 @@ body[data-vscode-theme-kind="vscode-high-contrast-light"] {
 
 .insert-zone:hover .insert-zone-left,
 .insert-zone:hover .insert-zone-center {
-  display: flex;
-  animation: fadeIn 0.15s ease-in;
+  opacity: 1;
 }
 
 @keyframes fadeIn {
@@ -361,7 +373,7 @@ body[data-vscode-theme-kind="vscode-high-contrast-light"] {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  gap: 4px;
+  gap: 2px;
   min-height: auto;
   width: 100%;
 }
@@ -370,7 +382,7 @@ body[data-vscode-theme-kind="vscode-high-contrast-light"] {
   display: flex;
   flex-direction: row;
   align-items: center;
-  gap: 4px;
+  gap: 2px;
   justify-content: flex-end;
 }
 
@@ -380,8 +392,8 @@ body[data-vscode-theme-kind="vscode-high-contrast-light"] {
   grid-template-columns: 1fr 2fr 200px;
   gap: 0 8px;
   align-items: start;
-  padding: 0;
-  padding-left: 8px;
+  padding: 8px;
+  padding-left: 12px;
 }
 
 /* Left Column - Question */
@@ -390,21 +402,23 @@ body[data-vscode-theme-kind="vscode-high-contrast-light"] {
   flex-direction: column;
   gap: 0;
   padding: 0;
+  min-height: 0;
 }
 
 /* Middle Column - Answer and Citations */
 .middle-column {
   display: flex;
   flex-direction: column;
-  gap: 0;
+  gap: 4px;
   padding: 0;
+  min-height: 0;
 }
 
 /* Right Column - Metadata (flexible) */
 .right-column {
   display: flex;
   flex-direction: column;
-  gap: 0;
+  gap: 4px;
   align-items: flex-end;
   position: relative;
   min-height: 0;
@@ -535,8 +549,8 @@ body[data-vscode-theme-kind="vscode-high-contrast-light"] {
   background-color: transparent;
   color: var(--vscode-descriptionForeground);
   border: 1px solid transparent;
-  padding: 4px 8px;
-  border-radius: 4px;
+  padding: 2px 6px;
+  border-radius: 3px;
   font-size: 11px;
   font-weight: 500;
   cursor: pointer;
@@ -545,6 +559,7 @@ body[data-vscode-theme-kind="vscode-high-contrast-light"] {
   appearance: none;
   -webkit-appearance: none;
   -moz-appearance: none;
+  height: 22px;
 }
 
 .status-dropdown:hover {
@@ -563,10 +578,14 @@ body[data-vscode-theme-kind="vscode-high-contrast-light"] {
   background: none;
   border: none;
   cursor: pointer;
-  font-size: 16px;
+  font-size: 14px;
   opacity: 0.6;
   transition: opacity 0.2s;
   margin-left: auto;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  padding: 0 2px;
 }
 
 .delete-btn:hover {
@@ -577,11 +596,14 @@ body[data-vscode-theme-kind="vscode-high-contrast-light"] {
   background: none;
   border: none;
   cursor: pointer;
-  font-size: 14px;
+  font-size: 12px;
   opacity: 0.5;
   transition: opacity 0.2s;
-  padding: 0 4px;
+  padding: 0 2px;
   color: var(--vscode-descriptionForeground);
+  height: 20px;
+  display: flex;
+  align-items: center;
 }
 
 .paragraph-break-btn:hover {
@@ -593,11 +615,14 @@ body[data-vscode-theme-kind="vscode-high-contrast-light"] {
   background: none;
   border: none;
   cursor: pointer;
-  font-size: 16px;
+  font-size: 14px;
   opacity: 0.6;
   transition: opacity 0.2s;
   padding: 0;
   position: relative;
+  height: 20px;
+  display: flex;
+  align-items: center;
 }
 
 .citations-toggle-btn:hover {
@@ -626,10 +651,10 @@ body[data-vscode-theme-kind="vscode-high-contrast-light"] {
   font-size: 13px;
   font-weight: 600;
   color: var(--vscode-editor-foreground);
-  padding: 8px;
+  padding: 4px 0;
   border: 1px solid transparent;
   border-radius: 2px;
-  min-height: 24px;
+  min-height: 20px;
   cursor: text;
   line-height: 1.4;
   margin: 0;
@@ -714,8 +739,8 @@ body[data-vscode-theme-kind="vscode-high-contrast-light"] {
 
 .answer-editor {
   width: 100%;
-  min-height: 60px;
-  padding: 8px;
+  min-height: 40px;
+  padding: 4px 6px;
   border: 1px solid var(--vscode-input-border);
   border-radius: 2px;
   background-color: var(--vscode-input-background);
@@ -731,6 +756,14 @@ body[data-vscode-theme-kind="vscode-high-contrast-light"] {
 .answer-editor:focus {
   outline: none;
   border-color: var(--vscode-focusBorder);
+}
+
+.answer-editor.has-orphan-citations {
+  border-left: 3px solid #ff9800;
+}
+
+.citation-highlight-wrapper {
+  display: none;
 }
 
 /* Empty State */
@@ -994,4 +1027,155 @@ body[data-vscode-theme-kind="vscode-high-contrast-light"] {
   background-color: var(--vscode-editor-findMatchHighlightBackground);
   border: 1px solid var(--vscode-editor-findMatchHighlightBorder);
   font-weight: 500;
+}
+
+/* Orphan Citation Highlighting and Tooltips */
+.orphan-citation {
+  background-color: rgba(255, 165, 0, 0.2);
+  border-bottom: 2px wavy rgba(255, 165, 0, 0.6);
+  cursor: help;
+  position: relative;
+  transition: background-color 0.2s;
+}
+
+.orphan-citation:hover {
+  background-color: rgba(255, 165, 0, 0.3);
+}
+
+/* Tooltip Container */
+.orphan-tooltip {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-bottom: 8px;
+  padding: 8px 12px;
+  background-color: var(--vscode-editorHoverWidget-background);
+  border: 1px solid var(--vscode-editorHoverWidget-border);
+  border-radius: 4px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  z-index: 10000;
+  white-space: nowrap;
+  font-size: 12px;
+  color: var(--vscode-editorHoverWidget-foreground);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  visibility: hidden;
+}
+
+.orphan-tooltip.visible {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* Tooltip arrow pointing down */
+.orphan-tooltip::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-top: 6px solid var(--vscode-editorHoverWidget-border);
+}
+
+.orphan-tooltip::before {
+  content: '';
+  position: absolute;
+  top: calc(100% + 1px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  border-top: 5px solid var(--vscode-editorHoverWidget-background);
+}
+
+/* Tooltip content styling */
+.orphan-citation-tooltip {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.orphan-citation-tooltip strong {
+  font-weight: 600;
+  color: var(--vscode-editorHoverWidget-foreground);
+}
+
+.orphan-years {
+  font-family: monospace;
+  font-size: 11px;
+  color: var(--vscode-editorHoverWidget-foreground);
+  padding: 4px 0;
+}
+
+.orphan-citation-tooltip small {
+  font-size: 11px;
+  color: var(--vscode-descriptionForeground);
+  font-style: italic;
+}
+
+/* Orphan Citation Highlighting */
+.orphan-citation {
+  background-color: rgba(255, 165, 0, 0.3);
+  border-bottom: 2px solid #ff9800;
+  padding: 2px 4px;
+  border-radius: 2px;
+  cursor: help;
+  transition: background-color 0.2s;
+}
+
+.orphan-citation:hover {
+  background-color: rgba(255, 165, 0, 0.5);
+}
+
+/* Matched Citation - Green styling */
+.matched-citation {
+  background-color: rgba(76, 175, 80, 0.2);
+  border-bottom: 2px solid #4caf50;
+  padding: 2px 4px;
+  border-radius: 2px;
+  cursor: default;
+  transition: background-color 0.2s;
+}
+
+.matched-citation:hover {
+  background-color: rgba(76, 175, 80, 0.3);
+}
+
+/* Orphan Citation Tooltip */
+.orphan-citation-tooltip {
+  background-color: var(--vscode-editorHoverWidget-background);
+  border: 1px solid var(--vscode-editorHoverWidget-border);
+  border-radius: 4px;
+  padding: 8px 12px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--vscode-editorHoverWidget-foreground);
+  max-width: 300px;
+  word-wrap: break-word;
+}
+
+.orphan-citation-tooltip strong {
+  font-weight: 600;
+  color: #ff9800;
+}
+
+.orphan-citation-tooltip .orphan-years {
+  font-family: monospace;
+  font-size: 11px;
+  color: var(--vscode-editor-foreground);
+}
+
+.orphan-citation-tooltip small {
+  display: block;
+  margin-top: 4px;
+  color: var(--vscode-descriptionForeground);
+  font-style: italic;
 }

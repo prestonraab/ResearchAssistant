@@ -217,10 +217,13 @@ export function registerZoteroCommands(
       'researchAssistant.jumpToPDF',
       async (annotationKey?: string, itemKey?: string, pageNumber?: number) => {
         try {
+          logger.debug(`Jump to PDF command invoked with: annotationKey=${annotationKey}, itemKey=${itemKey}, pageNumber=${pageNumber}`);
+
           // Check if Zotero is available
           const isAvailable = await zoteroAvailabilityManager.checkAvailability();
           if (!isAvailable) {
             const errorDetail = zoteroAvailabilityManager.getLastError();
+            logger.error(`Zotero availability check failed: ${errorDetail}`);
             vscode.window.showErrorMessage(
               errorDetail || 'Zotero is not available. Please check your Zotero API settings.',
               'Configure Settings'
@@ -235,30 +238,53 @@ export function registerZoteroCommands(
             return;
           }
 
+          // Validate input parameters
           if (!annotationKey && !itemKey) {
-            vscode.window.showErrorMessage('No PDF location information available');
+            const errorMsg = 'No PDF location information available. Both annotationKey and itemKey are missing.';
+            logger.error(errorMsg);
+            vscode.window.showErrorMessage(errorMsg);
+            return;
+          }
+
+          if (!itemKey) {
+            const errorMsg = `Missing itemKey (required for opening PDF). annotationKey=${annotationKey}`;
+            logger.error(errorMsg);
+            vscode.window.showErrorMessage('Cannot open PDF: missing item key. The paper may not be properly linked in Zotero.');
             return;
           }
 
           let success = false;
+          let attemptedMethod = '';
 
           // Try to open by annotation key first
           if (annotationKey && itemKey) {
+            attemptedMethod = 'annotation';
+            logger.debug(`Attempting to open PDF via annotation: annotationKey=${annotationKey}, itemKey=${itemKey}`);
             success = await deepLinkHandler.openAnnotation(annotationKey, itemKey);
-          } else if (itemKey && pageNumber) {
+          } else if (itemKey && pageNumber !== undefined && pageNumber > 0) {
             // Fall back to page number
+            attemptedMethod = 'page';
+            logger.debug(`Attempting to open PDF via page number: itemKey=${itemKey}, pageNumber=${pageNumber}`);
             success = await deepLinkHandler.openPage(itemKey, pageNumber);
+          } else {
+            const errorMsg = `Insufficient parameters for opening PDF. Method: ${annotationKey ? 'annotation' : 'page'}, itemKey=${itemKey}, pageNumber=${pageNumber}`;
+            logger.error(errorMsg);
+            vscode.window.showErrorMessage('Cannot open PDF: insufficient location information.');
+            return;
           }
 
           if (success) {
-            logger.info(`Opened PDF in Zotero: annotation=${annotationKey}, item=${itemKey}, page=${pageNumber}`);
+            logger.info(`Successfully opened PDF in Zotero via ${attemptedMethod}: annotationKey=${annotationKey}, itemKey=${itemKey}, pageNumber=${pageNumber}`);
           } else {
-            logger.warn(`Failed to open PDF in Zotero`);
+            logger.warn(`Failed to open PDF in Zotero via ${attemptedMethod}. annotationKey=${annotationKey}, itemKey=${itemKey}, pageNumber=${pageNumber}`);
           }
         } catch (error) {
           const errorMessage = error instanceof Error ? error.message : String(error);
+          const errorStack = error instanceof Error ? error.stack : 'No stack trace available';
           logger.error(`Jump to PDF command error: ${errorMessage}`);
-          vscode.window.showErrorMessage('Failed to open PDF in Zotero');
+          logger.error(`Stack trace: ${errorStack}`);
+          logger.error(`Parameters: annotationKey=${annotationKey}, itemKey=${itemKey}, pageNumber=${pageNumber}`);
+          vscode.window.showErrorMessage(`Failed to open PDF in Zotero: ${errorMessage}`);
         }
       }
     )

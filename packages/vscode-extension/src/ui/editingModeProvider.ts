@@ -3,7 +3,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { ExtensionState } from '../core/state';
 import { EditingModeManager } from '../core/editingModeManager';
-import { SentenceParser, Sentence } from '@research-assistant/core';
+import { SentenceParser, Sentence, OrphanCitationValidator, CitationSourceMapper } from '@research-assistant/core';
 import { SentenceClaimMapper } from '../core/sentenceClaimMapper';
 import { QuestionAnswerParser, QuestionAnswerPair } from '../core/questionAnswerParser';
 import { generateHelpOverlayHtml, getHelpOverlayCss, getHelpOverlayJs } from './keyboardShortcuts';
@@ -16,6 +16,16 @@ import { PersistenceUtils } from '../core/persistenceUtils';
 import { getModeContextManager } from '../core/modeContextManager';
 import { DataValidationService } from '../core/dataValidationService';
 import type { Claim } from '@research-assistant/core';
+
+/**
+ * Orphan citation suggestion for a sentence
+ */
+export interface OrphanCitationSuggestion {
+  sentenceId: string;
+  orphanAuthorYears: string[];
+  existingClaimId?: string;
+  suggestionText: string;
+}
 
 /**
  * EditingModeProvider - Webview panel provider for editing mode
@@ -38,6 +48,11 @@ export class EditingModeProvider {
   private benchmark = getBenchmark();
   private immersiveModeManager = getImmersiveModeManager();
   
+  // Orphan citation services
+  private orphanCitationValidator?: OrphanCitationValidator;
+  private citationSourceMapper?: CitationSourceMapper;
+  private dismissedSuggestions: Set<string> = new Set(); // Track dismissed suggestions in session
+  
   // Write queue to prevent race conditions on manuscript saves
   private writeQueue: Promise<void> = Promise.resolve();
 
@@ -50,6 +65,99 @@ export class EditingModeProvider {
     this.sentenceClaimMapper = new SentenceClaimMapper(extensionState.claimsManager, context.workspaceState);
     this.questionAnswerParser = new QuestionAnswerParser();
     this.sentenceParsingCache = new SentenceParsingCache(100);
+    
+    // Initialize orphan citation services
+    const workspaceRoot = extensionState.getWorkspaceRoot();
+    this.citationSourceMapper = new CitationSourceMapper(workspaceRoot);
+    this.orphanCitationValidator = new OrphanCitationValidator(
+      this.citationSourceMapper,
+      extensionState.claimsManager
+    );
+  }
+
+  /**
+   * Get inline suggestions for sentences with orphan citations
+   * Detects sentences with orphan citations and generates suggestion text
+   * Requirements: 2.1
+   */
+  async getOrphanCitationSuggestions(): Promise<OrphanCitationSuggestion[]> {
+    try {
+      // Load source mappings
+      if (!this.citationSourceMapper) {
+        return [];
+      }
+      
+      await this.citationSourceMapper.loadSourceMappings();
+
+      const suggestions: OrphanCitationSuggestion[] = [];
+
+      // Check each sentence for orphan citations
+      for (const sentence of this.sentences) {
+        // Skip if suggestion was dismissed in this session
+        if (this.dismissedSuggestions.has(sentence.id)) {
+          continue;
+        }
+
+        // Get claim IDs for this sentence
+        const claimIds = sentence.claims || [];
+        const orphanAuthorYears: string[] = [];
+        let existingClaimId: string | undefined;
+
+        // Check each claim for orphan citations
+        for (const claimId of claimIds) {
+          if (!this.orphanCitationValidator) {
+            continue;
+          }
+
+          const validationResults = await this.orphanCitationValidator.validateClaimCitations(claimId);
+          
+          // Collect orphan citations
+          for (const result of validationResults) {
+            if (result.status === 'orphan-citation') {
+              orphanAuthorYears.push(result.authorYear);
+              if (!existingClaimId) {
+                existingClaimId = claimId;
+              }
+            }
+          }
+        }
+
+        // If we found orphan citations, create a suggestion
+        if (orphanAuthorYears.length > 0) {
+          const uniqueOrphans = Array.from(new Set(orphanAuthorYears));
+          const suggestionText = this.generateSuggestionText(sentence.text, uniqueOrphans);
+          
+          suggestions.push({
+            sentenceId: sentence.id,
+            orphanAuthorYears: uniqueOrphans,
+            existingClaimId,
+            suggestionText
+          });
+        }
+      }
+
+      return suggestions;
+    } catch (error) {
+      console.error('[EditingMode] Failed to get orphan citation suggestions:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Generate suggestion text for orphan citations
+   * @param sentenceText - The sentence text
+   * @param orphanAuthorYears - List of orphan author-years
+   * @returns Suggestion text
+   * @private
+   */
+  private generateSuggestionText(sentenceText: string, orphanAuthorYears: string[]): string {
+    const authorYearList = orphanAuthorYears.join(', ');
+    
+    if (orphanAuthorYears.length === 1) {
+      return `This sentence cites ${authorYearList} but has no supporting quote. Add a claim to find evidence.`;
+    } else {
+      return `This sentence cites ${authorYearList} but has no supporting quotes. Add a claim to find evidence.`;
+    }
   }
 
   /**
@@ -443,6 +551,14 @@ export class EditingModeProvider {
         this.showHelpOverlay();
         break;
 
+      case 'acceptOrphanSuggestion':
+        await this.acceptOrphanSuggestion(message.suggestion);
+        break;
+
+      case 'dismissOrphanSuggestion':
+        await this.dismissOrphanSuggestion(message.suggestionId);
+        break;
+
       default:
         console.warn('Unknown message type:', message.type);
     }
@@ -655,6 +771,82 @@ export class EditingModeProvider {
       }
     } catch (error) {
       vscode.window.showErrorMessage(`Failed to delete claim: ${error}`);
+    }
+  }
+
+  /**
+   * Accept orphan citation suggestion
+   * Creates a claim if needed, links citation to it, opens Claim Review
+   * Requirements: 2.2
+   */
+  async acceptOrphanSuggestion(suggestion: OrphanCitationSuggestion): Promise<void> {
+    try {
+      let claimId = suggestion.existingClaimId;
+
+      // If no existing claim, create one
+      if (!claimId) {
+        claimId = `C_${Date.now()}`;
+        const claim: Claim = {
+          id: claimId,
+          text: suggestion.suggestionText,
+          category: 'Uncategorized',
+          context: '',
+          primaryQuote: {
+            text: '',
+            source: '',
+            verified: false
+          },
+          supportingQuotes: [],
+          sections: [],
+          verified: false,
+          createdAt: new Date(),
+          modifiedAt: new Date()
+        };
+
+        await this.extensionState.claimsManager.saveClaim(claim);
+        await this.sentenceClaimMapper.linkSentenceToClaim(suggestion.sentenceId, claimId);
+
+        // Update local sentence
+        const sentence = this.sentences.find(s => s.id === suggestion.sentenceId);
+        if (sentence) {
+          if (!sentence.claims) {
+            sentence.claims = [];
+          }
+          if (!sentence.claims.includes(claimId)) {
+            sentence.claims.push(claimId);
+          }
+        }
+      }
+
+      // Navigate to Claim Review with the claim ID
+      await vscode.commands.executeCommand('researchAssistant.openClaimReview', claimId);
+    } catch (error) {
+      vscode.window.showErrorMessage(`Failed to accept suggestion: ${error}`);
+      console.error('[EditingMode] Failed to accept orphan suggestion:', error);
+    }
+  }
+
+  /**
+   * Dismiss orphan citation suggestion
+   * Tracks dismissed suggestions in session, preserves underlying data
+   * Requirements: 2.3
+   */
+  async dismissOrphanSuggestion(suggestionId: string): Promise<void> {
+    try {
+      // Track dismissed suggestion in session
+      this.dismissedSuggestions.add(suggestionId);
+
+      // Notify webview
+      if (this.panel) {
+        this.panel.webview.postMessage({
+          type: 'suggestionDismissed',
+          suggestionId
+        });
+      }
+
+      console.log(`[EditingMode] Dismissed suggestion for sentence ${suggestionId}`);
+    } catch (error) {
+      console.error('[EditingMode] Failed to dismiss suggestion:', error);
     }
   }
 

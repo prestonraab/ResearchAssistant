@@ -202,6 +202,34 @@ function setupEventListeners() {
       }, 500);
     });
   }
+
+  // Handle window resize to recalculate heights and maintain center item in view
+  let resizeTimeout;
+  window.addEventListener('resize', () => {
+    if (resizeTimeout) {
+      clearTimeout(resizeTimeout);
+    }
+
+    resizeTimeout = setTimeout(() => {
+      // Clear height cache to force recalculation
+      state.itemHeights.clear();
+
+      // Measure new heights
+      requestAnimationFrame(() => {
+        const pairRows = document.querySelectorAll('.pair-row');
+        pairRows.forEach(row => {
+          const pairId = row.dataset.pairId;
+          const actualHeight = row.offsetHeight;
+          state.itemHeights.set(pairId, actualHeight);
+        });
+
+        // Restore scroll position to keep center item in view
+        if (state.centerItemId) {
+          scrollToCenterItem(state.centerItemId);
+        }
+      });
+    }, 150); // Debounce resize events
+  });
 }
 
 /**
@@ -230,6 +258,10 @@ window.addEventListener('message', (event) => {
 
     case 'pairDeleted':
       deletePair(message.pairId);
+      break;
+
+    case 'orphanCitationsUpdate':
+      handleOrphanCitationsUpdate(message);
       break;
 
     case 'error':
@@ -598,8 +630,14 @@ function attachDragAndDropListeners() {
  * Attach event listeners to pairs
  */
 function attachPairListeners() {
+  // Clean up old tooltips before attaching new listeners
+  cleanupAllTooltips();
+  
   // Drag and drop handlers
   attachDragAndDropListeners();
+  
+  // Orphan citation tooltip listeners
+  attachOrphanTooltipListeners();
 
   // Answer editors - with auto-expand
   document.querySelectorAll('.answer-editor').forEach(editor => {
@@ -615,6 +653,21 @@ function attachPairListeners() {
     // Initial height calculation
     editor.style.height = 'auto';
     editor.style.height = Math.min(editor.scrollHeight, 600) + 'px';
+    
+    // Add hover listener for orphan citation tooltips
+    editor.addEventListener('mouseover', (e) => {
+      const target = e.target as HTMLElement;
+      if (target.classList.contains('orphan-citation')) {
+        showOrphanCitationTooltip(target);
+      }
+    });
+    
+    editor.addEventListener('mouseout', (e) => {
+      const target = e.target as HTMLElement;
+      if (target.classList.contains('orphan-citation')) {
+        hideOrphanCitationTooltip();
+      }
+    });
   });
 
   // Question editors
@@ -1532,4 +1585,314 @@ function updateFindCounter() {
     const current = state.findState.currentMatchIndex + 1;
     findCounter.textContent = `${current} of ${state.findState.matches.length}`;
   }
+}
+
+/**
+ * Apply orphan citation highlighting to answer text
+ * Highlights orphan citations in orange and matched citations in green
+ * @param answerElement - The textarea element containing the answer
+ * @param orphanCitations - Array of orphan author-years for this pair
+ * @param matchedCitations - Array of matched author-years for this pair
+ */
+function applyOrphanCitationHighlighting(answerElement, orphanCitations = [], matchedCitations = []) {
+  if (!answerElement || answerElement.tagName !== 'TEXTAREA') {
+    return;
+  }
+
+  // Store original value
+  const originalValue = answerElement.value;
+  
+  // Create a wrapper div to hold highlighted content
+  const wrapper = document.createElement('div');
+  wrapper.className = 'citation-highlight-wrapper';
+  wrapper.style.display = 'none'; // Hidden, used only for highlighting display
+  
+  let highlightedHtml = escapeHtml(originalValue);
+  
+  // Apply highlighting for matched citations first (green)
+  for (const authorYear of matchedCitations) {
+    const escapedAuthorYear = authorYear.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const regex = new RegExp(`\\b${escapedAuthorYear}\\b`, 'g');
+    highlightedHtml = highlightedHtml.replace(
+      regex,
+      `<span class="matched-citation" title="Matched citation: ${escapeHtml(authorYear)}">${escapeHtml(authorYear)}</span>`
+    );
+  }
+  
+  // Apply highlighting for orphan citations (orange)
+  for (const authorYear of orphanCitations) {
+    const escapedAuthorYear = authorYear.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const regex = new RegExp(`\\b${escapedAuthorYear}\\b`, 'g');
+    highlightedHtml = highlightedHtml.replace(
+      regex,
+      `<span class="orphan-citation" title="Orphan citation: ${escapeHtml(authorYear)} - no supporting quote">${escapeHtml(authorYear)}</span>`
+    );
+  }
+  
+  wrapper.innerHTML = highlightedHtml;
+  
+  // Store highlighting data on the element
+  answerElement.dataset.orphanCitations = JSON.stringify(orphanCitations);
+  answerElement.dataset.matchedCitations = JSON.stringify(matchedCitations);
+  answerElement.dataset.highlightedContent = highlightedHtml;
+  
+  // Add visual indicator class if there are orphan citations
+  if (orphanCitations.length > 0) {
+    answerElement.classList.add('has-orphan-citations');
+  } else {
+    answerElement.classList.remove('has-orphan-citations');
+  }
+}
+
+/**
+ * Update citation highlighting for a pair
+ * Called when orphan citations data is received from the extension
+ * @param pairId - The pair ID
+ * @param orphanCitations - Array of orphan author-years
+ * @param matchedCitations - Array of matched author-years
+ */
+function updateCitationHighlighting(pairId, orphanCitations = [], matchedCitations = []) {
+  const answerEditor = document.querySelector(`.answer-editor[data-pair-id="${pairId}"]`);
+  if (answerEditor) {
+    applyOrphanCitationHighlighting(answerEditor, orphanCitations, matchedCitations);
+  }
+}
+
+/**
+ * Handle orphan citations data from extension
+ * Updates highlighting for all pairs with orphan citations
+ */
+function handleOrphanCitationsUpdate(message) {
+  if (!message.orphanCitations) {
+    return;
+  }
+
+  // message.orphanCitations is a map of pairId -> { orphan: [], matched: [] }
+  for (const [pairId, citationData] of Object.entries(message.orphanCitations)) {
+    const orphanList = (citationData as any).orphan || [];
+    const matchedList = (citationData as any).matched || [];
+    updateCitationHighlighting(pairId, orphanList, matchedList);
+  }
+}
+
+/**
+ * Show tooltip for orphan citation on hover
+ * @param element - The orphan citation span element
+ */
+function showOrphanCitationTooltip(element) {
+  const authorYear = element.title.replace('Orphan citation: ', '').replace(' - no supporting quote', '');
+  
+  // Create tooltip element
+  const tooltip = document.createElement('div');
+  tooltip.className = 'orphan-citation-tooltip';
+  tooltip.innerHTML = `
+    <strong>Orphan Citation:</strong><br/>
+    <span class="orphan-years">${escapeHtml(authorYear)}</span><br/>
+    <small>No supporting quote found</small>
+  `;
+  
+  // Position tooltip near the element
+  tooltip.style.position = 'fixed';
+  tooltip.style.zIndex = '10000';
+  tooltip.style.pointerEvents = 'none';
+  
+  document.body.appendChild(tooltip);
+  
+  // Position it above the element
+  const rect = element.getBoundingClientRect();
+  tooltip.style.left = (rect.left + rect.width / 2 - tooltip.offsetWidth / 2) + 'px';
+  tooltip.style.top = (rect.top - tooltip.offsetHeight - 8) + 'px';
+  
+  // Store reference for cleanup
+  element.dataset.tooltipElement = 'true';
+  element.dataset.currentTooltip = tooltip.id || 'orphan-tooltip-' + Date.now();
+}
+
+/**
+ * Hide orphan citation tooltip
+ */
+function hideOrphanCitationTooltip() {
+  const tooltips = document.querySelectorAll('.orphan-citation-tooltip');
+  tooltips.forEach(tooltip => {
+    tooltip.remove();
+  });
+}
+
+/**
+ * Tooltip Management
+ * Handles display and positioning of orphan citation tooltips
+ */
+
+// Track active tooltips to prevent memory leaks
+const activeTooltips = new Map(); // Map of element -> tooltip element
+
+/**
+ * Attach tooltip event listeners to orphan-highlighted citations
+ * Called after rendering pairs to set up hover handlers
+ */
+function attachOrphanTooltipListeners() {
+  // Find all elements with orphan citations
+  document.querySelectorAll('.orphan-citation').forEach(element => {
+    // Remove old listeners if any
+    element.removeEventListener('mouseenter', handleOrphanCitationHover);
+    element.removeEventListener('mouseleave', handleOrphanCitationLeave);
+    
+    // Attach new listeners
+    element.addEventListener('mouseenter', handleOrphanCitationHover);
+    element.addEventListener('mouseleave', handleOrphanCitationLeave);
+  });
+}
+
+/**
+ * Handle mouse enter on orphan citation
+ * Displays tooltip with orphan author-years
+ */
+function handleOrphanCitationHover(event) {
+  const element = event.currentTarget;
+  
+  // Check if tooltip already exists
+  if (activeTooltips.has(element)) {
+    const tooltip = activeTooltips.get(element);
+    tooltip.classList.add('visible');
+    return;
+  }
+  
+  // Get tooltip content from data attribute
+  const tooltipContent = element.getAttribute('data-tooltip');
+  if (!tooltipContent) {
+    return;
+  }
+  
+  // Create tooltip element
+  const tooltip = document.createElement('div');
+  tooltip.className = 'orphan-tooltip';
+  tooltip.innerHTML = tooltipContent;
+  
+  // Position tooltip relative to the citation element
+  element.appendChild(tooltip);
+  
+  // Store reference for later cleanup
+  activeTooltips.set(element, tooltip);
+  
+  // Show tooltip with slight delay for smooth animation
+  requestAnimationFrame(() => {
+    tooltip.classList.add('visible');
+  });
+  
+  console.log('[WritingMode] Tooltip displayed for orphan citation');
+}
+
+/**
+ * Handle mouse leave on orphan citation
+ * Hides and removes tooltip
+ */
+function handleOrphanCitationLeave(event) {
+  const element = event.currentTarget;
+  const tooltip = activeTooltips.get(element);
+  
+  if (!tooltip) {
+    return;
+  }
+  
+  // Hide tooltip
+  tooltip.classList.remove('visible');
+  
+  // Remove tooltip after animation completes
+  setTimeout(() => {
+    if (tooltip.parentNode) {
+      tooltip.parentNode.removeChild(tooltip);
+    }
+    activeTooltips.delete(element);
+  }, 200);
+}
+
+/**
+ * Create orphan citation highlight with tooltip
+ * Wraps text in a span with orphan-citation class and tooltip data
+ * @param {string} text - The text to highlight
+ * @param {string} authorYears - Comma-separated author-years
+ * @returns {string} HTML string with highlighted citation and tooltip
+ */
+function createOrphanCitationHighlight(text, authorYears) {
+  const tooltipContent = `
+    <div class="orphan-citation-tooltip">
+      <strong>Orphan Citations:</strong><br/>
+      <span class="orphan-years">${escapeHtml(authorYears)}</span><br/>
+      <small>These citations lack supporting quotes</small>
+    </div>
+  `;
+  
+  return `<span class="orphan-citation" data-tooltip="${escapeHtml(tooltipContent)}">${escapeHtml(text)}</span>`;
+}
+
+/**
+ * Highlight orphan citations in answer text
+ * Scans answer for orphan author-year patterns and wraps them
+ * @param {string} answerText - The answer text to process
+ * @param {Array} orphanCitations - Array of {authorYear, claimId} objects
+ * @returns {string} HTML with highlighted orphan citations
+ */
+function highlightOrphanCitationsInText(answerText, orphanCitations) {
+  if (!orphanCitations || orphanCitations.length === 0) {
+    return escapeHtml(answerText);
+  }
+  
+  let result = answerText;
+  
+  // Sort by length descending to avoid partial replacements
+  const sortedCitations = [...orphanCitations].sort((a, b) => 
+    b.authorYear.length - a.authorYear.length
+  );
+  
+  // Track replacements to adjust positions
+  const replacements = [];
+  
+  for (const citation of sortedCitations) {
+    const regex = new RegExp(`\\b${escapeRegex(citation.authorYear)}\\b`, 'g');
+    let match;
+    
+    while ((match = regex.exec(result)) !== null) {
+      replacements.push({
+        start: match.index,
+        end: match.index + match[0].length,
+        text: match[0],
+        authorYear: citation.authorYear
+      });
+    }
+  }
+  
+  // Sort replacements by position (descending) to replace from end to start
+  replacements.sort((a, b) => b.start - a.start);
+  
+  // Apply replacements
+  for (const replacement of replacements) {
+    const before = result.substring(0, replacement.start);
+    const after = result.substring(replacement.end);
+    const highlighted = createOrphanCitationHighlight(replacement.text, replacement.authorYear);
+    result = before + highlighted + after;
+  }
+  
+  return result;
+}
+
+/**
+ * Escape special regex characters
+ * @param {string} str - String to escape
+ * @returns {string} Escaped string safe for regex
+ */
+function escapeRegex(str) {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+/**
+ * Clean up all active tooltips
+ * Called when rendering new pairs to prevent memory leaks
+ */
+function cleanupAllTooltips() {
+  for (const [element, tooltip] of activeTooltips.entries()) {
+    if (tooltip.parentNode) {
+      tooltip.parentNode.removeChild(tooltip);
+    }
+  }
+  activeTooltips.clear();
 }

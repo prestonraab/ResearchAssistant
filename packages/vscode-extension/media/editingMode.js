@@ -293,6 +293,11 @@ function renderSentenceBox(sentence) {
     ? renderClaimsContainer(sentence)
     : '<div class="claims-container"><div style="color: #999; font-size: 11px; padding: 4px;">⚠ No claims yet</div></div>';
 
+  // Check if this sentence has an orphan citation suggestion
+  const suggestionHtml = sentence.orphanSuggestion 
+    ? renderOrphanSuggestion(sentence.orphanSuggestion)
+    : '';
+
   return `
     <div class="sentence-box status-${statusColor}" data-sentence-id="${sentence.id}">
       <div class="sentence-header">
@@ -305,6 +310,7 @@ function renderSentenceBox(sentence) {
         </div>
       </div>
       ${claimsHtml}
+      ${suggestionHtml}
     </div>
   `;
 }
@@ -403,6 +409,27 @@ function getClaimStatusClass(claim) {
 }
 
 /**
+ * Render orphan citation suggestion
+ * Requirements: 2.1, 2.3
+ */
+function renderOrphanSuggestion(suggestion) {
+  const authorYearList = suggestion.orphanAuthorYears.join(', ');
+  
+  return `
+    <div class="orphan-suggestion" data-suggestion-id="${suggestion.sentenceId}">
+      <div class="suggestion-icon">💡</div>
+      <div class="suggestion-content">
+        <div class="suggestion-text">${escapeHtml(suggestion.suggestionText)}</div>
+        <div class="suggestion-actions">
+          <button class="suggestion-btn accept" data-action="acceptSuggestion" data-suggestion-id="${suggestion.sentenceId}" title="Accept suggestion">Accept</button>
+          <button class="suggestion-btn dismiss" data-action="dismissSuggestion" data-suggestion-id="${suggestion.sentenceId}" title="Dismiss suggestion">Dismiss</button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+/**
  * Attach event listeners to sentence elements
  */
 function attachSentenceListeners() {
@@ -490,6 +517,35 @@ function attachSentenceListeners() {
       if (claimsList) {
         claimsList.classList.toggle('collapsed');
         e.target.textContent = claimsList.classList.contains('collapsed') ? '▶' : '▼';
+      }
+    });
+  });
+
+  // Orphan suggestion buttons
+  document.querySelectorAll('.suggestion-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const action = e.target.dataset.action;
+      const suggestionId = e.target.dataset.suggestionId;
+      
+      switch (action) {
+        case 'acceptSuggestion':
+          // Find the suggestion data from the sentence
+          const sentenceBox = e.target.closest('.sentence-box');
+          const sentenceId = sentenceBox ? sentenceBox.dataset.sentenceId : null;
+          const sentence = sentences.find(s => s.id === sentenceId);
+          if (sentence && sentence.orphanSuggestion) {
+            vscode.postMessage({ 
+              type: 'acceptOrphanSuggestion', 
+              suggestion: sentence.orphanSuggestion 
+            });
+          }
+          break;
+        case 'dismissSuggestion':
+          vscode.postMessage({ 
+            type: 'dismissOrphanSuggestion', 
+            suggestionId 
+          });
+          break;
       }
     });
   });

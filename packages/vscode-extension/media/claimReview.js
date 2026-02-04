@@ -125,13 +125,39 @@ const messageHandlers = {
   'quoteVerified': (msg) => updateQuoteVerification(msg),
   'newQuotesRound': (msg) => displayNewQuotesRound(msg),
   'newQuotesComplete': (msg) => displayNewQuotesComplete(msg),
+  'searchCandidatesFound': (msg) => displaySearchCandidates(msg),
+  'verificationUpdate': (msg) => updateCandidateVerification(msg),
   'snippetTextLoaded': (msg) => handleSnippetTextLoaded(msg),
-  'internetSearchResults': (msg) => displayInternetResults(msg.results),
+  'addSupportingQuote': (msg) => handleAddSupportingQuote(msg),
+  'searchInternet': (msg) => displayInternetResults(msg.results),
   'supportValidated': (msg) => updateValidationResult(msg),
   'expandedContext': (msg) => handleExpandedContext(msg),
+  'updateVerificationResults': (msg) => updateVerificationResults(msg),
+  'updateValidationResult': (msg) => updateValidationResultStreaming(msg),
+  'updateUsageLocations': (msg) => updateUsageLocationsStreaming(msg),
+  'verificationProgress': (msg) => updateVerificationProgress(msg),
+  'autoFindQuotesStarted': () => showAutoFindQuotesState(),
+  'validationNotCached': () => showValidateButton(),
   'showHelp': () => toggleHelpOverlay(),
   'memoryWarning': (msg) => showNotification(msg.message, 'info'),
-  'error': (msg) => showError(msg.message)
+  'error': (msg) => showError(msg.message),
+  'operationsCancelled': (msg) => handleOperationsCancelled(msg),
+  'displayOrphanCitations': (msg) => displayOrphanCitations(msg.orphanCitations),
+  'quotesFromPaper': (msg) => displayQuotesFromPaper(msg.results, msg.authorYear),
+  'quoteAttached': (msg) => {
+    console.log('[ClaimReview] Quote attached successfully');
+    // Reload claim to show updated quotes
+    if (currentClaim) {
+      vscode.postMessage({ type: 'loadClaim', claimId: currentClaim.id });
+    }
+  },
+  'orphanCitationRemoved': (msg) => {
+    console.log('[ClaimReview] Orphan citation removed');
+    // Reload claim to show updated orphan citations
+    if (currentClaim) {
+      vscode.postMessage({ type: 'loadClaim', claimId: currentClaim.id });
+    }
+  }
 };
 
 /**
@@ -172,11 +198,178 @@ function displayClaim(message) {
   // Display quotes
   displayQuotes();
 
-  // Display validation
-  displayValidation();
+  // Check if claim has quotes
+  const hasQuotes = !!(
+    (currentClaim.primaryQuote && (typeof currentClaim.primaryQuote === 'string' ? currentClaim.primaryQuote : currentClaim.primaryQuote.text)) ||
+    (currentClaim.supportingQuotes && currentClaim.supportingQuotes.length > 0 && currentClaim.supportingQuotes.some(q => q && q.text))
+  );
 
-  // Display usage locations
-  displayUsageLocations();
+  // Display validation (only if we have data, and only show loading if claim has quotes)
+  if (message.validationResult) {
+    displayValidation();
+  } else if (message.isInitialLoad && hasQuotes) {
+    // Don't show validation loading - validation is now on-demand
+    // User can trigger it manually via the Validate button
+  }
+
+  // Display usage locations (only if we have data)
+  if (message.usageLocations && message.usageLocations.length > 0) {
+    displayUsageLocations();
+  } else if (message.isInitialLoad) {
+    // Show loading indicator for usage locations
+    showUsageLocationsLoading();
+  }
+}
+
+/**
+ * Show loading indicator for validation section
+ */
+function showValidationLoading() {
+  let validationSection = document.getElementById('validationSection');
+  if (!validationSection) {
+    validationSection = document.createElement('div');
+    validationSection.id = 'validationSection';
+    validationSection.className = 'validation-section';
+    
+    const quotesSection = document.getElementById('quotesSection');
+    if (quotesSection && quotesSection.parentNode) {
+      quotesSection.parentNode.insertBefore(validationSection, quotesSection.nextSibling);
+    }
+  }
+
+  validationSection.innerHTML = `
+    <h2>VALIDATION</h2>
+    <div class="validation-result loading">
+      <div class="validation-header">
+        <span class="validation-icon">⏳</span>
+        <span class="validation-title">Validating claim support...</span>
+      </div>
+      <div class="validation-analysis">Analyzing claim against literature...</div>
+    </div>
+  `;
+}
+
+/**
+ * Update verification progress as quotes are verified
+ */
+function updateVerificationProgress(message) {
+  const { current, total } = message;
+  const quotesSection = document.getElementById('quotesSection');
+  
+  if (!quotesSection) return;
+  
+  // Find or create progress bar
+  let progressBar = quotesSection.querySelector('.verification-progress-bar');
+  if (!progressBar) {
+    progressBar = document.createElement('div');
+    progressBar.className = 'verification-progress-bar';
+    quotesSection.insertBefore(progressBar, quotesSection.firstChild);
+  }
+  
+  const percentage = total > 0 ? Math.round((current / total) * 100) : 0;
+  const progressFill = progressBar.querySelector('.progress-fill') || document.createElement('div');
+  
+  if (!progressBar.querySelector('.progress-fill')) {
+    progressFill.className = 'progress-fill';
+    progressBar.appendChild(progressFill);
+  }
+  
+  progressFill.style.width = percentage + '%';
+  
+  // Update or create progress text
+  let progressText = progressBar.querySelector('.progress-text');
+  if (!progressText) {
+    progressText = document.createElement('div');
+    progressText.className = 'progress-text';
+    progressBar.appendChild(progressText);
+  }
+  
+  progressText.textContent = `Verifying quotes: ${current}/${total}`;
+  
+  console.log('[ClaimReview] Verification progress:', current, '/', total);
+}
+
+/**
+ * Show auto-find quotes state when claim has no quotes
+ */
+function showAutoFindQuotesState() {
+  console.log('[ClaimReview] Auto-find quotes started');
+  
+  // Show the new quotes container with searching state
+  const container = document.getElementById('newQuotesContainer');
+  if (container) {
+    container.style.display = 'block';
+    const header = container.querySelector('.new-quotes-header h3');
+    if (header) {
+      header.textContent = 'Automatically searching for supporting quotes...';
+    }
+    const status = container.querySelector('.new-quotes-status');
+    if (status) {
+      status.textContent = 'Searching literature for evidence to support this claim...';
+    }
+    const list = container.querySelector('.new-quotes-list');
+    if (list) {
+      list.innerHTML = '';
+    }
+  }
+  
+  // Hide the verification progress bar since there are no quotes to verify
+  const progressBar = document.querySelector('.verification-progress-bar');
+  if (progressBar) {
+    progressBar.style.display = 'none';
+  }
+}
+
+/**
+ * Show loading indicator for usage locations
+ */
+function showUsageLocationsLoading() {
+  const usageList = document.getElementById('usageList');
+  if (usageList) {
+    usageList.innerHTML = '<div style="padding: 12px; color: #999;">⏳ Searching manuscript...</div>';
+  }
+}
+
+/**
+ * Show "Validate Support" button when no cached validation exists
+ */
+function showValidateButton() {
+  console.log('[ClaimReview] No cached validation - showing Validate button');
+  
+  // Find or create validation section
+  let validationSection = document.getElementById('validationSection');
+  if (!validationSection) {
+    validationSection = document.createElement('div');
+    validationSection.id = 'validationSection';
+    validationSection.className = 'validation-section';
+    
+    const quotesSection = document.getElementById('quotesSection');
+    if (quotesSection && quotesSection.parentNode) {
+      quotesSection.parentNode.insertBefore(validationSection, quotesSection.nextSibling);
+    }
+  }
+
+  validationSection.innerHTML = `
+    <h2>VALIDATION</h2>
+    <div class="validation-result not-validated">
+      <div class="validation-header">
+        <span class="validation-icon">○</span>
+        <span class="validation-title">Claim-Quote Support: Not yet validated</span>
+      </div>
+      <div class="validation-analysis">Click the button below to analyze how well your quotes support this claim.</div>
+      <div class="validation-actions">
+        <button class="btn btn-primary" id="validateSupportBtn">Validate Support</button>
+      </div>
+    </div>
+  `;
+
+  // Attach event listener
+  const validateBtn = validationSection.querySelector('#validateSupportBtn');
+  if (validateBtn) {
+    validateBtn.addEventListener('click', () => {
+      validateSupport();
+    });
+  }
 }
 
 /**
@@ -699,6 +892,45 @@ function displayUsageLocations() {
 }
 
 /**
+ * Update verification results as they stream in
+ */
+function updateVerificationResults(message) {
+  currentVerificationResults = message.verificationResults || [];
+  console.log('[ClaimReview] Verification results updated:', currentVerificationResults.length, 'results');
+  
+  // Hide the progress bar since verification is complete
+  const progressBar = document.querySelector('.verification-progress-bar');
+  if (progressBar) {
+    progressBar.style.display = 'none';
+  }
+  
+  // Re-render quotes with updated verification data
+  displayQuotes();
+}
+
+/**
+ * Update validation result as it completes
+ */
+function updateValidationResultStreaming(message) {
+  currentValidationResult = message.validationResult || {};
+  console.log('[ClaimReview] Validation result updated');
+  
+  // Re-render validation section
+  displayValidation();
+}
+
+/**
+ * Update usage locations as they load
+ */
+function updateUsageLocationsStreaming(message) {
+  currentUsageLocations = message.usageLocations || [];
+  console.log('[ClaimReview] Usage locations updated:', currentUsageLocations.length, 'locations');
+  
+  // Re-render usage locations
+  displayUsageLocations();
+}
+
+/**
  * Handle action
  */
 function handleAction(action) {
@@ -1186,6 +1418,168 @@ function displayNewQuotesRound(message) {
 }
 
 /**
+ * Display search candidates immediately (before verification)
+ */
+let allCandidates = []; // Track all candidates across rounds
+const MAX_DISPLAYED_CANDIDATES = 10;
+
+function displaySearchCandidates(message) {
+  const container = document.getElementById('newQuotesContainer');
+  
+  if (!container) {
+    console.warn('[ClaimReview] Search container not found');
+    return;
+  }
+
+  // Show container if hidden
+  container.style.display = 'block';
+  container.classList.remove('minimized');
+
+  // For round 1, reset candidates
+  if (message.round === 1) {
+    allCandidates = [];
+  }
+
+  // Add new candidates to tracking array
+  message.candidates.forEach(candidate => {
+    allCandidates.push({
+      ...candidate,
+      round: message.round,
+      verified: false,
+      supports: false,
+      confidence: 0
+    });
+  });
+
+  // Update header
+  const header = container.querySelector('.new-quotes-header h3');
+  header.textContent = `Round ${message.round}: Found ${message.candidates.length} candidates`;
+
+  // Render the top candidates
+  renderTopCandidates(container);
+  
+  const status = container.querySelector('.new-quotes-status');
+  status.textContent = `Verifying ${allCandidates.filter(c => !c.verified).length} candidates...`;
+}
+
+/**
+ * Render the top candidates, sorted by confidence (verified supporting first)
+ */
+function renderTopCandidates(container) {
+  const list = container.querySelector('.new-quotes-list');
+  list.innerHTML = '';
+  
+  // Filter out rejected candidates - only show verifying and supporting
+  const visibleCandidates = allCandidates.filter(c => !c.verified || c.supports);
+  
+  // Sort: verified supporting (by confidence) > verifying
+  const sorted = [...visibleCandidates].sort((a, b) => {
+    // Verified supporting quotes first, sorted by confidence
+    if (a.verified && a.supports && b.verified && b.supports) {
+      return b.confidence - a.confidence;
+    }
+    if (a.verified && a.supports) return -1;
+    if (b.verified && b.supports) return 1;
+    
+    // Then verifying (not yet verified)
+    return 0;
+  });
+  
+  // Take top N
+  const topCandidates = sorted.slice(0, MAX_DISPLAYED_CANDIDATES);
+  
+  topCandidates.forEach((candidate, i) => {
+    const item = document.createElement('div');
+    item.id = `candidate-${candidate.id}`;
+    
+    if (!candidate.verified) {
+      item.className = 'new-quote-item candidate-verifying';
+      item.innerHTML = `
+        <div class="quote-number">${i + 1}</div>
+        <div class="quote-details">
+          <div class="quote-summary">"${escapeHtml(candidate.text)}"</div>
+          <div class="quote-source">${escapeHtml(candidate.source)} (lines ${candidate.lineRange})</div>
+          <div class="verification-status verifying">
+            <span class="status-spinner">⏳</span> Verifying...
+          </div>
+        </div>
+      `;
+    } else if (candidate.supports) {
+      const percentage = Math.round(candidate.confidence * 100);
+      const stars = Math.round(candidate.confidence * 5);
+      const starDisplay = '★'.repeat(stars) + '☆'.repeat(5 - stars);
+      
+      item.className = 'new-quote-item candidate-supports';
+      item.innerHTML = `
+        <div class="quote-number">${i + 1}</div>
+        <div class="quote-details">
+          <div class="quote-summary">"${escapeHtml(candidate.text)}"</div>
+          <div class="quote-source">${escapeHtml(candidate.source)} (lines ${candidate.lineRange})</div>
+          <div class="verification-status supports">
+            <span class="status-icon">✓</span> Supports claim
+            <div style="margin-top: 4px;">Support: ${starDisplay} ${percentage}%</div>
+          </div>
+          <button class="btn btn-small btn-primary" data-action="addQuote" data-snippet-id="${escapeHtml(candidate.id)}" data-confidence="${candidate.confidence}">Add Quote</button>
+        </div>
+      `;
+      
+      // Attach add quote listener
+      const addBtn = item.querySelector('[data-action="addQuote"]');
+      if (addBtn) {
+        addBtn.addEventListener('click', () => {
+          acceptNewQuote(candidate.id, candidate.filePath || '', candidate.confidence);
+        });
+      }
+    }
+    
+    list.appendChild(item);
+  });
+  
+  // Show count if there are more visible candidates
+  const hiddenCount = visibleCandidates.length - topCandidates.length;
+  if (hiddenCount > 0) {
+    const moreDiv = document.createElement('div');
+    moreDiv.className = 'more-candidates-notice';
+    moreDiv.textContent = `+ ${hiddenCount} more candidates not shown`;
+    list.appendChild(moreDiv);
+  }
+}
+
+/**
+ * Update a candidate's verification status
+ */
+function updateCandidateVerification(message) {
+  // Find and update the candidate in our tracking array
+  const candidate = allCandidates.find(c => c.id === message.snippetId);
+  
+  if (!candidate) {
+    console.warn('[ClaimReview] Candidate not found:', message.snippetId);
+    return;
+  }
+  
+  candidate.verified = true;
+  candidate.supports = message.supports;
+  candidate.confidence = message.confidence || 0;
+  
+  // Re-render the list (will re-sort by confidence)
+  const container = document.getElementById('newQuotesContainer');
+  if (container) {
+    renderTopCandidates(container);
+    
+    // Update status
+    const verifying = allCandidates.filter(c => !c.verified).length;
+    const supporting = allCandidates.filter(c => c.verified && c.supports).length;
+    const status = container.querySelector('.new-quotes-status');
+    
+    if (verifying > 0) {
+      status.textContent = `Found ${supporting} supporting quotes, verifying ${verifying} more...`;
+    } else {
+      status.textContent = `Complete: ${supporting} supporting quotes found`;
+    }
+  }
+}
+
+/**
  * Display completion message
  */
 function displayNewQuotesComplete(message) {
@@ -1316,6 +1710,31 @@ function displayInternetResults(results) {
  */
 function showError(message) {
   showNotification(`Error: ${message}`, 'error');
+}
+
+/**
+ * Handle operations cancelled (when switching claims)
+ * Resets loading states and clears pending UI updates
+ */
+function handleOperationsCancelled(message) {
+  console.log('[ClaimReview] Operations cancelled:', message.reason);
+  
+  // Hide the search container if it's showing a loading state
+  const searchContainer = document.getElementById('newQuotesContainer');
+  if (searchContainer) {
+    const statusEl = searchContainer.querySelector('.new-quotes-status');
+    if (statusEl && statusEl.textContent.includes('Searching')) {
+      searchContainer.style.display = 'none';
+    }
+  }
+  
+  // Reset any progress indicators
+  const progressBars = document.querySelectorAll('.progress-bar');
+  progressBars.forEach(bar => bar.remove());
+  
+  // Clear any "verifying" status indicators
+  const verifyingItems = document.querySelectorAll('.status-verifying');
+  verifyingItems.forEach(item => item.classList.remove('status-verifying'));
 }
 
 /**
@@ -1590,4 +2009,261 @@ function escapeHtml(text) {
   const div = document.createElement('div');
   div.textContent = text;
   return div.innerHTML;
+}
+
+
+/**
+ * Display orphan citations section
+ * Requirements: 3.1
+ */
+function displayOrphanCitations(orphanCitations) {
+  if (!orphanCitations || orphanCitations.length === 0) {
+    // Hide orphan citations section if no orphans
+    const section = document.getElementById('orphanCitationsSection');
+    if (section) {
+      section.style.display = 'none';
+    }
+    return;
+  }
+
+  // Find or create orphan citations section
+  let section = document.getElementById('orphanCitationsSection');
+  if (!section) {
+    section = document.createElement('div');
+    section.id = 'orphanCitationsSection';
+    section.className = 'orphan-citations-section';
+    
+    const quotesSection = document.getElementById('quotesSection');
+    if (quotesSection && quotesSection.parentNode) {
+      quotesSection.parentNode.insertBefore(section, quotesSection.nextSibling);
+    }
+  }
+
+  section.style.display = 'block';
+  
+  // Build orphan citations HTML
+  let orphanHtml = '<h2>ORPHAN CITATIONS</h2>';
+  orphanHtml += '<div class="orphan-citations-list">';
+  
+  orphanCitations.forEach(orphan => {
+    const hasExtractedText = orphan.hasExtractedText;
+    const buttonClass = hasExtractedText ? '' : 'disabled';
+    const buttonDisabled = hasExtractedText ? '' : 'disabled';
+    const buttonTitle = hasExtractedText 
+      ? `Find quotes from ${orphan.authorYear}` 
+      : `No extracted text available for ${orphan.authorYear}`;
+    
+    orphanHtml += `
+      <div class="orphan-citation-item">
+        <div class="orphan-citation-header">
+          <span class="orphan-citation-author-year">${escapeHtml(orphan.authorYear)}</span>
+          <span class="orphan-citation-status">⚠ No supporting quote</span>
+        </div>
+        <div class="orphan-citation-actions">
+          <button class="btn btn-primary ${buttonClass}" 
+                  data-action="findQuotesFromPaper" 
+                  data-author-year="${escapeHtml(orphan.authorYear)}"
+                  ${buttonDisabled}
+                  title="${buttonTitle}">
+            Find Quotes
+          </button>
+          <button class="btn btn-danger" 
+                  data-action="removeOrphanCitation" 
+                  data-author-year="${escapeHtml(orphan.authorYear)}"
+                  title="Remove this orphan citation">
+            Remove
+          </button>
+        </div>
+      </div>
+    `;
+  });
+  
+  orphanHtml += '</div>';
+  section.innerHTML = orphanHtml;
+  
+  // Attach event listeners
+  section.querySelectorAll('[data-action="findQuotesFromPaper"]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const authorYear = btn.getAttribute('data-author-year');
+      findQuotesFromPaper(authorYear);
+    });
+  });
+  
+  section.querySelectorAll('[data-action="removeOrphanCitation"]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const authorYear = btn.getAttribute('data-author-year');
+      removeOrphanCitation(authorYear);
+    });
+  });
+}
+
+/**
+ * Find quotes from a specific paper
+ * Requirements: 3.2
+ */
+function findQuotesFromPaper(authorYear) {
+  if (!currentClaim) return;
+  
+  console.log('[ClaimReview] Finding quotes from paper:', authorYear);
+  
+  // Show loading state
+  const container = document.getElementById('newQuotesContainer');
+  if (container) {
+    container.style.display = 'block';
+    const header = container.querySelector('.new-quotes-header h3');
+    if (header) {
+      header.textContent = `Searching for quotes from ${authorYear}...`;
+    }
+    const list = container.querySelector('.new-quotes-list');
+    if (list) {
+      list.innerHTML = '<div class="loading-spinner">Searching...</div>';
+    }
+  }
+  
+  // Request quote search from extension
+  vscode.postMessage({
+    type: 'findQuotesFromPaper',
+    claimId: currentClaim.id,
+    authorYear: authorYear
+  });
+}
+
+/**
+ * Display search results from paper
+ * Requirements: 3.2
+ */
+function displayQuotesFromPaper(results, authorYear) {
+  const container = document.getElementById('newQuotesContainer');
+  if (!container) return;
+  
+  container.style.display = 'block';
+  const header = container.querySelector('.new-quotes-header h3');
+  if (header) {
+    header.textContent = `Quotes from ${authorYear}`;
+  }
+  
+  const list = container.querySelector('.new-quotes-list');
+  if (!list) return;
+  
+  if (!results || results.length === 0) {
+    list.innerHTML = '<div class="no-results">No quotes found in this paper</div>';
+    return;
+  }
+  
+  list.innerHTML = '';
+  
+  results.forEach((result, index) => {
+    const item = document.createElement('div');
+    item.className = 'quote-search-result';
+    
+    const similarity = Math.round(result.similarity * 100);
+    const similarityClass = similarity >= 90 ? 'high' : similarity >= 70 ? 'medium' : 'low';
+    
+    item.innerHTML = `
+      <div class="result-header">
+        <div class="result-similarity ${similarityClass}">${similarity}% match</div>
+        <div class="result-location">${result.sourceFile} (lines ${result.startLine}-${result.endLine})</div>
+      </div>
+      <div class="result-text">${escapeHtml(result.text)}</div>
+      <div class="result-actions">
+        <button class="btn btn-primary" data-action="attachQuote" data-index="${index}">
+          Attach Quote
+        </button>
+      </div>
+    `;
+    
+    list.appendChild(item);
+  });
+  
+  // Attach event listeners
+  list.querySelectorAll('[data-action="attachQuote"]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const index = parseInt(btn.getAttribute('data-index'));
+      if (results[index]) {
+        attachQuoteToClaim(results[index], authorYear);
+      }
+    });
+  });
+}
+
+/**
+ * Attach a found quote to the claim
+ * Requirements: 3.3
+ */
+function attachQuoteToClaim(quote, authorYear) {
+  if (!currentClaim) return;
+  
+  console.log('[ClaimReview] Attaching quote to claim:', {
+    claimId: currentClaim.id,
+    authorYear,
+    similarity: quote.similarity
+  });
+  
+  vscode.postMessage({
+    type: 'attachQuoteToClaim',
+    claimId: currentClaim.id,
+    quote: quote,
+    authorYear: authorYear
+  });
+}
+
+/**
+ * Remove an orphan citation from the claim
+ * Requirements: 3.4
+ */
+function removeOrphanCitation(authorYear) {
+  if (!currentClaim) return;
+  
+  showConfirmModal(
+    'Remove Orphan Citation',
+    `Remove the citation to ${authorYear} from this claim?`,
+    (confirmed) => {
+      if (confirmed) {
+        console.log('[ClaimReview] Removing orphan citation:', authorYear);
+        
+        vscode.postMessage({
+          type: 'removeOrphanCitation',
+          claimId: currentClaim.id,
+          authorYear: authorYear
+        });
+      }
+    }
+  );
+}
+
+/**
+ * Show confirmation modal
+ */
+function showConfirmModal(title, message, callback) {
+  const modal = document.createElement('div');
+  modal.className = 'confirm-modal-overlay';
+  modal.innerHTML = `
+    <div class="confirm-modal">
+      <div class="confirm-modal-header">${escapeHtml(title)}</div>
+      <div class="confirm-modal-body">${escapeHtml(message)}</div>
+      <div class="confirm-modal-actions">
+        <button class="btn btn-secondary" id="confirmCancel">Cancel</button>
+        <button class="btn btn-primary" id="confirmOk">Confirm</button>
+      </div>
+    </div>
+  `;
+  
+  document.body.appendChild(modal);
+  
+  modal.querySelector('#confirmCancel').addEventListener('click', () => {
+    modal.remove();
+    callback(false);
+  });
+  
+  modal.querySelector('#confirmOk').addEventListener('click', () => {
+    modal.remove();
+    callback(true);
+  });
+  
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) {
+      modal.remove();
+      callback(false);
+    }
+  });
 }

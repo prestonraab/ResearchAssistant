@@ -20,6 +20,9 @@ import { UnifiedQuoteSearch } from '../services/unifiedQuoteSearch';
  * ClaimReviewProvider - Webview panel provider for claim review mode
  * Displays claim details with verification, validation, and manuscript usage in main editor area
  * Includes memory management and caching for performance
+ * 
+ * Supports non-blocking claim switching via AbortController-based cancellation.
+ * When switching claims, ongoing operations are cancelled and partial progress is saved.
  */
 export class ClaimReviewProvider {
   public static readonly viewType = 'researchAssistant.claimReview';
@@ -37,6 +40,10 @@ export class ClaimReviewProvider {
   private scrollPosition: number = 0; // Track scroll position for restoration
   private sentenceClaimMapper: SentenceClaimMapper;
   private unifiedQuoteSearch: UnifiedQuoteSearch;
+  
+  // Cancellation support for non-blocking claim switching
+  private currentAbortController?: AbortController;
+  private operationInProgress: boolean = false;
 
   constructor(
     private extensionState: ExtensionState,
@@ -148,11 +155,31 @@ export class ClaimReviewProvider {
 
   /**
    * Load and display a claim
+   * Supports cancellation via AbortController for non-blocking claim switching
    */
   private async loadAndDisplayClaim(claimId: string): Promise<void> {
     if (!this.panel) {
       return;
     }
+
+    // Cancel any ongoing operations for the previous claim
+    if (this.currentAbortController) {
+      console.log('[ClaimReview] Cancelling previous claim operations');
+      this.currentAbortController.abort();
+      
+      // Notify webview that previous operations were cancelled
+      if (this.panel) {
+        this.panel.webview.postMessage({
+          type: 'operationsCancelled',
+          reason: 'Switching to new claim'
+        });
+      }
+    }
+    
+    // Create new abort controller for this claim
+    this.currentAbortController = new AbortController();
+    const signal = this.currentAbortController.signal;
+    this.operationInProgress = true;
 
     try {
       const claim = this.extensionState.claimsManager.getClaim(claimId);
@@ -175,15 +202,6 @@ export class ClaimReviewProvider {
       // Note: Auto-categorization via MCP has been removed
       // The claim will use its existing category or default categories
 
-      // Auto-verify quotes on load
-      const verificationResults = await this.verifyAllQuotes(claim);
-
-      // Get validation status
-      const validationResult = await this.validateClaim(claim);
-
-      // Get manuscript usage locations
-      const usageLocations = await this.getManuscriptUsageLocations(claimId);
-
       // Sanitize claim data for webview transmission
       const sanitizedClaim = DataValidationService.sanitizeClaimForWebview(claim);
       if (!sanitizedClaim) {
@@ -201,14 +219,15 @@ export class ClaimReviewProvider {
         availableCategories
       };
 
-      // Send claim data to webview
+      // Send initial claim data immediately (header + basic info)
       this.panel.webview.postMessage({
         type: 'loadClaim',
         claim: claimData,
-        verificationResults,
-        validationResult,
-        usageLocations,
-        scrollPosition: this.scrollPosition
+        verificationResults: [],
+        validationResult: null,
+        usageLocations: [],
+        scrollPosition: this.scrollPosition,
+        isInitialLoad: true
       });
 
       // Store in mode context for potential return to editing mode
@@ -217,17 +236,172 @@ export class ClaimReviewProvider {
       getModeContextManager().setClaimReviewContext({
         claimId,
         claim: claimData,
-        verificationResults,
-        validationResult,
-        usageLocations,
+        verificationResults: [],
+        validationResult: undefined,
+        usageLocations: [],
         returnToSentenceId: existingContext?.returnToSentenceId || undefined
       });
+      
+      console.log('[ClaimReview] Initial claim loaded, starting background operations');
+
+      // Check if cancelled before starting heavy operations
+      if (signal.aborted) {
+        console.log('[ClaimReview] Operation cancelled before background work started');
+        return;
+      }
+
+      // Check if claim has any quotes
+      const hasQuotes = !!(
+        (claim.primaryQuote && (typeof claim.primaryQuote === 'string' ? claim.primaryQuote : claim.primaryQuote.text)) ||
+        (claim.supportingQuotes && claim.supportingQuotes.length > 0 && claim.supportingQuotes.some(q => q && q.text))
+      );
+
+      if (hasQuotes) {
+        // WORKFLOW: Claim WITH quotes
+        // 1. Check for cached validation and send if available
+        // 2. Start quote verification immediately (with progress bar)
+        // 3. Start usage locations (low cost, useful context)
+        // 4. Validation runs on-demand if not cached
+        
+        console.log('[ClaimReview] Claim has quotes - starting verification workflow');
+
+        // Check for cached validation result
+        const cachedValidation = this.verificationFeedbackLoop.getCachedValidation(claim.text);
+        if (cachedValidation) {
+          console.log('[ClaimReview] Found cached validation result');
+          cachedValidation.claimId = claimId;
+          this.panel.webview.postMessage({
+            type: 'updateValidationResult',
+            validationResult: cachedValidation,
+            isCached: true
+          });
+        } else {
+          // No cached validation - tell webview to show "Validate Support" button
+          this.panel.webview.postMessage({
+            type: 'validationNotCached'
+          });
+        }
+
+        // Run operations with cancellation support
+        const verificationPromise = this.verifyAllQuotes(claim, signal).then(results => {
+          if (signal.aborted) return [];
+          console.log('[ClaimReview] Quote verification complete');
+          this.panel?.webview.postMessage({
+            type: 'updateVerificationResults',
+            verificationResults: results
+          });
+          return results;
+        }).catch(err => {
+          if (err.name === 'AbortError' || signal.aborted) {
+            console.log('[ClaimReview] Quote verification cancelled');
+            return [];
+          }
+          throw err;
+        });
+
+        const usagePromise = this.getManuscriptUsageLocations(claimId).then(locations => {
+          if (signal.aborted) return [];
+          console.log('[ClaimReview] Manuscript usage locations loaded');
+          this.panel?.webview.postMessage({
+            type: 'updateUsageLocations',
+            usageLocations: locations
+          });
+          return locations;
+        });
+
+        // Load orphan citations
+        const orphanPromise = this.getOrphanCitationsForClaim(claimId).then(orphans => {
+          if (signal.aborted) return [];
+          console.log('[ClaimReview] Orphan citations loaded:', orphans.length);
+          this.panel?.webview.postMessage({
+            type: 'displayOrphanCitations',
+            orphanCitations: orphans
+          });
+          return orphans;
+        });
+
+        // Wait for verification, usage, and orphan citations (skip validation)
+        const [verificationResults, usageLocations, orphanCitations] = await Promise.all([
+          verificationPromise,
+          usagePromise,
+          orphanPromise
+        ]);
+
+        // Only update context if not cancelled
+        if (!signal.aborted) {
+          getModeContextManager().setClaimReviewContext({
+            claimId,
+            claim: claimData,
+            verificationResults,
+            validationResult: cachedValidation ? {
+              supported: cachedValidation.supported,
+              similarity: cachedValidation.similarity,
+              suggestedQuotes: cachedValidation.suggestedQuotes || [],
+              analysis: cachedValidation.analysis || ''
+            } : undefined,
+            usageLocations,
+            returnToSentenceId: existingContext?.returnToSentenceId || undefined
+          });
+        }
+
+      } else {
+        // WORKFLOW: Claim WITHOUT quotes
+        // 1. Auto-trigger "Find Quotes" action with progress bars
+        // 2. Delay usage locations
+        // 3. Load orphan citations
+        // 4. Skip validation entirely
+        
+        console.log('[ClaimReview] Claim has no quotes - auto-triggering find quotes');
+
+        // Notify webview that we're auto-searching
+        this.panel.webview.postMessage({
+          type: 'autoFindQuotesStarted'
+        });
+
+        // Auto-trigger find quotes search with cancellation support
+        this.handleFindNewQuotes(claimId, claim.text, signal);
+
+        // Delay usage locations and orphan citations by 500ms to reduce initial load
+        setTimeout(async () => {
+          if (signal.aborted) return;
+          
+          const locations = await this.getManuscriptUsageLocations(claimId);
+          const orphans = await this.getOrphanCitationsForClaim(claimId);
+          
+          if (signal.aborted) return;
+          
+          console.log('[ClaimReview] Manuscript usage locations and orphan citations loaded (delayed)');
+          this.panel?.webview.postMessage({
+            type: 'updateUsageLocations',
+            usageLocations: locations
+          });
+          this.panel?.webview.postMessage({
+            type: 'displayOrphanCitations',
+            orphanCitations: orphans
+          });
+
+          getModeContextManager().setClaimReviewContext({
+            claimId,
+            claim: claimData,
+            verificationResults: [],
+            validationResult: undefined,
+            usageLocations: locations,
+            returnToSentenceId: existingContext?.returnToSentenceId || undefined
+          });
+        }, 500);
+      }
       
       console.log('[ClaimReview] Stored context:', {
         claimId,
         returnToSentenceId: existingContext?.returnToSentenceId
       });
     } catch (error) {
+      // Don't show error if operation was cancelled
+      if (this.currentAbortController?.signal.aborted) {
+        console.log('[ClaimReview] Operation cancelled, suppressing error');
+        return;
+      }
+      
       vscode.window.showErrorMessage(
         'Unable to load the claim. It may have been deleted or the data may be corrupted.',
         'Refresh Claims'
@@ -236,18 +410,51 @@ export class ClaimReviewProvider {
           vscode.commands.executeCommand('researchAssistant.refreshClaims');
         }
       });
+    } finally {
+      this.operationInProgress = false;
     }
   }
 
   /**
    * Verify all quotes for a claim
+   * Supports cancellation via AbortSignal
    */
-  private async verifyAllQuotes(claim: any): Promise<any[]> {
+  private async verifyAllQuotes(claim: any, signal?: AbortSignal): Promise<any[]> {
     try {
       const results: any[] = [];
+      let totalQuotes = 0;
+      let verifiedQuotes = 0;
+
+      // Count total quotes
+      if (claim.primaryQuote && (claim.primaryQuote.text || typeof claim.primaryQuote === 'string')) {
+        totalQuotes++;
+      }
+      if (claim.supportingQuotes && Array.isArray(claim.supportingQuotes)) {
+        totalQuotes += claim.supportingQuotes.filter((q: any) => q && q.text).length;
+      }
+
+      // Helper to send progress update
+      const sendProgress = () => {
+        if (this.panel && totalQuotes > 0) {
+          this.panel.webview.postMessage({
+            type: 'verificationProgress',
+            current: verifiedQuotes,
+            total: totalQuotes
+          });
+        }
+      };
+      
+      // Helper to check cancellation
+      const checkCancelled = () => {
+        if (signal?.aborted) {
+          throw new DOMException('Operation cancelled', 'AbortError');
+        }
+      };
 
       // Verify primary quote
       if (claim.primaryQuote) {
+        checkCancelled();
+        
         // Handle both string and object formats
         const quoteText = typeof claim.primaryQuote === 'string' ? claim.primaryQuote : (claim.primaryQuote.text || '');
         const quoteSource = typeof claim.primaryQuote === 'string' ? '' : (claim.primaryQuote.source || '');
@@ -257,6 +464,8 @@ export class ClaimReviewProvider {
             quoteText,
             quoteSource
           );
+
+          checkCancelled();
 
           console.log('[ClaimReview] Primary quote verification result:', {
             verified: primaryResult.verified,
@@ -268,12 +477,16 @@ export class ClaimReviewProvider {
           let searchStatus: 'not_searched' | 'searching' | 'found' | 'not_found' = 'searching';
           
           try {
+            checkCancelled();
+            
             // ALWAYS run both embedding and fuzzy searches to find the best match
             // This ensures we find exact matches even when embeddings return semantic matches from wrong papers
             
             // Run embedding search
             console.log('[ClaimReview] Running embedding search...');
             const snippets = await this.literatureIndexer.searchSnippetsWithSimilarity(quoteText, 5);
+            
+            checkCancelled();
             
             let embeddingResults: any[] = [];
             if (snippets && snippets.length > 0) {
@@ -294,9 +507,13 @@ export class ClaimReviewProvider {
                 embeddingResults[0]?.similarity.toFixed(3), 'in', embeddingResults[0]?.metadata.sourceFile);
             }
             
+            checkCancelled();
+            
             // ALWAYS run unified quote search - combines embedding and fuzzy matching
             console.log('[ClaimReview] Running unified quote search...');
             const searchResults = await this.unifiedQuoteSearch.search(quoteText, 5);
+            
+            checkCancelled();
             
             let fuzzyAlternatives: any[] = [];
             if (searchResults.length > 0) {
@@ -334,6 +551,8 @@ export class ClaimReviewProvider {
               alternativeSources = embeddingResults;
             }
             
+            checkCancelled();
+            
             // Auto-update metadata, source, and verification status if we found a match
             const existingMetadata = claim.primaryQuote.metadata;
             if (alternativeSources.length > 0) {
@@ -370,7 +589,8 @@ export class ClaimReviewProvider {
             }
             
             searchStatus = alternativeSources.length > 0 ? 'found' : 'not_found';
-          } catch (error) {
+          } catch (error: any) {
+            if (error.name === 'AbortError') throw error;
             console.error('[ClaimReview] Failed to search for quote:', error);
             searchStatus = 'not_found';
           }
@@ -385,12 +605,18 @@ export class ClaimReviewProvider {
             alternativeSources: alternativeSources.length > 0 ? alternativeSources : undefined,
             searchStatus
           });
+
+          // Update progress
+          verifiedQuotes++;
+          sendProgress();
         }
       }
 
       // Verify supporting quotes
       if (claim.supportingQuotes && Array.isArray(claim.supportingQuotes)) {
         for (let i = 0; i < claim.supportingQuotes.length; i++) {
+          checkCancelled();
+          
           const quoteObj = claim.supportingQuotes[i];
           // Handle both string and object formats
           const quoteText = typeof quoteObj === 'string' ? quoteObj : (quoteObj.text || '');
@@ -403,15 +629,21 @@ export class ClaimReviewProvider {
             quoteSource
           );
 
+          checkCancelled();
+
           // Search to get/update metadata - optimize by checking existing source first
           let alternativeSources: any[] = [];
           let searchStatus: 'not_searched' | 'searching' | 'found' | 'not_found' = 'searching';
           
           try {
+            checkCancelled();
+            
             // ALWAYS run both embedding and fuzzy searches to find the best match
             
             // Run embedding search
             const snippets = await this.literatureIndexer.searchSnippetsWithSimilarity(quoteText, 5);
+            
+            checkCancelled();
             
             let embeddingResults: any[] = [];
             if (snippets && snippets.length > 0) {
@@ -430,8 +662,12 @@ export class ClaimReviewProvider {
                 }));
             }
             
+            checkCancelled();
+            
             // ALWAYS run unified quote search
             const searchResults = await this.unifiedQuoteSearch.search(quoteText, 5);
+            
+            checkCancelled();
             
             let fuzzyAlternatives: any[] = [];
             if (searchResults.length > 0) {
@@ -458,6 +694,8 @@ export class ClaimReviewProvider {
             } else if (embeddingResults.length > 0) {
               alternativeSources = embeddingResults;
             }
+            
+            checkCancelled();
             
             // Auto-update metadata, source, and verification status if we found a match
             const existingMetadata = quoteObj.metadata;
@@ -494,7 +732,8 @@ export class ClaimReviewProvider {
             }
             
             searchStatus = alternativeSources.length > 0 ? 'found' : 'not_found';
-          } catch (error) {
+          } catch (error: any) {
+            if (error.name === 'AbortError') throw error;
             console.error('[ClaimReview] Failed to search for supporting quote:', error);
             searchStatus = 'not_found';
           }
@@ -509,11 +748,19 @@ export class ClaimReviewProvider {
             alternativeSources: alternativeSources.length > 0 ? alternativeSources : undefined,
             searchStatus
           });
+
+          // Update progress
+          verifiedQuotes++;
+          sendProgress();
         }
       }
 
       return results;
-    } catch (error) {
+    } catch (error: any) {
+      if (error.name === 'AbortError') {
+        console.log('[ClaimReview] Quote verification cancelled');
+        throw error;
+      }
       console.error('Failed to verify quotes:', error);
       return [];
     }
@@ -614,7 +861,7 @@ export class ClaimReviewProvider {
         break;
 
       case 'findNewQuotes':
-        await this.handleFindNewQuotes(message.claimId, message.query);
+        await this.handleFindNewQuotes(message.claimId, message.query, this.currentAbortController?.signal);
         break;
 
       case 'loadSnippetText':
@@ -681,6 +928,18 @@ export class ClaimReviewProvider {
 
       case 'showHelp':
         this.showHelpOverlay();
+        break;
+
+      case 'findQuotesFromPaper':
+        await this.handleFindQuotesFromPaper(message.claimId, message.authorYear);
+        break;
+
+      case 'attachQuoteToClaim':
+        await this.handleAttachQuoteToClaim(message.claimId, message.quote, message.authorYear);
+        break;
+
+      case 'removeOrphanCitation':
+        await this.handleRemoveOrphanCitation(message.claimId, message.authorYear);
         break;
 
       default:
@@ -972,10 +1231,15 @@ export class ClaimReviewProvider {
     }
   }
 
-  private async handleFindNewQuotes(claimId: string, query: string): Promise<void> {
+  private async handleFindNewQuotes(claimId: string, query: string, signal?: AbortSignal): Promise<void> {
     try {
       console.log('[ClaimReview] Find quotes requested:', { claimId, query: query.substring(0, 50) + '...' });
 
+      // Check cancellation early
+      if (signal?.aborted) {
+        console.log('[ClaimReview] Find quotes cancelled before starting');
+        return;
+      }
       
       vscode.window.showInformationMessage('Searching literature with verification feedback loop...');
 
@@ -985,7 +1249,7 @@ export class ClaimReviewProvider {
         return;
       }
 
-      // Run verification feedback loop with streaming callback
+      // Run verification feedback loop with streaming callbacks
       console.log('[ClaimReview] Starting verification feedback loop');
       
       let totalRounds = 0;
@@ -995,6 +1259,12 @@ export class ClaimReviewProvider {
       const rounds = await this.verificationFeedbackLoop.findSupportingEvidence(
         query,
         (round) => {
+          // Check cancellation before processing round
+          if (signal?.aborted) {
+            console.log('[ClaimReview] Find quotes cancelled during round processing');
+            return;
+          }
+          
           // Stream results as each round completes
           console.log(`[ClaimReview] Round ${round.round} complete:`, {
             snippetsSearched: round.snippets.length,
@@ -1005,29 +1275,72 @@ export class ClaimReviewProvider {
           totalSnippetsSearched += round.snippets.length;
           totalSupportingFound += round.supportingSnippets.length;
 
-          // Send minimal data to webview (ID, summary, source, line range, and confidence)
-          if (this.panel && round.supportingSnippets.length > 0) {
+          // Send supporting quotes for this round
+          if (this.panel && round.supportingSnippets.length > 0 && !signal?.aborted) {
             this.panel.webview.postMessage({
               type: 'newQuotesRound',
               round: round.round,
               quotes: round.supportingSnippets.map((snippet) => {
-                // Find the verification result for this snippet to get confidence
                 const verification = round.verifications.find(v => v.snippet.id === snippet.id);
                 const confidence = verification?.confidence || 0;
                 
                 return {
                   id: snippet.id,
-                  summary: snippet.text, // Send full text, not truncated
+                  summary: snippet.text,
                   source: snippet.fileName,
                   lineRange: `${snippet.startLine}-${snippet.endLine}`,
                   filePath: snippet.filePath,
-                  confidence: confidence // Add confidence score (0-1)
+                  confidence: confidence
                 };
               })
             });
           }
+        },
+        {
+          // Stream candidates as soon as search completes (before verification)
+          onCandidatesFound: (round, candidates) => {
+            if (signal?.aborted) return;
+            
+            console.log(`[ClaimReview] Round ${round}: Found ${candidates.length} candidates`);
+            if (this.panel) {
+              this.panel.webview.postMessage({
+                type: 'searchCandidatesFound',
+                round,
+                candidates: candidates.map(snippet => ({
+                  id: snippet.id,
+                  text: snippet.text,
+                  source: snippet.fileName,
+                  lineRange: `${snippet.startLine}-${snippet.endLine}`,
+                  filePath: snippet.filePath,
+                  status: 'verifying' // Will be updated as verification completes
+                }))
+              });
+            }
+          },
+          // Stream individual verification results
+          onVerificationUpdate: (round, snippetId, result) => {
+            if (signal?.aborted) return;
+            
+            console.log(`[ClaimReview] Round ${round}: Verified snippet ${snippetId} - supports: ${result.supports}`);
+            if (this.panel) {
+              this.panel.webview.postMessage({
+                type: 'verificationUpdate',
+                round,
+                snippetId,
+                supports: result.supports,
+                confidence: result.confidence,
+                reasoning: result.reasoning
+              });
+            }
+          }
         }
       );
+      
+      // Check cancellation before sending completion
+      if (signal?.aborted) {
+        console.log('[ClaimReview] Find quotes cancelled, not sending completion');
+        return;
+      }
       
       console.log('[ClaimReview] Verification loop complete:', {
         rounds: totalRounds,
@@ -1047,6 +1360,12 @@ export class ClaimReviewProvider {
         });
       }
     } catch (error) {
+      // Don't show error if cancelled
+      if (signal?.aborted) {
+        console.log('[ClaimReview] Find quotes cancelled');
+        return;
+      }
+      
       console.error('[ClaimReview] Find quotes error:', error);
       vscode.window.showErrorMessage(
         'Unable to search for quotes. Please check your literature files and try again.',
@@ -1354,6 +1673,247 @@ export class ClaimReviewProvider {
   }
 
   /**
+   * Get orphan citations for a claim
+   * Returns array of orphan citation info with source mappings
+   * Requirements: 3.1
+   */
+  async getOrphanCitationsForClaim(claimId: string): Promise<any[]> {
+    try {
+      const claim = this.extensionState.claimsManager.getClaim(claimId);
+      if (!claim) {
+        return [];
+      }
+
+      // Get orphan citations from validator
+      const validationResults = await this.extensionState.orphanCitationValidator.validateClaimCitations(claimId);
+      const orphanResults = validationResults.filter(r => r.status === 'orphan-citation');
+
+      // Build orphan citation info with source mappings
+      const orphanCitations = orphanResults.map(result => {
+        const sourceMapping = this.extensionState.citationSourceMapper.getSourceMapping(result.authorYear);
+        return {
+          authorYear: result.authorYear,
+          sourceMapping: sourceMapping,
+          hasExtractedText: sourceMapping ? !!sourceMapping.extractedTextFile : false
+        };
+      });
+
+      return orphanCitations;
+    } catch (error) {
+      console.error('[ClaimReview] Failed to get orphan citations:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Find quotes from a specific paper for a claim
+   * Uses semantic search against extracted text
+   * Requirements: 3.2
+   */
+  async findQuotesFromPaper(claimId: string, authorYear: string): Promise<any[]> {
+    try {
+      const claim = this.extensionState.claimsManager.getClaim(claimId);
+      if (!claim) {
+        return [];
+      }
+
+      // Get source mapping for the author-year
+      const sourceMapping = this.extensionState.citationSourceMapper.getSourceMapping(authorYear);
+      if (!sourceMapping || !sourceMapping.extractedTextFile) {
+        console.warn(`[ClaimReview] No extracted text available for ${authorYear}`);
+        return [];
+      }
+
+      // Use LiteratureIndexer to search the extracted text
+      const searchResults = await this.literatureIndexer.searchSnippetsWithSimilarity(claim.text, 10);
+
+      // Filter results to only include matches from the target paper
+      const targetFileName = sourceMapping.extractedTextFile.split('/').pop() || '';
+      const filteredResults = searchResults.filter(result => 
+        result.fileName === targetFileName || result.fileName.includes(authorYear)
+      );
+
+      // Convert to QuoteSearchResult format
+      const quoteResults = filteredResults.map(result => ({
+        text: result.text,
+        sourceFile: result.fileName,
+        startLine: result.startLine,
+        endLine: result.endLine,
+        similarity: result.similarity
+      }));
+
+      // Sort by similarity descending
+      quoteResults.sort((a, b) => b.similarity - a.similarity);
+
+      return quoteResults;
+    } catch (error) {
+      console.error('[ClaimReview] Failed to find quotes from paper:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Attach a found quote to a claim
+   * Updates claim's supportingQuotes and resolves the orphan citation
+   * Requirements: 3.3
+   */
+  async attachQuoteToClaim(claimId: string, quote: any, authorYear: string): Promise<void> {
+    try {
+      const claim = this.extensionState.claimsManager.getClaim(claimId);
+      if (!claim) {
+        throw new Error(`Claim ${claimId} not found`);
+      }
+
+      // Create supporting quote object
+      const newQuote = {
+        text: quote.text,
+        source: authorYear,
+        confidence: quote.similarity || 0.8,
+        metadata: {
+          sourceFile: quote.sourceFile,
+          startLine: quote.startLine,
+          endLine: quote.endLine
+        },
+        verified: quote.similarity >= 0.9
+      };
+
+      // Add to supporting quotes
+      if (!claim.supportingQuotes) {
+        claim.supportingQuotes = [];
+      }
+      claim.supportingQuotes.push(newQuote);
+
+      // Update claim in manager
+      await this.extensionState.claimsManager.updateClaim(claimId, claim);
+
+      // Notify webview of successful attachment
+      if (this.panel) {
+        this.panel.webview.postMessage({
+          type: 'quoteAttached',
+          claimId,
+          quote: newQuote,
+          authorYear
+        });
+      }
+
+      console.log('[ClaimReview] Quote attached to claim:', {
+        claimId,
+        authorYear,
+        similarity: quote.similarity
+      });
+    } catch (error) {
+      console.error('[ClaimReview] Failed to attach quote:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Remove an orphan citation from a claim
+   * Updates both the claim and manuscript.md
+   * Requirements: 3.4
+   */
+  async removeOrphanCitation(claimId: string, authorYear: string): Promise<void> {
+    try {
+      const claim = this.extensionState.claimsManager.getClaim(claimId);
+      if (!claim) {
+        throw new Error(`Claim ${claimId} not found`);
+      }
+
+      // Remove all quotes from this source
+      if (claim.supportingQuotes) {
+        claim.supportingQuotes = claim.supportingQuotes.filter(q => q.source !== authorYear);
+      }
+      if (claim.primaryQuote && claim.primaryQuote.source === authorYear) {
+        claim.primaryQuote = null as any;
+      }
+
+      // Update claim in manager
+      await this.extensionState.claimsManager.updateClaim(claimId, claim);
+
+      // Notify webview of successful removal
+      if (this.panel) {
+        this.panel.webview.postMessage({
+          type: 'orphanCitationRemoved',
+          claimId,
+          authorYear
+        });
+      }
+
+      console.log('[ClaimReview] Orphan citation removed:', {
+        claimId,
+        authorYear
+      });
+    } catch (error) {
+      console.error('[ClaimReview] Failed to remove orphan citation:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Handle find quotes from paper message
+   */
+  private async handleFindQuotesFromPaper(claimId: string, authorYear: string): Promise<void> {
+    try {
+      console.log('[ClaimReview] Finding quotes from paper:', { claimId, authorYear });
+
+      const results = await this.findQuotesFromPaper(claimId, authorYear);
+
+      if (this.panel) {
+        this.panel.webview.postMessage({
+          type: 'quotesFromPaper',
+          results,
+          authorYear
+        });
+      }
+
+      if (results.length === 0) {
+        vscode.window.showWarningMessage(`No quotes found in ${authorYear}`);
+      }
+    } catch (error) {
+      console.error('[ClaimReview] Failed to find quotes from paper:', error);
+      vscode.window.showErrorMessage('Failed to search for quotes in this paper');
+    }
+  }
+
+  /**
+   * Handle attach quote to claim message
+   */
+  private async handleAttachQuoteToClaim(claimId: string, quote: any, authorYear: string): Promise<void> {
+    try {
+      console.log('[ClaimReview] Attaching quote to claim:', { claimId, authorYear });
+
+      await this.attachQuoteToClaim(claimId, quote, authorYear);
+
+      // Reload and display the updated claim
+      await this.loadAndDisplayClaim(claimId);
+
+      vscode.window.showInformationMessage(`Quote from ${authorYear} attached successfully`);
+    } catch (error) {
+      console.error('[ClaimReview] Failed to attach quote:', error);
+      vscode.window.showErrorMessage('Failed to attach quote to claim');
+    }
+  }
+
+  /**
+   * Handle remove orphan citation message
+   */
+  private async handleRemoveOrphanCitation(claimId: string, authorYear: string): Promise<void> {
+    try {
+      console.log('[ClaimReview] Removing orphan citation:', { claimId, authorYear });
+
+      await this.removeOrphanCitation(claimId, authorYear);
+
+      // Reload and display the updated claim
+      await this.loadAndDisplayClaim(claimId);
+
+      vscode.window.showInformationMessage(`Citation to ${authorYear} removed`);
+    } catch (error) {
+      console.error('[ClaimReview] Failed to remove orphan citation:', error);
+      vscode.window.showErrorMessage('Failed to remove orphan citation');
+    }
+  }
+
+  /**
    * Get HTML content for webview
    */
   private async getHtmlContent(webview: vscode.Webview): Promise<string> {
@@ -1516,6 +2076,12 @@ export class ClaimReviewProvider {
    * Dispose resources
    */
   dispose(): void {
+    // Cancel any ongoing operations
+    if (this.currentAbortController) {
+      this.currentAbortController.abort();
+      this.currentAbortController = undefined;
+    }
+    
     // Stop memory monitoring
     this.disposalManager.stopMemoryMonitoring(ClaimReviewProvider.viewType);
 
@@ -1534,6 +2100,7 @@ export class ClaimReviewProvider {
 
     // Clear state
     this.currentClaimId = undefined;
+    this.operationInProgress = false;
 
     // Clear view reference
     this.panel = undefined;

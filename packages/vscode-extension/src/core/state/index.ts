@@ -45,6 +45,8 @@ export class ExtensionState {
   public get sentenceParser() { return this.serviceState.sentenceParser; }
   public get zoteroImportManager() { return this.serviceState.zoteroImportManager; }
   public get syncManager() { return this.serviceState.syncManager; }
+  public get orphanCitationValidator() { return this.serviceState.orphanCitationValidator; }
+  public get citationSourceMapper() { return this.serviceState.citationSourceMapper; }
 
   // Expose UI state
   public get positionMapper() { return this.uiState.positionMapper; }

@@ -354,8 +354,9 @@ export class EmbeddingStore {
   /**
    * Search by embedding and return results with similarity scores
    * Useful when you need to filter by similarity threshold
+   * Now async to yield to event loop periodically for large datasets
    */
-  searchByEmbeddingWithSimilarity(queryEmbedding: number[], limit: number = 10): EmbeddedSnippetWithSimilarity[] {
+  async searchByEmbeddingWithSimilarity(queryEmbedding: number[], limit: number = 10): Promise<EmbeddedSnippetWithSimilarity[]> {
     console.log('[EmbeddingStore] searchByEmbeddingWithSimilarity called with', this.index.snippets.length, 'total snippets');
     
     if (this.index.snippets.length === 0) {
@@ -363,14 +364,16 @@ export class EmbeddingStore {
       return [];
     }
 
-    // Compute cosine similarity with all snippets
-    const similarities = this.index.snippets.map(snippet => {
+    // Compute cosine similarity with all snippets, yielding periodically
+    const similarities: { snippet: QuantizedSnippet; similarity: number }[] = [];
+    const BATCH_SIZE = 500; // Process 500 snippets before yielding
+    
+    for (let i = 0; i < this.index.snippets.length; i++) {
+      const snippet = this.index.snippets[i];
+      
       if (!snippet.embeddingMetadata || typeof snippet.embeddingMetadata.min !== 'number' || typeof snippet.embeddingMetadata.max !== 'number') {
-        console.warn('[EmbeddingStore] Invalid embedding metadata for snippet', snippet.id, '- skipping');
-        return {
-          snippet,
-          similarity: 0
-        };
+        similarities.push({ snippet, similarity: 0 });
+        continue;
       }
 
       const quantized = new Int8Array(snippet.embedding);
@@ -380,11 +383,13 @@ export class EmbeddingStore {
         snippet.embeddingMetadata
       );
 
-      return {
-        snippet,
-        similarity
-      };
-    });
+      similarities.push({ snippet, similarity });
+      
+      // Yield to event loop every BATCH_SIZE snippets
+      if ((i + 1) % BATCH_SIZE === 0) {
+        await new Promise(resolve => setImmediate(resolve));
+      }
+    }
 
     // Sort by similarity and return top results with similarity scores
     const results = similarities

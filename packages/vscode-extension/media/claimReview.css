@@ -217,6 +217,35 @@ body {
   letter-spacing: 0.5px;
 }
 
+.verification-progress-bar {
+  background-color: white;
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  padding: 12px;
+  margin-bottom: 12px;
+  position: relative;
+}
+
+.progress-fill {
+  height: 24px;
+  background: linear-gradient(90deg, #2196F3, #1976D2);
+  border-radius: 2px;
+  width: 0%;
+  transition: width 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.progress-text {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--color-text);
+  margin-top: 8px;
+  text-align: center;
+}
+
 .quote-container {
   background-color: #FAFAFA;
   border: 1px solid var(--color-border);
@@ -643,6 +672,20 @@ body {
   background-color: #FFF5F5;
 }
 
+.validation-result.loading {
+  border-left: 4px solid var(--color-blue);
+  background-color: #E3F2FD;
+}
+
+.validation-result.not-validated {
+  border-left: 4px solid var(--color-grey);
+  background-color: #FAFAFA;
+}
+
+.validation-actions {
+  margin-top: 12px;
+}
+
 .validation-header {
   display: flex;
   align-items: center;
@@ -653,6 +696,11 @@ body {
 .validation-icon {
   font-size: 18px;
   font-weight: bold;
+}
+
+.validation-result.loading .validation-icon {
+  animation: spin 1s linear infinite;
+  color: var(--color-blue);
 }
 
 .validation-result.strong .validation-icon {
@@ -1051,6 +1099,15 @@ body {
   }
 }
 
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .notification-info {
   background-color: #E3F2FD;
   color: #1976D2;
@@ -1139,6 +1196,64 @@ body {
   background-color: white;
   border: 1px solid var(--color-border);
   border-radius: 2px;
+}
+
+/* Candidate verification states */
+.new-quote-item.candidate-verifying {
+  border-left: 3px solid var(--color-blue);
+  background-color: #f8f9fa;
+}
+
+.new-quote-item.candidate-supports {
+  border-left: 3px solid var(--color-green);
+  background-color: #f1f8f4;
+}
+
+.new-quote-item.candidate-rejected {
+  border-left: 3px solid var(--color-grey);
+  background-color: #fafafa;
+  opacity: 0.7;
+}
+
+.verification-status {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid #eee;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.verification-status.verifying {
+  color: var(--color-blue);
+}
+
+.verification-status.supports {
+  color: var(--color-green);
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.verification-status.rejected {
+  color: var(--color-grey);
+}
+
+.status-spinner {
+  animation: spin 1s linear infinite;
+}
+
+.status-icon {
+  font-weight: bold;
+}
+
+.more-candidates-notice {
+  padding: 8px 12px;
+  text-align: center;
+  font-size: 11px;
+  color: var(--color-grey);
+  font-style: italic;
+  border-top: 1px dashed var(--color-border);
 }
 
 .quote-number,

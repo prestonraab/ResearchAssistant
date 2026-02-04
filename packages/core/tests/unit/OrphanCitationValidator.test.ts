@@ -494,7 +494,7 @@ describe('OrphanCitationValidator', () => {
 |-----------|-------------|------------|-----------|------|-------|-------|
 | 1 | Johnson2007 | LM86I2Q4 | Johnson, W. Evan | 2007 | Test Paper | Test |
 | 2 | O'Brien2020 | SY5YRHHX | O'Brien, Patrick | 2020 | Another Paper | Test |
-| 3 | van-der-Waals2015 | ABC123XY | van der Waals, Y. | 2015 | Third Paper | Test |
+| 3 | Waals2015 | ABC123XY | van der Waals, Y. | 2015 | Third Paper | Test |
 `;
       fs.writeFileSync(sourcesPath, sourcesContent);
       await mapper.loadSourceMappings();
@@ -785,7 +785,7 @@ describe('OrphanCitationValidator', () => {
     it('should handle complex claim with mixed matched and orphan citations', async () => {
       const claim: Claim = {
         id: 'C_02',
-        text: 'Previous work by Johnson2007, Zhang2020, and Smith2015 has shown various approaches.',
+        text: 'Previous work by Johnson2007, Zhang2020, and Soneson2014 has shown various approaches.',
         category: 'Background',
         context: 'Related work section',
         verified: false,

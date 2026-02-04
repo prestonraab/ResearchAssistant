@@ -13,6 +13,16 @@ import { getImmersiveModeManager } from './immersiveModeManager';
 import { PersistenceUtils } from '../core/persistenceUtils';
 import { getModeContextManager } from '../core/modeContextManager';
 import { DataValidationService } from '../core/dataValidationService';
+import { OrphanCitationValidator, type CitationValidationResult, CitationSourceMapper } from '@research-assistant/core';
+
+/**
+ * Display information for an orphan citation
+ */
+export interface OrphanCitationDisplay {
+  claimId: string;
+  authorYear: string;
+  position: { start: number; end: number };
+}
 
 /**
  * WritingModeProvider - Webview panel provider for writing mode
@@ -31,6 +41,8 @@ export class WritingModeProvider {
   private benchmark = getBenchmark();
   private immersiveModeManager = getImmersiveModeManager();
   private sourceMetadataCache: Map<string, string | null> = new Map(); // Cache of source ID -> author-year
+  private orphanCitationValidator?: OrphanCitationValidator;
+  private citationSourceMapper?: CitationSourceMapper;
   
   // Write queue to prevent race conditions on manuscript saves
   private writeQueue: Promise<void> = Promise.resolve();
@@ -42,6 +54,14 @@ export class WritingModeProvider {
     this.writingModeManager = new WritingModeManager();
     this.questionAnswerParser = new QuestionAnswerParser();
     this.sentenceParsingCache = new SentenceParsingCache(100);
+    
+    // Initialize orphan citation services
+    const workspaceRoot = this.extensionState.getWorkspaceRoot();
+    this.citationSourceMapper = new CitationSourceMapper(workspaceRoot);
+    this.orphanCitationValidator = new OrphanCitationValidator(
+      this.citationSourceMapper,
+      this.extensionState.claimsManager
+    );
   }
 
   /**
@@ -784,6 +804,137 @@ export class WritingModeProvider {
 
     // Force garbage collection if available
     this.disposalManager.forceGarbageCollection();
+  }
+
+  /**
+   * Get orphan citations for display highlighting
+   * Identifies citations in a Q&A pair that lack supporting quotes
+   * @param pairId - The Q&A pair to analyze
+   * @returns Array of orphan citations with positions in the answer text
+   */
+  async getOrphanCitationsForDisplay(pairId: string): Promise<OrphanCitationDisplay[]> {
+    if (!this.orphanCitationValidator) {
+      return [];
+    }
+
+    try {
+      // Get all claims for this pair
+      const allClaims = this.extensionState.claimsManager.getAllClaims();
+      const orphanDisplays: OrphanCitationDisplay[] = [];
+
+      for (const claim of allClaims) {
+        // Validate citations for this claim
+        const validationResults = await this.orphanCitationValidator.validateClaimCitations(claim.id);
+        
+        // Filter for orphan citations
+        const orphanCitations = validationResults.filter((r: CitationValidationResult) => r.status === 'orphan-citation');
+
+        for (const orphan of orphanCitations) {
+          // Find position of this author-year in the claim text
+          const positions = this.findCitationPositions(claim.text, orphan.authorYear);
+          
+          for (const pos of positions) {
+            orphanDisplays.push({
+              claimId: claim.id,
+              authorYear: orphan.authorYear,
+              position: pos
+            });
+          }
+        }
+      }
+
+      return orphanDisplays;
+    } catch (error) {
+      console.error('[WritingMode] Error getting orphan citations for display:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Generate tooltip content for orphan citations
+   * Shows all orphan author-years for a claim
+   * @param claimId - The claim ID
+   * @returns HTML content for tooltip
+   */
+  async generateOrphanTooltip(claimId: string): Promise<string> {
+    if (!this.orphanCitationValidator) {
+      return '';
+    }
+
+    try {
+      const claim = this.extensionState.claimsManager.getClaim(claimId);
+      if (!claim) {
+        return '';
+      }
+
+      // Validate citations for this claim
+      const validationResults = await this.orphanCitationValidator.validateClaimCitations(claimId);
+      
+      // Filter for orphan citations
+      const orphanCitations = validationResults.filter((r: CitationValidationResult) => r.status === 'orphan-citation');
+
+      if (orphanCitations.length === 0) {
+        return '';
+      }
+
+      // Generate HTML tooltip
+      const orphanYears = orphanCitations.map(o => o.authorYear).join(', ');
+      const html = `
+        <div class="orphan-citation-tooltip">
+          <strong>Orphan Citations:</strong><br/>
+          <span class="orphan-years">${this.escapeHtml(orphanYears)}</span><br/>
+          <small>These citations lack supporting quotes</small>
+        </div>
+      `;
+
+      return html;
+    } catch (error) {
+      console.error('[WritingMode] Error generating orphan tooltip:', error);
+      return '';
+    }
+  }
+
+  /**
+   * Find all positions of a citation in text
+   * Searches for author-year pattern in the text
+   * @param text - The text to search
+   * @param authorYear - The author-year to find
+   * @returns Array of positions {start, end}
+   * @private
+   */
+  private findCitationPositions(text: string, authorYear: string): Array<{ start: number; end: number }> {
+    const positions: Array<{ start: number; end: number }> = [];
+    
+    // Escape special regex characters in authorYear
+    const escapedAuthorYear = authorYear.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const regex = new RegExp(escapedAuthorYear, 'g');
+    
+    let match;
+    while ((match = regex.exec(text)) !== null) {
+      positions.push({
+        start: match.index,
+        end: match.index + match[0].length
+      });
+    }
+
+    return positions;
+  }
+
+  /**
+   * Escape HTML special characters
+   * @param text - The text to escape
+   * @returns Escaped HTML text
+   * @private
+   */
+  private escapeHtml(text: string): string {
+    const map: { [key: string]: string } = {
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&#039;'
+    };
+    return text.replace(/[&<>"']/g, (char) => map[char]);
   }
 
   /**

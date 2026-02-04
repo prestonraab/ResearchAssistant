@@ -64,6 +64,8 @@ export class DeepLinkHandler {
    */
   async openAnnotation(annotationKey: string, itemKey: string): Promise<boolean> {
     try {
+      this.getLogger().debug(`openAnnotation called with: annotationKey="${annotationKey}", itemKey="${itemKey}"`);
+
       if (!annotationKey || annotationKey.trim() === '') {
         throw new Error('annotationKey is required and cannot be empty');
       }
@@ -72,28 +74,50 @@ export class DeepLinkHandler {
       }
 
       const url = `zotero://open-pdf/library/items/${encodeURIComponent(itemKey)}?annotation=${encodeURIComponent(annotationKey)}`;
-      this.getLogger().info(`Opening Zotero annotation URL: ${url}`);
-      const uri = vscode.Uri.parse(url);
+      this.getLogger().info(`Constructed Zotero annotation URL: ${url}`);
+      this.getLogger().debug(`URL components - itemKey: "${itemKey}", annotationKey: "${annotationKey}"`);
 
-      await vscode.env.openExternal(uri);
-      this.getLogger().info(`Opened Zotero annotation: ${annotationKey}`);
+      const uri = vscode.Uri.parse(url);
+      this.getLogger().debug(`Parsed URI: ${uri.toString()}`);
+
+      this.getLogger().info(`Attempting to open external URI: ${url}`);
+      const result = await vscode.env.openExternal(uri);
+      
+      this.getLogger().info(`vscode.env.openExternal returned: ${result}`);
+      this.getLogger().info(`Successfully opened Zotero annotation: annotationKey="${annotationKey}", itemKey="${itemKey}"`);
       return true;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
-      this.getLogger().error(`Failed to open Zotero annotation: ${errorMessage}`);
-      this.getLogger().error(`annotationKey: ${annotationKey}, itemKey: ${itemKey}`);
+      const errorStack = error instanceof Error ? error.stack : 'No stack trace';
+      const errorName = error instanceof Error ? error.name : 'Unknown';
 
-      // Show user-friendly error message
+      this.getLogger().error(`Failed to open Zotero annotation`);
+      this.getLogger().error(`Error message: ${errorMessage}`);
+      this.getLogger().error(`Error name: ${errorName}`);
+      this.getLogger().error(`Error stack: ${errorStack}`);
+      this.getLogger().error(`Input parameters - annotationKey: "${annotationKey}", itemKey: "${itemKey}"`);
+      this.getLogger().error(`Annotation key length: ${annotationKey?.length || 0}, Item key length: ${itemKey?.length || 0}`);
+
+      // Show user-friendly error message with more details
       if (errorMessage.includes('annotationKey') || errorMessage.includes('itemKey')) {
-        vscode.window.showErrorMessage('Invalid annotation or item key. The annotation may have been deleted or moved in Zotero.');
-      } else {
         vscode.window.showErrorMessage(
-          'Failed to open PDF in Zotero. Make sure Zotero is running and the PDF is available.',
+          'Invalid annotation or item key. The annotation may have been deleted or moved in Zotero. Check the extension logs for details.',
           'Open Zotero'
         ).then((selection: string | undefined) => {
           if (selection === 'Open Zotero') {
-            // Try to open Zotero application
             vscode.env.openExternal(vscode.Uri.parse('zotero://'));
+          }
+        });
+      } else {
+        vscode.window.showErrorMessage(
+          `Failed to open PDF in Zotero: ${errorMessage}. Make sure Zotero is running and the PDF is available.`,
+          'Open Zotero',
+          'View Logs'
+        ).then((selection: string | undefined) => {
+          if (selection === 'Open Zotero') {
+            vscode.env.openExternal(vscode.Uri.parse('zotero://'));
+          } else if (selection === 'View Logs') {
+            vscode.commands.executeCommand('workbench.action.toggleDevTools');
           }
         });
       }
@@ -109,36 +133,63 @@ export class DeepLinkHandler {
    */
   async openPage(itemKey: string, pageNumber: number): Promise<boolean> {
     try {
+      this.getLogger().debug(`openPage called with: itemKey="${itemKey}", pageNumber=${pageNumber}`);
+
       if (!itemKey || itemKey.trim() === '') {
         throw new Error('itemKey is required and cannot be empty');
       }
       if (pageNumber < 1) {
-        throw new Error('pageNumber must be greater than 0');
+        throw new Error(`pageNumber must be greater than 0, received: ${pageNumber}`);
+      }
+      if (!Number.isInteger(pageNumber)) {
+        throw new Error(`pageNumber must be an integer, received: ${pageNumber} (type: ${typeof pageNumber})`);
       }
 
       const url = this.buildPageUrl(itemKey, pageNumber);
-      this.getLogger().info(`Opening Zotero page URL: ${url}`);
-      const uri = vscode.Uri.parse(url);
+      this.getLogger().info(`Constructed Zotero page URL: ${url}`);
+      this.getLogger().debug(`URL components - itemKey: "${itemKey}", pageNumber: ${pageNumber}`);
 
-      await vscode.env.openExternal(uri);
-      this.getLogger().info(`Opened Zotero PDF: ${itemKey} at page ${pageNumber}`);
+      const uri = vscode.Uri.parse(url);
+      this.getLogger().debug(`Parsed URI: ${uri.toString()}`);
+
+      this.getLogger().info(`Attempting to open external URI: ${url}`);
+      const result = await vscode.env.openExternal(uri);
+      
+      this.getLogger().info(`vscode.env.openExternal returned: ${result}`);
+      this.getLogger().info(`Successfully opened Zotero PDF: itemKey="${itemKey}", pageNumber=${pageNumber}`);
       return true;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
-      this.getLogger().error(`Failed to open Zotero PDF: ${errorMessage}`);
-      this.getLogger().error(`itemKey: ${itemKey}, pageNumber: ${pageNumber}`);
+      const errorStack = error instanceof Error ? error.stack : 'No stack trace';
+      const errorName = error instanceof Error ? error.name : 'Unknown';
 
-      // Show user-friendly error message
+      this.getLogger().error(`Failed to open Zotero PDF`);
+      this.getLogger().error(`Error message: ${errorMessage}`);
+      this.getLogger().error(`Error name: ${errorName}`);
+      this.getLogger().error(`Error stack: ${errorStack}`);
+      this.getLogger().error(`Input parameters - itemKey: "${itemKey}", pageNumber: ${pageNumber}`);
+      this.getLogger().error(`Item key length: ${itemKey?.length || 0}, Page number type: ${typeof pageNumber}`);
+
+      // Show user-friendly error message with more details
       if (errorMessage.includes('itemKey') || errorMessage.includes('pageNumber')) {
-        vscode.window.showErrorMessage('Invalid item key or page number. Please check that the PDF and page number are valid.');
-      } else {
         vscode.window.showErrorMessage(
-          'Failed to open PDF in Zotero. Make sure Zotero is running and the PDF is available.',
+          'Invalid item key or page number. Please check that the PDF and page number are valid. Check the extension logs for details.',
           'Open Zotero'
         ).then((selection: string | undefined) => {
           if (selection === 'Open Zotero') {
-            // Try to open Zotero application
             vscode.env.openExternal(vscode.Uri.parse('zotero://'));
+          }
+        });
+      } else {
+        vscode.window.showErrorMessage(
+          `Failed to open PDF in Zotero: ${errorMessage}. Make sure Zotero is running and the PDF is available.`,
+          'Open Zotero',
+          'View Logs'
+        ).then((selection: string | undefined) => {
+          if (selection === 'Open Zotero') {
+            vscode.env.openExternal(vscode.Uri.parse('zotero://'));
+          } else if (selection === 'View Logs') {
+            vscode.commands.executeCommand('workbench.action.toggleDevTools');
           }
         });
       }
