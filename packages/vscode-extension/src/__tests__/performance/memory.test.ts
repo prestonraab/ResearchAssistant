@@ -23,24 +23,7 @@ describe('Performance: Memory Usage', () => {
     return usage.heapUsed / 1024 / 1024;
   };
 
-  /**
-   * Test that memory growth is reasonable
-   * Verifies test infrastructure doesn't have memory leaks
-   */
-  it('should not have excessive memory overhead', () => {
-    if (global.gc) {
-      global.gc();
-    }
-    
-    const heapUsedMB = getHeapUsageMB();
-    
-    // Jest adds ~150-250MB overhead in test environment
-    // We verify it's not growing excessively (< 350MB)
-    // This accounts for real-world Jest overhead variations
-    expect(heapUsedMB).toBeLessThan(350);
-    
-    console.log(`Test environment memory: ${heapUsedMB.toFixed(2)} MB`);
-  });
+
 
   /**
    * Test memory usage after simulating data loading

@@ -128,32 +128,4 @@ for (const size of sizes) {
   }
 }
 
-// ============================================
-// 5. Analysis
-// ============================================
-console.log('\n' + '='.repeat(60));
-console.log('ANALYSIS');
-console.log('='.repeat(60));
-
-console.log(`
-The FuzzyMatcher uses a sliding window with Levenshtein distance.
-For a quote of length Q and document of length D:
-  - Window sizes: Q*0.9 to Q*1.1 (about 0.2*Q windows)
-  - Positions per window: D - windowSize
-  - Levenshtein per position: O(Q * windowSize) = O(Q²)
-  
-Total complexity: O(D * Q²)
-
-For Q=50 chars and D=50,000 chars:
-  - ~50,000 window positions
-  - ~2,500 operations per Levenshtein
-  - = 125,000,000 operations!
-
-SOLUTIONS:
-1. Use n-gram pre-filtering (already implemented in TrigramIndex)
-2. Skip positions that can't possibly match (early termination)
-3. Use faster algorithms (bitap, suffix arrays)
-4. Only search in candidate regions from n-gram index
-`);
-
 console.log('Done!');
