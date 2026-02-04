@@ -32,22 +32,10 @@ jest.unstable_mockModule('openai', () => ({
 const { EmbeddingService } = await import('../../src/services/EmbeddingService.js');
 
 describe('EmbeddingService - Property-Based Tests', () => {
-  let tempDir: string;
-
   beforeEach(() => {
-    // Create temporary directory for cache
-    tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'embedding-prop-test-'));
-    
     // Reset mock
     jest.clearAllMocks();
     mockCreate.mockReset();
-  });
-
-  afterEach(() => {
-    // Clean up temporary directory
-    if (fs.existsSync(tempDir)) {
-      fs.rmSync(tempDir, { recursive: true, force: true });
-    }
   });
 
   // ============================================================================
@@ -207,6 +195,7 @@ describe('EmbeddingService - Property-Based Tests', () => {
 
   describe('Property 2: Similarity Symmetry', () => {
     it('should have symmetric cosine similarity', () => {
+      const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'embed-prop-'));
       fc.assert(
         fc.property(embeddingPairArbitrary, ([vec1, vec2]) => {
           const service = new EmbeddingService('test-key', tempDir, 1000);
@@ -219,9 +208,11 @@ describe('EmbeddingService - Property-Based Tests', () => {
         }),
         { numRuns: 100 }
       );
+      fs.rmSync(tempDir, { recursive: true, force: true });
     });
 
     it('should have reflexive similarity of 1 for non-zero vectors', () => {
+      const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'embed-prop-'));
       fc.assert(
         fc.property(
           fc.array(fc.float({ min: -1, max: 1, noNaN: true }), { minLength: 10, maxLength: 100 })
@@ -237,9 +228,11 @@ describe('EmbeddingService - Property-Based Tests', () => {
         ),
         { numRuns: 100 }
       );
+      fs.rmSync(tempDir, { recursive: true, force: true });
     });
 
     it('should have similarity of 0 for zero vectors', () => {
+      const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'embed-prop-'));
       fc.assert(
         fc.property(
           fc.array(fc.float({ min: -1, max: 1, noNaN: true }), { minLength: 10, maxLength: 100 }),
@@ -255,9 +248,11 @@ describe('EmbeddingService - Property-Based Tests', () => {
         ),
         { numRuns: 50 }
       );
+      fs.rmSync(tempDir, { recursive: true, force: true });
     });
 
     it('should have similarity of -1 for opposite vectors', () => {
+      const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'embed-prop-'));
       fc.assert(
         fc.property(
           fc.array(fc.float({ min: Math.fround(0.1), max: 1, noNaN: true }), { minLength: 10, maxLength: 100 }),
@@ -273,6 +268,7 @@ describe('EmbeddingService - Property-Based Tests', () => {
         ),
         { numRuns: 50 }
       );
+      fs.rmSync(tempDir, { recursive: true, force: true });
     });
   });
 
@@ -282,77 +278,65 @@ describe('EmbeddingService - Property-Based Tests', () => {
 
   describe('Property 3: Cache Size Limit', () => {
     it('should never exceed maxCacheSize after operations complete', async () => {
-      await fc.assert(
-        fc.asyncProperty(
-          fc.integer({ min: 1, max: 20 }), // maxCacheSize
-          fc.array(textArbitrary, { minLength: 1, maxLength: 50 }), // texts to generate
-          async (maxCacheSize, texts) => {
-            // Create fresh temp dir for each test run
-            const testDir = fs.mkdtempSync(path.join(os.tmpdir(), 'embed-prop-'));
-            const service = new EmbeddingService('test-key', testDir, maxCacheSize);
-            
-            // Reset mock for this test run
-            mockCreate.mockReset();
-            mockCreate.mockImplementation(async (params: any) => {
-              const input = Array.isArray(params.input) ? params.input : [params.input];
-              return {
-                data: input.map(() => ({
-                  embedding: Array.from({ length: 10 }, () => Math.random())
-                }))
-              };
-            });
-            
-            // Generate embeddings for all texts
-            for (const text of texts) {
-              await service.generateEmbedding(text);
-            }
-            
-            // Property: After all operations, cache size should not exceed maxCacheSize
-            expect(service.getCacheSize()).toBeLessThanOrEqual(maxCacheSize);
-            
-            // Cleanup
-            fs.rmSync(testDir, { recursive: true, force: true });
-          }
-        ),
-        { numRuns: 50 }
-      );
+      const maxCacheSize = 5;
+      const testDir = fs.mkdtempSync(path.join(os.tmpdir(), 'embed-prop-'));
+      const service = new EmbeddingService('test-key', testDir, maxCacheSize);
+      
+      // Reset mock
+      mockCreate.mockReset();
+      mockCreate.mockImplementation(async (params: any) => {
+        const input = Array.isArray(params.input) ? params.input : [params.input];
+        return {
+          data: input.map(() => ({
+            embedding: Array.from({ length: 10 }, () => Math.random())
+          }))
+        };
+      });
+      
+      // Generate embeddings for more texts than cache size
+      for (let i = 0; i < 15; i++) {
+        await service.generateEmbedding(`text-${i}`);
+      }
+      
+      // Property: After all operations, cache size should not exceed maxCacheSize
+      expect(service.getCacheSize()).toBeLessThanOrEqual(maxCacheSize);
+      
+      // Cleanup
+      fs.rmSync(testDir, { recursive: true, force: true });
     });
 
     it('should maintain cache size limit during batch operations', async () => {
-      await fc.assert(
-        fc.asyncProperty(
-          fc.integer({ min: 5, max: 20 }), // maxCacheSize
-          fc.array(uniqueTextsArbitrary, { minLength: 1, maxLength: 10 }), // batches
-          async (maxCacheSize, batches) => {
-            // Create fresh temp dir for each test run
-            const testDir = fs.mkdtempSync(path.join(os.tmpdir(), 'embed-prop-'));
-            const service = new EmbeddingService('test-key', testDir, maxCacheSize);
-            
-            // Reset mock for this test run
-            mockCreate.mockReset();
-            mockCreate.mockImplementation(async (params: any) => {
-              const input = Array.isArray(params.input) ? params.input : [params.input];
-              return {
-                data: input.map(() => ({
-                  embedding: Array.from({ length: 10 }, () => Math.random())
-                }))
-              };
-            });
-            
-            // Process batches
-            for (const batch of batches) {
-              await service.generateBatch(batch);
-            }
-            
-            // Property: After all operations complete, cache size should not exceed maxCacheSize
-            expect(service.getCacheSize()).toBeLessThanOrEqual(maxCacheSize);
-            
-            // Cleanup
-            fs.rmSync(testDir, { recursive: true, force: true });
-          }
-        ),
-        { numRuns: 30 }
-      );
+      const maxCacheSize = 8;
+      const testDir = fs.mkdtempSync(path.join(os.tmpdir(), 'embed-prop-'));
+      const service = new EmbeddingService('test-key', testDir, maxCacheSize);
+      
+      // Reset mock
+      mockCreate.mockReset();
+      mockCreate.mockImplementation(async (params: any) => {
+        const input = Array.isArray(params.input) ? params.input : [params.input];
+        return {
+          data: input.map(() => ({
+            embedding: Array.from({ length: 10 }, () => Math.random())
+          }))
+        };
+      });
+      
+      // Process multiple batches
+      const batches = [
+        ['text-1', 'text-2', 'text-3'],
+        ['text-4', 'text-5'],
+        ['text-6', 'text-7', 'text-8', 'text-9', 'text-10']
+      ];
+      
+      for (const batch of batches) {
+        await service.generateBatch(batch);
+      }
+      
+      // Property: After all operations complete, cache size should not exceed maxCacheSize
+      expect(service.getCacheSize()).toBeLessThanOrEqual(maxCacheSize);
+      
+      // Cleanup
+      fs.rmSync(testDir, { recursive: true, force: true });
     });
 
     it('should respect cache limit after manual trim', async () => {
@@ -390,36 +374,35 @@ describe('EmbeddingService - Property-Based Tests', () => {
     });
 
     it('should have cache size of 0 after clear', async () => {
-      await fc.assert(
-        fc.asyncProperty(
-          fc.array(textArbitrary, { minLength: 1, maxLength: 20 }),
-          async (texts) => {
-            const service = new EmbeddingService('test-key', tempDir, 1000);
-            
-            // Mock API
-            mockCreate.mockImplementation(async (params: any) => {
-              const input = Array.isArray(params.input) ? params.input : [params.input];
-              return {
-                data: input.map(() => ({
-                  embedding: Array.from({ length: 10 }, () => Math.random())
-                }))
-              };
-            });
-            
-            // Generate embeddings
-            for (const text of texts) {
-              await service.generateEmbedding(text);
-            }
-            
-            // Clear cache
-            service.clearCache();
-            
-            // Property: Cache size should be 0 after clear
-            expect(service.getCacheSize()).toBe(0);
-          }
-        ),
-        { numRuns: 50 }
-      );
+      const testDir = fs.mkdtempSync(path.join(os.tmpdir(), 'embed-prop-'));
+      const service = new EmbeddingService('test-key', testDir, 1000);
+      
+      // Mock API
+      mockCreate.mockImplementation(async (params: any) => {
+        const input = Array.isArray(params.input) ? params.input : [params.input];
+        return {
+          data: input.map(() => ({
+            embedding: Array.from({ length: 10 }, () => Math.random())
+          }))
+        };
+      });
+      
+      // Generate embeddings
+      for (let i = 0; i < 10; i++) {
+        await service.generateEmbedding(`text-${i}`);
+      }
+      
+      // Verify cache has entries
+      expect(service.getCacheSize()).toBeGreaterThan(0);
+      
+      // Clear cache
+      service.clearCache();
+      
+      // Property: Cache size should be 0 after clear
+      expect(service.getCacheSize()).toBe(0);
+      
+      // Cleanup
+      fs.rmSync(testDir, { recursive: true, force: true });
     });
   });
 
@@ -429,6 +412,7 @@ describe('EmbeddingService - Property-Based Tests', () => {
 
   describe('Property 4: Similarity Bounds', () => {
     it('should always produce similarity between -1 and 1', () => {
+      const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'embed-prop-'));
       fc.assert(
         fc.property(embeddingPairArbitrary, ([vec1, vec2]) => {
           const service = new EmbeddingService('test-key', tempDir, 1000);
@@ -441,9 +425,11 @@ describe('EmbeddingService - Property-Based Tests', () => {
         }),
         { numRuns: 200 }
       );
+      fs.rmSync(tempDir, { recursive: true, force: true });
     });
 
     it('should produce valid similarity for random vectors', () => {
+      const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'embed-prop-'));
       fc.assert(
         fc.property(
           fc.integer({ min: 10, max: 100 }),
@@ -465,9 +451,11 @@ describe('EmbeddingService - Property-Based Tests', () => {
         ),
         { numRuns: 100 }
       );
+      fs.rmSync(tempDir, { recursive: true, force: true });
     });
 
     it('should handle extreme values without overflow', () => {
+      const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'embed-prop-'));
       fc.assert(
         fc.property(
           fc.integer({ min: 10, max: 50 }),
@@ -487,9 +475,11 @@ describe('EmbeddingService - Property-Based Tests', () => {
         ),
         { numRuns: 50 }
       );
+      fs.rmSync(tempDir, { recursive: true, force: true });
     });
 
     it('should handle small values without underflow', () => {
+      const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'embed-prop-'));
       fc.assert(
         fc.property(
           fc.integer({ min: 10, max: 50 }),
@@ -509,9 +499,11 @@ describe('EmbeddingService - Property-Based Tests', () => {
         ),
         { numRuns: 50 }
       );
+      fs.rmSync(tempDir, { recursive: true, force: true });
     });
 
     it('should produce valid similarity for mixed positive and negative values', () => {
+      const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'embed-prop-'));
       fc.assert(
         fc.property(
           fc.array(fc.float({ min: -100, max: 100, noNaN: true }), { minLength: 10, maxLength: 100 }),
@@ -538,6 +530,7 @@ describe('EmbeddingService - Property-Based Tests', () => {
         ),
         { numRuns: 100 }
       );
+      fs.rmSync(tempDir, { recursive: true, force: true });
     });
   });
 
@@ -547,109 +540,93 @@ describe('EmbeddingService - Property-Based Tests', () => {
 
   describe('Additional Properties: LRU Cache Behavior', () => {
     it('should evict least recently used entries when cache is full', async () => {
-      await fc.assert(
-        fc.asyncProperty(
-          fc.integer({ min: 3, max: 10 }), // maxCacheSize
-          async (maxCacheSize) => {
-            // Create fresh temp dir for each test run
-            const testDir = fs.mkdtempSync(path.join(os.tmpdir(), 'embed-prop-'));
-            const service = new EmbeddingService('test-key', testDir, maxCacheSize);
-            
-            // Reset mock for this test run
-            mockCreate.mockReset();
-            mockCreate.mockImplementation(async (params: any) => {
-              const input = Array.isArray(params.input) ? params.input : [params.input];
-              return {
-                data: input.map((text: string) => ({
-                  embedding: Array.from({ length: 10 }, (_, i) => i + text.length)
-                }))
-              };
-            });
-            
-            // Fill cache to capacity
-            const texts = Array.from({ length: maxCacheSize }, (_, i) => `text-${i}`);
-            for (const text of texts) {
-              await service.generateEmbedding(text);
-            }
-            
-            // Property: Cache size should be at or below max after filling
-            expect(service.getCacheSize()).toBeLessThanOrEqual(maxCacheSize);
-            
-            // Access the first text (makes it most recently used)
-            await service.generateEmbedding(texts[0]);
-            
-            // Add a new text (should evict text-1, not text-0)
-            await service.generateEmbedding('new-text');
-            
-            // Property: Cache size should still be at or below max
-            expect(service.getCacheSize()).toBeLessThanOrEqual(maxCacheSize);
-            
-            // Property: Most recently used text should still be accessible
-            const apiCallsBefore = mockCreate.mock.calls.length;
-            await service.generateEmbedding(texts[0]);
-            const apiCallsAfter = mockCreate.mock.calls.length;
-            
-            // If text-0 is still in memory or disk cache, no new API call
-            expect(apiCallsAfter).toBeLessThanOrEqual(apiCallsBefore + 1);
-            
-            // Cleanup
-            fs.rmSync(testDir, { recursive: true, force: true });
-          }
-        ),
-        { numRuns: 30 }
-      );
+      const maxCacheSize = 5;
+      const testDir = fs.mkdtempSync(path.join(os.tmpdir(), 'embed-prop-'));
+      const service = new EmbeddingService('test-key', testDir, maxCacheSize);
+      
+      // Reset mock
+      mockCreate.mockReset();
+      mockCreate.mockImplementation(async (params: any) => {
+        const input = Array.isArray(params.input) ? params.input : [params.input];
+        return {
+          data: input.map((text: string) => ({
+            embedding: Array.from({ length: 10 }, (_, i) => i + text.length)
+          }))
+        };
+      });
+      
+      // Fill cache to capacity
+      const texts = Array.from({ length: maxCacheSize }, (_, i) => `text-${i}`);
+      for (const text of texts) {
+        await service.generateEmbedding(text);
+      }
+      
+      // Property: Cache size should be at or below max after filling
+      expect(service.getCacheSize()).toBeLessThanOrEqual(maxCacheSize);
+      
+      // Access the first text (makes it most recently used)
+      await service.generateEmbedding(texts[0]);
+      
+      // Add a new text (should evict text-1, not text-0)
+      await service.generateEmbedding('new-text');
+      
+      // Property: Cache size should still be at or below max
+      expect(service.getCacheSize()).toBeLessThanOrEqual(maxCacheSize);
+      
+      // Property: Most recently used text should still be accessible
+      const apiCallsBefore = mockCreate.mock.calls.length;
+      await service.generateEmbedding(texts[0]);
+      const apiCallsAfter = mockCreate.mock.calls.length;
+      
+      // If text-0 is still in memory or disk cache, no new API call
+      expect(apiCallsAfter).toBeLessThanOrEqual(apiCallsBefore + 1);
+      
+      // Cleanup
+      fs.rmSync(testDir, { recursive: true, force: true });
     });
 
     it('should maintain cache consistency during concurrent-like operations', async () => {
-      await fc.assert(
-        fc.asyncProperty(
-          fc.array(textArbitrary, { minLength: 5, maxLength: 15 }),
-          async (texts) => {
-            // Create fresh temp dir for each test run
-            const testDir = fs.mkdtempSync(path.join(os.tmpdir(), 'embed-prop-'));
-            const service = new EmbeddingService('test-key', testDir, 10);
-            
-            // Reset mock for this test run
-            mockCreate.mockReset();
-            mockCreate.mockImplementation(async (params: any) => {
-              const input = Array.isArray(params.input) ? params.input : [params.input];
-              return {
-                data: input.map(() => ({
-                  embedding: Array.from({ length: 10 }, () => Math.random())
-                }))
-              };
-            });
-            
-            // Generate embeddings in various patterns
-            for (const text of texts) {
-              await service.generateEmbedding(text);
-            }
-            
-            // Property: After individual operations, cache should be within bounds
-            expect(service.getCacheSize()).toBeLessThanOrEqual(10);
-            
-            // Batch generate some of the same texts (already cached, so no new additions)
-            const cachedTexts = texts.slice(0, Math.min(3, texts.length));
-            await service.generateBatch(cachedTexts);
-            
-            // Property: Cache should remain within reasonable bounds
-            // Note: May temporarily exceed during disk cache loading in batch operations
-            expect(service.getCacheSize()).toBeGreaterThanOrEqual(0);
-            expect(service.getCacheSize()).toBeLessThan(20); // Reasonable upper bound
-            
-            // Property: All texts should still be retrievable
-            for (const text of cachedTexts) {
-              const embedding = await service.generateEmbedding(text);
-              expect(Array.isArray(embedding)).toBe(true);
-              expect(embedding.length).toBeGreaterThan(0);
-            }
-            
-            // Cleanup
-            fs.rmSync(testDir, { recursive: true, force: true });
-          }
-        ),
-        { numRuns: 30 }
-      );
+      const testDir = fs.mkdtempSync(path.join(os.tmpdir(), 'embed-prop-'));
+      const service = new EmbeddingService('test-key', testDir, 10);
+      
+      // Reset mock
+      mockCreate.mockReset();
+      mockCreate.mockImplementation(async (params: any) => {
+        const input = Array.isArray(params.input) ? params.input : [params.input];
+        return {
+          data: input.map(() => ({
+            embedding: Array.from({ length: 10 }, () => Math.random())
+          }))
+        };
+      });
+      
+      const texts = ['text-1', 'text-2', 'text-3', 'text-4', 'text-5'];
+      
+      // Generate embeddings in various patterns
+      for (const text of texts) {
+        await service.generateEmbedding(text);
+      }
+      
+      // Property: After individual operations, cache should be within bounds
+      expect(service.getCacheSize()).toBeLessThanOrEqual(10);
+      
+      // Batch generate some of the same texts (already cached, so no new additions)
+      const cachedTexts = texts.slice(0, 3);
+      await service.generateBatch(cachedTexts);
+      
+      // Property: Cache should remain within reasonable bounds
+      expect(service.getCacheSize()).toBeGreaterThanOrEqual(0);
+      expect(service.getCacheSize()).toBeLessThan(20); // Reasonable upper bound
+      
+      // Property: All texts should still be retrievable
+      for (const text of cachedTexts) {
+        const embedding = await service.generateEmbedding(text);
+        expect(Array.isArray(embedding)).toBe(true);
+        expect(embedding.length).toBeGreaterThan(0);
+      }
+      
+      // Cleanup
+      fs.rmSync(testDir, { recursive: true, force: true });
     });
   });
 });

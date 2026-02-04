@@ -14,6 +14,16 @@ interface VerificationResult {
 // Mock the UnifiedQuoteSearch and LiteratureIndexer to prevent file system access
 jest.mock('../services/unifiedQuoteSearch');
 jest.mock('../services/literatureIndexer');
+jest.mock('vscode', () => ({
+  workspace: {
+    workspaceFolders: [{ uri: { fsPath: '/test/workspace' } }]
+  },
+  EventEmitter: class {
+    fire() {}
+    dispose() {}
+    get event() { return () => ({ dispose: () => {} }); }
+  }
+}), { virtual: true });
 
 describe('AutoQuoteVerifier', () => {
   setupTest();
@@ -24,6 +34,11 @@ describe('AutoQuoteVerifier', () => {
   beforeEach(() => {
     mockClaimsManager = createMockClaimsManager();
     verifier = new AutoQuoteVerifier(mockClaimsManager);
+    
+    // Mock the unifiedQuoteSearch to prevent async processing
+    (verifier as any).unifiedQuoteSearch = {
+      search: jest.fn<() => Promise<any[]>>().mockResolvedValue([])
+    };
   });
 
   afterEach(() => {
@@ -58,6 +73,9 @@ describe('AutoQuoteVerifier', () => {
     });
 
     test('should add claim to queue if it has quote and source', () => {
+      // Prevent async processing from running
+      jest.spyOn(verifier as any, 'processVerificationQueue').mockImplementation(() => Promise.resolve());
+      
       const claim = aClaim()
         .withId('C_01')
         .withText('Test claim')
@@ -67,11 +85,14 @@ describe('AutoQuoteVerifier', () => {
 
       verifier.verifyOnSave(claim);
 
-      // Queue size should be 1 immediately after adding (before async processing)
+      // Queue size should be 1 immediately after adding
       expect(verifier.getQueueSize()).toBe(1);
     });
 
     test('should update existing queue item if claim already in queue', () => {
+      // Prevent async processing from running
+      jest.spyOn(verifier as any, 'processVerificationQueue').mockImplementation(() => Promise.resolve());
+      
       const claim = aClaim()
         .withId('C_01')
         .withText('Test claim')
@@ -157,6 +178,9 @@ describe('AutoQuoteVerifier', () => {
     });
 
     test('should return correct queue size', () => {
+      // Prevent async processing from running
+      jest.spyOn(verifier as any, 'processVerificationQueue').mockImplementation(() => Promise.resolve());
+      
       const claim = aClaim()
         .withId('C_01')
         .withText('Test claim')
@@ -185,6 +209,9 @@ describe('AutoQuoteVerifier', () => {
 
   describe('Error handling', () => {
     test('should handle concurrent verification requests', () => {
+      // Prevent async processing from running
+      jest.spyOn(verifier as any, 'processVerificationQueue').mockImplementation(() => Promise.resolve());
+      
       const claim1 = aClaim().withId('C_01').withPrimaryQuote('Quote 1', 'Author2020').build();
       const claim2 = aClaim().withId('C_02').withPrimaryQuote('Quote 2', 'Author2021').build();
 
@@ -196,6 +223,9 @@ describe('AutoQuoteVerifier', () => {
     });
 
     test('should handle queue processing errors gracefully', () => {
+      // Prevent async processing from running
+      jest.spyOn(verifier as any, 'processVerificationQueue').mockImplementation(() => Promise.resolve());
+      
       const claim = aClaim()
         .withId('C_01')
         .withPrimaryQuote('Test quote', 'Author2020')

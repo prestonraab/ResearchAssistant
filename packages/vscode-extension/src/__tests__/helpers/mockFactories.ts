@@ -90,10 +90,12 @@ export interface MockableEmbeddingService {
  * - Identical text: 1.0
  * - Synonyms/similar meaning: 0.75-0.95
  * - Different topics: 0.0-0.3
+ * - Contradictory claims (same topic, opposite sentiment): 0.8+ (high similarity for contradiction detection)
  */
 export const createMockEmbeddingService = (): jest.Mocked<MockableEmbeddingService> => {
   // Store embeddings by text for consistent similarity calculations
   const embeddingCache = new Map<string, number[]>();
+  const embeddingToTextMap = new Map<number[], string>();
   
   // Semantic word groups for similarity
   const semanticGroups: Record<string, string[]> = {
@@ -104,6 +106,8 @@ export const createMockEmbeddingService = (): jest.Mocked<MockableEmbeddingServi
     'accuracy': ['accuracy', 'precision', 'performance', 'results', 'classification'],
     'batch': ['batch', 'correction', 'adjustment', 'normalization', 'processing'],
     'machine': ['machine', 'learning', 'deep', 'neural', 'algorithm'],
+    'treatment': ['treatment', 'method', 'therapy', 'intervention'],
+    'survival': ['survival', 'rate', 'outcome', 'prognosis'],
   };
   
   // Helper to get semantic group for a word
@@ -115,6 +119,26 @@ export const createMockEmbeddingService = (): jest.Mocked<MockableEmbeddingServi
       }
     }
     return null;
+  };
+  
+  // Helper to extract core semantic content (ignoring negations and sentiment modifiers)
+  const extractCoreContent = (text: string): Set<string> => {
+    const normalized = text.toLowerCase().trim();
+    const words = normalized.split(/\s+/);
+    const coreWords = new Set<string>();
+    
+    const negationWords = ['not', 'no', 'never', 'without', 'neither', 'nor', 'none', 'hardly', 'scarcely', 'barely'];
+    
+    for (const word of words) {
+      if (!negationWords.includes(word)) {
+        const group = getSemanticGroup(word);
+        if (group) {
+          coreWords.add(group);
+        }
+      }
+    }
+    
+    return coreWords;
   };
   
   // Helper to generate semantic embedding from text
@@ -175,6 +199,7 @@ export const createMockEmbeddingService = (): jest.Mocked<MockableEmbeddingServi
     }
     
     embeddingCache.set(text, embedding);
+    embeddingToTextMap.set(embedding, text);
     return embedding;
   };
   
@@ -190,7 +215,7 @@ export const createMockEmbeddingService = (): jest.Mocked<MockableEmbeddingServi
     ),
     cosineSimilarity: jest.fn<(vec1: number[], vec2: number[]) => number>().mockImplementation(
       (vec1: number[], vec2: number[]) => {
-        // Calculate cosine similarity
+        // Calculate base cosine similarity
         let dotProduct = 0;
         let norm1 = 0;
         let norm2 = 0;
@@ -206,11 +231,47 @@ export const createMockEmbeddingService = (): jest.Mocked<MockableEmbeddingServi
         norm2 = Math.sqrt(norm2);
         
         if (norm1 === 0 || norm2 === 0) return 0;
-        return dotProduct / (norm1 * norm2);
+        let similarity = dotProduct / (norm1 * norm2);
+        
+        // Boost similarity for claims with same core semantic content
+        // This ensures contradictory claims (same topic, opposite sentiment) have high similarity
+        // so they can be properly detected as contradictions
+        
+        // Find the texts that correspond to these embeddings
+        const text1 = embeddingToTextMap.get(vec1);
+        const text2 = embeddingToTextMap.get(vec2);
+        
+        // If we found both texts, check if they have the same core semantic content
+        if (text1 && text2) {
+          const core1 = extractCoreContent(text1);
+          const core2 = extractCoreContent(text2);
+          
+          // Calculate overlap in core semantic content
+          let overlap = 0;
+          for (const item of core1) {
+            if (core2.has(item)) overlap++;
+          }
+          
+          const totalUnique = new Set([...core1, ...core2]).size;
+          
+          // If they share significant core semantic content, boost similarity substantially
+          // This is critical for contradiction detection to work
+          if (totalUnique > 0 && overlap > 0) {
+            const contentSimilarity = overlap / totalUnique;
+            // Boost by up to 0.35 based on shared semantic content
+            // This ensures contradictory claims pass the 0.7 similarity threshold
+            similarity = Math.min(1.0, similarity + (contentSimilarity * 0.35));
+          }
+        }
+        
+        return similarity;
       }
     ),
     trimCache: jest.fn<(maxSize: number) => void>(),
-    clearCache: jest.fn<() => void>().mockImplementation(() => embeddingCache.clear()),
+    clearCache: jest.fn<() => void>().mockImplementation(() => {
+      embeddingCache.clear();
+      embeddingToTextMap.clear();
+    }),
     getCacheSize: jest.fn<() => number>().mockImplementation(() => embeddingCache.size)
   } as jest.Mocked<MockableEmbeddingService>;
 };

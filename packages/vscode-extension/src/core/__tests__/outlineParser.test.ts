@@ -1,8 +1,8 @@
 import { jest } from '@jest/globals';
 
-// Mock fs module with factory function
+// Mock fs module with factory function BEFORE importing
 jest.mock('fs/promises', () => ({
-  readFile: jest.fn()
+  readFile: (jest.fn() as jest.Mock<any>).mockResolvedValue('')
 }));
 
 import * as fs from 'fs/promises';
@@ -16,12 +16,13 @@ describe('OutlineParser', () => {
 
   beforeEach(() => {
     parser = new OutlineParser(testFilePath);
-    jest.clearAllMocks();
+    // Re-setup the mock after clearing
+    (mockFs.readFile as any).mockResolvedValue('');
   });
 
   describe('parse', () => {
     test('should parse empty file', async () => {
-      mockFs.readFile.mockResolvedValue('');
+      (mockFs.readFile as any).mockResolvedValue('');
       
       const sections = await parser.parse();
       
@@ -30,7 +31,7 @@ describe('OutlineParser', () => {
 
     test('should parse single section', async () => {
       const content = '## Introduction\n\nSome content here.';
-      mockFs.readFile.mockResolvedValue(content);
+      (mockFs.readFile as any).mockResolvedValue(content);
       
       const sections = await parser.parse();
       
@@ -45,7 +46,7 @@ describe('OutlineParser', () => {
 ### Subsection 1.1
 #### Subsubsection 1.1.1
 ## Section 2`;
-      mockFs.readFile.mockResolvedValue(content);
+      (mockFs.readFile as any).mockResolvedValue(content);
       
       const sections = await parser.parse();
       
@@ -61,7 +62,7 @@ describe('OutlineParser', () => {
 # Invalid (only one hash)
 ### Another Valid
 Not a header at all`;
-      mockFs.readFile.mockResolvedValue(content);
+      (mockFs.readFile as any).mockResolvedValue(content);
       
       const sections = await parser.parse();
       
@@ -76,7 +77,7 @@ Content line 1
 Content line 2
 ## Section 2
 Content line 3`;
-      mockFs.readFile.mockResolvedValue(content);
+      (mockFs.readFile as any).mockResolvedValue(content);
       
       const sections = await parser.parse();
       
@@ -90,7 +91,7 @@ Content line 3`;
   describe('getSectionById', () => {
     test('should return section by id', async () => {
       const content = '## Test Section';
-      mockFs.readFile.mockResolvedValue(content);
+      (mockFs.readFile as any).mockResolvedValue(content);
       
       await parser.parse();
       const sections = parser.getSections();
@@ -101,7 +102,7 @@ Content line 3`;
     });
 
     test('should return null for non-existent id', async () => {
-      mockFs.readFile.mockResolvedValue('');
+      (mockFs.readFile as any).mockResolvedValue('');
       await parser.parse();
       
       const section = parser.getSectionById('non-existent-id');
@@ -115,7 +116,7 @@ Content line 3`;
       const content = `## Root 1
 ### Child 1.1
 ## Root 2`;
-      mockFs.readFile.mockResolvedValue(content);
+      (mockFs.readFile as any).mockResolvedValue(content);
       
       await parser.parse();
       const hierarchy = parser.getHierarchy();
@@ -128,7 +129,7 @@ Content line 3`;
 
   describe('Edge Cases', () => {
     test('should handle empty file', async () => {
-      mockFs.readFile.mockResolvedValue('');
+      (mockFs.readFile as any).mockResolvedValue('');
       
       const sections = await parser.parse();
       
@@ -138,7 +139,7 @@ Content line 3`;
     });
 
     test('should handle file with only whitespace', async () => {
-      mockFs.readFile.mockResolvedValue('   \n\n  \t\n   ');
+      (mockFs.readFile as any).mockResolvedValue('   \n\n  \t\n   ');
       
       const sections = await parser.parse();
       
@@ -149,7 +150,7 @@ Content line 3`;
       const content = `This is just text
 No headers here
 Just plain content`;
-      mockFs.readFile.mockResolvedValue(content);
+      (mockFs.readFile as any).mockResolvedValue(content);
       
       const sections = await parser.parse();
       
@@ -159,7 +160,7 @@ Just plain content`;
     test('should handle malformed headers with extra spaces', async () => {
       const content = `##    Title With Extra Spaces   
 ###   Another   Title  `;
-      mockFs.readFile.mockResolvedValue(content);
+      (mockFs.readFile as any).mockResolvedValue(content);
       
       const sections = await parser.parse();
       
@@ -172,7 +173,7 @@ Just plain content`;
       const content = `## Section 1: Introduction & Overview
 ### Sub-section (Part A)
 #### Item #1 - Details`;
-      mockFs.readFile.mockResolvedValue(content);
+      (mockFs.readFile as any).mockResolvedValue(content);
       
       const sections = await parser.parse();
       
@@ -189,7 +190,7 @@ Just plain content`;
 ### Another Level 3
 #### Another Level 4
 ## Another Level 2`;
-      mockFs.readFile.mockResolvedValue(content);
+      (mockFs.readFile as any).mockResolvedValue(content);
       
       const sections = await parser.parse();
       
@@ -215,7 +216,7 @@ Just plain content`;
       const content = `## Section 1
 ## Section 2
 ## Section 3`;
-      mockFs.readFile.mockResolvedValue(content);
+      (mockFs.readFile as any).mockResolvedValue(content);
       
       const sections = await parser.parse();
       
@@ -234,7 +235,7 @@ Just plain content`;
 
 Some additional notes
 Another line of content`;
-      mockFs.readFile.mockResolvedValue(content);
+      (mockFs.readFile as any).mockResolvedValue(content);
       
       const sections = await parser.parse();
       
@@ -251,7 +252,7 @@ Content line 1
 Content line 2
 
 Content line 3`;
-      mockFs.readFile.mockResolvedValue(content);
+      (mockFs.readFile as any).mockResolvedValue(content);
       
       const sections = await parser.parse();
       
@@ -269,7 +270,7 @@ Content line 3`;
       const content = `## Section 1
 #### Subsection (skipped level 3)
 ## Section 2`;
-      mockFs.readFile.mockResolvedValue(content);
+      (mockFs.readFile as any).mockResolvedValue(content);
       
       const sections = await parser.parse();
       
@@ -284,7 +285,7 @@ Content line 3`;
       const content = `## Section 1
 Content here
 ## Section 2`;
-      mockFs.readFile.mockResolvedValue(content);
+      (mockFs.readFile as any).mockResolvedValue(content);
       
       const sections = await parser.parse();
       
@@ -293,7 +294,7 @@ Content here
     });
 
     test('should handle file read errors gracefully', async () => {
-      mockFs.readFile.mockRejectedValue(new Error('File not found'));
+      (mockFs.readFile as any).mockRejectedValue(new Error('File not found'));
       
       const sections = await parser.parse();
       
@@ -305,7 +306,7 @@ Content here
       const content = `# Title (H1 - should be ignored)
 ## Section 1 (H2 - should be parsed)
 ### Subsection (H3 - should be parsed)`;
-      mockFs.readFile.mockResolvedValue(content);
+      (mockFs.readFile as any).mockResolvedValue(content);
       
       const sections = await parser.parse();
       
@@ -319,7 +320,7 @@ Content here
 ##### Invalid H5
 ###### Invalid H6
 ### Valid H3`;
-      mockFs.readFile.mockResolvedValue(content);
+      (mockFs.readFile as any).mockResolvedValue(content);
       
       const sections = await parser.parse();
       
@@ -331,7 +332,7 @@ Content here
     test('should handle headers without space after hashes', async () => {
       const content = `##No Space Header
 ## Proper Header`;
-      mockFs.readFile.mockResolvedValue(content);
+      (mockFs.readFile as any).mockResolvedValue(content);
       
       const sections = await parser.parse();
       
@@ -345,7 +346,7 @@ Content here
 ### Details
 ## Introduction
 ### Details`;
-      mockFs.readFile.mockResolvedValue(content);
+      (mockFs.readFile as any).mockResolvedValue(content);
       
       const sections = await parser.parse();
       
@@ -364,7 +365,7 @@ Content line 1
 Content line 2
 ## Section 2
 Content line 3`;
-      mockFs.readFile.mockResolvedValue(content);
+      (mockFs.readFile as any).mockResolvedValue(content);
       
       await parser.parse();
       
@@ -378,7 +379,7 @@ Content line 3`;
     test('should return null for position outside any section', async () => {
       const content = `Some text before headers
 ## Section 1`;
-      mockFs.readFile.mockResolvedValue(content);
+      (mockFs.readFile as any).mockResolvedValue(content);
       
       await parser.parse();
       

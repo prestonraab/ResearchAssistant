@@ -182,8 +182,8 @@ export class ClaimExtractor {
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i].trim();
 
-      // Skip empty lines or very short lines
-      if (line.length < 20 || line.length > 500) {
+      // Skip empty lines or very short lines (less than 10 chars)
+      if (line.length < 10 || line.length > 500) {
         continue;
       }
 
@@ -250,7 +250,9 @@ export class ClaimExtractor {
         // Use word boundaries to match whole words/phrases
         const regex = new RegExp(`\\b${this.escapeRegex(keyword)}\\b`, 'i');
         if (regex.test(lowerText)) {
-          scores[category as ClaimType]++;
+          // Give challenge keywords higher weight to avoid confusion with method
+          const weight = category === 'challenge' ? 2 : 1;
+          scores[category as ClaimType] += weight;
         }
       }
     }
@@ -328,28 +330,14 @@ export class ClaimExtractor {
   private isDeclarative(sentence: string): boolean {
     const trimmed = sentence.trim();
 
-    // Not a question (doesn't end with ?)
-    if (trimmed.endsWith('?')) {
+    // Skip markdown question callouts (used in manuscript)
+    if (trimmed.startsWith('> [!question]')) {
       return false;
     }
 
-    // Not a command (doesn't start with imperative verbs)
-    const imperativeStarts = [
-      'see',
-      'refer',
-      'note',
-      'consider',
-      'assume',
-      'let',
-      'suppose',
-      'imagine',
-    ];
-
-    const lowerSentence = trimmed.toLowerCase();
-    for (const verb of imperativeStarts) {
-      if (lowerSentence.startsWith(verb + ' ')) {
-        return false;
-      }
+    // Skip markdown blockquotes that are part of question blocks
+    if (trimmed.startsWith('>')) {
+      return false;
     }
 
     // Not a heading or title (all caps or ends with colon)
@@ -361,13 +349,8 @@ export class ClaimExtractor {
       return false;
     }
 
-    // Has a verb (basic check for sentence structure)
-    // Look for common verb patterns
-    const hasVerb = /\b(is|are|was|were|be|been|being|have|has|had|do|does|did|will|would|should|could|may|might|can|must|shall)\b/i.test(
-      trimmed
-    );
-
-    return hasVerb;
+    // Accept any reasonable sentence
+    return trimmed.length > 0;
   }
 
   /**
