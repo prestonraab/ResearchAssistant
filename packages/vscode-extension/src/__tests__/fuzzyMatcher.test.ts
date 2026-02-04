@@ -234,13 +234,22 @@ describe('FuzzyMatcher', () => {
       test('Property 30: OCR differences should have high similarity', () => {
         fc.assert(
           fc.property(
-            fc.string({ minLength: 5, maxLength: 50 }).filter(s => !s.includes('0') && !s.includes('O')),
-            (str) => {
-              // Replace one character with a similar-looking one
-              const modified = str.replace(/a/g, '@');
+            fc.stringOf(fc.char().filter(c => /[a-zA-Z0-9]/.test(c)), { minLength: 5, maxLength: 50 }),
+            fc.integer({ min: 0, max: 49 }),
+            (str, pos) => {
+              if (pos >= str.length || str.length === 0) return true;
+              // Replace ONE character with a similar-looking one (simulating OCR error)
+              const ocrSubstitutions: Record<string, string> = {
+                'o': '0', 'O': '0', '0': 'O',
+                'l': '1', 'I': '1', '1': 'l',
+                'a': '@', 'e': '3', 's': '5'
+              };
+              const char = str[pos];
+              const replacement = ocrSubstitutions[char] || 'X';
+              const modified = str.substring(0, pos) + replacement + str.substring(pos + 1);
               const similarity = matcher.calculateSimilarity(str, modified);
-              // Similar-looking characters should have reasonable similarity
-              return similarity > 0.5;
+              // Single OCR-like substitution should have high similarity
+              return similarity > 0.7;
             }
           ),
           { numRuns: 100 }

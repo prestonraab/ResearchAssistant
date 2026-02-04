@@ -99,10 +99,12 @@ export const createMockEmbeddingService = (): jest.Mocked<MockableEmbeddingServi
   
   // Semantic word groups for similarity
   const semanticGroups: Record<string, string[]> = {
-    'improve': ['improve', 'enhance', 'boost', 'increase', 'better', 'superior'],
-    'worsen': ['worsen', 'degrade', 'decrease', 'lower', 'worse', 'inferior'],
-    'effective': ['effective', 'successful', 'efficient', 'powerful', 'strong'],
-    'ineffective': ['ineffective', 'unsuccessful', 'inefficient', 'weak', 'poor'],
+    'improve': ['improve', 'enhance', 'boost', 'better', 'superior'],
+    'worsen': ['worsen', 'degrade', 'worse', 'inferior'],
+    'increase': ['increase', 'increases', 'increasing', 'increased', 'raise', 'raises', 'higher', 'more'],
+    'decrease': ['decrease', 'decreases', 'decreasing', 'decreased', 'reduce', 'reduces', 'lower', 'less'],
+    'effective': ['effective', 'successful', 'efficient', 'powerful', 'strong', 'reliable'],
+    'ineffective': ['ineffective', 'unsuccessful', 'inefficient', 'weak', 'poor', 'unreliable'],
     'accuracy': ['accuracy', 'precision', 'performance', 'results', 'classification'],
     'batch': ['batch', 'correction', 'adjustment', 'normalization', 'processing'],
     'machine': ['machine', 'learning', 'deep', 'neural', 'algorithm'],

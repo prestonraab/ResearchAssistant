@@ -55,20 +55,21 @@ export class ClaimStrengthCalculator {
     ['consistent', 'inconsistent'],
   ];
 
-  // Positive and negative sentiment words
+  // Positive and negative sentiment words (using stems for matching variations)
   private readonly POSITIVE_WORDS = [
     'effective',
     'successful',
-    'improve',
+    'improv',      // matches improve, improves, improved, improving
     'better',
     'beneficial',
     'advantage',
     'positive',
-    'enhance',
+    'enhanc',      // matches enhance, enhances, enhanced, enhancing
     'superior',
     'optimal',
     'significant',
     'strong',
+    'reliab',      // matches reliable, reliability
   ];
 
   private readonly NEGATIVE_WORDS = [
@@ -518,13 +519,14 @@ export class ClaimStrengthCalculator {
     const getEffectiveSentiment = (text: string): 'positive' | 'negative' | 'neutral' => {
       const hasNegation = this.hasNegation(text);
       
+      // Use word-start boundary to match stems (e.g., 'improv' matches 'improve', 'improves', 'improved')
       const hasPositive = this.POSITIVE_WORDS.some((word) => {
-        const regex = new RegExp(`\\b${word}\\b`, 'i');
+        const regex = new RegExp(`\\b${word}`, 'i');
         return regex.test(text);
       });
 
       const hasNegative = this.NEGATIVE_WORDS.some((word) => {
-        const regex = new RegExp(`\\b${word}\\b`, 'i');
+        const regex = new RegExp(`\\b${word}`, 'i');
         return regex.test(text);
       });
 

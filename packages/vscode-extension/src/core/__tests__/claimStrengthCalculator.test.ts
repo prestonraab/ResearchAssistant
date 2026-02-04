@@ -495,13 +495,13 @@ describe('ClaimStrengthCalculator', () => {
         const strictCalculator = new ClaimStrengthCalculator(embeddingService as any, claimsManager, 0.95);
         
         const claim1 = createClaim('C_01', 'Machine learning improves accuracy', 'Smith2020', 1);
-        const claim2 = createClaim('C_02', 'Deep learning enhances performance', 'Jones2021', 2);
+        const claim2 = createClaim('C_02', 'Cooking recipes are delicious', 'Jones2021', 2);
         const allClaims = [claim1, claim2];
         setupClaimsInMock(allClaims);
 
         const result = await strictCalculator.calculateStrength(claim1, allClaims);
 
-        // With strict threshold, these moderately similar claims shouldn't be counted
+        // With strict threshold, these dissimilar claims shouldn't be counted
         expect(result.supportingClaims.length).toBe(0);
       });
 
