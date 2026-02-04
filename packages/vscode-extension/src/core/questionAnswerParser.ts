@@ -15,6 +15,7 @@ export interface LinkedSource {
   source: string;          // Source reference (e.g., "Smith2020")
   quote: string;           // Relevant quote from the source
   cited: boolean;          // Whether this source is marked for citation
+  authorYear?: string;     // Author-year identifier (e.g., "Johnson 2007")
 }
 
 export interface QuestionAnswerPair {
@@ -124,7 +125,7 @@ export class QuestionAnswerParser {
   
   /**
    * Collect answer from Obsidian callout lines (lines starting with >)
-   * Extracts claims from [source:: C_XX] inline fields
+   * Extracts claims from [source:: C_XX] or [source:: C_XX(Author Year, ...)] inline fields
    */
   private collectCalloutAnswer(lines: string[], startLine: number): { answer: string; claims: string[]; endLine: number } {
     let answer = '';
@@ -149,11 +150,16 @@ export class QuestionAnswerParser {
         continue;
       }
       
-      // Extract claims from [source:: C_XX] inline fields
+      // Extract claims from [source:: C_XX] or [source:: C_XX(Author Year, ...)] inline fields
       const sourceMatches = content.matchAll(/\[source::\s*([^\]]+)\]/g);
       for (const match of sourceMatches) {
-        const claimIds = this.extractClaimIds(match[1]);
-        claims.push(...claimIds);
+        const sourceSpec = match[1];
+        // Extract just the claim IDs (before any parentheses)
+        const claimIdMatch = sourceSpec.match(/^([^(]+)/);
+        if (claimIdMatch) {
+          const claimIds = this.extractClaimIds(claimIdMatch[1]);
+          claims.push(...claimIds);
+        }
       }
       
       // Remove inline fields from display text but keep for storage
@@ -259,6 +265,12 @@ export class QuestionAnswerParser {
     let currentSection = '';
     
     for (const pair of pairs) {
+      // Handle break markers
+      if ((pair as any).isBreakMarker) {
+        output += '---\n\n';
+        continue;
+      }
+
       // Trim variables to remove leading/trailing whitespace
       const trimmedQuestion = pair.question.trim();
       const trimmedAnswer = pair.answer.trim();
@@ -288,6 +300,7 @@ export class QuestionAnswerParser {
   /**
    * Format answer text as callout lines (prefixed with >)
    * Converts legacy <!-- Source: --> to [source:: ] inline fields
+   * Preserves author-year citations in [source:: C_XX(Author Year, ...)] format
    */
   private formatAnswerAsCallout(answer: string): string {
     // Convert legacy Source comments to inline fields
@@ -313,6 +326,31 @@ export class QuestionAnswerParser {
     }
     
     return lines.join('\n');
+  }
+
+  /**
+   * Extract author-year citations from source spec
+   * Format: "C_01(Author Year, Author Year)" -> ["Author Year", "Author Year"]
+   */
+  extractAuthorYearCitations(sourceSpec: string): string[] {
+    const match = sourceSpec.match(/\(([^)]+)\)/);
+    if (!match) return [];
+    
+    return match[1]
+      .split(',')
+      .map(s => s.trim())
+      .filter(s => s.length > 0);
+  }
+
+  /**
+   * Build source spec with author-year citations
+   * Format: "C_01, C_02" -> "C_01(Author Year), C_02" if citations provided
+   */
+  buildSourceSpec(claimId: string, authorYears: string[]): string {
+    if (authorYears.length === 0) {
+      return claimId;
+    }
+    return `${claimId}(${authorYears.join(', ')})`;
   }
   
   /**

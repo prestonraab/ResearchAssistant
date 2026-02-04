@@ -10,7 +10,13 @@ let state = {
   scrollTimeout: null,
   itemHeights: new Map(), // Cache of measured item heights by ID
   undoStack: [], // Stack of previous states for undo
-  maxUndoSteps: 20 // Maximum number of undo steps to keep
+  maxUndoSteps: 20, // Maximum number of undo steps to keep
+  findState: {
+    isOpen: false,
+    searchTerm: '',
+    matches: [], // Array of {element, text, startIndex, endIndex}
+    currentMatchIndex: 0
+  }
 };
 
 // Virtual scrolling configuration
@@ -21,9 +27,16 @@ const BUFFER_SIZE = 3;
 const pairsList = document.getElementById('pairsList');
 const helpBtn = document.getElementById('helpBtn');
 const editBtn = document.getElementById('editBtn');
-const exportMarkdownBtn = document.getElementById('exportMarkdownBtn');
-const exportWordBtn = document.getElementById('exportWordBtn');
+const exportBtn = document.getElementById('exportBtn');
+const exportDropdown = document.querySelector('.export-dropdown');
+const exportOptions = document.querySelectorAll('.export-option');
 const saveStatus = document.getElementById('saveStatus');
+const findBar = document.getElementById('findBar');
+const findInput = document.getElementById('findInput');
+const findCounter = document.getElementById('findCounter');
+const findPrevBtn = document.getElementById('findPrevBtn');
+const findNextBtn = document.getElementById('findNextBtn');
+const findCloseBtn = document.getElementById('findCloseBtn');
 
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
@@ -59,17 +72,65 @@ function setupEventListeners() {
     });
   }
 
-  // Export buttons
-  if (exportMarkdownBtn) {
-    exportMarkdownBtn.addEventListener('click', () => {
-      vscode.postMessage({ type: 'exportMarkdown' });
+  // Export dropdown
+  if (exportBtn) {
+    exportBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      exportDropdown.classList.toggle('open');
     });
   }
 
-  if (exportWordBtn) {
-    exportWordBtn.addEventListener('click', () => {
-      vscode.postMessage({ type: 'exportWord' });
+  // Export options
+  exportOptions.forEach(option => {
+    option.addEventListener('click', () => {
+      const format = option.dataset.format;
+      exportDropdown.classList.remove('open');
+      
+      if (format === 'markdown') {
+        vscode.postMessage({ type: 'exportMarkdown' });
+      } else if (format === 'word') {
+        vscode.postMessage({ type: 'exportWord' });
+      } else if (format === 'latex') {
+        vscode.postMessage({ type: 'exportLatex' });
+      }
     });
+  });
+
+  // Close dropdown when clicking outside
+  document.addEventListener('click', (e) => {
+    if (!exportDropdown.contains(e.target)) {
+      exportDropdown.classList.remove('open');
+    }
+  });
+
+  // Find bar listeners
+  if (findInput) {
+    findInput.addEventListener('input', (e) => {
+      performSearch(e.target.value);
+    });
+
+    findInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        if (e.shiftKey) {
+          findPrevious();
+        } else {
+          findNext();
+        }
+      }
+    });
+  }
+
+  if (findNextBtn) {
+    findNextBtn.addEventListener('click', findNext);
+  }
+
+  if (findPrevBtn) {
+    findPrevBtn.addEventListener('click', findPrevious);
+  }
+
+  if (findCloseBtn) {
+    findCloseBtn.addEventListener('click', closeFindBar);
   }
 
   // Keyboard shortcuts
@@ -92,6 +153,20 @@ function setupEventListeners() {
     if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
       e.preventDefault();
       undo();
+      return;
+    }
+
+    // Ctrl+F - Find
+    if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
+      e.preventDefault();
+      toggleFindBar();
+      return;
+    }
+
+    // Escape - Close find bar
+    if (e.key === 'Escape' && state.findState.isOpen) {
+      e.preventDefault();
+      closeFindBar();
       return;
     }
   });
@@ -226,14 +301,13 @@ function renderPairs() {
   let currentSection = null;
   
   state.pairs.forEach((pair, index) => {
-    // Add insert zone before first item
-    if (index === 0) {
-      html += renderInsertZone(-1);
-    }
-    
     // Add section header if this is a new section
     if (pair.section !== currentSection) {
       currentSection = pair.section;
+      // Add insert zone before first item of new section
+      if (index === 0) {
+        html += renderInsertZone(-1);
+      }
       html += renderSectionHeader(pair.section, index);
     }
     
@@ -293,6 +367,16 @@ function renderInsertZone(afterIndex) {
  * Render a single question-answer pair
  */
 function renderPair(pair) {
+  // Handle break markers specially
+  if (pair.isBreakMarker) {
+    return `
+      <div class="pair-wrapper break-marker" data-pair-id="${pair.id}">
+        <div class="break-marker-line"></div>
+        <button class="delete-btn" data-pair-id="${pair.id}" title="Remove break">✕</button>
+      </div>
+    `;
+  }
+
   console.log('[WritingMode] Rendering pair:', {
     id: pair.id,
     question: pair.question?.substring(0, 50),
@@ -362,6 +446,7 @@ function renderPair(pair) {
                 <option value="PARTIAL" ${status === 'PARTIAL' ? 'selected' : ''}>Partial</option>
                 <option value="ANSWERED" ${status === 'ANSWERED' ? 'selected' : ''}>Answered</option>
               </select>
+              <button class="paragraph-break-btn" data-pair-id="${pair.id}" title="Insert paragraph break after this item">¶</button>
               <button class="citations-toggle-btn" data-pair-id="${pair.id}" title="Toggle citations">📌${citationBadge}</button>
               <button class="delete-btn" data-pair-id="${pair.id}" title="Delete">🗑️</button>
             </div>
@@ -489,12 +574,16 @@ function attachDragAndDropListeners() {
       const [draggedPair] = state.pairs.splice(draggedIndex, 1);
       state.pairs.splice(targetIndex, 0, draggedPair);
 
+      // Update section to match target pair's section
+      const targetPair = state.pairs[targetIndex];
+      draggedPair.section = targetPair.section;
+
       // Update positions
       state.pairs.forEach((pair, index) => {
         pair.position = index;
       });
 
-      console.log('[WritingMode] Reordered pair from index', draggedIndex, 'to', targetIndex);
+      console.log('[WritingMode] Reordered pair from index', draggedIndex, 'to', targetIndex, 'with section:', draggedPair.section);
 
       renderPairs();
       state.isDirty = true;
@@ -606,6 +695,19 @@ function attachPairListeners() {
     });
   });
 
+  // Paragraph break buttons
+  document.querySelectorAll('.paragraph-break-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const pairId = e.currentTarget.dataset.pairId;
+      console.log('[WritingMode] Paragraph break button clicked for pair:', pairId);
+      if (pairId) {
+        insertParagraphBreak(pairId);
+      }
+    });
+  });
+
   // Citations toggle buttons
   document.querySelectorAll('.citations-toggle-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
@@ -627,6 +729,17 @@ function attachPairListeners() {
         pair.linkedSources[sourceIndex].cited = isChecked;
         state.isDirty = true;
         scheduleAutoSave();
+        
+        // Update the citation badge count
+        const citedCount = (pair.linkedSources || []).filter(s => s.cited).length;
+        const btn = document.querySelector(`.citations-toggle-btn[data-pair-id="${pairId}"]`);
+        if (btn) {
+          const badge = btn.querySelector('.citation-badge');
+          if (badge) {
+            badge.textContent = citedCount;
+            badge.style.display = citedCount > 0 ? 'inline' : 'none';
+          }
+        }
       }
 
       // Notify extension
@@ -986,6 +1099,45 @@ function deletePair(pairId) {
 }
 
 /**
+ * Insert paragraph break after a pair
+ * Adds a '---' marker that will be converted to a paragraph break on export
+ */
+function insertParagraphBreak(pairId) {
+  console.log('[WritingMode] insertParagraphBreak called for pairId:', pairId);
+  
+  // Save current state before inserting
+  saveStateToUndo();
+  
+  // Find the index of the pair
+  const pairIndex = state.pairs.findIndex(p => p.id === pairId);
+  if (pairIndex === -1) {
+    console.warn('[WritingMode] Pair not found:', pairId);
+    return;
+  }
+  
+  // Create a break marker pair
+  const breakMarker = {
+    id: 'break_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
+    question: '',
+    answer: '---',
+    displayAnswer: '---',
+    status: 'BREAK',
+    claims: [],
+    linkedSources: [],
+    isBreakMarker: true
+  };
+  
+  // Insert after the current pair
+  state.pairs.splice(pairIndex + 1, 0, breakMarker);
+  
+  renderPairs();
+  state.isDirty = true;
+  scheduleAutoSave();
+  
+  showTemporaryNotification('Paragraph break inserted', 'info');
+}
+
+/**
  * Schedule auto-save
  */
 function scheduleAutoSave() {
@@ -1164,4 +1316,220 @@ function scrollToCenterItem(itemId) {
   
   contentDiv.scrollTop = scrollTarget;
   console.log('[WritingMode WebView] Scrolled to center item:', itemId);
+}
+
+/**
+ * Toggle find bar visibility
+ */
+function toggleFindBar() {
+  if (state.findState.isOpen) {
+    closeFindBar();
+  } else {
+    openFindBar();
+  }
+}
+
+/**
+ * Open find bar and focus input
+ */
+function openFindBar() {
+  if (!findBar) return;
+  
+  state.findState.isOpen = true;
+  findBar.classList.remove('hidden');
+  
+  // Focus input and select any existing text
+  findInput.focus();
+  findInput.select();
+  
+  console.log('[WritingMode] Find bar opened');
+}
+
+/**
+ * Close find bar and clear highlights
+ */
+function closeFindBar() {
+  if (!findBar) return;
+  
+  state.findState.isOpen = false;
+  findBar.classList.add('hidden');
+  
+  // Clear highlights
+  clearAllHighlights();
+  state.findState.matches = [];
+  state.findState.currentMatchIndex = 0;
+  
+  // Return focus to content
+  document.querySelector('.content')?.focus();
+  
+  console.log('[WritingMode] Find bar closed');
+}
+
+/**
+ * Perform search and find all matches
+ */
+function performSearch(searchTerm) {
+  state.findState.searchTerm = searchTerm.toLowerCase();
+  state.findState.matches = [];
+  state.findState.currentMatchIndex = 0;
+  
+  // Clear previous highlights
+  clearAllHighlights();
+  
+  if (!searchTerm) {
+    updateFindCounter();
+    return;
+  }
+  
+  // Search in questions
+  document.querySelectorAll('.question-text').forEach(element => {
+    findMatchesInElement(element, searchTerm);
+  });
+  
+  // Search in answers
+  document.querySelectorAll('.answer-editor').forEach(element => {
+    findMatchesInElement(element, searchTerm);
+  });
+  
+  // Search in section titles
+  document.querySelectorAll('.section-title').forEach(element => {
+    findMatchesInElement(element, searchTerm);
+  });
+  
+  // Highlight first match if any
+  if (state.findState.matches.length > 0) {
+    highlightMatch(0);
+    scrollToMatch(0);
+  }
+  
+  updateFindCounter();
+  console.log(`[WritingMode] Found ${state.findState.matches.length} matches for "${searchTerm}"`);
+}
+
+/**
+ * Find all matches in a single element
+ */
+function findMatchesInElement(element, searchTerm) {
+  const text = element.textContent || element.value || '';
+  const lowerText = text.toLowerCase();
+  let startIndex = 0;
+  
+  while (true) {
+    const index = lowerText.indexOf(searchTerm, startIndex);
+    if (index === -1) break;
+    
+    state.findState.matches.push({
+      element: element,
+      text: text,
+      startIndex: index,
+      endIndex: index + searchTerm.length
+    });
+    
+    startIndex = index + 1;
+  }
+}
+
+/**
+ * Highlight a specific match
+ */
+function highlightMatch(matchIndex) {
+  if (matchIndex < 0 || matchIndex >= state.findState.matches.length) return;
+  
+  // Remove previous highlights
+  document.querySelectorAll('.find-match').forEach(el => {
+    el.classList.remove('current');
+  });
+  
+  const match = state.findState.matches[matchIndex];
+  const element = match.element;
+  
+  // For textarea elements, we can't use DOM manipulation, so just scroll
+  if (element.tagName === 'TEXTAREA') {
+    element.focus();
+    element.setSelectionRange(match.startIndex, match.endIndex);
+    return;
+  }
+  
+  // For contenteditable elements, wrap the match in a span
+  const text = element.textContent;
+  const before = text.substring(0, match.startIndex);
+  const matchText = text.substring(match.startIndex, match.endIndex);
+  const after = text.substring(match.endIndex);
+  
+  element.innerHTML = 
+    escapeHtml(before) + 
+    `<span class="find-match current">${escapeHtml(matchText)}</span>` + 
+    escapeHtml(after);
+  
+  state.findState.currentMatchIndex = matchIndex;
+}
+
+/**
+ * Scroll to a specific match
+ */
+function scrollToMatch(matchIndex) {
+  if (matchIndex < 0 || matchIndex >= state.findState.matches.length) return;
+  
+  const match = state.findState.matches[matchIndex];
+  const element = match.element;
+  
+  // Scroll element into view
+  element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+/**
+ * Go to next match
+ */
+function findNext() {
+  if (state.findState.matches.length === 0) return;
+  
+  const nextIndex = (state.findState.currentMatchIndex + 1) % state.findState.matches.length;
+  highlightMatch(nextIndex);
+  scrollToMatch(nextIndex);
+  updateFindCounter();
+}
+
+/**
+ * Go to previous match
+ */
+function findPrevious() {
+  if (state.findState.matches.length === 0) return;
+  
+  const prevIndex = state.findState.currentMatchIndex === 0 
+    ? state.findState.matches.length - 1 
+    : state.findState.currentMatchIndex - 1;
+  
+  highlightMatch(prevIndex);
+  scrollToMatch(prevIndex);
+  updateFindCounter();
+}
+
+/**
+ * Clear all highlights
+ */
+function clearAllHighlights() {
+  document.querySelectorAll('.find-match').forEach(el => {
+    const parent = el.parentNode;
+    if (parent) {
+      // Replace span with its text content
+      while (el.firstChild) {
+        parent.insertBefore(el.firstChild, el);
+      }
+      parent.removeChild(el);
+    }
+  });
+}
+
+/**
+ * Update find counter display
+ */
+function updateFindCounter() {
+  if (!findCounter) return;
+  
+  if (state.findState.matches.length === 0) {
+    findCounter.textContent = '0 of 0';
+  } else {
+    const current = state.findState.currentMatchIndex + 1;
+    findCounter.textContent = `${current} of ${state.findState.matches.length}`;
+  }
 }

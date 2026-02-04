@@ -49,7 +49,7 @@ export class LaTeXRenderer {
     const lines: string[] = [];
 
     // Generate preamble (4.1)
-    lines.push(this.generatePreamble());
+    lines.push(this.generatePreamble(model.metadata.includeBibliography && model.bibliography.length > 0));
     lines.push('\\begin{document}');
     lines.push('');
 
@@ -73,21 +73,32 @@ export class LaTeXRenderer {
   /**
    * Generate LaTeX preamble with document class and packages (4.1)
    * 
+   * @param includeBibliography Whether to include bibliography packages
    * @returns LaTeX preamble string
    */
-  private generatePreamble(): string {
-    return `\\documentclass[12pt]{article}
+  private generatePreamble(includeBibliography: boolean = false): string {
+    let preamble = `\\documentclass[12pt]{article}
 \\usepackage[utf8]{inputenc}
 \\usepackage[T1]{fontenc}
 \\usepackage{times}
 \\usepackage[margin=1in]{geometry}
 \\usepackage{graphicx}
 \\usepackage{booktabs}
-\\usepackage{array}
+\\usepackage{array}`;
+
+    if (includeBibliography) {
+      preamble += `
+\\usepackage{natbib}
+\\bibliographystyle{apalike}`;
+    }
+
+    preamble += `
 
 \\title{}
 \\author{}
 \\date{}`;
+
+    return preamble;
   }
 
   /**
@@ -315,20 +326,10 @@ export class LaTeXRenderer {
   private renderBibliography(entries: BibliographyEntry[]): string {
     const lines: string[] = [];
 
-    // Add bibliography heading (4.5)
-    lines.push('\\section*{Bibliography}');
-    lines.push('\\begin{itemize}');
-    lines.push('');
-
-    // Render each bibliography entry (4.5)
-    for (const entry of entries) {
-      const year = entry.year ? ` (${entry.year})` : '';
-      const formattedEntry = `${this.escapeLatex(entry.source)}${year}`;
-      lines.push(`\\item ${formattedEntry}`);
-    }
-
-    lines.push('');
-    lines.push('\\end{itemize}');
+    // Use BibTeX bibliography command instead of itemize
+    // The .bib file is generated separately by LaTeXExporter
+    lines.push('\\bibliographystyle{apalike}');
+    lines.push('\\bibliography{references}');
 
     return lines.join('\n');
   }

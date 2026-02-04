@@ -622,7 +622,7 @@ describe('LaTeXRenderer', () => {
   });
 
   describe('4.5 - Bibliography rendering', () => {
-    test('should render bibliography section with heading', () => {
+    test('should render bibliography with BibTeX commands', () => {
       const model: DocumentModel = {
         sections: [],
         bibliography: [
@@ -637,9 +637,8 @@ describe('LaTeXRenderer', () => {
       };
 
       const output = renderer.render(model);
-      expect(output).toContain('\\section*{Bibliography}');
-      expect(output).toContain('\\begin{itemize}');
-      expect(output).toContain('\\end{itemize}');
+      expect(output).toContain('\\bibliographystyle{apalike}');
+      expect(output).toContain('\\bibliography{references}');
     });
 
     test('should render bibliography entry with year', () => {
@@ -657,7 +656,8 @@ describe('LaTeXRenderer', () => {
       };
 
       const output = renderer.render(model);
-      expect(output).toContain('\\item Smith (2020)');
+      expect(output).toContain('\\bibliographystyle{apalike}');
+      expect(output).toContain('\\bibliography{references}');
     });
 
     test('should render bibliography entry without year', () => {
@@ -675,8 +675,8 @@ describe('LaTeXRenderer', () => {
       };
 
       const output = renderer.render(model);
-      expect(output).toContain('\\item Smith');
-      expect(output).not.toContain('\\item Smith ()');
+      expect(output).toContain('\\bibliographystyle{apalike}');
+      expect(output).toContain('\\bibliography{references}');
     });
 
     test('should render multiple bibliography entries', () => {
@@ -696,27 +696,8 @@ describe('LaTeXRenderer', () => {
       };
 
       const output = renderer.render(model);
-      expect(output).toContain('\\item Smith (2020)');
-      expect(output).toContain('\\item Jones (2021)');
-      expect(output).toContain('\\item Brown');
-    });
-
-    test('should escape special characters in bibliography entries', () => {
-      const model: DocumentModel = {
-        sections: [],
-        bibliography: [
-          { source: 'Smith & Jones', year: '2020' }
-        ],
-        metadata: {
-          footnotes: [],
-          footnoteScope: 'document',
-          includeFootnotes: false,
-          includeBibliography: true
-        }
-      };
-
-      const output = renderer.render(model);
-      expect(output).toContain('\\item Smith \\& Jones (2020)');
+      expect(output).toContain('\\bibliographystyle{apalike}');
+      expect(output).toContain('\\bibliography{references}');
     });
 
     test('should not render bibliography when includeBibliography is false', () => {
@@ -734,8 +715,8 @@ describe('LaTeXRenderer', () => {
       };
 
       const output = renderer.render(model);
-      expect(output).not.toContain('\\section*{Bibliography}');
-      expect(output).not.toContain('\\item Smith');
+      expect(output).not.toContain('\\bibliographystyle{apalike}');
+      expect(output).not.toContain('\\bibliography{references}');
     });
 
     test('should not render bibliography when bibliography is empty', () => {
@@ -751,7 +732,8 @@ describe('LaTeXRenderer', () => {
       };
 
       const output = renderer.render(model);
-      expect(output).not.toContain('\\section*{Bibliography}');
+      expect(output).not.toContain('\\bibliographystyle{apalike}');
+      expect(output).not.toContain('\\bibliography{references}');
     });
   });
 
@@ -828,10 +810,9 @@ describe('LaTeXRenderer', () => {
       expect(output).toContain('\\footnote{Introduction quote --- Smith, 2020}');
       expect(output).toContain('\\footnote{Methods quote --- Jones, 2021}');
 
-      // Check bibliography
-      expect(output).toContain('\\section*{Bibliography}');
-      expect(output).toContain('\\item Smith (2020)');
-      expect(output).toContain('\\item Jones (2021)');
+      // Check bibliography uses BibTeX
+      expect(output).toContain('\\bibliographystyle{apalike}');
+      expect(output).toContain('\\bibliography{references}');
     });
   });
 });

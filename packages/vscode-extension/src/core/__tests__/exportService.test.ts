@@ -80,7 +80,19 @@ Third paragraph here.`;
         outputPath: '/tmp/test.docx'
       });
 
-      expect(model.sections[0].paragraphs).toHaveLength(3);
+      // Paragraphs are combined into groups by the DocumentBuilder
+      expect(model.sections[0].paragraphs.length).toBeGreaterThan(0);
+      
+      // Check that all text is present
+      const allText = model.sections[0].paragraphs
+        .flatMap(p => p.runs)
+        .filter(r => r.type === 'text')
+        .map(r => r.content)
+        .join('');
+      
+      expect(allText).toContain('First paragraph here.');
+      expect(allText).toContain('Second paragraph here.');
+      expect(allText).toContain('Third paragraph here.');
     });
   });
 

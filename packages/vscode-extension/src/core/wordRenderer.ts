@@ -23,7 +23,8 @@ import {
   TableRow,
   TableCell,
   WidthType,
-  BorderStyle
+  BorderStyle,
+  SimpleField
 } from 'docx';
 
 import type {
@@ -253,13 +254,13 @@ export class WordRenderer {
   }
 
   /**
-   * Create a body paragraph with text runs and footnote references (6.3)
+   * Create a body paragraph with text runs, footnote references, and citations (6.3)
    * 
    * @param paragraph The document paragraph
    * @returns A Word Paragraph object
    */
   private createBodyParagraph(paragraph: DocumentParagraph): Paragraph {
-    const runs: (TextRun | FootnoteReferenceRun)[] = [];
+    const runs: (TextRun | FootnoteReferenceRun | SimpleField)[] = [];
 
     for (const run of paragraph.runs) {
       if (run.type === 'text') {
@@ -276,6 +277,10 @@ export class WordRenderer {
         runs.push(
           new FootnoteReferenceRun(run.footnoteId)
         );
+      } else if (run.type === 'citation' && run.citation) {
+        // Zotero citation field
+        const citationField = this.createZoteroCitationField(run.citation);
+        runs.push(citationField);
       }
     }
 
@@ -286,6 +291,54 @@ export class WordRenderer {
         lineRule: 'auto'
       }
     });
+  }
+
+  /**
+   * Create a Zotero citation field for Word
+   * 
+   * This creates a Word field that Zotero plugin will recognize and format.
+   * The field code uses Zotero's ADDIN format which Word will preserve.
+   * 
+   * @param citation The citation data
+   * @returns A SimpleField that Word/Zotero can process
+   */
+  private createZoteroCitationField(citation: any): SimpleField {
+    const zoteroKey = citation.zoteroKey || citation.citeKey;
+    const displayText = citation.displayText || `[${citation.citeKey}]`;
+    
+    // Build citation item with available metadata
+    const citationItem: Record<string, any> = {
+      id: zoteroKey,
+      uris: [`http://zotero.org/users/local/${zoteroKey}`]
+    };
+    
+    // Add enriched metadata if available
+    if (citation.authors) {
+      citationItem['author'] = citation.authors;
+    }
+    if (citation.year) {
+      citationItem['issued'] = { 'date-parts': [[parseInt(citation.year)]] };
+    }
+    if (citation.title) {
+      citationItem['title'] = citation.title;
+    }
+    
+    // Create Zotero ADDIN field code with full CSL citation structure
+    const cslCitation = {
+      citationID: `cite_${zoteroKey}_${Date.now()}`,
+      properties: {
+        formattedCitation: displayText,
+        plainCitation: displayText.replace(/[()[\]]/g, ''),
+        noteIndex: 0
+      },
+      citationItems: [citationItem],
+      schema: 'https://github.com/citation-style-language/schema/raw/master/csl-citation.json'
+    };
+    
+    // SimpleField takes the instruction string directly
+    const fieldCode = `ADDIN ZOTERO_ITEM CSL_CITATION ${JSON.stringify(cslCitation)}`;
+    
+    return new SimpleField(fieldCode);
   }
 
   /**

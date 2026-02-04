@@ -12,6 +12,7 @@ import { WordExporter } from './exporters/WordExporter';
 import { LaTeXExporter } from './exporters/LaTeXExporter';
 import { CSVExporter } from './exporters/CSVExporter';
 import { DocumentBuilder } from './exporters/DocumentBuilder';
+import type { ZoteroApiService } from '../services/zoteroApiService';
 
 export type ExportFormat = 'markdown' | 'csv' | 'json';
 
@@ -22,6 +23,7 @@ export interface ManuscriptExportOptions {
   footnoteStyle?: 'pandoc' | 'native'; // pandoc for markdown, native for Word
   footnoteScope?: 'document' | 'section'; // continuous or per-section numbering
   manuscriptId?: string; // Document URI for sentence ID generation
+  enrichCitations?: boolean; // Fetch citation metadata from Zotero
 }
 
 export interface ExportOptions {
@@ -46,25 +48,25 @@ export class ExportService {
   private documentBuilder: DocumentBuilder;
   private markdownExporter: MarkdownExporter;
   private wordExporter: WordExporter;
-  private latexExporter: LaTeXExporter;
   private csvExporter: CSVExporter;
 
   constructor(
     private sentenceClaimQuoteLinkManager?: SentenceClaimQuoteLinkManager,
     private claimsManager?: ClaimsManager,
-    private sentenceParser?: SentenceParser
+    private sentenceParser?: SentenceParser,
+    private zoteroApiService?: ZoteroApiService
   ) {
     this.documentBuilder = new DocumentBuilder(
       sentenceClaimQuoteLinkManager,
       claimsManager,
-      sentenceParser
+      sentenceParser,
+      zoteroApiService
     );
     this.markdownExporter = new MarkdownExporter(
       sentenceClaimQuoteLinkManager,
       claimsManager
     );
     this.wordExporter = new WordExporter();
-    this.latexExporter = new LaTeXExporter();
     this.csvExporter = new CSVExporter();
   }
 
@@ -86,6 +88,11 @@ export class ExportService {
     manuscriptText: string,
     options: ManuscriptExportOptions
   ): Promise<void> {
+    // Prefetch Zotero metadata for enriched citations if enabled
+    if (options.enrichCitations !== false) {
+      await this.documentBuilder.prefetchZoteroMetadata(manuscriptText);
+    }
+    
     const model = await this.documentBuilder.buildDocumentModel(manuscriptText, options);
     const buffer = await this.wordExporter.exportManuscriptWord(manuscriptText, model, options);
     await this.wordExporter.writeBufferToFile(options.outputPath, buffer);
@@ -98,9 +105,15 @@ export class ExportService {
     manuscriptText: string,
     options: ManuscriptExportOptions
   ): Promise<void> {
+    // Prefetch Zotero metadata for enriched citations if enabled
+    if (options.enrichCitations !== false) {
+      await this.documentBuilder.prefetchZoteroMetadata(manuscriptText);
+    }
+    
     const model = await this.documentBuilder.buildDocumentModel(manuscriptText, options);
-    const content = await this.latexExporter.exportManuscriptLatex(model, options);
-    await this.latexExporter.writeToFile(options.outputPath, content);
+    const latexExporter = new LaTeXExporter(this.zoteroApiService);
+    const content = await latexExporter.exportManuscriptLatex(model, options);
+    await latexExporter.writeToFile(options.outputPath, content);
   }
 
   /**

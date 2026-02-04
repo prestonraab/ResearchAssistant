@@ -375,7 +375,11 @@ const toolHandlers: Record<string, (args: any, services: Services) => Promise<an
         threshold
       };
     } catch (error) {
-      throw new Error(`Failed to search for quote: ${error instanceof Error ? error.message : String(error)}`);
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      if (errorMsg.includes('API') || errorMsg.includes('401') || errorMsg.includes('OPENAI_API_KEY')) {
+        throw new Error('OPENAI_API_KEY not configured. This tool requires embeddings. Set OPENAI_API_KEY in .env to enable.');
+      }
+      throw new Error(`Failed to search for quote: ${errorMsg}`);
     }
   },
 
@@ -435,7 +439,11 @@ const toolHandlers: Record<string, (args: any, services: Services) => Promise<an
         matches
       };
     } catch (error) {
-      throw new Error(`Failed to search for quote: ${error instanceof Error ? error.message : String(error)}`);
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      if (errorMsg.includes('API') || errorMsg.includes('401') || errorMsg.includes('OPENAI_API_KEY')) {
+        throw new Error('OPENAI_API_KEY not configured. This tool requires embeddings. Set OPENAI_API_KEY in .env to enable.');
+      }
+      throw new Error(`Failed to search for quote: ${errorMsg}`);
     }
   },
 
@@ -586,11 +594,15 @@ const toolHandlers: Record<string, (args: any, services: Services) => Promise<an
           });
         }
       } catch (error) {
+        const errorMsg = error instanceof Error ? error.message : String(error);
+        if (errorMsg.includes('API') || errorMsg.includes('401') || errorMsg.includes('OPENAI_API_KEY')) {
+          throw new Error('OPENAI_API_KEY not configured. This tool requires embeddings. Set OPENAI_API_KEY in .env to enable.');
+        }
         results.push({
           claimId,
           verified: false,
           similarity: 0,
-          error: error instanceof Error ? error.message : String(error)
+          error: errorMsg
         });
         errors++;
       }

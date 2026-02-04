@@ -45,23 +45,49 @@ export interface DocumentParagraph {
 }
 
 /**
- * A run of content within a paragraph - text, footnote reference, image, or table.
+ * A run of content within a paragraph - text, footnote reference, citation, image, or table.
  */
 export interface DocumentRun {
-  /** Type of run: 'text', 'footnote-ref', 'image', or 'table' */
-  type: 'text' | 'footnote-ref' | 'image' | 'table';
+  /** Type of run: 'text', 'footnote-ref', 'citation', 'image', or 'table' */
+  type: 'text' | 'footnote-ref' | 'citation' | 'image' | 'table';
   
-  /** Content of the run (text content or empty string for footnote-ref/image/table) */
+  /** Content of the run (text content or empty string for footnote-ref/citation/image/table) */
   content: string;
   
   /** ID of the footnote this run references (only for type: 'footnote-ref') */
   footnoteId?: number;
+  
+  /** Citation data (only for type: 'citation') */
+  citation?: DocumentCitation;
   
   /** Image data (only for type: 'image') */
   image?: DocumentImage;
   
   /** Table data (only for type: 'table') */
   table?: DocumentTable;
+}
+
+/**
+ * A citation reference in the document.
+ */
+export interface DocumentCitation {
+  /** The citation key (e.g., "Johnson2007") */
+  citeKey: string;
+  
+  /** Zotero item key if available */
+  zoteroKey?: string;
+  
+  /** Display text for the citation (e.g., "(Johnson et al., 2007)") */
+  displayText?: string;
+  
+  /** Author name(s) */
+  authors?: string;
+  
+  /** Publication year */
+  year?: string;
+  
+  /** Item title */
+  title?: string;
 }
 
 /**

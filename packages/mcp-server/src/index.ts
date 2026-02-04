@@ -42,22 +42,29 @@ const config = loadConfig();
 const configErrors = validateConfig(config);
 if (configErrors.length > 0) {
   console.error('Configuration errors:', configErrors);
-  console.error('Please set OPENAI_API_KEY environment variable');
-  process.exit(1);
-}
-
-if (!config.openaiApiKey) {
-  console.error('OPENAI_API_KEY not set. Services will not be available.');
   process.exit(1);
 }
 
 // Initialize core services
-const embeddingService = new EmbeddingService(
-  config.openaiApiKey,
-  path.join(config.workspaceRoot, config.embeddingCacheDir),
-  config.maxCacheSize,
-  config.embeddingModel
-);
+let embeddingService: EmbeddingService;
+if (config.openaiApiKey) {
+  embeddingService = new EmbeddingService(
+    config.openaiApiKey,
+    path.join(config.workspaceRoot, config.embeddingCacheDir),
+    config.maxCacheSize,
+    config.embeddingModel
+  );
+  console.error('✓ Embedding service initialized');
+} else {
+  console.error('⚠ OPENAI_API_KEY not set. Embedding-dependent tools will not work.');
+  // Create a stub embedding service that throws errors when used
+  embeddingService = new EmbeddingService(
+    'stub-key',
+    path.join(config.workspaceRoot, config.embeddingCacheDir),
+    config.maxCacheSize,
+    config.embeddingModel
+  );
+}
 
 const claimsManager = new ClaimsManager(config.workspaceRoot);
 const searchService = new SearchService(embeddingService, claimsManager, config.similarityThreshold);

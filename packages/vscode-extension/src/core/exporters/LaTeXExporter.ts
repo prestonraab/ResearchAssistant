@@ -3,17 +3,23 @@ import * as fs from 'fs';
 import type { DocumentModel } from '../documentModel';
 import type { ManuscriptExportOptions } from '../exportService';
 import { LaTeXRenderer } from '../latexRenderer';
+import { BibTeXGenerator } from './BibTeXGenerator';
+import type { ZoteroApiService, ZoteroItem } from '../../services/zoteroApiService';
 
 /**
  * Handles LaTeX (.tex) export functionality
  * Generates LaTeX documents with native footnotes and formatting
+ * Also generates accompanying .bib file for citations
  */
 export class LaTeXExporter {
+  constructor(private zoteroApiService?: ZoteroApiService) {}
+
   /**
    * Export manuscript with marked citations as LaTeX (.tex) with native footnotes
    * 
    * - Calls buildDocumentModel with manuscript text and options
    * - Creates LaTeXRenderer instance and calls render
+   * - Generates .bib file with BibTeX entries
    * - Writes string content to output path
    */
   public async exportManuscriptLatex(
@@ -27,7 +33,86 @@ export class LaTeXExporter {
     const renderer = new LaTeXRenderer(documentModel);
     const content = renderer.render(documentModel);
 
+    // Generate and write .bib file if citations exist
+    if (documentModel.bibliography.length > 0) {
+      await this.generateBibFile(documentModel, options.outputPath);
+    }
+
     return content;
+  }
+
+  /**
+   * Generate .bib file from bibliography entries
+   */
+  private async generateBibFile(
+    documentModel: DocumentModel,
+    texFilePath: string
+  ): Promise<void> {
+    if (!this.zoteroApiService || !this.zoteroApiService.isConfigured()) {
+      // Fallback: generate basic .bib file without full metadata
+      await this.generateBasicBibFile(documentModel, texFilePath);
+      return;
+    }
+
+    try {
+      // Extract citation keys from bibliography
+      const citeKeys = new Set(
+        documentModel.bibliography.map(entry => {
+          // Try to extract key from source (e.g., "AuthorYear" or "ZOTEROKEY")
+          return entry.source;
+        })
+      );
+
+      // Fetch Zotero items
+      const items = await this.zoteroApiService.getItems(100);
+      
+      // Filter items that match our citation keys
+      const matchedItems = items.filter(item => citeKeys.has(item.key));
+      
+      // Create cite key map
+      const citeKeyMap = new Map<string, string>();
+      for (const item of matchedItems) {
+        citeKeyMap.set(item.key, item.key);
+      }
+
+      // Generate BibTeX content
+      const bibContent = BibTeXGenerator.generateBibFile(matchedItems, citeKeyMap);
+      
+      // Write .bib file
+      const bibFilePath = texFilePath.replace(/\.tex$/, '.bib');
+      await this.writeToFile(bibFilePath, bibContent);
+    } catch (error) {
+      console.warn('Failed to generate .bib file from Zotero:', error);
+      // Fallback to basic generation
+      await this.generateBasicBibFile(documentModel, texFilePath);
+    }
+  }
+
+  /**
+   * Generate basic .bib file without Zotero metadata
+   */
+  private async generateBasicBibFile(
+    documentModel: DocumentModel,
+    texFilePath: string
+  ): Promise<void> {
+    const entries: string[] = [];
+
+    for (const entry of documentModel.bibliography) {
+      const citeKey = entry.source;
+      const year = entry.year || 'n.d.';
+      
+      // Create minimal BibTeX entry
+      const bibEntry = `@misc{${citeKey},
+  author = {Unknown},
+  title = {${entry.source}},
+  year = {${year}}
+}`;
+      entries.push(bibEntry);
+    }
+
+    const bibContent = entries.join('\n\n');
+    const bibFilePath = texFilePath.replace(/\.tex$/, '.bib');
+    await this.writeToFile(bibFilePath, bibContent);
   }
 
   /**

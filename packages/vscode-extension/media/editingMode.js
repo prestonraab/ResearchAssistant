@@ -7,6 +7,14 @@ let currentClaimId = null;
 let editingSentenceId = null;
 let editingClaimId = null;
 
+// Find state
+let findState = {
+  isOpen: false,
+  searchTerm: '',
+  matches: [], // Array of {element, text, startIndex, endIndex}
+  currentMatchIndex: 0
+};
+
 // Virtual scrolling configuration
 const ESTIMATED_ITEM_HEIGHT = 120; // Initial estimate, will be refined
 const BUFFER_SIZE = 5; // Number of items to render outside visible area
@@ -608,6 +616,20 @@ document.addEventListener('keydown', (e) => {
   // Mode switching is handled by VS Code keybindings (Cmd/Ctrl+Alt+W/E/R)
   // No Shift+letter shortcuts to avoid conflicts with typing
   
+  // Ctrl+F - Find
+  if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
+    e.preventDefault();
+    toggleFindBar();
+    return;
+  }
+
+  // Escape - Close find bar
+  if (e.key === 'Escape' && findState.isOpen) {
+    e.preventDefault();
+    closeFindBar();
+    return;
+  }
+  
   if (e.key === '?' && !editingSentenceId && !editingClaimId) {
     toggleHelpOverlay();
   } else if (e.key === 'Escape') {
@@ -783,6 +805,41 @@ document.addEventListener('DOMContentLoaded', () => {
     helpBtn.addEventListener('click', toggleHelpOverlay);
   }
 
+  // Find bar listeners
+  const findInput = document.getElementById('findInput');
+  const findNextBtn = document.getElementById('findNextBtn');
+  const findPrevBtn = document.getElementById('findPrevBtn');
+  const findCloseBtn = document.getElementById('findCloseBtn');
+
+  if (findInput) {
+    findInput.addEventListener('input', (e) => {
+      performSearch(e.target.value);
+    });
+
+    findInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        if (e.shiftKey) {
+          findPrevious();
+        } else {
+          findNext();
+        }
+      }
+    });
+  }
+
+  if (findNextBtn) {
+    findNextBtn.addEventListener('click', findNext);
+  }
+
+  if (findPrevBtn) {
+    findPrevBtn.addEventListener('click', findPrevious);
+  }
+
+  if (findCloseBtn) {
+    findCloseBtn.addEventListener('click', closeFindBar);
+  }
+
   const writeBtn = document.getElementById('writeBtn');
   if (writeBtn) {
     writeBtn.addEventListener('click', () => {
@@ -814,3 +871,222 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 });
+
+
+/**
+ * Toggle find bar visibility
+ */
+function toggleFindBar() {
+  if (findState.isOpen) {
+    closeFindBar();
+  } else {
+    openFindBar();
+  }
+}
+
+/**
+ * Open find bar and focus input
+ */
+function openFindBar() {
+  const findBar = document.getElementById('findBar');
+  if (!findBar) return;
+  
+  findState.isOpen = true;
+  findBar.classList.remove('hidden');
+  
+  // Focus input and select any existing text
+  const findInput = document.getElementById('findInput');
+  if (findInput) {
+    findInput.focus();
+    findInput.select();
+  }
+  
+  console.log('[EditingMode] Find bar opened');
+}
+
+/**
+ * Close find bar and clear highlights
+ */
+function closeFindBar() {
+  const findBar = document.getElementById('findBar');
+  if (!findBar) return;
+  
+  findState.isOpen = false;
+  findBar.classList.add('hidden');
+  
+  // Clear highlights
+  clearAllHighlights();
+  findState.matches = [];
+  findState.currentMatchIndex = 0;
+  
+  // Return focus to content
+  document.querySelector('.content')?.focus();
+  
+  console.log('[EditingMode] Find bar closed');
+}
+
+/**
+ * Perform search and find all matches
+ */
+function performSearch(searchTerm) {
+  findState.searchTerm = searchTerm.toLowerCase();
+  findState.matches = [];
+  findState.currentMatchIndex = 0;
+  
+  // Clear previous highlights
+  clearAllHighlights();
+  
+  if (!searchTerm) {
+    updateFindCounter();
+    return;
+  }
+  
+  // Search in sentence text
+  document.querySelectorAll('.sentence-text').forEach(element => {
+    findMatchesInElement(element, searchTerm);
+  });
+  
+  // Search in claim text
+  document.querySelectorAll('.claim-text').forEach(element => {
+    findMatchesInElement(element, searchTerm);
+  });
+  
+  // Highlight first match if any
+  if (findState.matches.length > 0) {
+    highlightMatch(0);
+    scrollToMatch(0);
+  }
+  
+  updateFindCounter();
+  console.log(`[EditingMode] Found ${findState.matches.length} matches for "${searchTerm}"`);
+}
+
+/**
+ * Find all matches in a single element
+ */
+function findMatchesInElement(element, searchTerm) {
+  const text = element.textContent || '';
+  const lowerText = text.toLowerCase();
+  let startIndex = 0;
+  
+  while (true) {
+    const index = lowerText.indexOf(searchTerm, startIndex);
+    if (index === -1) break;
+    
+    findState.matches.push({
+      element: element,
+      text: text,
+      startIndex: index,
+      endIndex: index + searchTerm.length
+    });
+    
+    startIndex = index + 1;
+  }
+}
+
+/**
+ * Highlight a specific match
+ */
+function highlightMatch(matchIndex) {
+  if (matchIndex < 0 || matchIndex >= findState.matches.length) return;
+  
+  // Remove previous highlights
+  document.querySelectorAll('.find-match').forEach(el => {
+    el.classList.remove('current');
+  });
+  
+  const match = findState.matches[matchIndex];
+  const element = match.element;
+  const text = match.text;
+  const before = text.substring(0, match.startIndex);
+  const matchText = text.substring(match.startIndex, match.endIndex);
+  const after = text.substring(match.endIndex);
+  
+  // Escape HTML and wrap the match in a span
+  element.innerHTML = 
+    escapeHtml(before) + 
+    `<span class="find-match current">${escapeHtml(matchText)}</span>` + 
+    escapeHtml(after);
+  
+  findState.currentMatchIndex = matchIndex;
+}
+
+/**
+ * Scroll to a specific match
+ */
+function scrollToMatch(matchIndex) {
+  if (matchIndex < 0 || matchIndex >= findState.matches.length) return;
+  
+  const match = findState.matches[matchIndex];
+  const element = match.element;
+  
+  // Scroll element into view
+  element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+/**
+ * Go to next match
+ */
+function findNext() {
+  if (findState.matches.length === 0) return;
+  
+  const nextIndex = (findState.currentMatchIndex + 1) % findState.matches.length;
+  highlightMatch(nextIndex);
+  scrollToMatch(nextIndex);
+  updateFindCounter();
+}
+
+/**
+ * Go to previous match
+ */
+function findPrevious() {
+  if (findState.matches.length === 0) return;
+  
+  const prevIndex = findState.currentMatchIndex === 0 
+    ? findState.matches.length - 1 
+    : findState.currentMatchIndex - 1;
+  
+  highlightMatch(prevIndex);
+  scrollToMatch(prevIndex);
+  updateFindCounter();
+}
+
+/**
+ * Clear all highlights
+ */
+function clearAllHighlights() {
+  document.querySelectorAll('.find-match').forEach(el => {
+    const parent = el.parentNode;
+    if (parent) {
+      // Replace span with its text content
+      while (el.firstChild) {
+        parent.insertBefore(el.firstChild, el);
+      }
+      parent.removeChild(el);
+    }
+  });
+}
+
+/**
+ * Update find counter display
+ */
+function updateFindCounter() {
+  const findCounter = document.getElementById('findCounter');
+  if (!findCounter) return;
+  
+  if (findState.matches.length === 0) {
+    findCounter.textContent = '0 of 0';
+  } else {
+    const current = findState.currentMatchIndex + 1;
+    findCounter.textContent = `${current} of ${findState.matches.length}`;
+  }
+}
+
+/**
+ * Escape HTML
+ */
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}

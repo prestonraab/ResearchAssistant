@@ -30,6 +30,7 @@ export class WritingModeProvider {
   private disposalManager = getWebviewDisposalManager();
   private benchmark = getBenchmark();
   private immersiveModeManager = getImmersiveModeManager();
+  private sourceMetadataCache: Map<string, string | null> = new Map(); // Cache of source ID -> author-year
   
   // Write queue to prevent race conditions on manuscript saves
   private writeQueue: Promise<void> = Promise.resolve();
@@ -120,6 +121,9 @@ export class WritingModeProvider {
     }
 
     try {
+      // Load source metadata first
+      await this.loadSourceMetadata();
+
       // Get manuscript path
       const manuscriptPath = this.extensionState.getAbsolutePath('03_Drafting/manuscript.md');
 
@@ -233,6 +237,7 @@ export class WritingModeProvider {
 
   /**
    * Enrich question-answer pairs with linked sources from claims
+   * Extracts author-year citations from [source:: C_XX(Author Year, ...)] format
    */
   private async enrichPairsWithLinkedSources(pairs: any[]): Promise<any[]> {
     try {
@@ -240,9 +245,35 @@ export class WritingModeProvider {
       for (const pair of pairs) {
         const linkedSources: any[] = [];
         const seenSources = new Set<string>();
+        const citedAuthorYears = new Map<string, Set<string>>(); // Map of claimId -> Set of author-years
 
         // Store original answer with Source comments for saving
         pair.originalAnswer = pair.answer;
+        
+        // Extract cited author-years from answer text
+        // Format: [source:: C_01(Author Year, Author Year), C_02]
+        const sourceMatches = pair.answer.matchAll(/\[source::\s*([^\]]+)\]/g);
+        for (const match of sourceMatches) {
+          const sourceSpec = match[1];
+          // Parse each claim spec: "C_01(Author Year, ...)" or "C_01"
+          const claimSpecs = sourceSpec.split(',').map((s: string) => s.trim());
+          
+          for (const spec of claimSpecs) {
+            const claimMatch = spec.match(/^(C_\d+)(?:\(([^)]+)\))?/);
+            if (claimMatch) {
+              const claimId = claimMatch[1];
+              const authorYearStr = claimMatch[2];
+              
+              if (authorYearStr) {
+                const authorYears = authorYearStr.split(',').map((ay: string) => ay.trim());
+                if (!citedAuthorYears.has(claimId)) {
+                  citedAuthorYears.set(claimId, new Set());
+                }
+                authorYears.forEach((ay: string) => citedAuthorYears.get(claimId)!.add(ay));
+              }
+            }
+          }
+        }
         
         // Create display version without Source comments (don't modify pair.answer)
         pair.displayAnswer = pair.answer.replace(/<!--\s*Source:[^>]+?-->/g, '').trim();
@@ -253,13 +284,19 @@ export class WritingModeProvider {
             const claim = this.extensionState.claimsManager.getClaim(claimId);
             if (!claim) continue;
 
+            const citedSet = citedAuthorYears.get(claimId) || new Set<string>();
+
             // Add primary quote
             if (claim.primaryQuote && !seenSources.has(claim.primaryQuote.source)) {
+              const authorYear = this.extractAuthorYear(claim.primaryQuote.source);
+              const isCited = authorYear ? citedSet.has(authorYear) : false;
+              
               linkedSources.push({
                 title: claim.text.substring(0, 50) + (claim.text.length > 50 ? '...' : ''),
                 source: claim.primaryQuote.source,
                 quote: claim.primaryQuote.text,
-                cited: false
+                cited: isCited,
+                authorYear: authorYear
               });
               seenSources.add(claim.primaryQuote.source);
             }
@@ -267,11 +304,15 @@ export class WritingModeProvider {
             // Add supporting quotes
             for (const supportingQuote of claim.supportingQuotes || []) {
               if (!seenSources.has(supportingQuote.source)) {
+                const authorYear = this.extractAuthorYear(supportingQuote.source);
+                const isCited = authorYear ? citedSet.has(authorYear) : false;
+                
                 linkedSources.push({
                   title: claim.text.substring(0, 50) + (claim.text.length > 50 ? '...' : ''),
                   source: supportingQuote.source,
                   quote: supportingQuote.text,
-                  cited: false
+                  cited: isCited,
+                  authorYear: authorYear
                 });
                 seenSources.add(supportingQuote.source);
               }
@@ -288,6 +329,70 @@ export class WritingModeProvider {
     } catch (error) {
       console.error('[WritingMode] Error enriching pairs with linked sources:', error);
       return pairs;
+    }
+  }
+
+  /**
+   * Extract author-year from source reference
+   * Maps source IDs to author-year format from sources.md
+   */
+  private extractAuthorYear(source: string): string | null {
+    // Check cache first
+    if (this.sourceMetadataCache.has(source)) {
+      return this.sourceMetadataCache.get(source) ?? null;
+    }
+
+    // Try to extract from claim's source metadata
+    try {
+      const claim = this.extensionState.claimsManager.getClaim(source);
+      if (claim && (claim as any).authorYear) {
+        const authorYear = (claim as any).authorYear;
+        this.sourceMetadataCache.set(source, authorYear);
+        return authorYear;
+      }
+    } catch (error) {
+      // Silently fail - source might not be a claim ID
+    }
+
+    // If not found, cache null to avoid repeated lookups
+    this.sourceMetadataCache.set(source, null);
+    return null;
+  }
+
+  /**
+   * Load source metadata from sources.md
+   * Builds a map of source IDs to author-year format
+   */
+  private async loadSourceMetadata(): Promise<void> {
+    try {
+      const sourcesPath = this.extensionState.getAbsolutePath('01_Knowledge_Base/sources.md');
+      if (!fs.existsSync(sourcesPath)) {
+        return;
+      }
+
+      const content = fs.readFileSync(sourcesPath, 'utf-8');
+      // Parse markdown table to extract Author-Year and Zotero Key columns
+      // Format: | Source ID | Author-Year | Zotero Key | ...
+      const lines = content.split('\n');
+      
+      for (const line of lines) {
+        // Match table rows
+        const match = line.match(/\|\s*\d+\s*\|\s*(\w+\d{4})\s*\|/);
+        if (match) {
+          const authorYear = match[1];
+          // Extract Zotero key from the same line
+          const keyMatch = line.match(/\|\s*(\w+)\s*\|/g);
+          if (keyMatch && keyMatch.length >= 3) {
+            // Third column is typically the Zotero key
+            const zoteroKey = keyMatch[2].replace(/[|\s]/g, '');
+            if (zoteroKey) {
+              this.sourceMetadataCache.set(zoteroKey, authorYear);
+            }
+          }
+        }
+      }
+    } catch (error) {
+      console.warn('[WritingMode] Failed to load source metadata:', error);
     }
   }
 
@@ -375,6 +480,10 @@ export class WritingModeProvider {
         await vscode.commands.executeCommand('researchAssistant.exportManuscriptWord');
         break;
 
+      case 'exportLatex':
+        await vscode.commands.executeCommand('researchAssistant.exportManuscriptLatex');
+        break;
+
       case 'showHelp':
         this.showHelpOverlay();
         break;
@@ -409,23 +518,40 @@ export class WritingModeProvider {
     try {
       const manuscriptPath = this.extensionState.getAbsolutePath('03_Drafting/manuscript.md');
 
-      // Restore original answers with Source comments before saving
-      // If the display answer was edited, we need to merge the edit with the Source comments
+      // Reconstruct source specs with author-year citations based on cited status
       for (const pair of pairs as any[]) {
-        if (pair.originalAnswer && pair.displayAnswer !== undefined) {
-          // Check if the answer was edited (compare with displayAnswer)
-          const currentDisplayAnswer = pair.answer.replace(/<!--\s*Source:[^>]+?-->/g, '').trim();
-          
-          if (currentDisplayAnswer !== pair.displayAnswer) {
-            // Answer was edited - use the new answer but preserve Source comments from original
-            const sourceComments = pair.originalAnswer.match(/<!--\s*Source:[^>]+?-->/g) || [];
-            if (sourceComments.length > 0) {
-              // Append Source comments to the edited answer
-              pair.answer = pair.answer + ' ' + sourceComments.join(' ');
+        if (pair.linkedSources && pair.linkedSources.length > 0) {
+          // Group linkedSources by claim ID
+          const sourcesByClaimId = new Map<string, any[]>();
+          for (const source of pair.linkedSources) {
+            if (!sourcesByClaimId.has(source.source)) {
+              sourcesByClaimId.set(source.source, []);
             }
-          } else {
-            // Answer wasn't edited - restore original with Source comments
-            pair.answer = pair.originalAnswer;
+            sourcesByClaimId.get(source.source)!.push(source);
+          }
+
+          // Build new source specs with author-year citations for cited sources
+          const sourceSpecs: string[] = [];
+          for (const claimId of pair.claims || []) {
+            const sources = sourcesByClaimId.get(claimId) || [];
+            const citedAuthorYears = sources
+              .filter(s => s.cited && s.authorYear)
+              .map(s => s.authorYear);
+
+            if (citedAuthorYears.length > 0) {
+              sourceSpecs.push(`${claimId}(${citedAuthorYears.join(', ')})`);
+            } else {
+              sourceSpecs.push(claimId);
+            }
+          }
+
+          // Update answer with new source specs
+          if (sourceSpecs.length > 0) {
+            // Replace old source specs with new ones
+            pair.answer = pair.answer.replace(
+              /\[source::\s*[^\]]+\]/g,
+              `[source:: ${sourceSpecs.join(', ')}]`
+            );
           }
         }
       }
@@ -575,8 +701,14 @@ export class WritingModeProvider {
     <div class="header">
       <div class="title">Research Assistant | Writing Mode</div>
       <div class="controls">
-        <button id="exportMarkdownBtn" class="icon-btn" title="Export as Markdown">📄</button>
-        <button id="exportWordBtn" class="icon-btn" title="Export as Word">📋</button>
+        <div class="export-dropdown">
+          <button id="exportBtn" class="icon-btn" title="Export manuscript">📤</button>
+          <div class="export-menu">
+            <button class="export-option" data-format="markdown">📄 Markdown</button>
+            <button class="export-option" data-format="word">📋 Word (.docx)</button>
+            <button class="export-option" data-format="latex">📑 LaTeX (.tex)</button>
+          </div>
+        </div>
         <button id="helpBtn" class="icon-btn" title="Help (?)">?</button>
         <button id="editBtn" class="icon-btn" title="Edit Mode">✎</button>
       </div>
@@ -590,6 +722,21 @@ export class WritingModeProvider {
       <div class="auto-save-indicator">
         <span id="saveStatus">Saved</span>
       </div>
+    </div>
+
+    <!-- Find Bar -->
+    <div id="findBar" class="find-bar hidden">
+      <input 
+        id="findInput" 
+        class="find-input" 
+        type="text" 
+        placeholder="Find in writing..."
+        autocomplete="off"
+      />
+      <div id="findCounter" class="find-counter">0 of 0</div>
+      <button id="findPrevBtn" class="find-button" title="Previous match (Shift+Enter)">↑</button>
+      <button id="findNextBtn" class="find-button" title="Next match (Enter)">↓</button>
+      <button id="findCloseBtn" class="find-button close-btn" title="Close (Esc)">✕</button>
     </div>
 
     ${helpOverlayHtml}

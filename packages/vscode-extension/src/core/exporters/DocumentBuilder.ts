@@ -1,11 +1,12 @@
 import type { SentenceParser, Sentence } from '@research-assistant/core';
-import type { DocumentModel, DocumentSection, DocumentParagraph, DocumentRun, DocumentFootnote, DocumentImage, DocumentTable } from '../documentModel';
+import type { DocumentModel, DocumentSection, DocumentParagraph, DocumentRun, DocumentFootnote, DocumentImage, DocumentTable, DocumentCitation } from '../documentModel';
 import type { ManuscriptExportOptions, CitedQuote } from '../exportService';
 import { TableImageRenderer } from './TableImageRenderer';
 import { ManuscriptParser } from './ManuscriptParser';
 import { CitationCollector } from './CitationCollector';
 import { SentenceClaimQuoteLinkManager } from '../sentenceClaimQuoteLinkManager';
 import { ClaimsManager } from '../claimsManagerWrapper';
+import type { ZoteroApiService, ZoteroItem } from '../../services/zoteroApiService';
 
 /**
  * Handles document model building from manuscript text
@@ -14,13 +15,17 @@ import { ClaimsManager } from '../claimsManagerWrapper';
 export class DocumentBuilder {
   private tableImageRenderer = new TableImageRenderer();
   private citationCollector: CitationCollector;
+  private zoteroApiService?: ZoteroApiService;
+  private zoteroItemCache: Map<string, ZoteroItem> = new Map();
 
   constructor(
     private sentenceClaimQuoteLinkManager?: SentenceClaimQuoteLinkManager,
     private claimsManager?: ClaimsManager,
-    private sentenceParser?: SentenceParser
+    private sentenceParser?: SentenceParser,
+    zoteroApiService?: ZoteroApiService
   ) {
     this.citationCollector = new CitationCollector(sentenceClaimQuoteLinkManager, claimsManager);
+    this.zoteroApiService = zoteroApiService;
   }
 
   /**
@@ -44,42 +49,108 @@ export class DocumentBuilder {
       const level = ManuscriptParser.getHeadingLevel(section.heading);
       const paragraphs: DocumentParagraph[] = [];
 
-      // Process each paragraph in the section
-      for (const paragraphText of section.paragraphs) {
-        // Check if this paragraph is a table
-        if (this.tableImageRenderer.isMarkdownTable(paragraphText)) {
-          const table = this.tableImageRenderer.parseMarkdownTable(paragraphText);
-          if (table) {
-            paragraphs.push({
-              runs: [{
-                type: 'table',
-                content: '',
-                table
-              }]
-            });
+      // Split paragraphs by explicit break markers (---)
+      const paragraphGroups = this.splitParagraphsByBreakMarkers(section.paragraphs);
+
+      // Process each paragraph group
+      for (const paragraphGroup of paragraphGroups) {
+        // Combine all paragraphs in the group into one large paragraph
+        const combinedRuns: DocumentRun[] = [];
+
+        for (let groupIndex = 0; groupIndex < paragraphGroup.length; groupIndex++) {
+          const paragraphText = paragraphGroup[groupIndex];
+          
+          // Check if this paragraph is a table
+          if (this.tableImageRenderer.isMarkdownTable(paragraphText)) {
+            const table = this.tableImageRenderer.parseMarkdownTable(paragraphText);
+            if (table) {
+              // Tables are kept as separate paragraphs
+              paragraphs.push({
+                runs: [{
+                  type: 'table',
+                  content: '',
+                  table
+                }]
+              });
+            }
             continue;
           }
-        }
 
-        const runs: DocumentRun[] = [];
-        
-        // Check for images in the paragraph
-        const images = this.tableImageRenderer.parseMarkdownImages(paragraphText);
-        
-        if (images.length > 0) {
-          // Split paragraph by images
-          let lastIndex = 0;
+          const runs: DocumentRun[] = [];
           
-          for (const { match, image, index } of images) {
-            // Add text before image
-            if (index > lastIndex) {
-              const textBefore = paragraphText.substring(lastIndex, index);
-              const sentences = this.parseSentencesWithParser(textBefore, manuscriptId);
-              
-              for (const sentence of sentences) {
-                runs.push({ type: 'text', content: sentence.text });
+          // Check for images in the paragraph
+          const images = this.tableImageRenderer.parseMarkdownImages(paragraphText);
+          
+          if (images.length > 0) {
+            // Split paragraph by images
+            let lastIndex = 0;
+            
+            for (const { match, image, index } of images) {
+              // Add text before image
+              if (index > lastIndex) {
+                const textBefore = paragraphText.substring(lastIndex, index);
+                const sentences = this.parseSentencesWithParser(textBefore, manuscriptId);
                 
-                // Collect citations for this sentence if footnotes are enabled
+                for (let i = 0; i < sentences.length; i++) {
+                  const sentence = sentences[i];
+                  // Add text run for the sentence with space after (except for last sentence)
+                  const sentenceText = i < sentences.length - 1 ? sentence.text + ' ' : sentence.text;
+                  
+                  // Parse citations from the sentence text
+                  const sentenceRuns = this.parseCitationsFromText(sentenceText);
+                  runs.push(...sentenceRuns);
+                  
+                  // Collect citations for this sentence if footnotes are enabled
+                  if (options.includeFootnotes !== false) {
+                    const citations = await this.citationCollector.collectCitationsForSentence(sentence.id);
+                    
+                    for (const citation of citations) {
+                      allCitations.push(citation);
+                      
+                      const footnote: DocumentFootnote = {
+                        id: footnoteIndex,
+                        quoteText: citation.quoteText,
+                        source: citation.source,
+                        year: citation.year
+                      };
+                      footnotes.push(footnote);
+                      
+                      runs.push({
+                        type: 'footnote-ref',
+                        content: '',
+                        footnoteId: footnoteIndex
+                      });
+                      
+                      footnoteIndex++;
+                    }
+                  }
+                }
+              }
+              
+              // Add image
+              runs.push({
+                type: 'image',
+                content: '',
+                image
+              });
+              
+              lastIndex = index + match.length;
+            }
+            
+            // Add remaining text after last image
+            if (lastIndex < paragraphText.length) {
+              const textAfter = paragraphText.substring(lastIndex);
+              const sentences = this.parseSentencesWithParser(textAfter, manuscriptId);
+              
+              for (let i = 0; i < sentences.length; i++) {
+                const sentence = sentences[i];
+                // Add text run for the sentence with space after (except for last sentence)
+                const sentenceText = i < sentences.length - 1 ? sentence.text + ' ' : sentence.text;
+                
+                // Parse citations from the sentence text
+                const sentenceRuns = this.parseCitationsFromText(sentenceText);
+                runs.push(...sentenceRuns);
+                
                 if (options.includeFootnotes !== false) {
                   const citations = await this.citationCollector.collectCitationsForSentence(sentence.id);
                   
@@ -105,31 +176,28 @@ export class DocumentBuilder {
                 }
               }
             }
-            
-            // Add image
-            runs.push({
-              type: 'image',
-              content: '',
-              image
-            });
-            
-            lastIndex = index + match.length;
-          }
-          
-          // Add remaining text after last image
-          if (lastIndex < paragraphText.length) {
-            const textAfter = paragraphText.substring(lastIndex);
-            const sentences = this.parseSentencesWithParser(textAfter, manuscriptId);
-            
-            for (const sentence of sentences) {
-              runs.push({ type: 'text', content: sentence.text });
+          } else {
+            // No images, process normally
+            const sentences = this.parseSentencesWithParser(paragraphText, manuscriptId);
+
+            // Process each sentence
+            for (let i = 0; i < sentences.length; i++) {
+              const sentence = sentences[i];
+              // Add text run for the sentence with space after (except for last sentence)
+              const sentenceText = i < sentences.length - 1 ? sentence.text + ' ' : sentence.text;
               
+              // Parse citations from the sentence text
+              const sentenceRuns = this.parseCitationsFromText(sentenceText);
+              runs.push(...sentenceRuns);
+
+              // Collect citations for this sentence if footnotes are enabled
               if (options.includeFootnotes !== false) {
                 const citations = await this.citationCollector.collectCitationsForSentence(sentence.id);
                 
                 for (const citation of citations) {
                   allCitations.push(citation);
                   
+                  // Create footnote entry
                   const footnote: DocumentFootnote = {
                     id: footnoteIndex,
                     quoteText: citation.quoteText,
@@ -138,6 +206,7 @@ export class DocumentBuilder {
                   };
                   footnotes.push(footnote);
                   
+                  // Add footnote reference run
                   runs.push({
                     type: 'footnote-ref',
                     content: '',
@@ -149,45 +218,21 @@ export class DocumentBuilder {
               }
             }
           }
-        } else {
-          // No images, process normally
-          const sentences = this.parseSentencesWithParser(paragraphText, manuscriptId);
 
-          // Process each sentence
-          for (const sentence of sentences) {
-            // Add text run for the sentence
-            runs.push({ type: 'text', content: sentence.text });
-
-            // Collect citations for this sentence if footnotes are enabled
-            if (options.includeFootnotes !== false) {
-              const citations = await this.citationCollector.collectCitationsForSentence(sentence.id);
-              
-              for (const citation of citations) {
-                allCitations.push(citation);
-                
-                // Create footnote entry
-                const footnote: DocumentFootnote = {
-                  id: footnoteIndex,
-                  quoteText: citation.quoteText,
-                  source: citation.source,
-                  year: citation.year
-                };
-                footnotes.push(footnote);
-                
-                // Add footnote reference run
-                runs.push({
-                  type: 'footnote-ref',
-                  content: '',
-                  footnoteId: footnoteIndex
-                });
-                
-                footnoteIndex++;
-              }
+          // Add runs to combined runs, with space between paragraphs
+          if (runs.length > 0) {
+            combinedRuns.push(...runs);
+            // Add space between paragraphs (except after the last one)
+            if (groupIndex < paragraphGroup.length - 1) {
+              combinedRuns.push({ type: 'text', content: ' ' });
             }
           }
         }
 
-        paragraphs.push({ runs });
+        // Add the combined paragraph if it has content
+        if (combinedRuns.length > 0) {
+          paragraphs.push({ runs: combinedRuns });
+        }
       }
 
       documentSections.push({
@@ -223,6 +268,34 @@ export class DocumentBuilder {
   }
 
   /**
+   * Split paragraphs by explicit break markers (---)
+   * Paragraphs separated by --- will be in different groups
+   */
+  private splitParagraphsByBreakMarkers(paragraphs: string[]): string[][] {
+    const groups: string[][] = [];
+    let currentGroup: string[] = [];
+
+    for (const para of paragraphs) {
+      if (para.trim() === '---') {
+        // Break marker - start a new group
+        if (currentGroup.length > 0) {
+          groups.push(currentGroup);
+          currentGroup = [];
+        }
+      } else {
+        currentGroup.push(para);
+      }
+    }
+
+    // Add final group
+    if (currentGroup.length > 0) {
+      groups.push(currentGroup);
+    }
+
+    return groups.length > 0 ? groups : [paragraphs];
+  }
+
+  /**
    * Parse paragraph into sentences using the SentenceParser
    * This generates proper sentence IDs that match the citation system
    * Also extracts images and tables from markdown
@@ -234,5 +307,140 @@ export class DocumentBuilder {
     }
     
     return this.sentenceParser.parseSentences(paragraph, manuscriptId);
+  }
+
+  /**
+   * Parse BibTeX citations from text
+   * Converts \cite{KEY} to citation runs
+   * 
+   * @param text The text to parse
+   * @returns Array of runs (text and citation)
+   */
+  private parseCitationsFromText(text: string): DocumentRun[] {
+    const runs: DocumentRun[] = [];
+    const citationRegex = /\\cite\{([^}]+)\}/g;
+    let lastIndex = 0;
+    let match;
+
+    while ((match = citationRegex.exec(text)) !== null) {
+      // Add text before citation
+      if (match.index > lastIndex) {
+        const textBefore = text.substring(lastIndex, match.index);
+        runs.push({
+          type: 'text',
+          content: textBefore
+        });
+      }
+
+      // Add citation - metadata will be enriched later if Zotero is available
+      const citeKey = match[1];
+      const citation: DocumentCitation = {
+        citeKey,
+        zoteroKey: citeKey,
+        displayText: `[${citeKey}]`
+      };
+      
+      // Check if we have cached Zotero metadata for this key
+      const cachedItem = this.zoteroItemCache.get(citeKey);
+      if (cachedItem) {
+        this.enrichCitationFromZoteroItem(citation, cachedItem);
+      }
+      
+      runs.push({
+        type: 'citation',
+        content: '',
+        citation
+      });
+
+      lastIndex = match.index + match[0].length;
+    }
+
+    // Add remaining text
+    if (lastIndex < text.length) {
+      runs.push({
+        type: 'text',
+        content: text.substring(lastIndex)
+      });
+    }
+
+    // If no citations found, return single text run
+    if (runs.length === 0) {
+      runs.push({
+        type: 'text',
+        content: text
+      });
+    }
+
+    return runs;
+  }
+
+  /**
+   * Enrich citation with metadata from Zotero item
+   */
+  private enrichCitationFromZoteroItem(citation: DocumentCitation, item: ZoteroItem): void {
+    citation.title = item.title;
+    citation.year = item.date ? this.extractYearFromDate(item.date) : undefined;
+    
+    if (item.creators && item.creators.length > 0) {
+      const authorNames = item.creators.map(c => {
+        if (c.name) return c.name;
+        if (c.lastName) return c.firstName ? `${c.lastName}, ${c.firstName}` : c.lastName;
+        return '';
+      }).filter(n => n);
+      
+      citation.authors = authorNames.join('; ');
+      
+      // Create better display text: (Author et al., Year)
+      const firstAuthor = item.creators[0];
+      const authorDisplay = firstAuthor.lastName || firstAuthor.name || citation.citeKey;
+      const etAl = item.creators.length > 1 ? ' et al.' : '';
+      const yearDisplay = citation.year || '';
+      citation.displayText = `(${authorDisplay}${etAl}, ${yearDisplay})`;
+    }
+  }
+
+  /**
+   * Extract year from various date formats
+   */
+  private extractYearFromDate(date: string): string | undefined {
+    const match = date.match(/(\d{4})/);
+    return match ? match[1] : undefined;
+  }
+
+  /**
+   * Pre-fetch Zotero metadata for all citations in the manuscript
+   * Call this before building the document model for enriched citations
+   */
+  public async prefetchZoteroMetadata(manuscriptText: string): Promise<void> {
+    if (!this.zoteroApiService || !this.zoteroApiService.isConfigured()) {
+      return;
+    }
+
+    // Extract all citation keys from manuscript
+    const citationRegex = /\\cite\{([^}]+)\}/g;
+    const citeKeys = new Set<string>();
+    let match;
+    
+    while ((match = citationRegex.exec(manuscriptText)) !== null) {
+      citeKeys.add(match[1]);
+    }
+
+    if (citeKeys.size === 0) {
+      return;
+    }
+
+    // Fetch items from Zotero and cache them
+    try {
+      const items = await this.zoteroApiService.getItems(100);
+      
+      for (const item of items) {
+        if (citeKeys.has(item.key)) {
+          this.zoteroItemCache.set(item.key, item);
+        }
+      }
+    } catch (error) {
+      // Silently fail - citations will just use fallback display
+      console.warn('Failed to prefetch Zotero metadata:', error);
+    }
   }
 }

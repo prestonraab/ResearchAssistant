@@ -874,6 +874,21 @@ export class EditingModeProvider {
       <div id="sentencesList" class="sentences-list"></div>
     </div>
 
+    <!-- Find Bar -->
+    <div id="findBar" class="find-bar hidden">
+      <input 
+        id="findInput" 
+        class="find-input" 
+        type="text" 
+        placeholder="Find in editing..."
+        autocomplete="off"
+      />
+      <div id="findCounter" class="find-counter">0 of 0</div>
+      <button id="findPrevBtn" class="find-button" title="Previous match (Shift+Enter)">↑</button>
+      <button id="findNextBtn" class="find-button" title="Next match (Enter)">↓</button>
+      <button id="findCloseBtn" class="find-button close-btn" title="Close (Esc)">✕</button>
+    </div>
+
     ${helpOverlayHtml}
   </div>
 

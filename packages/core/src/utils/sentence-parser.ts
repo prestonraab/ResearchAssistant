@@ -15,8 +15,11 @@ export class SentenceParser {
    * Handles abbreviations, numbers, preserves formatting, and extracts claim associations from Source comments
    */
   parseSentences(text: string, manuscriptId: string = 'default'): Sentence[] {
+    // Create cache key from both manuscriptId and text content
+    const cacheKey = `${manuscriptId}:${text}`;
+    
     // Check cache first
-    const cached = this.sentenceCache.get(manuscriptId);
+    const cached = this.sentenceCache.get(cacheKey);
     if (cached) {
       return cached;
     }
@@ -25,7 +28,7 @@ export class SentenceParser {
     const sentences = splitIntoSentences(text, manuscriptId);
     
     // Cache the result
-    this.sentenceCache.set(manuscriptId, sentences);
+    this.sentenceCache.set(cacheKey, sentences);
 
     return sentences;
   }
@@ -35,7 +38,12 @@ export class SentenceParser {
    */
   clearCache(manuscriptId?: string): void {
     if (manuscriptId) {
-      this.sentenceCache.delete(manuscriptId);
+      // Clear all entries that start with this manuscriptId
+      for (const key of this.sentenceCache.keys()) {
+        if (key.startsWith(`${manuscriptId}:`)) {
+          this.sentenceCache.delete(key);
+        }
+      }
     } else {
       this.sentenceCache.clear();
     }

@@ -87,6 +87,59 @@ body[data-vscode-theme-kind="vscode-high-contrast-light"] {
   opacity: 1;
 }
 
+/* Export Dropdown */
+.export-dropdown {
+  position: relative;
+  display: inline-block;
+}
+
+.export-menu {
+  display: none;
+  position: absolute;
+  top: 100%;
+  right: 0;
+  background-color: var(--vscode-dropdown-background);
+  border: 1px solid var(--vscode-dropdown-border);
+  border-radius: 4px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  z-index: 1000;
+  min-width: 160px;
+  margin-top: 4px;
+}
+
+.export-dropdown.open .export-menu {
+  display: block;
+}
+
+.export-option {
+  display: block;
+  width: 100%;
+  padding: 8px 12px;
+  background: none;
+  border: none;
+  color: var(--vscode-dropdown-foreground);
+  text-align: left;
+  cursor: pointer;
+  font-size: 13px;
+  transition: background-color 0.2s;
+}
+
+.export-option:first-child {
+  border-radius: 3px 3px 0 0;
+}
+
+.export-option:last-child {
+  border-radius: 0 0 3px 3px;
+}
+
+.export-option:hover {
+  background-color: var(--vscode-list-hoverBackground);
+}
+
+.export-option:active {
+  background-color: var(--vscode-list-activeSelectionBackground);
+}
+
 /* Content */
 .content {
   flex: 1;
@@ -178,6 +231,38 @@ body[data-vscode-theme-kind="vscode-high-contrast-light"] {
 
 .pair-wrapper.drag-over {
   border-top: 3px solid var(--vscode-focusBorder);
+}
+
+/* Break Marker - Very slim visual element */
+.pair-wrapper.break-marker {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px;
+  border: none;
+  border-radius: 0;
+  background-color: transparent;
+  margin-bottom: 0;
+  min-height: auto;
+  height: auto;
+}
+
+.break-marker-line {
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(to right, transparent, var(--vscode-focusBorder), transparent);
+  opacity: 0.5;
+}
+
+.pair-wrapper.break-marker .delete-btn {
+  margin-left: 0;
+  font-size: 12px;
+  opacity: 0.3;
+  padding: 0 4px;
+}
+
+.pair-wrapper.break-marker .delete-btn:hover {
+  opacity: 0.8;
 }
 
 /* Drag Handle */
@@ -488,6 +573,22 @@ body[data-vscode-theme-kind="vscode-high-contrast-light"] {
   opacity: 1;
 }
 
+.paragraph-break-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+  opacity: 0.5;
+  transition: opacity 0.2s;
+  padding: 0 4px;
+  color: var(--vscode-descriptionForeground);
+}
+
+.paragraph-break-btn:hover {
+  opacity: 1;
+  color: var(--vscode-focusBorder);
+}
+
 .citations-toggle-btn {
   background: none;
   border: none;
@@ -792,4 +893,105 @@ body[data-vscode-theme-kind="vscode-high-contrast-light"] {
 
 .error-notification .error-close:hover {
   opacity: 1;
+}
+
+/* Find Bar */
+.find-bar {
+  position: fixed;
+  bottom: 0;
+  right: 0;
+  left: 0;
+  height: 44px;
+  background-color: var(--vscode-input-background);
+  border-top: 1px solid var(--vscode-input-border);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px;
+  z-index: 999;
+  box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.1);
+  animation: slideUp 0.2s ease;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.find-bar.hidden {
+  display: none;
+}
+
+.find-input {
+  flex: 1;
+  max-width: 300px;
+  padding: 6px 10px;
+  background-color: var(--vscode-input-background);
+  border: 1px solid var(--vscode-input-border);
+  border-radius: 3px;
+  color: var(--vscode-input-foreground);
+  font-size: 13px;
+  outline: none;
+}
+
+.find-input:focus {
+  border-color: var(--vscode-focusBorder);
+  box-shadow: 0 0 0 1px var(--vscode-focusBorder);
+}
+
+.find-input::placeholder {
+  color: var(--vscode-input-placeholderForeground);
+}
+
+.find-counter {
+  font-size: 12px;
+  color: var(--vscode-descriptionForeground);
+  min-width: 60px;
+  text-align: right;
+}
+
+.find-button {
+  background-color: transparent;
+  border: 1px solid transparent;
+  color: var(--vscode-descriptionForeground);
+  padding: 4px 8px;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 12px;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.find-button:hover {
+  background-color: var(--vscode-button-hoverBackground);
+  color: var(--vscode-button-foreground);
+}
+
+.find-button:active {
+  background-color: var(--vscode-button-background);
+}
+
+.find-button.close-btn {
+  margin-left: auto;
+}
+
+/* Highlight styles for found text */
+.find-match {
+  background-color: var(--vscode-editor-findMatchBackground);
+  border: 1px solid var(--vscode-editor-findMatchBorder);
+  border-radius: 1px;
+}
+
+.find-match.current {
+  background-color: var(--vscode-editor-findMatchHighlightBackground);
+  border: 1px solid var(--vscode-editor-findMatchHighlightBorder);
+  font-weight: 500;
 }
