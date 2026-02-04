@@ -656,14 +656,14 @@ function attachPairListeners() {
     
     // Add hover listener for orphan citation tooltips
     editor.addEventListener('mouseover', (e) => {
-      const target = e.target as HTMLElement;
+      const target = e.target;
       if (target.classList.contains('orphan-citation')) {
         showOrphanCitationTooltip(target);
       }
     });
     
     editor.addEventListener('mouseout', (e) => {
-      const target = e.target as HTMLElement;
+      const target = e.target;
       if (target.classList.contains('orphan-citation')) {
         hideOrphanCitationTooltip();
       }

@@ -85,6 +85,11 @@ export class LiteratureIndexer {
       return;
     }
 
+    if (!this.embeddingService) {
+      console.warn('[LiteratureIndexer] Embedding service is not available, skipping indexing');
+      return;
+    }
+
     const embeddedSnippets: EmbeddedSnippet[] = [];
 
     for (let i = 0; i < snippets.length; i++) {
@@ -94,23 +99,33 @@ export class LiteratureIndexer {
         console.log(`[LiteratureIndexer] Embedding snippet ${i + 1}/${snippets.length}`);
       }
 
-      const embedding = await this.embeddingService.generateEmbedding(snippet.text);
-      
-      if (!embedding) {
-        console.warn(`[LiteratureIndexer] Failed to embed snippet ${i + 1}`);
-        continue;
-      }
+      try {
+        const embedding = await this.embeddingService.generateEmbedding(snippet.text);
+        
+        if (!embedding) {
+          console.warn(`[LiteratureIndexer] Failed to embed snippet ${i + 1}`);
+          continue;
+        }
 
-      embeddedSnippets.push({
-        id: `${path.basename(filePath)}_${i}`,
-        filePath,
-        fileName: path.basename(filePath),
-        text: snippet.text,
-        embedding,
-        startLine: snippet.startLine,
-        endLine: snippet.endLine,
-        timestamp: Date.now()
-      });
+        embeddedSnippets.push({
+          id: `${path.basename(filePath)}_${i}`,
+          filePath,
+          fileName: path.basename(filePath),
+          text: snippet.text,
+          embedding,
+          startLine: snippet.startLine,
+          endLine: snippet.endLine,
+          timestamp: Date.now()
+        });
+      } catch (error) {
+        const errorMsg = error instanceof Error ? error.message : String(error);
+        console.error(`[LiteratureIndexer] Error embedding snippet ${i + 1}: ${errorMsg}`);
+        
+        // If it's an API key error, log it prominently
+        if (errorMsg.includes('401') || errorMsg.includes('Unauthorized') || errorMsg.includes('API key')) {
+          console.error('[LiteratureIndexer] ⚠️  OpenAI API key error - check your configuration in VS Code settings');
+        }
+      }
     }
 
     await this.embeddingStore.addSnippets(embeddedSnippets, filePath, content);
@@ -118,6 +133,11 @@ export class LiteratureIndexer {
 
   async searchSnippets(query: string, limit: number = 10): Promise<EmbeddedSnippet[]> {
     console.log('[LiteratureIndexer] searchSnippets called with query:', query.substring(0, 50));
+    
+    if (!this.embeddingService) {
+      console.warn('[LiteratureIndexer] Embedding service is not available');
+      return [];
+    }
     
     const queryEmbedding = await this.embeddingService.generateEmbedding(query);
     
@@ -136,6 +156,11 @@ export class LiteratureIndexer {
 
   async searchSnippetsWithSimilarity(query: string, limit: number = 10): Promise<import('./EmbeddingStore.js').EmbeddedSnippetWithSimilarity[]> {
     console.log('[LiteratureIndexer] searchSnippetsWithSimilarity called with query:', query.substring(0, 50));
+    
+    if (!this.embeddingService) {
+      console.warn('[LiteratureIndexer] Embedding service is not available');
+      return [];
+    }
     
     const queryEmbedding = await this.embeddingService.generateEmbedding(query);
     

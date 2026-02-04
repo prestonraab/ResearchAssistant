@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import type { Claim } from '@research-assistant/core';
+import type { Claim, EmbeddingService } from '@research-assistant/core';
 import { ClaimsManager } from './claimsManagerWrapper';
 import { getLogger } from './loggingService';
 import { UnifiedQuoteSearch } from '../services/unifiedQuoteSearch';
@@ -34,13 +34,14 @@ export class AutoQuoteVerifier {
   private unifiedQuoteSearch: UnifiedQuoteSearch;
 
   constructor(
-    private claimsManager: ClaimsManager
+    private claimsManager: ClaimsManager,
+    private embeddingService?: EmbeddingService
   ) {
     this.logger.info('AutoQuoteVerifier initialized');
     
-    // Initialize unified quote search service
+    // Initialize unified quote search service with embedding service
     const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || '';
-    const literatureIndexer = new LiteratureIndexer(workspaceRoot);
+    const literatureIndexer = new LiteratureIndexer(workspaceRoot, this.embeddingService || undefined);
     this.unifiedQuoteSearch = new UnifiedQuoteSearch(literatureIndexer, workspaceRoot);
   }
 

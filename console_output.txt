@@ -1,246 +1,31 @@
-workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Cancelling previous claim operations
-workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Initial claim loaded, starting background operations
-claimReview.js:1720 [ClaimReview] Operations cancelled: Switching to new claim
-workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Claim has quotes - starting verification workflow
-workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Found cached validation result
-claimReview.js:184 [ClaimReview] Displaying claim: {id: 'C_108', text: 'Batch effects can lead to lack of reproducibility … predictors, potentially putting patients at risk', category: 'Application', source: 'Leek2010', primaryQuote: {…}, …}
-workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Manuscript usage locations loaded
-workbench.desktop.main.js:523 [Extension Host] [QuoteVerificationService] Cache hit for quote from Leek2010
-workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Orphan citations loaded: 0
-claimReview.js:916 [ClaimReview] Validation result updated
-claimReview.js:927 [ClaimReview] Usage locations updated: 0 locations
-workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Primary quote verification result: {verified: true, similarity: 0.9518072289156626}
-workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Running embedding search...
-workbench.desktop.main.js:523 [Extension Host] [LiteratureIndexer] searchSnippetsWithSimilarity called with query: If batch effects go undetected, they can lead to s
-workbench.desktop.main.js:523 [Extension Host] [LiteratureIndexer] Query embedding generated, searching store
-workbench.desktop.main.js:523 [Extension Host] [EmbeddingStore] searchByEmbeddingWithSimilarity called with 9117 total snippets
-workbench.desktop.main.js:523 [Extension Host] [EmbeddingStore] Returning 5 results with similarity scores
-workbench.desktop.main.js:523 [Extension Host] [LiteratureIndexer] Search returned 5 results with similarity scores
-workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Embedding search found 5 matches, top similarity: 0.772 in Xu et al. - 2023 - Graph embedding and Gaussian mixture variational autoencoder network for end-to-end analysis of sing.txt
-workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Running unified quote search...
-workbench.desktop.main.js:523 [Extension Host] [LiteratureIndexer] searchSnippetsWithSimilarity called with query: if batch effects go undetected, they can lead to s
-workbench.desktop.main.js:523 [Extension Host] [LiteratureIndexer] Query embedding generated, searching store
-workbench.desktop.main.js:523 [Extension Host] [EmbeddingStore] searchByEmbeddingWithSimilarity called with 9117 total snippets
-workbench.desktop.main.js:523 [Extension Host] [EmbeddingStore] Returning 5 results with similarity scores
-workbench.desktop.main.js:523 [Extension Host] [LiteratureIndexer] Search returned 5 results with similarity scores
-workbench.desktop.main.js:523 [Extension Host] [NgramIndex] Query: 473 total 6-grams, 236 rare
-workbench.desktop.main.js:523 [Extension Host] [NgramIndex] Found 7 candidates (required 70+ matches, 30%+ containment)
-workbench.desktop.main.js:523 [Extension Host] [UnifiedQuoteSearch] Trigram pre-filter: 7 candidate docs (vs scanning all files)
-workbench.desktop.main.js:34  INFO Extension host (LocalProcess pid: 12305) is unresponsive.
-workbench.desktop.main.js:11513 Extension Host
-workbench.desktop.main.js:11513 Debugger attached.
-workbench.desktop.main.js:34  INFO UNRESPONSIVE extension host: starting to profile NOW
-workbench.desktop.main.js:34  WARN UNRESPONSIVE extension host: 'research-tools.research-assistant' took 97.28515461798979% of 4866.649ms, saved PROFILE here: 'file:///var/folders/2x/pxsr_9190jq1x9nh0r2xj_qm0000gr/T/exthost-105cec.cpuprofile'
-warn @ workbench.desktop.main.js:34
-warn @ workbench.desktop.main.js:34
-warn @ workbench.desktop.main.js:11483
-r @ workbench.desktop.main.js:11530
-await in r
-q @ workbench.desktop.main.js:11530
-await in q
-C @ workbench.desktop.main.js:29
-fire @ workbench.desktop.main.js:29
-(anonymous) @ workbench.desktop.main.js:11509
-C @ workbench.desktop.main.js:29
-fire @ workbench.desktop.main.js:29
-(anonymous) @ workbench.desktop.main.js:11502
-C @ workbench.desktop.main.js:29
-fire @ workbench.desktop.main.js:29
-I @ workbench.desktop.main.js:11502
-H @ workbench.desktop.main.js:11502
-(anonymous) @ workbench.desktop.main.js:11502
-h @ workbench.desktop.main.js:30
-g @ workbench.desktop.main.js:30
-setTimeout
-e.setTimeout @ workbench.desktop.main.js:722
-schedule @ workbench.desktop.main.js:30
-H @ workbench.desktop.main.js:11502
-(anonymous) @ workbench.desktop.main.js:11502
-h @ workbench.desktop.main.js:30
-g @ workbench.desktop.main.js:30
-setTimeout
-e.setTimeout @ workbench.desktop.main.js:722
-schedule @ workbench.desktop.main.js:30
-H @ workbench.desktop.main.js:11502
-(anonymous) @ workbench.desktop.main.js:11502
-h @ workbench.desktop.main.js:30
-g @ workbench.desktop.main.js:30
-setTimeout
-e.setTimeout @ workbench.desktop.main.js:722
-schedule @ workbench.desktop.main.js:30
-F @ workbench.desktop.main.js:11502
-U @ workbench.desktop.main.js:11502
-n.<computed>.o.charCodeAt.n.<computed> @ workbench.desktop.main.js:11502
-(anonymous) @ workbench.desktop.main.js:506
-C @ workbench.desktop.main.js:29
-fire @ workbench.desktop.main.js:29
-(anonymous) @ workbench.desktop.main.js:557
-C @ workbench.desktop.main.js:29
-fire @ workbench.desktop.main.js:29
-(anonymous) @ workbench.desktop.main.js:11682
-(anonymous) @ workbench.desktop.main.js:11682
-H.onmessage @ workbench.desktop.main.js:11682
-workbench.desktop.main.js:34   ERR Error: Aborted onWillSaveTextDocument-event after 1750ms
-    at workbench.desktop.main.js:555:10248
-error @ workbench.desktop.main.js:34
-error @ workbench.desktop.main.js:34
-error @ workbench.desktop.main.js:11483
-(anonymous) @ workbench.desktop.main.js:11484
-await in (anonymous)
-o @ workbench.desktop.main.js:1241
-(anonymous) @ workbench.desktop.main.js:1241
-w @ workbench.desktop.main.js:1241
-withProgress @ workbench.desktop.main.js:1241
-participate @ workbench.desktop.main.js:11484
-runSaveParticipants @ workbench.desktop.main.js:11484
-(anonymous) @ workbench.desktop.main.js:1259
-Ob @ workbench.desktop.main.js:1259
-(anonymous) @ workbench.desktop.main.js:1259
-o @ workbench.desktop.main.js:1241
-(anonymous) @ workbench.desktop.main.js:1241
-w @ workbench.desktop.main.js:1241
-withProgress @ workbench.desktop.main.js:1241
-Nb @ workbench.desktop.main.js:1259
-save @ workbench.desktop.main.js:1259
-(anonymous) @ workbench.desktop.main.js:607
-setTimeout
-e.setTimeout @ workbench.desktop.main.js:722
-O @ workbench.desktop.main.js:607
-N @ workbench.desktop.main.js:607
-(anonymous) @ workbench.desktop.main.js:607
-C @ workbench.desktop.main.js:29
-D @ workbench.desktop.main.js:29
-fire @ workbench.desktop.main.js:29
-(anonymous) @ workbench.desktop.main.js:525
-C @ workbench.desktop.main.js:29
-fire @ workbench.desktop.main.js:29
-Jb @ workbench.desktop.main.js:1259
-(anonymous) @ workbench.desktop.main.js:1259
-(anonymous) @ workbench.desktop.main.js:267
-C @ workbench.desktop.main.js:29
-D @ workbench.desktop.main.js:29
-fire @ workbench.desktop.main.js:29
-endDeferredEmit @ workbench.desktop.main.js:276
-pushEditOperations @ workbench.desktop.main.js:274
-c @ workbench.desktop.main.js:277
-executeCommands @ workbench.desktop.main.js:277
-G @ workbench.desktop.main.js:276
-(anonymous) @ workbench.desktop.main.js:277
-L @ workbench.desktop.main.js:277
-paste @ workbench.desktop.main.js:277
-(anonymous) @ workbench.desktop.main.js:278
-(anonymous) @ workbench.desktop.main.js:278
-batchChanges @ workbench.desktop.main.js:280
-X @ workbench.desktop.main.js:278
-W @ workbench.desktop.main.js:278
-paste @ workbench.desktop.main.js:278
-$b @ workbench.desktop.main.js:280
-trigger @ workbench.desktop.main.js:280
-N @ workbench.desktop.main.js:416
-await in N
-(anonymous) @ workbench.desktop.main.js:416
-await in (anonymous)
-An @ workbench.desktop.main.js:30
-G @ workbench.desktop.main.js:416
-D @ workbench.desktop.main.js:416
-(anonymous) @ workbench.desktop.main.js:416
-workbench.desktop.main.js:34   ERR Error: Aborted onWillSaveTextDocument-event after 1750ms
-    at workbench.desktop.main.js:555:10248
-error @ workbench.desktop.main.js:34
-error @ workbench.desktop.main.js:34
-error @ workbench.desktop.main.js:11483
-(anonymous) @ workbench.desktop.main.js:11484
-await in (anonymous)
-o @ workbench.desktop.main.js:1241
-(anonymous) @ workbench.desktop.main.js:1241
-w @ workbench.desktop.main.js:1241
-withProgress @ workbench.desktop.main.js:1241
-participate @ workbench.desktop.main.js:11484
-runSaveParticipants @ workbench.desktop.main.js:11484
-(anonymous) @ workbench.desktop.main.js:1259
-Ob @ workbench.desktop.main.js:1259
-(anonymous) @ workbench.desktop.main.js:1259
-o @ workbench.desktop.main.js:1241
-(anonymous) @ workbench.desktop.main.js:1241
-w @ workbench.desktop.main.js:1241
-withProgress @ workbench.desktop.main.js:1241
-Nb @ workbench.desktop.main.js:1259
-save @ workbench.desktop.main.js:1259
-(anonymous) @ workbench.desktop.main.js:607
-setTimeout
-e.setTimeout @ workbench.desktop.main.js:722
-O @ workbench.desktop.main.js:607
-N @ workbench.desktop.main.js:607
-(anonymous) @ workbench.desktop.main.js:607
-C @ workbench.desktop.main.js:29
-D @ workbench.desktop.main.js:29
-fire @ workbench.desktop.main.js:29
-(anonymous) @ workbench.desktop.main.js:525
-C @ workbench.desktop.main.js:29
-fire @ workbench.desktop.main.js:29
-Jb @ workbench.desktop.main.js:1259
-(anonymous) @ workbench.desktop.main.js:1259
-(anonymous) @ workbench.desktop.main.js:267
-C @ workbench.desktop.main.js:29
-D @ workbench.desktop.main.js:29
-fire @ workbench.desktop.main.js:29
-endDeferredEmit @ workbench.desktop.main.js:276
-pushEditOperations @ workbench.desktop.main.js:274
-c @ workbench.desktop.main.js:277
-executeCommands @ workbench.desktop.main.js:277
-G @ workbench.desktop.main.js:276
-(anonymous) @ workbench.desktop.main.js:277
-L @ workbench.desktop.main.js:277
-paste @ workbench.desktop.main.js:277
-(anonymous) @ workbench.desktop.main.js:278
-(anonymous) @ workbench.desktop.main.js:278
-batchChanges @ workbench.desktop.main.js:280
-X @ workbench.desktop.main.js:278
-W @ workbench.desktop.main.js:278
-paste @ workbench.desktop.main.js:278
-$b @ workbench.desktop.main.js:280
-trigger @ workbench.desktop.main.js:280
-N @ workbench.desktop.main.js:416
-await in N
-(anonymous) @ workbench.desktop.main.js:416
-await in (anonymous)
-An @ workbench.desktop.main.js:30
-G @ workbench.desktop.main.js:416
-D @ workbench.desktop.main.js:416
-(anonymous) @ workbench.desktop.main.js:416
-workbench.desktop.main.js:34   ERR Error: Aborted onWillSaveTextDocument-event after 1750ms
-    at workbench.desktop.main.js:555:10248
-error @ workbench.desktop.main.js:34
-error @ workbench.desktop.main.js:34
-error @ workbench.desktop.main.js:11483
-(anonymous) @ workbench.desktop.main.js:11484
-await in (anonymous)
-o @ workbench.desktop.main.js:1241
-(anonymous) @ workbench.desktop.main.js:1241
-w @ workbench.desktop.main.js:1241
-withProgress @ workbench.desktop.main.js:1241
-participate @ workbench.desktop.main.js:11484
-runSaveParticipants @ workbench.desktop.main.js:11484
-(anonymous) @ workbench.desktop.main.js:1259
-Ob @ workbench.desktop.main.js:1259
-(anonymous) @ workbench.desktop.main.js:1259
-o @ workbench.desktop.main.js:1241
-(anonymous) @ workbench.desktop.main.js:1241
-w @ workbench.desktop.main.js:1241
-withProgress @ workbench.desktop.main.js:1241
-Nb @ workbench.desktop.main.js:1259
-save @ workbench.desktop.main.js:1259
-save @ workbench.desktop.main.js:11484
-S @ workbench.desktop.main.js:534
-save @ workbench.desktop.main.js:534
-(anonymous) @ workbench.desktop.main.js:1259
-save @ workbench.desktop.main.js:1259
-Bet @ workbench.desktop.main.js:1518
-$et @ workbench.desktop.main.js:1518
-handler @ workbench.desktop.main.js:1518
-invokeFunction @ workbench.desktop.main.js:1349
-n @ workbench.desktop.main.js:1284
-executeCommand @ workbench.desktop.main.js:1284
-N @ workbench.desktop.main.js:1262
-L @ workbench.desktop.main.js:1262
-(anonymous) @ workbench.desktop.main.js:1263
+[Extension Host] [LiteratureIndexer] searchSnippetsWithSimilarity called with query: To date, mass spectrometry (MS) data remain inhere
+workbench.desktop.main.js:34   ERR [Extension Host] [ClaimReview] Failed to search for quote: TypeError: Cannot read properties of null (reading 'generateEmbedding')
+	at In.searchSnippetsWithSimilarity (/Users/phr23/.kiro/extensions/research-tools.research-assistant-0.1.0/dist/extension.js:3791:3324)
+	at e.verifyAllQuotes (/Users/phr23/.kiro/extensions/research-tools.research-assistant-0.1.0/dist/extension.js:4284:24186)
+	at async Promise.all (index 0)
+	at async e.loadAndDisplayClaim (/Users/phr23/.kiro/extensions/research-tools.research-assistant-0.1.0/dist/extension.js:4284:21735)
+	at async e._showInternal (/Users/phr23/.kiro/extensions/research-tools.research-assistant-0.1.0/dist/extension.js:4284:18057)
+	at async /Users/phr23/.kiro/extensions/research-tools.research-assistant-0.1.0/dist/extension.js:4284:17912
+	at async r8.benchmarkModeLoad (/Users/phr23/.kiro/extensions/research-tools.research-assistant-0.1.0/dist/extension.js:3798:10556)
+	at async e.show (/Users/phr23/.kiro/extensions/research-tools.research-assistant-0.1.0/dist/extension.js:4284:17854)
+	at async /Users/phr23/.kiro/extensions/research-tools.research-assistant-0.1.0/dist/extension.js:4412:639
+	at async Vb.h (file:///Users/phr23/Desktop/Kiro.app/Contents/Resources/app/out/vs/workbench/api/node/extensionHostProcess.js:112:41557)
+	at async Vb.h (file:///Users/phr23/Desktop/Kiro.app/Contents/Resources/app/out/vs/workbench/api/node/extensionHostProcess.js:112:41557)
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Failed to search for quote: TypeError: Cannot read properties of null (reading 'generateEmbedding')
+	at In.searchSnippetsWithSimilarity (/Users/phr23/.kiro/extensions/research-tools.research-assistant-0.1.0/dist/extension.js:3791:3324)
+	at e.verifyAllQuotes (/Users/phr23/.kiro/extensions/research-tools.research-assistant-0.1.0/dist/extension.js:4284:24186)
+	at async Promise.all (index 0)
+	at async e.loadAndDisplayClaim (/Users/phr23/.kiro/extensions/research-tools.research-assistant-0.1.0/dist/extension.js:4284:21735)
+	at async e._showInternal (/Users/phr23/.kiro/extensions/research-tools.research-assistant-0.1.0/dist/extension.js:4284:18057)
+	at async /Users/phr23/.kiro/extensions/research-tools.research-assistant-0.1.0/dist/extension.js:4284:17912
+	at async r8.benchmarkModeLoad (/Users/phr23/.kiro/extensions/research-tools.research-assistant-0.1.0/dist/extension.js:3798:10556)
+	at async e.show (/Users/phr23/.kiro/extensions/research-tools.research-assistant-0.1.0/dist/extension.js:4284:17854)
+	at async /Users/phr23/.kiro/extensions/research-tools.research-assistant-0.1.0/dist/extension.js:4412:639
+	at async Vb.h (file:///Users/phr23/Desktop/Kiro.app/Contents/Resources/app/out/vs/workbench/api/node/extensionHostProcess.js:112:41557)
+	at async Vb.h (file:///Users/phr23/Desktop/Kiro.app/Contents/Resources/app/out/vs/workbench/api/node/extensionHostProcess.js:112:41557)
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Quote verification complete
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Stored context: 
+{claimId: 'C_96'}
+claimReview.js:289 [ClaimReview] Verification progress: 1 / 1
+claimReview.js:899 [ClaimReview] Verification results updated: 1 results
+workbench.desktop.main.js:523 [Extension Host] [QuoteVerificationCache] Saved 200 entries to /Users/phr23/Writing/Chapter/.cache/quote-verification.json

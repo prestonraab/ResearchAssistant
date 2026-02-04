@@ -1,5 +1,5 @@
 import { ClaimsManager } from './claimsManagerWrapper';
-import { QuoteVerificationCache } from '@research-assistant/core';
+import { QuoteVerificationCache, EmbeddingService } from '@research-assistant/core';
 import type { Claim } from '@research-assistant/core';
 import { UnifiedQuoteSearch } from '../services/unifiedQuoteSearch';
 import { LiteratureIndexer } from '../services/literatureIndexer';
@@ -44,7 +44,8 @@ export class QuoteVerificationService {
 
   constructor(
     private claimsManager: ClaimsManager,
-    private workspaceRoot?: string
+    private workspaceRoot?: string,
+    private embeddingService?: EmbeddingService
   ) {
     // Initialize cache if workspace root is provided
     if (workspaceRoot) {
@@ -56,9 +57,9 @@ export class QuoteVerificationService {
       this.cacheReady = Promise.resolve();
     }
     
-    // Initialize unified quote search service
+    // Initialize unified quote search service with embedding service
     const root = workspaceRoot || '';
-    const literatureIndexer = new LiteratureIndexer(root);
+    const literatureIndexer = new LiteratureIndexer(root, this.embeddingService || undefined);
     this.unifiedQuoteSearch = new UnifiedQuoteSearch(literatureIndexer, root);
   }
 

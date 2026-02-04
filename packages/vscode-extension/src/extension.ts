@@ -26,6 +26,7 @@ import { WorkspaceDetector } from './core/workspaceDetector';
 import { Phase1Initializer } from './core/initializers/phase1';
 import { Phase2Initializer } from './core/initializers/phase2';
 import { Phase3Initializer } from './core/initializers/phase3';
+import { ApiKeyValidator } from './core/apiKeyValidator';
 
 let extensionState: ExtensionState | undefined;
 let writingFeedbackDecorator: WritingFeedbackDecorator | undefined;
@@ -398,6 +399,12 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   logger.info('Research Assistant extension is activating...');
 
   try {
+    // Validate API key early and show error if missing
+    const apiKeyValid = await ApiKeyValidator.validateApiKey();
+    if (!apiKeyValid) {
+      logger.warn('OpenAI API key not configured - embedding features will be disabled');
+    }
+
     // Skip auto-activate check - the extension is already activating
     // WorkspaceDetector.autoActivateIfNeeded was causing a deadlock
     // by trying to execute researchAssistant.activate before it was registered

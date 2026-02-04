@@ -20,6 +20,7 @@ import { LiteratureIndexer } from '../../services/literatureIndexer';
 import { ZoteroAvailabilityManager } from '../../services/zoteroAvailabilityManager';
 import { SentenceClaimQuoteLinkManager } from '../sentenceClaimQuoteLinkManager';
 import { OrphanCitationValidator, CitationSourceMapper } from '@research-assistant/core';
+import { ApiKeyValidator } from '../apiKeyValidator';
 
 /** Service state: all service instances and their initialization. */
 export class ServiceState {
@@ -52,9 +53,16 @@ export class ServiceState {
 
   constructor(coreState: CoreState) {
     const { config, workspaceRoot, context } = coreState;
-    const apiKey = vscode.workspace.getConfiguration('researchAssistant').get<string>('openaiApiKey') || '';
+    const apiKey = ApiKeyValidator.getApiKey();
     const cfg = vscode.workspace.getConfiguration('researchAssistant');
     const cacheDir = path.join(workspaceRoot, '.cache', 'embeddings');
+
+    // Log API key status
+    if (!apiKey || apiKey.trim() === '') {
+      console.warn('[ServiceState] OpenAI API key not configured - embedding features will be disabled');
+    } else {
+      console.log('[ServiceState] OpenAI API key configured');
+    }
 
     this.outlineParser = new OutlineParser(coreState.getAbsolutePath(config.outlinePath));
     this.claimsManager = new ClaimsManager(coreState.getAbsolutePath(config.claimsDatabasePath)) as any;
@@ -64,10 +72,10 @@ export class ServiceState {
     this.readingStatusManager = new ReadingStatusManager(context);
     this.claimExtractor = new ClaimExtractor(this.embeddingService);
     this.configurationManager = new ConfigurationManager(context);
-    this.quoteVerificationService = new QuoteVerificationService(this.claimsManager, workspaceRoot);
+    this.quoteVerificationService = new QuoteVerificationService(this.claimsManager, workspaceRoot, this.embeddingService);
     this.sentenceParser = new SentenceParser();
     this.sentenceClaimQuoteLinkManager = new SentenceClaimQuoteLinkManager(this.claimsManager, workspaceRoot);
-    this.autoQuoteVerifier = new AutoQuoteVerifier(this.claimsManager);
+    this.autoQuoteVerifier = new AutoQuoteVerifier(this.claimsManager, this.embeddingService);
     this.pdfExtractionService = new PDFExtractionService(workspaceRoot);
     this.citationNetworkAnalyzer = new CitationNetworkAnalyzer();
     this.batchOperationHandler = new BatchOperationHandler(this.claimsManager, this.readingStatusManager, this.quoteVerificationService);
