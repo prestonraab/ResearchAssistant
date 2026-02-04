@@ -20,7 +20,8 @@
     "test:coverage": "NODE_OPTIONS=--experimental-vm-modules jest --coverage"
   },
   "dependencies": {
-    "openai": "^4.20.0"
+    "openai": "^4.20.0",
+    "vectra": "^0.12.3"
   },
   "devDependencies": {
     "@types/jest": "^29.5.0",

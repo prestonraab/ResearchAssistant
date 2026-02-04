@@ -15,8 +15,7 @@
   "categories": [
     "Other"
   ],
-  "activationEvents": [
-  ],
+  "activationEvents": [],
   "main": "./dist/extension.js",
   "contributes": {
     "commands": [
@@ -555,6 +554,7 @@
     "@research-assistant/core": "*",
     "docx": "^9.5.1",
     "openai": "^4.0.0",
-    "punycode": "^2.3.1"
+    "punycode": "^2.3.1",
+    "vectra": "^0.12.3"
   }
 }

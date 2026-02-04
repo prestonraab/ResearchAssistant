@@ -113,7 +113,7 @@ export class LiteratureIndexer {
       });
     }
 
-    this.embeddingStore.addSnippets(embeddedSnippets, filePath, content);
+    await this.embeddingStore.addSnippets(embeddedSnippets, filePath, content);
   }
 
   async searchSnippets(query: string, limit: number = 10): Promise<EmbeddedSnippet[]> {
@@ -128,22 +128,22 @@ export class LiteratureIndexer {
 
     console.log('[LiteratureIndexer] Query embedding generated, searching store');
     
-    const results = this.embeddingStore.searchByEmbedding(queryEmbedding, limit);
+    const results = await this.embeddingStore.searchByEmbedding(queryEmbedding, limit);
     console.log('[LiteratureIndexer] Search returned', results.length, 'results');
     
     return results;
   }
 
-  getSnippets(): EmbeddedSnippet[] {
+  async getSnippets(): Promise<EmbeddedSnippet[]> {
     return this.embeddingStore.getAllSnippets();
   }
 
-  getStats(): { snippetCount: number; fileCount: number; indexSize: string } {
+  async getStats(): Promise<{ snippetCount: number; fileCount: number; indexSize: string }> {
     return this.embeddingStore.getStats();
   }
 
-  clearIndex(): void {
-    this.embeddingStore.clear();
+  async clearIndex(): Promise<void> {
+    await this.embeddingStore.clear();
     console.log('[LiteratureIndexer] Cleared all embeddings');
   }
 

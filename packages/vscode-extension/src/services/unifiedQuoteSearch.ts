@@ -2,7 +2,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { LiteratureIndexer } from './literatureIndexer';
 import { TextNormalizer } from '@research-assistant/core';
-import { FuzzyMatcher } from '@research-assistant/core';
+import { FuzzyMatcher } from '../core/fuzzyMatcher';
 import { TrigramIndex, NgramMatch } from './trigramIndex';
 
 export interface QuoteSearchResult {
@@ -59,14 +59,25 @@ export class UnifiedQuoteSearch {
    * Search for a quote using unified strategy
    * @param quoteText The quote to search for
    * @param topK Number of results to return
+   * @param signal Optional AbortSignal for cancellation
    * @returns Array of search results sorted by similarity (highest first)
    */
-  async search(quoteText: string, topK: number = 5): Promise<QuoteSearchResult[]> {
+  async search(quoteText: string, topK: number = 5, signal?: AbortSignal): Promise<QuoteSearchResult[]> {
+    // Check cancellation early
+    if (signal?.aborted) {
+      throw new DOMException('Operation cancelled', 'AbortError');
+    }
+    
     // Normalize query for better matching
     const normalizedQuery = TextNormalizer.normalizeForEmbedding(quoteText);
 
     // Run embedding search first (faster)
     const embeddingResults = await this.searchByEmbedding(normalizedQuery, topK);
+    
+    // Check cancellation after embedding search
+    if (signal?.aborted) {
+      throw new DOMException('Operation cancelled', 'AbortError');
+    }
     
     // If we found a very high confidence match (>= 0.95), skip expensive fuzzy search
     if (embeddingResults.length > 0 && embeddingResults[0].similarity >= 0.95) {
@@ -77,8 +88,13 @@ export class UnifiedQuoteSearch {
     // Yield to event loop before fuzzy search
     await new Promise(resolve => setImmediate(resolve));
     
+    // Check cancellation before fuzzy search
+    if (signal?.aborted) {
+      throw new DOMException('Operation cancelled', 'AbortError');
+    }
+    
     // Run fuzzy search (slower, more thorough)
-    const fuzzyResults = await this.searchByFuzzyMatching(quoteText, topK);
+    const fuzzyResults = await this.searchByFuzzyMatching(quoteText, topK, signal);
 
     // Combine results with deduplication
     return this.combineResults(embeddingResults, fuzzyResults, topK);
@@ -120,9 +136,18 @@ export class UnifiedQuoteSearch {
    * 
    * Speedup: 10-100x compared to scanning all files
    */
-  private async searchByFuzzyMatching(quote: string, topK: number): Promise<QuoteSearchResult[]> {
+  private async searchByFuzzyMatching(quote: string, topK: number, signal?: AbortSignal): Promise<QuoteSearchResult[]> {
+    // Check cancellation early
+    if (signal?.aborted) {
+      throw new DOMException('Operation cancelled', 'AbortError');
+    }
+    
     // Ensure trigram index is built
     await this.initializeIndex();
+    
+    if (signal?.aborted) {
+      throw new DOMException('Operation cancelled', 'AbortError');
+    }
     
     // Use trigram index to find candidate documents
     // Require 30% of query's rare trigrams to be present
@@ -131,7 +156,7 @@ export class UnifiedQuoteSearch {
     if (candidates.length === 0) {
       console.log('[UnifiedQuoteSearch] No trigram candidates found, falling back to top files');
       // Fall back to checking a few files if no trigram matches
-      return this.searchByFuzzyMatchingFallback(quote, topK, 5);
+      return this.searchByFuzzyMatchingFallback(quote, topK, 5, signal);
     }
 
     console.log(`[UnifiedQuoteSearch] Trigram pre-filter: ${candidates.length} candidate docs (vs scanning all files)`);
@@ -143,6 +168,11 @@ export class UnifiedQuoteSearch {
     const maxCandidates = Math.min(candidates.length, 10);
     
     for (const candidate of candidates.slice(0, maxCandidates)) {
+      // Check cancellation before each candidate
+      if (signal?.aborted) {
+        throw new DOMException('Operation cancelled', 'AbortError');
+      }
+      
       try {
         // Get document content from trigram index cache
         const content = this.trigramIndex.getDocumentContent(candidate.fileName);
@@ -154,7 +184,8 @@ export class UnifiedQuoteSearch {
         if (candidate.candidateRegions.length > 0) {
           for (const region of candidate.candidateRegions) {
             const regionText = region.text;
-            const matchResult = this.fuzzyMatcher.findMatch(quote, regionText);
+            // Use async version to yield to event loop for large regions
+            const matchResult = await this.fuzzyMatcher.findMatchAsync(quote, regionText);
 
             if (matchResult.matched && matchResult.confidence !== undefined) {
               // Adjust line numbers to absolute positions
@@ -186,7 +217,8 @@ export class UnifiedQuoteSearch {
 
         // If no region matches, try full document (but this should be rare)
         if (results.filter(r => r.sourceFile === candidate.fileName).length === 0) {
-          const matchResult = this.fuzzyMatcher.findMatch(quote, content);
+          // Use async version to yield to event loop for large documents
+          const matchResult = await this.fuzzyMatcher.findMatchAsync(quote, content);
 
           if (matchResult.matched && matchResult.confidence !== undefined) {
             const { startLine, endLine } = this.findLineNumbers(
@@ -210,7 +242,8 @@ export class UnifiedQuoteSearch {
             }
           }
         }
-      } catch (error) {
+      } catch (error: any) {
+        if (error.name === 'AbortError') throw error;
         console.warn(`[UnifiedQuoteSearch] Error processing candidate ${candidate.fileName}:`, error);
       }
       
@@ -232,7 +265,7 @@ export class UnifiedQuoteSearch {
    * Fallback fuzzy search when trigram index has no matches
    * Only checks a limited number of files
    */
-  private async searchByFuzzyMatchingFallback(quote: string, topK: number, maxFiles: number): Promise<QuoteSearchResult[]> {
+  private async searchByFuzzyMatchingFallback(quote: string, topK: number, maxFiles: number, signal?: AbortSignal): Promise<QuoteSearchResult[]> {
     if (!fs.existsSync(this.extractedTextPath)) {
       return [];
     }
@@ -244,12 +277,18 @@ export class UnifiedQuoteSearch {
     const results: QuoteSearchResult[] = [];
 
     for (const fileName of files) {
+      // Check cancellation before each file
+      if (signal?.aborted) {
+        throw new DOMException('Operation cancelled', 'AbortError');
+      }
+      
       const filePath = path.join(this.extractedTextPath, fileName);
       
       try {
         const content = fs.readFileSync(filePath, 'utf-8');
         const lines = content.split('\n');
-        const matchResult = this.fuzzyMatcher.findMatch(quote, content);
+        // Use async version to yield to event loop
+        const matchResult = await this.fuzzyMatcher.findMatchAsync(quote, content);
 
         if (matchResult.matched && matchResult.confidence !== undefined) {
           const { startLine, endLine } = this.findLineNumbers(
@@ -267,7 +306,8 @@ export class UnifiedQuoteSearch {
             method: matchResult.confidence === 1.0 ? 'exact' : 'fuzzy'
           });
         }
-      } catch (error) {
+      } catch (error: any) {
+        if (error.name === 'AbortError') throw error;
         console.warn(`[UnifiedQuoteSearch] Fallback error for ${fileName}:`, error);
       }
       

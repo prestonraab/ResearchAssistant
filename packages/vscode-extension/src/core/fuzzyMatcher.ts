@@ -195,6 +195,121 @@ export class FuzzyMatcher {
   }
 
   /**
+   * Async version of findMatch that yields to the event loop periodically
+   * Use this for large documents to prevent blocking the UI
+   * 
+   * @param highlightText - Text from Zotero highlight
+   * @param documentText - Extracted text from document
+   * @param pageNumber - Optional page number to limit search scope
+   * @returns Promise resolving to match result with location and confidence
+   */
+  async findMatchAsync(
+    highlightText: string,
+    documentText: string,
+    pageNumber?: number
+  ): Promise<FuzzyMatchResult> {
+    // Normalize both texts for comparison
+    const normalizedHighlight = this.normalizeText(highlightText);
+    const normalizedDocument = this.normalizeText(documentText);
+
+    // Handle edge cases
+    if (!normalizedHighlight || !normalizedDocument) {
+      return {
+        matched: false,
+        confidence: 0,
+      };
+    }
+
+    // Check for exact match first (optimization)
+    const exactIndex = normalizedDocument.indexOf(normalizedHighlight);
+    if (exactIndex !== -1) {
+      const { startOffset, endOffset, matchedText } = this.findOriginalPosition(
+        documentText,
+        normalizedDocument,
+        exactIndex,
+        normalizedHighlight.length
+      );
+
+      return {
+        matched: true,
+        startOffset,
+        endOffset,
+        confidence: 1.0,
+        matchedText,
+      };
+    }
+
+    // Sliding window approach for fuzzy matching
+    const highlightLength = normalizedHighlight.length;
+    const minWindowSize = Math.max(1, Math.floor(highlightLength * 0.9));
+    const maxWindowSize = Math.ceil(highlightLength * 1.1);
+
+    let bestMatch: {
+      similarity: number;
+      startIndex: number;
+      endIndex: number;
+    } | null = null;
+
+    // Yield every N iterations to prevent blocking
+    const YIELD_INTERVAL = 1000;
+    let iterationCount = 0;
+
+    // Slide window across document text
+    for (let windowSize = minWindowSize; windowSize <= maxWindowSize; windowSize++) {
+      for (let i = 0; i <= normalizedDocument.length - windowSize; i++) {
+        const window = normalizedDocument.substring(i, i + windowSize);
+        const similarity = this.calculateSimilarity(normalizedHighlight, window);
+
+        if (similarity >= this.threshold) {
+          if (!bestMatch || similarity > bestMatch.similarity) {
+            bestMatch = {
+              similarity,
+              startIndex: i,
+              endIndex: i + windowSize,
+            };
+          }
+
+          if (similarity >= 0.99) {
+            break;
+          }
+        }
+
+        // Yield to event loop periodically
+        iterationCount++;
+        if (iterationCount % YIELD_INTERVAL === 0) {
+          await new Promise(resolve => setImmediate(resolve));
+        }
+      }
+
+      if (bestMatch && bestMatch.similarity >= 0.99) {
+        break;
+      }
+    }
+
+    if (bestMatch && bestMatch.similarity >= this.threshold) {
+      const { startOffset, endOffset, matchedText } = this.findOriginalPosition(
+        documentText,
+        normalizedDocument,
+        bestMatch.startIndex,
+        bestMatch.endIndex - bestMatch.startIndex
+      );
+
+      return {
+        matched: true,
+        startOffset,
+        endOffset,
+        confidence: bestMatch.similarity,
+        matchedText,
+      };
+    }
+
+    return {
+      matched: false,
+      confidence: bestMatch?.similarity ?? 0,
+    };
+  }
+
+  /**
    * Find the position in the original document text corresponding to a position
    * in the normalized text
    * 

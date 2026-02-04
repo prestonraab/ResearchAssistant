@@ -511,7 +511,7 @@ export class ClaimReviewProvider {
             
             // ALWAYS run unified quote search - combines embedding and fuzzy matching
             console.log('[ClaimReview] Running unified quote search...');
-            const searchResults = await this.unifiedQuoteSearch.search(quoteText, 5);
+            const searchResults = await this.unifiedQuoteSearch.search(quoteText, 5, signal);
             
             checkCancelled();
             
@@ -665,7 +665,7 @@ export class ClaimReviewProvider {
             checkCancelled();
             
             // ALWAYS run unified quote search
-            const searchResults = await this.unifiedQuoteSearch.search(quoteText, 5);
+            const searchResults = await this.unifiedQuoteSearch.search(quoteText, 5, signal);
             
             checkCancelled();
             
@@ -1114,7 +1114,7 @@ export class ClaimReviewProvider {
   private async handleLoadSnippetText(snippetId: string, filePath: string, confidence: number = 0): Promise<void> {
     try {
       // Get snippet from embedding store
-      const allSnippets = this.literatureIndexer.getSnippets();
+      const allSnippets = await this.literatureIndexer.getSnippets();
       const snippet = allSnippets.find(s => s.id === snippetId);
 
       if (!snippet) {
@@ -1333,7 +1333,8 @@ export class ClaimReviewProvider {
               });
             }
           }
-        }
+        },
+        signal  // Pass the abort signal to enable cancellation
       );
       
       // Check cancellation before sending completion

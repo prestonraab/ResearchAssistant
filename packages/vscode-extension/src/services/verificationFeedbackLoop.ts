@@ -91,6 +91,7 @@ export class VerificationFeedbackLoop {
   /**
    * Run full verification feedback loop
    * Streams results instead of keeping all rounds in memory
+   * Supports cancellation via AbortSignal for non-blocking claim switching
    */
   async findSupportingEvidence(
     claim: string, 
@@ -98,126 +99,154 @@ export class VerificationFeedbackLoop {
     streamCallbacks?: { 
       onCandidatesFound?: (round: number, candidates: EmbeddedSnippet[]) => void;
       onVerificationUpdate?: (round: number, snippetId: string, result: VerificationResult) => void;
-    }
+    },
+    signal?: AbortSignal
   ): Promise<SearchRound[]> {
     let currentQuery = claim;
     let supportingSnippets: EmbeddedSnippet[] = [];
     const completedRounds: SearchRound[] = [];
 
+    // Helper to check cancellation
+    const checkCancelled = () => {
+      if (signal?.aborted) {
+        throw new DOMException('Operation cancelled', 'AbortError');
+      }
+    };
+
     console.log('[VerificationFeedbackLoop] Starting verification loop for claim:', claim.substring(0, 50));
 
-    // First, ensure literature is indexed
+    // First, ensure literature is indexed (non-blocking)
     console.log('[VerificationFeedbackLoop] Ensuring literature is indexed...');
     
-    return vscode.window.withProgress(
-      {
-        location: vscode.ProgressLocation.Notification,
-        title: 'Indexing literature...',
-        cancellable: false
-      },
-      async (progress) => {
-        progress.report({ increment: 0, message: 'Scanning files...' });
+    try {
+      checkCancelled();
+      
+      const indexStats = await this.literatureIndexer.indexChangedFiles();
+      console.log('[VerificationFeedbackLoop] Index stats:', indexStats);
+      
+      // Yield to event loop after indexing
+      await new Promise(resolve => setImmediate(resolve));
+
+      for (let round = 1; round <= this.maxRounds; round++) {
+        checkCancelled();
         
-        const indexStats = await this.literatureIndexer.indexChangedFiles();
-        console.log('[VerificationFeedbackLoop] Index stats:', indexStats);
-        
-        progress.report({ 
-          increment: 100, 
-          message: `Indexed ${indexStats.indexed} files, skipped ${indexStats.skipped}` 
-        });
+        console.log(`[VerificationFeedbackLoop] Round ${round}/${this.maxRounds}`);
 
-        for (let round = 1; round <= this.maxRounds; round++) {
-          console.log(`[VerificationFeedbackLoop] Round ${round}/${this.maxRounds}`);
+        // Step 1: Search literature
+        const snippets = await this.literatureIndexer.searchSnippets(currentQuery, 5);
+        console.log(`[VerificationFeedbackLoop] Found ${snippets.length} snippets`);
 
-          // Step 1: Search literature
-          const snippets = await this.literatureIndexer.searchSnippets(currentQuery, 5);
-          console.log(`[VerificationFeedbackLoop] Found ${snippets.length} snippets`);
+        checkCancelled();
 
-          if (snippets.length === 0) {
-            console.log('[VerificationFeedbackLoop] No snippets found, moving to web search');
-            break;
-          }
-
-          // Stream candidates immediately if callback provided
-          if (streamCallbacks?.onCandidatesFound) {
-            streamCallbacks.onCandidatesFound(round, snippets);
-          }
-
-          // Generate claim embedding for similarity calculation (only on first round)
-          let claimEmbedding: number[] = [];
-          if (round === 1) {
-            const embedding = await this.embeddingService.embed(claim);
-            claimEmbedding = embedding || [];
-          }
-
-          // Step 2: Verify with LLM (with streaming updates)
-          const verifications = await this.verifySnippetsWithStreaming(
-            claim, 
-            snippets, 
-            claimEmbedding,
-            round,
-            streamCallbacks?.onVerificationUpdate
-          );
-          const roundSupportingSnippets = snippets.filter((_, i) => verifications[i].supports);
-
-          supportingSnippets.push(...roundSupportingSnippets);
-
-          const roundData: SearchRound = {
-            round,
-            query: currentQuery,
-            snippets,
-            verifications,
-            supportingSnippets: roundSupportingSnippets
-          };
-
-          completedRounds.push(roundData);
-          
-          // Stream result to caller if callback provided
-          if (onRoundComplete) {
-            onRoundComplete(roundData);
-          }
-
-          console.log(`[VerificationFeedbackLoop] Round ${round}: ${roundSupportingSnippets.length}/${snippets.length} snippets support claim`);
-
-          // If we found supporting evidence, we're done
-          if (roundSupportingSnippets.length > 0) {
-            console.log('[VerificationFeedbackLoop] Found supporting evidence, stopping');
-            break;
-          }
-
-          // Step 3: Refine query based on verification feedback
-          if (round < this.maxRounds) {
-            currentQuery = await this.refineQuery(claim, verifications);
-            console.log('[VerificationFeedbackLoop] Refined query:', currentQuery.substring(0, 50));
-          }
-
-          // Clear verification results from memory after processing
-          // Keep only the supporting snippets
-          verifications.length = 0;
+        if (snippets.length === 0) {
+          console.log('[VerificationFeedbackLoop] No snippets found, moving to web search');
+          break;
         }
 
-        // If no supporting evidence found in literature, do web search
-        if (supportingSnippets.length === 0) {
-          console.log('[VerificationFeedbackLoop] No supporting evidence in literature, attempting web search');
-          const webResults = await this.webSearch(claim);
-          if (webResults.length > 0) {
-            const webRound: SearchRound = {
-              round: this.maxRounds + 1,
-              query: `web search: ${claim}`,
-              snippets: webResults.map(r => this.convertWebResultToSnippet(r)),
-              verifications: [],
-              supportingSnippets: webResults.map(r => this.convertWebResultToSnippet(r))
-            };
-            completedRounds.push(webRound);
-            if (onRoundComplete) {
-              onRoundComplete(webRound);
-            }
-          }
+        // Stream candidates immediately if callback provided
+        if (streamCallbacks?.onCandidatesFound) {
+          streamCallbacks.onCandidatesFound(round, snippets);
         }
 
-        return completedRounds;
+        // Yield to event loop
+        await new Promise(resolve => setImmediate(resolve));
+        checkCancelled();
+
+        // Generate claim embedding for similarity calculation (only on first round)
+        let claimEmbedding: number[] = [];
+        if (round === 1) {
+          const embedding = await this.embeddingService.embed(claim);
+          claimEmbedding = embedding || [];
+        }
+
+        checkCancelled();
+
+        // Step 2: Verify with LLM (with streaming updates and cancellation support)
+        const verifications = await this.verifySnippetsWithStreaming(
+          claim, 
+          snippets, 
+          claimEmbedding,
+          round,
+          streamCallbacks?.onVerificationUpdate,
+          signal
+        );
+        
+        checkCancelled();
+        
+        const roundSupportingSnippets = snippets.filter((_, i) => verifications[i].supports);
+
+        supportingSnippets.push(...roundSupportingSnippets);
+
+        const roundData: SearchRound = {
+          round,
+          query: currentQuery,
+          snippets,
+          verifications,
+          supportingSnippets: roundSupportingSnippets
+        };
+
+        completedRounds.push(roundData);
+        
+        // Stream result to caller if callback provided
+        if (onRoundComplete) {
+          onRoundComplete(roundData);
+        }
+
+        console.log(`[VerificationFeedbackLoop] Round ${round}: ${roundSupportingSnippets.length}/${snippets.length} snippets support claim`);
+
+        // If we found supporting evidence, we're done
+        if (roundSupportingSnippets.length > 0) {
+          console.log('[VerificationFeedbackLoop] Found supporting evidence, stopping');
+          break;
+        }
+
+        // Step 3: Refine query based on verification feedback
+        if (round < this.maxRounds) {
+          checkCancelled();
+          currentQuery = await this.refineQuery(claim, verifications);
+          console.log('[VerificationFeedbackLoop] Refined query:', currentQuery.substring(0, 50));
+        }
+
+        // Clear verification results from memory after processing
+        // Keep only the supporting snippets
+        verifications.length = 0;
+        
+        // Yield between rounds
+        await new Promise(resolve => setImmediate(resolve));
       }
-    );
+
+      checkCancelled();
+
+      // If no supporting evidence found in literature, do web search
+      if (supportingSnippets.length === 0) {
+        console.log('[VerificationFeedbackLoop] No supporting evidence in literature, attempting web search');
+        const webResults = await this.webSearch(claim);
+        
+        checkCancelled();
+        
+        if (webResults.length > 0) {
+          const webRound: SearchRound = {
+            round: this.maxRounds + 1,
+            query: `web search: ${claim}`,
+            snippets: webResults.map(r => this.convertWebResultToSnippet(r)),
+            verifications: [],
+            supportingSnippets: webResults.map(r => this.convertWebResultToSnippet(r))
+          };
+          completedRounds.push(webRound);
+          if (onRoundComplete) {
+            onRoundComplete(webRound);
+          }
+        }
+      }
+
+      return completedRounds;
+    } catch (error: any) {
+      if (error.name === 'AbortError') {
+        console.log('[VerificationFeedbackLoop] Operation cancelled');
+        throw error;
+      }
+      throw error;
+    }
   }
 
   /**
@@ -243,18 +272,24 @@ export class VerificationFeedbackLoop {
   }
 
   /**
-   * Verify snippets with optional streaming updates
+   * Verify snippets with optional streaming updates and cancellation support
    */
   private async verifySnippetsWithStreaming(
     claim: string, 
     snippets: EmbeddedSnippet[], 
     claimEmbedding: number[],
     round: number,
-    onVerificationUpdate?: (round: number, snippetId: string, result: VerificationResult) => void
+    onVerificationUpdate?: (round: number, snippetId: string, result: VerificationResult) => void,
+    signal?: AbortSignal
   ): Promise<VerificationResult[]> {
     const results: VerificationResult[] = [];
 
     for (const snippet of snippets) {
+      // Check cancellation before each verification
+      if (signal?.aborted) {
+        throw new DOMException('Operation cancelled', 'AbortError');
+      }
+      
       // Calculate semantic similarity between claim and snippet
       const similarity = this.calculateCosineSimilarity(claimEmbedding, snippet.embedding);
       const result = await this.verifySnippet(claim, snippet, similarity);
@@ -264,6 +299,9 @@ export class VerificationFeedbackLoop {
       if (onVerificationUpdate) {
         onVerificationUpdate(round, snippet.id, result);
       }
+      
+      // Yield to event loop after each verification
+      await new Promise(resolve => setImmediate(resolve));
     }
 
     return results;

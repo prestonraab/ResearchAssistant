@@ -85,6 +85,8 @@ export class FuzzyMatcher {
    * that best matches the highlightText. The window size is based on the
    * highlight text length with a tolerance of ±10%.
    * 
+   * OPTIMIZED: Uses n-gram pre-filtering for large documents to avoid O(D*Q²) complexity
+   * 
    * @param highlightText - Text from Zotero highlight
    * @param documentText - Extracted text from document
    * @param pageNumber - Optional page number to limit search scope (not implemented in this task)
@@ -127,20 +129,117 @@ export class FuzzyMatcher {
       };
     }
 
-    // Sliding window approach for fuzzy matching
-    const highlightLength = normalizedHighlight.length;
+    // For large documents, use fast n-gram based search
+    if (normalizedDocument.length > 3000) {
+      return this.findMatchFast(normalizedHighlight, normalizedDocument, documentText);
+    }
+
+    // For small documents, use original sliding window (still fast enough)
+    return this.findMatchSlidingWindow(normalizedHighlight, normalizedDocument, documentText);
+  }
+
+  /**
+   * Fast approximate matching using n-gram overlap
+   * O(D + Q) instead of O(D * Q²) - much faster for large documents
+   */
+  private findMatchFast(
+    normalizedHighlight: string,
+    normalizedDocument: string,
+    originalDocument: string
+  ): FuzzyMatchResult {
+    const NGRAM_SIZE = 4;
+    const highlightNgrams = new Set<string>();
     
-    // Window size tolerance: ±10% of highlight length
+    // Extract n-grams from highlight
+    for (let i = 0; i <= normalizedHighlight.length - NGRAM_SIZE; i++) {
+      highlightNgrams.add(normalizedHighlight.substring(i, i + NGRAM_SIZE));
+    }
+    
+    if (highlightNgrams.size === 0) {
+      return { matched: false, confidence: 0 };
+    }
+
+    // Find candidate regions using n-gram density
+    const windowSize = normalizedHighlight.length;
+    const regionScores: Array<{ start: number; score: number }> = [];
+    
+    // Slide a window and count n-gram matches
+    const STEP = Math.max(1, Math.floor(windowSize / 4)); // Check every quarter window
+    
+    for (let i = 0; i <= normalizedDocument.length - windowSize; i += STEP) {
+      let matchCount = 0;
+      const end = Math.min(i + windowSize, normalizedDocument.length);
+      
+      for (let j = i; j <= end - NGRAM_SIZE; j++) {
+        if (highlightNgrams.has(normalizedDocument.substring(j, j + NGRAM_SIZE))) {
+          matchCount++;
+        }
+      }
+      
+      const score = matchCount / highlightNgrams.size;
+      if (score >= 0.3) { // At least 30% n-gram overlap
+        regionScores.push({ start: i, score });
+      }
+    }
+
+    // Sort by score and check top candidates with full Levenshtein
+    regionScores.sort((a, b) => b.score - a.score);
+    
+    let bestMatch: { similarity: number; startIndex: number; endIndex: number } | null = null;
+    
+    // Only check top 10 candidates
+    for (const region of regionScores.slice(0, 10)) {
+      // Check a range around the candidate position
+      const searchStart = Math.max(0, region.start - Math.floor(windowSize * 0.1));
+      const searchEnd = Math.min(normalizedDocument.length, region.start + Math.ceil(windowSize * 1.2));
+      
+      // Try a few window sizes
+      for (const ws of [windowSize, Math.floor(windowSize * 0.95), Math.ceil(windowSize * 1.05)]) {
+        for (let pos = searchStart; pos <= searchEnd - ws; pos += Math.max(1, Math.floor(ws / 10))) {
+          const window = normalizedDocument.substring(pos, pos + ws);
+          const similarity = this.calculateSimilarity(normalizedHighlight, window);
+          
+          if (similarity >= this.threshold && (!bestMatch || similarity > bestMatch.similarity)) {
+            bestMatch = { similarity, startIndex: pos, endIndex: pos + ws };
+            
+            if (similarity >= 0.99) {
+              // Found excellent match, stop searching
+              const { startOffset, endOffset, matchedText } = this.findOriginalPosition(
+                originalDocument, normalizedDocument, bestMatch.startIndex, 
+                bestMatch.endIndex - bestMatch.startIndex
+              );
+              return { matched: true, startOffset, endOffset, confidence: similarity, matchedText };
+            }
+          }
+        }
+      }
+    }
+
+    if (bestMatch && bestMatch.similarity >= this.threshold) {
+      const { startOffset, endOffset, matchedText } = this.findOriginalPosition(
+        originalDocument, normalizedDocument, bestMatch.startIndex,
+        bestMatch.endIndex - bestMatch.startIndex
+      );
+      return { matched: true, startOffset, endOffset, confidence: bestMatch.similarity, matchedText };
+    }
+
+    return { matched: false, confidence: bestMatch?.similarity ?? 0 };
+  }
+
+  /**
+   * Original sliding window approach - used for small documents
+   */
+  private findMatchSlidingWindow(
+    normalizedHighlight: string,
+    normalizedDocument: string,
+    originalDocument: string
+  ): FuzzyMatchResult {
+    const highlightLength = normalizedHighlight.length;
     const minWindowSize = Math.max(1, Math.floor(highlightLength * 0.9));
     const maxWindowSize = Math.ceil(highlightLength * 1.1);
 
-    let bestMatch: {
-      similarity: number;
-      startIndex: number;
-      endIndex: number;
-    } | null = null;
+    let bestMatch: { similarity: number; startIndex: number; endIndex: number } | null = null;
 
-    // Slide window across document text
     for (let windowSize = minWindowSize; windowSize <= maxWindowSize; windowSize++) {
       for (let i = 0; i <= normalizedDocument.length - windowSize; i++) {
         const window = normalizedDocument.substring(i, i + windowSize);
@@ -148,49 +247,23 @@ export class FuzzyMatcher {
 
         if (similarity >= this.threshold) {
           if (!bestMatch || similarity > bestMatch.similarity) {
-            bestMatch = {
-              similarity,
-              startIndex: i,
-              endIndex: i + windowSize,
-            };
+            bestMatch = { similarity, startIndex: i, endIndex: i + windowSize };
           }
-
-          // Early exit if we find a very high match
-          if (similarity >= 0.99) {
-            break;
-          }
+          if (similarity >= 0.99) break;
         }
       }
-
-      // Early exit if we found a very high match
-      if (bestMatch && bestMatch.similarity >= 0.99) {
-        break;
-      }
+      if (bestMatch && bestMatch.similarity >= 0.99) break;
     }
 
-    // Return result based on best match found
     if (bestMatch && bestMatch.similarity >= this.threshold) {
       const { startOffset, endOffset, matchedText } = this.findOriginalPosition(
-        documentText,
-        normalizedDocument,
-        bestMatch.startIndex,
+        originalDocument, normalizedDocument, bestMatch.startIndex,
         bestMatch.endIndex - bestMatch.startIndex
       );
-
-      return {
-        matched: true,
-        startOffset,
-        endOffset,
-        confidence: bestMatch.similarity,
-        matchedText,
-      };
+      return { matched: true, startOffset, endOffset, confidence: bestMatch.similarity, matchedText };
     }
 
-    // No match found above threshold
-    return {
-      matched: false,
-      confidence: bestMatch?.similarity ?? 0,
-    };
+    return { matched: false, confidence: bestMatch?.similarity ?? 0 };
   }
 
   /**

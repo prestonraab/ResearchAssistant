@@ -233,33 +233,85 @@ export class TextNormalizer {
 
   /**
    * Calculate Levenshtein distance between two strings
+   * OPTIMIZED: Uses O(min(n,m)) space instead of O(n*m)
+   * Also includes early termination when distance exceeds threshold
    */
-  private static levenshteinDistance(str1: string, str2: string): number {
-    const matrix: number[][] = [];
-
-    for (let i = 0; i <= str2.length; i++) {
-      matrix[i] = [i];
+  private static levenshteinDistance(str1: string, str2: string, maxDistance?: number): number {
+    // Ensure str1 is the shorter string for space optimization
+    if (str1.length > str2.length) {
+      [str1, str2] = [str2, str1];
     }
 
-    for (let j = 0; j <= str1.length; j++) {
-      matrix[0][j] = j;
+    const m = str1.length;
+    const n = str2.length;
+
+    // Early termination: if length difference exceeds max, return early
+    if (maxDistance !== undefined && Math.abs(m - n) > maxDistance) {
+      return Math.abs(m - n);
     }
 
-    for (let i = 1; i <= str2.length; i++) {
-      for (let j = 1; j <= str1.length; j++) {
-        if (str2.charAt(i - 1) === str1.charAt(j - 1)) {
-          matrix[i][j] = matrix[i - 1][j - 1];
-        } else {
-          matrix[i][j] = Math.min(
-            matrix[i - 1][j - 1] + 1,
-            matrix[i][j - 1] + 1,
-            matrix[i - 1][j] + 1
-          );
+    // Use single row instead of full matrix (O(m) space instead of O(m*n))
+    let prevRow = new Uint16Array(m + 1);
+    let currRow = new Uint16Array(m + 1);
+
+    // Initialize first row
+    for (let j = 0; j <= m; j++) {
+      prevRow[j] = j;
+    }
+
+    // Fill in the rest
+    for (let i = 1; i <= n; i++) {
+      currRow[0] = i;
+      let minInRow = i; // Track minimum in current row for early termination
+
+      for (let j = 1; j <= m; j++) {
+        const cost = str2.charCodeAt(i - 1) === str1.charCodeAt(j - 1) ? 0 : 1;
+        currRow[j] = Math.min(
+          prevRow[j] + 1,      // deletion
+          currRow[j - 1] + 1,  // insertion
+          prevRow[j - 1] + cost // substitution
+        );
+        
+        if (currRow[j] < minInRow) {
+          minInRow = currRow[j];
         }
       }
+
+      // Early termination: if minimum in row exceeds threshold, we can't do better
+      if (maxDistance !== undefined && minInRow > maxDistance) {
+        return minInRow;
+      }
+
+      // Swap rows
+      [prevRow, currRow] = [currRow, prevRow];
     }
 
-    return matrix[str2.length][str1.length];
+    return prevRow[m];
+  }
+
+  /**
+   * Fast similarity check with early termination
+   * Returns true if similarity is above threshold, false otherwise
+   * More efficient than calculating full similarity when you only need a yes/no answer
+   */
+  static isSimilarEnough(text1: string, text2: string, threshold: number): boolean {
+    const norm1 = this.normalizeForMatching(text1);
+    const norm2 = this.normalizeForMatching(text2);
+
+    if (norm1 === norm2) {
+      return true;
+    }
+
+    const maxLength = Math.max(norm1.length, norm2.length);
+    if (maxLength === 0) {
+      return true;
+    }
+
+    // Calculate max allowed distance for the threshold
+    const maxDistance = Math.floor(maxLength * (1 - threshold));
+    
+    const distance = this.levenshteinDistance(norm1, norm2, maxDistance);
+    return distance <= maxDistance;
   }
 
   /**

@@ -13,9 +13,6 @@ This file contains all **Method - Batch Correction** claims with their supportin
 **Primary Quote**:
 > "ComBat is one of the most widely used BECAs in transcriptomics [118, 119] proteomics [120], and metabolomics [121]. It uses an empirical Bayes framework to estimate the magnitude (mean and variance) of batch effects, and then remove them [31]."
 
-**Supporting Quotes**:
-- "The use of both location and scale adjustment means that both additive and multiplicative batch effects can be eliminated, and the built in empirical Bayes step improves the performance for small sample sizes by pooling information across the genes. Previous studies have shown that ComBat is able to eliminate batch effects in several different situations, and performs at least as well as other batch effect removal methods [25]."
-
 
 ---
 
