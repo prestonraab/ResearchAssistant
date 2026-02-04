@@ -60,26 +60,11 @@ export class Phase1Initializer {
   /**
    * Register command stubs that show loading messages
    * These will be replaced with real implementations in Phase 2
+   * NOTE: Only register stubs for commands that won't be registered elsewhere
    */
   private registerCommandStubs(context: vscode.ExtensionContext): void {
-    const loadingCommands = [
-      'researchAssistant.openWritingMode',
-      'researchAssistant.openEditingMode',
-      'researchAssistant.showDashboard',
-      'researchAssistant.analyzeCoverage',
-      'researchAssistant.refreshOutline',
-      'researchAssistant.refreshClaims',
-      'researchAssistant.refreshPapers'
-    ];
-
-    for (const commandId of loadingCommands) {
-      const disposable = vscode.commands.registerCommand(commandId, () => {
-        vscode.window.showInformationMessage(
-          'Research Assistant is still loading. Please wait a moment...'
-        );
-      });
-      context.subscriptions.push(disposable);
-    }
+    // Don't register stubs - they conflict with real command registration
+    // The commands will be registered properly in registerAllCommands
   }
 
   /**

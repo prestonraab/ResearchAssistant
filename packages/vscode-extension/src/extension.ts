@@ -398,7 +398,9 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   logger.info('Research Assistant extension is activating...');
 
   try {
-    await WorkspaceDetector.autoActivateIfNeeded(context);
+    // Skip auto-activate check - the extension is already activating
+    // WorkspaceDetector.autoActivateIfNeeded was causing a deadlock
+    // by trying to execute researchAssistant.activate before it was registered
     await runPhasedInitialization(context, logger, errorHandler);
   } catch (error) {
     errorHandler.handleError(error, {
@@ -478,37 +480,68 @@ async function runPhasedInitialization(
   
   try {
     // Phase 1: Core UI initialization
+    logger.info('[Phase1] Creating ExtensionState...');
     extensionState = new ExtensionState(context);
+    logger.info('[Phase1] ExtensionState created');
+
+    logger.info('[Phase1] Creating Phase1Initializer...');
     const phase1Initializer = new Phase1Initializer();
+    logger.info('[Phase1] Phase1Initializer created');
+
+    logger.info('[Phase1] Calling phase1Initializer.initialize()...');
     await phase1Initializer.initialize(context, extensionState);
+    logger.info('[Phase1] phase1Initializer.initialize() completed');
     
     const phase1Duration = Date.now() - phase1Start;
     logger.info(`[Phase1] Initialization completed in ${phase1Duration}ms`);
 
     // Get providers from Phase 1
+    logger.info('[Phase1] Getting providers from Phase1Initializer...');
     const { outline: outlineProvider, claims: claimsProvider, papers: papersProvider } = phase1Initializer.getProviders();
     const statusBarItem = phase1Initializer.getStatusBarItem();
+    logger.info('[Phase1] Providers retrieved');
 
     // Phase 2 & 3: Data loading and optional services
+    logger.info('[Phase2] Starting Phase 2 initialization...');
     await initializePhase2(phase1Initializer, logger);
+    logger.info('[Phase2] Phase 2 initialization completed');
+
+    logger.info('[Phase3] Starting Phase 3 initialization (async)...');
     initializePhase3Async(logger);
+    logger.info('[Phase3] Phase 3 initialization started (non-blocking)');
 
     // Setup UI and services
+    logger.info('[Setup] Setting up status bar...');
     setupStatusBar(statusBarItem);
+    logger.info('[Setup] Status bar setup complete');
+
+    logger.info('[Setup] Registering UI providers...');
     const uiProviders = registerUIProviders(context);
+    logger.info('[Setup] UI providers registered');
+
+    logger.info('[Setup] Initializing core services...');
     initializeCoreServices(context);
+    logger.info('[Setup] Core services initialized');
+
+    logger.info('[Setup] Initializing Zotero managers...');
     await initializeZoteroManagers();
+    logger.info('[Setup] Zotero managers initialized');
+
+    logger.info('[Setup] Scheduling page number backfill...');
     schedulePageNumberBackfill(logger);
+    logger.info('[Setup] Page number backfill scheduled');
 
     logger.info('All services initialized successfully');
 
     // Complete initialization
+    logger.info('[Complete] Starting complete initialization...');
     completeInitialization(
       context,
       { outlineProvider, claimsProvider, papersProvider },
       uiProviders,
       logger
     );
+    logger.info('[Complete] Complete initialization finished');
 
     logger.info('Research Assistant extension activated successfully');
     vscode.window.showInformationMessage('Research Assistant is ready!');
