@@ -1,6 +1,5 @@
 import { describe, test, expect, beforeEach } from '@jest/globals';
 import { ClaimStrengthCalculator } from '../claimStrengthCalculator';
-import { EmbeddingService } from '@research-assistant/core';
 import { ClaimsManager } from '../claimsManagerWrapper';
 import type { Claim, ClaimStrengthResult } from '@research-assistant/core';
 import { setupTest, createMockEmbeddingService, createMockClaimsManager, aClaim } from '../../__tests__/helpers';
@@ -27,14 +26,23 @@ describe('ClaimStrengthCalculator', () => {
   ): Claim => aClaim()
     .withId(id)
     .withText(text)
-    .withSource(source)
+    .withPrimaryQuote(text, source)
     .build();
+
+  // Helper to set up mock claims manager with claims
+  const setupClaimsInMock = (claims: Claim[]) => {
+    claimsManager.getClaim.mockImplementation((id: string) => 
+      claims.find(c => c.id === id) || null
+    );
+    claimsManager.getAllClaims.mockReturnValue(claims);
+  };
 
   describe('Unit Tests', () => {
     describe('calculateStrength', () => {
       test('should calculate strength score of 0 for claim with no supporting claims', async () => {
         const claim = createClaim('C_01', 'Machine learning improves accuracy', 'Smith2020', 1);
         const allClaims = [claim];
+        setupClaimsInMock(allClaims);
 
         const result = await calculator.calculateStrength(claim, allClaims);
 
@@ -49,6 +57,7 @@ describe('ClaimStrengthCalculator', () => {
         const claim2 = createClaim('C_02', 'Machine learning enhances classification accuracy', 'Jones2021', 2);
         const claim3 = createClaim('C_03', 'Deep learning boosts classification accuracy', 'Brown2022', 3);
         const allClaims = [claim1, claim2, claim3];
+        setupClaimsInMock(allClaims);
 
         const result = await calculator.calculateStrength(claim1, allClaims);
 
@@ -64,6 +73,7 @@ describe('ClaimStrengthCalculator', () => {
         const claim1 = createClaim('C_01', 'Machine learning improves accuracy', 'Smith2020', 1);
         const claim2 = createClaim('C_02', 'Machine learning enhances accuracy', 'Smith2020', 1);
         const allClaims = [claim1, claim2];
+        setupClaimsInMock(allClaims);
 
         const result = await calculator.calculateStrength(claim1, allClaims);
 
@@ -75,6 +85,7 @@ describe('ClaimStrengthCalculator', () => {
         const claim1 = createClaim('C_01', 'Machine learning improves accuracy significantly', 'Smith2020', 1);
         const claim2 = createClaim('C_02', 'Machine learning does not improve accuracy significantly', 'Jones2021', 2);
         const allClaims = [claim1, claim2];
+        setupClaimsInMock(allClaims);
 
         const result = await calculator.calculateStrength(claim1, allClaims);
 
@@ -91,6 +102,7 @@ describe('ClaimStrengthCalculator', () => {
         const claim3 = createClaim('C_03', 'Batch correction boosts classification', 'Brown2022', 3);
         const claim4 = createClaim('C_04', 'Batch correction increases classification accuracy', 'Davis2023', 4);
         const allClaims = [claim1, claim2, claim3, claim4];
+        setupClaimsInMock(allClaims);
 
         const result = await calculator.calculateStrength(claim1, allClaims);
 
@@ -103,6 +115,7 @@ describe('ClaimStrengthCalculator', () => {
         const claim1 = createClaim('C_01', 'Machine learning improves accuracy', 'Smith2020', 1);
         const claim2 = createClaim('C_02', 'Cooking recipes are delicious', 'Jones2021', 2);
         const allClaims = [claim1, claim2];
+        setupClaimsInMock(allClaims);
 
         const result = await calculator.calculateStrength(claim1, allClaims);
 
@@ -115,6 +128,7 @@ describe('ClaimStrengthCalculator', () => {
         const claim1 = createClaim('C_01', 'Machine learning improves classification accuracy', 'Smith2020', 1);
         const claim2 = createClaim('C_02', 'Machine learning enhances classification accuracy', 'Jones2021', 2);
         const allClaims = [claim1, claim2];
+        setupClaimsInMock(allClaims);
 
         const result = await calculator.calculateStrength(claim1, allClaims);
 
@@ -132,6 +146,7 @@ describe('ClaimStrengthCalculator', () => {
           createClaim('C_02', 'Deep learning enhances accuracy', 'Jones2021', 2),
           createClaim('C_03', 'Neural networks boost performance', 'Brown2022', 3)
         ];
+        setupClaimsInMock(claims);
 
         const results = await calculator.calculateStrengthBatch(claims);
 
@@ -146,6 +161,7 @@ describe('ClaimStrengthCalculator', () => {
           createClaim('C_01', 'Machine learning improves classification', 'Smith2020', 1),
           createClaim('C_02', 'Machine learning enhances classification', 'Jones2021', 2)
         ];
+        setupClaimsInMock(claims);
 
         const batchResults = await calculator.calculateStrengthBatch(claims);
         const individualResult = await calculator.calculateStrength(claims[0], claims);
@@ -163,6 +179,8 @@ describe('ClaimStrengthCalculator', () => {
 
       test('should handle single claim', async () => {
         const claims = [createClaim('C_01', 'Test claim', 'Smith2020', 1)];
+        setupClaimsInMock(claims);
+
         const results = await calculator.calculateStrengthBatch(claims);
 
         expect(results.size).toBe(1);
@@ -176,6 +194,7 @@ describe('ClaimStrengthCalculator', () => {
         const claim1 = createClaim('C_01', 'Batch correction significantly improves classification accuracy', 'Smith2020', 1);
         const claim2 = createClaim('C_02', 'Batch correction does not significantly improve classification accuracy', 'Jones2021', 2);
         const allClaims = [claim1, claim2];
+        setupClaimsInMock(allClaims);
 
         const result = await calculator.calculateStrength(claim1, allClaims);
 
@@ -187,6 +206,7 @@ describe('ClaimStrengthCalculator', () => {
         const claim1 = createClaim('C_01', 'The proposed method is highly effective and reliable for data analysis', 'Smith2020', 1);
         const claim2 = createClaim('C_02', 'The proposed method is highly ineffective and unreliable for data analysis', 'Jones2021', 2);
         const allClaims = [claim1, claim2];
+        setupClaimsInMock(allClaims);
 
         const result = await calculator.calculateStrength(claim1, allClaims);
 
@@ -197,6 +217,7 @@ describe('ClaimStrengthCalculator', () => {
         const claim1 = createClaim('C_01', 'Treatment increases survival rate', 'Smith2020', 1);
         const claim2 = createClaim('C_02', 'Treatment decreases survival rate', 'Jones2021', 2);
         const allClaims = [claim1, claim2];
+        setupClaimsInMock(allClaims);
 
         const result = await calculator.calculateStrength(claim1, allClaims);
 
@@ -207,6 +228,7 @@ describe('ClaimStrengthCalculator', () => {
         const claim1 = createClaim('C_01', 'Machine learning improves accuracy', 'Smith2020', 1);
         const claim2 = createClaim('C_02', 'Machine learning improves accuracy', 'Jones2021', 2);
         const allClaims = [claim1, claim2];
+        setupClaimsInMock(allClaims);
 
         const result = await calculator.calculateStrength(claim1, allClaims);
 
@@ -218,6 +240,7 @@ describe('ClaimStrengthCalculator', () => {
         const claim1 = createClaim('C_01', 'Method is not ineffective', 'Smith2020', 1);
         const claim2 = createClaim('C_02', 'Method is effective', 'Jones2021', 2);
         const allClaims = [claim1, claim2];
+        setupClaimsInMock(allClaims);
 
         const result = await calculator.calculateStrength(claim1, allClaims);
 
@@ -230,6 +253,7 @@ describe('ClaimStrengthCalculator', () => {
       test('should return score of 0 for no supporting claims', async () => {
         const claim = createClaim('C_01', 'Unique claim with no support', 'Smith2020', 1);
         const allClaims = [claim];
+        setupClaimsInMock(allClaims);
 
         const result = await calculator.calculateStrength(claim, allClaims);
 
@@ -240,6 +264,7 @@ describe('ClaimStrengthCalculator', () => {
         const claim1 = createClaim('C_01', 'Machine learning improves classification', 'Smith2020', 1);
         const claim2 = createClaim('C_02', 'Machine learning enhances classification', 'Jones2021', 2);
         const allClaims = [claim1, claim2];
+        setupClaimsInMock(allClaims);
 
         const result = await calculator.calculateStrength(claim1, allClaims);
 
@@ -253,6 +278,7 @@ describe('ClaimStrengthCalculator', () => {
         const claim2 = createClaim('C_02', 'Batch correction enhances results', 'Jones2021', 2);
         const claim3 = createClaim('C_03', 'Batch correction boosts results', 'Brown2022', 3);
         const allClaims = [claim1, claim2, claim3];
+        setupClaimsInMock(allClaims);
 
         const result = await calculator.calculateStrength(claim1, allClaims);
 
@@ -269,16 +295,19 @@ describe('ClaimStrengthCalculator', () => {
           baseClaim,
           createClaim('C_02', 'Method enhances accuracy', 'Jones2021', 2)
         ];
+        setupClaimsInMock(claims2);
         
         const claims3 = [
           ...claims2,
           createClaim('C_03', 'Method boosts accuracy', 'Brown2022', 3)
         ];
+        setupClaimsInMock(claims3);
         
         const claims4 = [
           ...claims3,
           createClaim('C_04', 'Method increases accuracy', 'Davis2023', 4)
         ];
+        setupClaimsInMock(claims4);
 
         const result2 = await calculator.calculateStrength(baseClaim, claims2);
         const result3 = await calculator.calculateStrength(baseClaim, claims3);
@@ -297,6 +326,7 @@ describe('ClaimStrengthCalculator', () => {
           createClaim('C_02', 'Moderately supported claim', 'Jones2021', 2),
           createClaim('C_03', 'Unsupported claim', 'Brown2022', 3)
         ];
+        setupClaimsInMock(claims);
 
         const strengthResults = await calculator.calculateStrengthBatch(claims);
         const sorted = calculator.sortByStrength(strengthResults);
@@ -316,6 +346,8 @@ describe('ClaimStrengthCalculator', () => {
 
       test('should handle single result', async () => {
         const claim = createClaim('C_01', 'Test claim', 'Smith2020', 1);
+        setupClaimsInMock([claim]);
+
         const results = await calculator.calculateStrengthBatch([claim]);
         const sorted = calculator.sortByStrength(results);
 
@@ -330,6 +362,7 @@ describe('ClaimStrengthCalculator', () => {
           createClaim('C_02', 'Another strong claim', 'Jones2021', 2),
           createClaim('C_03', 'Weak claim', 'Brown2022', 3)
         ];
+        setupClaimsInMock(claims);
 
         const strengthResults = await calculator.calculateStrengthBatch(claims);
         const filtered = calculator.filterByMinStrength(strengthResults, 1);
@@ -342,6 +375,8 @@ describe('ClaimStrengthCalculator', () => {
 
       test('should return empty array when no claims meet threshold', async () => {
         const claim = createClaim('C_01', 'Unsupported claim', 'Smith2020', 1);
+        setupClaimsInMock([claim]);
+
         const results = await calculator.calculateStrengthBatch([claim]);
         const filtered = calculator.filterByMinStrength(results, 5);
 
@@ -353,6 +388,7 @@ describe('ClaimStrengthCalculator', () => {
           createClaim('C_01', 'Claim 1', 'Smith2020', 1),
           createClaim('C_02', 'Claim 2', 'Jones2021', 2)
         ];
+        setupClaimsInMock(claims);
 
         const results = await calculator.calculateStrengthBatch(claims);
         const filtered = calculator.filterByMinStrength(results, 0);
@@ -367,6 +403,7 @@ describe('ClaimStrengthCalculator', () => {
         const claim2 = createClaim('C_02', 'Method does not improve accuracy', 'Jones2021', 2);
         const claim3 = createClaim('C_03', 'Unrelated claim about cooking', 'Brown2022', 3);
         const allClaims = [claim1, claim2, claim3];
+        setupClaimsInMock(allClaims);
 
         const results = await calculator.calculateStrengthBatch(allClaims);
         const withContradictions = calculator.getClaimsWithContradictions(results);
@@ -382,6 +419,7 @@ describe('ClaimStrengthCalculator', () => {
           createClaim('C_01', 'Claim about topic A', 'Smith2020', 1),
           createClaim('C_02', 'Claim about topic B', 'Jones2021', 2)
         ];
+        setupClaimsInMock(claims);
 
         const results = await calculator.calculateStrengthBatch(claims);
         const withContradictions = calculator.getClaimsWithContradictions(results);
@@ -394,6 +432,7 @@ describe('ClaimStrengthCalculator', () => {
       test('should handle claims with empty text', async () => {
         const claim = createClaim('C_01', '', 'Smith2020', 1);
         const allClaims = [claim];
+        setupClaimsInMock(allClaims);
 
         const result = await calculator.calculateStrength(claim, allClaims);
 
@@ -405,6 +444,7 @@ describe('ClaimStrengthCalculator', () => {
         const longText = 'This is a very long claim. '.repeat(100);
         const claim = createClaim('C_01', longText, 'Smith2020', 1);
         const allClaims = [claim];
+        setupClaimsInMock(allClaims);
 
         const result = await calculator.calculateStrength(claim, allClaims);
 
@@ -415,6 +455,7 @@ describe('ClaimStrengthCalculator', () => {
         const claim1 = createClaim('C_01', 'Method @#$% improves accuracy!', 'Smith2020', 1);
         const claim2 = createClaim('C_02', 'Method enhances accuracy?', 'Jones2021', 2);
         const allClaims = [claim1, claim2];
+        setupClaimsInMock(allClaims);
 
         const result = await calculator.calculateStrength(claim1, allClaims);
 
@@ -425,6 +466,7 @@ describe('ClaimStrengthCalculator', () => {
         const claim1 = createClaim('C_01', 'Método mejora precisión', 'Smith2020', 1);
         const claim2 = createClaim('C_02', 'Método aumenta precisión', 'Jones2021', 2);
         const allClaims = [claim1, claim2];
+        setupClaimsInMock(allClaims);
 
         const result = await calculator.calculateStrength(claim1, allClaims);
 
@@ -436,6 +478,7 @@ describe('ClaimStrengthCalculator', () => {
         for (let i = 0; i < 100; i++) {
           claims.push(createClaim(`C_${i}`, `Claim ${i} about machine learning`, `Source${i}`, i));
         }
+        setupClaimsInMock(claims);
 
         const startTime = Date.now();
         const results = await calculator.calculateStrengthBatch(claims);
@@ -449,11 +492,12 @@ describe('ClaimStrengthCalculator', () => {
 
     describe('custom thresholds', () => {
       test('should respect custom similarity threshold', async () => {
-        const strictCalculator = new ClaimStrengthCalculator(embeddingService, claimsManager, 0.95);
+        const strictCalculator = new ClaimStrengthCalculator(embeddingService as any, claimsManager, 0.95);
         
         const claim1 = createClaim('C_01', 'Machine learning improves accuracy', 'Smith2020', 1);
         const claim2 = createClaim('C_02', 'Deep learning enhances performance', 'Jones2021', 2);
         const allClaims = [claim1, claim2];
+        setupClaimsInMock(allClaims);
 
         const result = await strictCalculator.calculateStrength(claim1, allClaims);
 
@@ -462,11 +506,12 @@ describe('ClaimStrengthCalculator', () => {
       });
 
       test('should respect custom contradiction threshold', async () => {
-        const lenientCalculator = new ClaimStrengthCalculator(embeddingService, claimsManager, 0.75);
+        const lenientCalculator = new ClaimStrengthCalculator(embeddingService as any, claimsManager, 0.75);
         
         const claim1 = createClaim('C_01', 'Method improves results', 'Smith2020', 1);
         const claim2 = createClaim('C_02', 'Method does not improve results', 'Jones2021', 2);
         const allClaims = [claim1, claim2];
+        setupClaimsInMock(allClaims);
 
         const result = await lenientCalculator.calculateStrength(claim1, allClaims);
 

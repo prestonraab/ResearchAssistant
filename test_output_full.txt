@@ -1,0 +1,755 @@
+
+> research-assistant-workspace@1.0.0 test
+> npm run test --workspaces --if-present
+
+
+> @research-assistant/core@1.0.0 test
+> NODE_OPTIONS=--experimental-vm-modules jest
+
+(node:79064) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS core tests/unit/AnnotationKeyValidator.test.ts
+  AnnotationKeyValidator
+    validateAnnotationKey()
+      ✓ should validate a correct annotation key format (4 ms)
+      ✓ should validate annotation keys with underscores
+      ✓ should validate annotation keys with hyphens (1 ms)
+      ✓ should validate annotation keys with mixed case
+      ✓ should validate minimum length annotation key (8 characters)
+      ✓ should validate maximum length annotation key (32 characters)
+      ✓ should reject empty string
+      ✓ should reject whitespace-only string
+      ✓ should reject key shorter than 8 characters
+      ✓ should reject key longer than 32 characters
+      ✓ should reject key with special characters (1 ms)
+      ✓ should reject key with spaces
+      ✓ should reject null value
+      ✓ should reject undefined value
+    makeAnnotationKeyImmutable()
+      ✓ should return the key if valid
+      ✓ should throw error if key is invalid (9 ms)
+      ✓ should throw error with validation message
+    AnnotationKeyAuditLog
+      logDeletedQuote()
+        ✓ should log a deleted quote with annotation key (1 ms)
+        ✓ should include optional deletedBy and reason fields
+        ✓ should set deletedAt timestamp
+        ✓ should reject invalid annotation key (1 ms)
+        ✓ should generate unique entry IDs
+      getEntriesByAnnotationKey()
+        ✓ should return entries for a specific annotation key
+        ✓ should return empty array for non-existent annotation key
+      getEntriesByQuoteId()
+        ✓ should return entry for a specific quote ID
+        ✓ should return empty array for non-existent quote ID
+      getEntriesByPaperId()
+        ✓ should return entries for a specific paper ID (1 ms)
+        ✓ should return empty array for non-existent paper ID
+      getAllEntries()
+        ✓ should return all audit entries
+        ✓ should return empty array when no entries exist
+      getEntry()
+        ✓ should retrieve an entry by ID
+        ✓ should return null for non-existent entry ID
+      getEntryCount()
+        ✓ should return correct entry count
+      clear()
+        ✓ should clear all audit entries (1 ms)
+        ✓ should reset entry ID counter after clear
+
+(node:79063) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:79059) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:79065) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS core tests/unit/ClaimStrengthCalculator.test.ts
+  ClaimStrengthCalculator
+    calculateStrength
+      ✓ should calculate strength for a single claim (4 ms)
+      ✓ should throw error for non-existent claim (11 ms)
+    calculateStrengthBatch
+      ✓ should calculate strength for multiple claims
+      ✓ should handle empty input
+    detectContradiction
+      ✓ should detect negation-based contradictions (1 ms)
+      ✓ should not detect contradiction below threshold
+
+  console.error
+    Error importing single highlight: Missing required highlight metadata
+
+      340 |       // Log error but don't throw - allow import to continue with other highlights
+      341 |       const errorMsg = error instanceof Error ? error.message : String(error);
+    > 342 |       console.error(`Error importing single highlight: ${errorMsg}`);
+          |               ^
+      343 |       return null;
+      344 |     }
+      345 |   }
+
+      at ZoteroImportManager.importSingleHighlight (src/services/ZoteroImportManager.ts:342:15)
+      at Object.<anonymous> (tests/unit/ZoteroImportManager.test.ts:392:37)
+
+  console.error
+    Error importing single highlight: Missing required highlight metadata
+
+      340 |       // Log error but don't throw - allow import to continue with other highlights
+      341 |       const errorMsg = error instanceof Error ? error.message : String(error);
+    > 342 |       console.error(`Error importing single highlight: ${errorMsg}`);
+          |               ^
+      343 |       return null;
+      344 |     }
+      345 |   }
+
+      at ZoteroImportManager.importSingleHighlight (src/services/ZoteroImportManager.ts:342:15)
+      at Object.<anonymous> (tests/unit/ZoteroImportManager.test.ts:409:37)
+
+  console.error
+    Error importing single highlight: Missing required highlight metadata
+
+      340 |       // Log error but don't throw - allow import to continue with other highlights
+      341 |       const errorMsg = error instanceof Error ? error.message : String(error);
+    > 342 |       console.error(`Error importing single highlight: ${errorMsg}`);
+          |               ^
+      343 |       return null;
+      344 |     }
+      345 |   }
+
+      at ZoteroImportManager.importSingleHighlight (src/services/ZoteroImportManager.ts:342:15)
+      at Object.<anonymous> (tests/unit/ZoteroImportManager.test.ts:426:37)
+
+  console.error
+    Error importing single highlight: Database error
+
+      340 |       // Log error but don't throw - allow import to continue with other highlights
+      341 |       const errorMsg = error instanceof Error ? error.message : String(error);
+    > 342 |       console.error(`Error importing single highlight: ${errorMsg}`);
+          |               ^
+      343 |       return null;
+      344 |     }
+      345 |   }
+
+      at ZoteroImportManager.importSingleHighlight (src/services/ZoteroImportManager.ts:342:15)
+      at Object.<anonymous> (tests/unit/ZoteroImportManager.test.ts:456:23)
+
+(node:79057) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS core tests/unit/ZoteroImportManager.test.ts
+  ZoteroImportManager
+    isZoteroAvailable()
+      ✓ should return true when Zotero is available (2 ms)
+      ✓ should return false when Zotero is not available
+      ✓ should return false when MCP client throws error
+      ✓ should call MCP client isAvailable method
+    importHighlights()
+      ✓ should return error when Zotero is not available (1 ms)
+      ✓ should return error when getAnnotations fails
+      ✓ should filter annotations by type "highlight"
+      ✓ should extract metadata from highlights
+      ✓ should set fromZotero flag on imported quotes (1 ms)
+      ✓ should return result with counts
+    importSingleHighlight()
+      ✓ should create quote with original text when no document text provided
+      ✓ should use fuzzy matched text when match succeeds
+      ✓ should store original text when matched text differs
+      ✓ should use original text when fuzzy match fails
+      ✓ should call fuzzy matcher with correct parameters
+      ✓ should return null when highlight is missing required fields (27 ms)
+      ✓ should return null when highlight text is missing
+      ✓ should return null when highlight color is missing (1 ms)
+      ✓ should handle errors gracefully and return null
+    Integration: Full import workflow
+      ✓ should import multiple highlights successfully
+
+(node:79058) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+FAIL core tests/unit/ClaimExtractor.test.ts
+  ClaimExtractor
+    extractFromText
+      ✓ should extract declarative sentences as potential claims (5 ms)
+      ✓ should skip empty lines and very short lines
+      ✕ should skip questions (1 ms)
+      ✓ should sort claims by confidence score (highest first)
+      ✓ should return empty array for empty text (1 ms)
+      ✓ should return empty array for whitespace-only text
+      ✕ should include line numbers (1-indexed)
+    categorizeClaim
+      ✓ should categorize method claims
+      ✓ should categorize result claims
+      ✓ should categorize conclusion claims (1 ms)
+      ✓ should categorize background claims
+      ✕ should categorize challenge claims (2 ms)
+      ✓ should categorize data_source claims
+      ✓ should categorize data_trend claims
+      ✓ should categorize impact claims
+      ✓ should categorize application claims
+      ✓ should categorize phenomenon claims
+      ✓ should default to background for ambiguous claims
+    suggestSections
+      ✓ should suggest relevant sections for a claim (1 ms)
+      ✓ should return top 3 suggestions sorted by similarity
+      ✓ should return empty array for empty claim text
+      ✓ should return empty array for empty sections
+      ✓ should generate embeddings for claim and sections
+      ✓ should calculate cosine similarity for each section
+    confidence calculation
+      ✓ should boost confidence for high-confidence keywords
+      ✓ should have confidence between 0 and 1 (1 ms)
+    context extraction
+      ✕ should include surrounding context for claims
+
+  ● ClaimExtractor › extractFromText › should skip questions
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      53 |       const claims = claimExtractor.extractFromText(text, 'Test2024');
+      54 |
+    > 55 |       expect(claims.every(c => !c.text.includes('?'))).toBe(true);
+         |                                                        ^
+      56 |     });
+      57 |
+      58 |     it('should sort claims by confidence score (highest first)', () => {
+
+      at Object.<anonymous> (tests/unit/ClaimExtractor.test.ts:55:56)
+
+  ● ClaimExtractor › extractFromText › should include line numbers (1-indexed)
+
+    expect(received).toBeGreaterThan(expected)
+
+    Expected: > 0
+    Received:   0
+
+      88 |       const claims = claimExtractor.extractFromText(text, 'Test2024');
+      89 |
+    > 90 |       expect(claims.length).toBeGreaterThan(0);
+         |                             ^
+      91 |       expect(claims[0].lineNumber).toBeGreaterThan(0);
+      92 |     });
+      93 |   });
+
+      at Object.<anonymous> (tests/unit/ClaimExtractor.test.ts:90:29)
+
+  ● ClaimExtractor › categorizeClaim › should categorize challenge claims
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "challenge"
+    Received: "method"
+
+      116 |     it('should categorize challenge claims', () => {
+      117 |       const type = claimExtractor.categorizeClaim('The main limitation of this approach is the computational complexity.');
+    > 118 |       expect(type).toBe('challenge');
+          |                    ^
+      119 |     });
+      120 |
+      121 |     it('should categorize data_source claims', () => {
+
+      at Object.<anonymous> (tests/unit/ClaimExtractor.test.ts:118:20)
+
+  ● ClaimExtractor › context extraction › should include surrounding context for claims
+
+    expect(received).toBeGreaterThan(expected)
+
+    Expected: > 0
+    Received:   0
+
+      310 |       const claims = claimExtractor.extractFromText(text, 'Test2024');
+      311 |
+    > 312 |       expect(claims.length).toBeGreaterThan(0);
+          |                             ^
+      313 |       expect(claims[0].context).toContain('Line 2');
+      314 |     });
+      315 |   });
+
+      at Object.<anonymous> (tests/unit/ClaimExtractor.test.ts:312:29)
+
+  console.warn
+    No claims found in workspace: /var/folders/2x/pxsr_9190jq1x9nh0r2xj_qm0000gr/T/claims-test-hAQvex
+
+      137 |     } catch (error) {
+      138 |       // Neither source exists - return empty claims array
+    > 139 |       console.warn(`No claims found in workspace: ${this.workspaceRoot}`);
+          |               ^
+      140 |     }
+      141 |   }
+      142 |
+
+      at ClaimsManager.loadFromSingleFile (src/managers/ClaimsManager.ts:139:15)
+      at ClaimsManager.loadClaims (src/managers/ClaimsManager.ts:116:7)
+      at Object.<anonymous> (tests/unit/ClaimsManager.test.ts:108:22)
+
+(node:79061) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:79066) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS core tests/unit/QuoteManager.test.ts
+  QuoteManager
+    createQuoteWithZoteroMetadata()
+      ✓ should create a quote with Zotero metadata (8 ms)
+      ✓ should validate annotation key format before storing (8 ms)
+      ✓ should reject annotation key with special characters
+      ✓ should mark annotation key as immutable after creation (1 ms)
+      ✓ should set fromZotero flag to true when creating with Zotero metadata
+      ✓ should create multiple quotes with unique IDs
+    getQuotesByZoteroFlag()
+      ✓ should return only Zotero quotes when filtering for fromZotero=true
+      ✓ should return only non-Zotero quotes when filtering for fromZotero=false
+      ✓ should return empty array when no quotes match filter
+    findPageNumber()
+      ✓ should return null for page number lookup (placeholder implementation)
+    backfillPageNumbers()
+      ✓ should return 0 when no quotes need backfilling
+      ✓ should attempt to backfill quotes without page numbers
+      ✓ should skip quotes that already have page numbers
+    searchQuotes()
+      ✓ should find quotes matching text query
+      ✓ should find quotes matching source query
+      ✓ should include both Zotero and non-Zotero quotes in results
+      ✓ should return empty array when no quotes match
+      ✓ should sort results by relevance
+    getQuote()
+      ✓ should retrieve a quote by ID
+      ✓ should return null for non-existent quote ID
+    getAllQuotes()
+      ✓ should return all quotes (1 ms)
+      ✓ should return empty array when no quotes exist
+    getQuoteCount()
+      ✓ should return correct quote count
+    deleteQuote()
+      ✓ should delete a quote by ID
+      ✓ should return false when deleting non-existent quote
+      ✓ should remove quote from Zotero index when deleted
+      ✓ should log deleted quote with annotation key to audit trail
+    clear()
+      ✓ should clear all quotes
+
+(node:79056) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS core tests/unit/OutlineParser.test.ts
+  OutlineParser
+    parse()
+      ✓ should parse a simple outline with multiple sections (8 ms)
+      ✓ should extract section content correctly (4 ms)
+      ✓ should handle numbered section IDs (2 ms)
+      ✓ should generate slugified IDs for non-numbered sections (3 ms)
+      ✓ should track line numbers correctly (3 ms)
+      ✓ should handle empty sections (63 ms)
+      ✓ should handle files with no sections (11 ms)
+      ✓ should handle different header levels (15 ms)
+      ✓ should ignore single # headers (level 1) (27 ms)
+      ✓ should handle duplicate section titles (5 ms)
+    getSectionAtPosition()
+      ✓ should return the correct section for a position within it (5 ms)
+      ✓ should return the correct section for the header line (3 ms)
+      ✓ should return the correct section for the last line (12 ms)
+      ✓ should return null for positions outside any section (5 ms)
+      ✓ should return null for negative positions (4 ms)
+    getSectionById()
+      ✓ should return the correct section for a numbered ID (31 ms)
+      ✓ should return the correct section for a decimal numbered ID (4 ms)
+      ✓ should return the correct section for a slugified ID (8 ms)
+      ✓ should return null for non-existent IDs (5 ms)
+    getSections()
+      ✓ should return all parsed sections (6 ms)
+      ✓ should return empty array before parsing (1 ms)
+    getFilePath()
+      ✓ should return null before parsing (3 ms)
+      ✓ should return the file path after parsing (6 ms)
+    edge cases
+      ✓ should handle empty files (2 ms)
+      ✓ should handle files with only whitespace (4 ms)
+      ✓ should handle headers with extra whitespace (8 ms)
+      ✓ should handle sections with special characters in titles (2 ms)
+      ✓ should handle very long section titles (2 ms)
+
+(node:79060) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS core tests/property/ClaimStrengthCalculator.test.ts
+  ClaimStrengthCalculator - Property-Based Tests
+    Property 1: Strength score is non-negative
+      ✓ should always return non-negative strength scores (7 ms)
+    Property 2: Strength score increases monotonically
+      ✓ should increase monotonically with more supporting claims (3 ms)
+    Property 3: Cosine similarity is symmetric
+      ✓ should have symmetric similarity scores (25 ms)
+    Property 4: Similarity bounds
+      ✓ should always return similarity between -1 and 1 (21 ms)
+
+(node:79062) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS core tests/property/QuoteManager.test.ts
+  QuoteManager - Property-Based Tests
+    ✓ Property 6: All created quotes should be retrievable (80 ms)
+    ✓ Property 7: Quotes created with Zotero metadata should have fromZotero flag set to true (8 ms)
+    ✓ Property 12: Filtering by Zotero flag should return only matching quotes (9 ms)
+    ✓ Property 13: Page numbers should be preserved when stored (7 ms)
+    ✓ Property 14: findPageNumber should be callable for any quote (1 ms)
+    ✓ Property 15: Backfill should complete without errors (7 ms)
+    ✓ Property 16: Search should include both Zotero and non-Zotero quotes (16 ms)
+    ✓ Property: Quote deletion should maintain consistency (6 ms)
+    ✓ Property: Search results should be consistent across multiple calls (3 ms)
+    ✓ Property: getAllQuotes should return all created quotes (6 ms)
+
+  console.warn
+    No claims found in workspace: /var/folders/2x/pxsr_9190jq1x9nh0r2xj_qm0000gr/T/claims-test-9o03Ii
+
+      137 |     } catch (error) {
+      138 |       // Neither source exists - return empty claims array
+    > 139 |       console.warn(`No claims found in workspace: ${this.workspaceRoot}`);
+          |               ^
+      140 |     }
+      141 |   }
+      142 |
+
+      at ClaimsManager.loadFromSingleFile (src/managers/ClaimsManager.ts:139:15)
+      at ClaimsManager.loadClaims (src/managers/ClaimsManager.ts:116:7)
+      at Object.<anonymous> (tests/unit/ClaimsManager.test.ts:814:7)
+
+PASS core tests/unit/ClaimsManager.test.ts
+  ClaimsManager
+    loadClaims() - single file structure
+      ✓ should load claims from single claims_and_evidence.md file (105 ms)
+      ✓ should handle empty claims file (7 ms)
+      ✓ should handle missing claims file gracefully (23 ms)
+    loadClaims() - multi-file structure
+      ✓ should load claims from multiple files in claims directory (26 ms)
+      ✓ should fallback to single file if claims directory is empty (8 ms)
+      ✓ should ignore non-markdown files in claims directory (26 ms)
+    getClaim()
+      ✓ should retrieve claim by ID (6 ms)
+      ✓ should return null for non-existent claim ID (5 ms)
+      ✓ should throw error if claims not loaded (15 ms)
+    findClaimsBySource()
+      ✓ should find all claims from a specific source (6 ms)
+      ✓ should return empty array for source with no claims (3 ms)
+      ✓ should throw error if claims not loaded (3 ms)
+    findClaimsBySection()
+      ✓ should find claims by section ID (8 ms)
+      ✓ should return empty array for section with no claims (7 ms)
+      ✓ should throw error if claims not loaded (3 ms)
+    getAllClaims()
+      ✓ should return all loaded claims (1 ms)
+      ✓ should return a copy of claims array (8 ms)
+      ✓ should throw error if claims not loaded (2 ms)
+    claim parsing edge cases
+      ✓ should handle claims with missing optional fields (6 ms)
+      ✓ should handle multi-line quotes (6 ms)
+      ✓ should handle claims with special characters in text (5 ms)
+      ✓ should handle claims with Source ID in parentheses (3 ms)
+      ✓ should handle empty file gracefully (2 ms)
+      ✓ should handle file with only headers and no claims (2 ms)
+      ✓ should handle claims with context field (2 ms)
+      ✓ should normalize whitespace in primary quotes (2 ms)
+    getClaimCount()
+      ✓ should return correct count of loaded claims (3 ms)
+      ✓ should return 0 for empty claims (3 ms)
+      ✓ should return 0 before loading claims
+    isLoaded()
+      ✓ should return false before loading claims (1 ms)
+      ✓ should return true after loading claims (2 ms)
+      ✓ should return true even if no claims found (2 ms)
+    reload behavior
+      ✓ should clear previous claims when reloading (3 ms)
+    in-memory mode
+      ✓ should create manager in in-memory mode (1 ms)
+      ✓ should allow adding claims directly
+      ✓ should support querying added claims by ID (1 ms)
+      ✓ should support querying claims by source
+      ✓ should support querying claims by section (4 ms)
+      ✓ should support getAllClaims (1 ms)
+      ✓ should throw error when addClaim is called on non-in-memory manager
+      ✓ should not perform file I/O when loadClaims is called (1 ms)
+      ✓ should return current claims when loadClaims is called in in-memory mode
+      ✓ should handle adding multiple claims with same source
+      ✓ should handle adding claims with multiple sections (1 ms)
+
+ts-jest[config] (WARN) [94mmessage[0m[90m TS151002: [0mUsing hybrid module kind (Node16/18/Next) is only supported in "isolatedModules: true". Please set "isolatedModules: true" in your tsconfig.json. To disable this message, you can set "diagnostics.ignoreCodes" to include 151002 in your ts-jest config. See more at https://kulshekhar.github.io/ts-jest/docs/getting-started/options/diagnostics
+FAIL core tests/unit/SearchService.test.ts
+  ● Test suite failed to run
+
+    [96mtests/unit/SearchService.test.ts[0m:[93m107[0m:[93m7[0m - [91merror[0m[90m TS2322: [0mType 'string' is not assignable to type 'SourcedQuote'.
+
+    [7m107[0m       primaryQuote: 'ML improved accuracy by 15%',
+    [7m   [0m [91m      ~~~~~~~~~~~~[0m
+
+      [96msrc/types/index.ts[0m:[93m96[0m:[93m3[0m
+        [7m96[0m   primaryQuote: SourcedQuote;    // Main supporting quote with source
+        [7m  [0m [96m  ~~~~~~~~~~~~[0m
+        The expected type comes from property 'primaryQuote' which is declared here on type 'Claim'
+    [96mtests/unit/SearchService.test.ts[0m:[93m121[0m:[93m7[0m - [91merror[0m[90m TS2322: [0mType 'string' is not assignable to type 'SourcedQuote'.
+
+    [7m121[0m       primaryQuote: 'Large datasets are essential',
+    [7m   [0m [91m      ~~~~~~~~~~~~[0m
+
+      [96msrc/types/index.ts[0m:[93m96[0m:[93m3[0m
+        [7m96[0m   primaryQuote: SourcedQuote;    // Main supporting quote with source
+        [7m  [0m [96m  ~~~~~~~~~~~~[0m
+        The expected type comes from property 'primaryQuote' which is declared here on type 'Claim'
+    [96mtests/unit/SearchService.test.ts[0m:[93m135[0m:[93m7[0m - [91merror[0m[90m TS2322: [0mType 'string' is not assignable to type 'SourcedQuote'.
+
+    [7m135[0m       primaryQuote: 'Batch effects are common',
+    [7m   [0m [91m      ~~~~~~~~~~~~[0m
+
+      [96msrc/types/index.ts[0m:[93m96[0m:[93m3[0m
+        [7m96[0m   primaryQuote: SourcedQuote;    // Main supporting quote with source
+        [7m  [0m [96m  ~~~~~~~~~~~~[0m
+        The expected type comes from property 'primaryQuote' which is declared here on type 'Claim'
+
+PASS core tests/property/OutlineParser.test.ts
+  OutlineParser Property-Based Tests
+    ✓ should parse the same file identically on multiple runs (142 ms)
+    ✓ should make all parsed sections findable by ID (94 ms)
+    ✓ should make all sections findable by position within their range (91 ms)
+    ✓ should not create overlapping section boundaries (26 ms)
+    ✓ should not include header lines in section content (31 ms)
+    ✓ should generate unique section IDs (33 ms)
+    ✓ should maintain valid line ranges for all sections (67 ms)
+    ✓ should only parse valid header levels (2-6) (20 ms)
+
+PASS core tests/property/ClaimsManager.test.ts
+  ClaimsManager - Property-Based Tests
+    Property 1: Claim Indexing Completeness
+      ✓ should find all loaded claims by their ID (205 ms)
+      ✓ should return null for non-existent claim IDs (83 ms)
+    Property 2: Index Completeness
+      ✓ should index all claims by source (126 ms)
+      ✓ should index all claims by section (86 ms)
+      ✓ should return empty arrays for non-existent sources and sections (75 ms)
+    Property 3: Parse-Serialize Idempotence
+      ✓ should parse serialized claims identically (112 ms)
+      ✓ should handle round-trip serialization (71 ms)
+    Additional Properties: Edge Cases
+      ✓ should handle empty claims array (1 ms)
+      ✓ should maintain consistency after multiple loads (51 ms)
+      ✓ should preserve claim uniqueness (71 ms)
+
+  console.error
+    Failed to save to disk cache: Error: EACCES: permission denied, open '/var/folders/2x/pxsr_9190jq1x9nh0r2xj_qm0000gr/T/embedding-test-shMRS7/098f6bcd4621d373cade4e832627b4f6.json'
+        at Module.writeFileSync (node:fs:2391:20)
+        at EmbeddingService.saveToDiskCache (/Users/phr23/Writing/Chapter/packages/core/src/services/EmbeddingService.ts:568:10)
+        at /Users/phr23/Writing/Chapter/packages/core/src/services/EmbeddingService.ts:148:14
+        at /Users/phr23/Writing/Chapter/packages/core/src/services/EmbeddingService.ts:331:26
+        at EmbeddingService.processQueue (/Users/phr23/Writing/Chapter/packages/core/src/services/EmbeddingService.ts:359:11) {
+      errno: -13,
+      code: 'EACCES',
+      syscall: 'open',
+      path: '/var/folders/2x/pxsr_9190jq1x9nh0r2xj_qm0000gr/T/embedding-test-shMRS7/098f6bcd4621d373cade4e832627b4f6.json'
+    }
+
+      568 |       fs.writeFileSync(cachePath, JSON.stringify(embedding));
+      569 |     } catch (error) {
+    > 570 |       console.error('Failed to save to disk cache:', error);
+          |               ^
+      571 |     }
+      572 |   }
+      573 | }
+
+      at EmbeddingService.saveToDiskCache (src/services/EmbeddingService.ts:570:15)
+      at src/services/EmbeddingService.ts:148:14
+      at src/services/EmbeddingService.ts:331:26
+      at EmbeddingService.processQueue (src/services/EmbeddingService.ts:359:11)
+
+PASS core tests/unit/EmbeddingService.test.ts (6.561 s)
+  EmbeddingService
+    constructor
+      ✓ should create cache directory if it does not exist (3 ms)
+      ✓ should use default parameters when not provided (1 ms)
+      ✓ should load existing cache from disk on initialization (1 ms)
+      ✓ should respect maxCacheSize when loading from disk (2 ms)
+    generateEmbedding() - cache miss
+      ✓ should call OpenAI API when embedding not in cache (1 ms)
+      ✓ should cache the result in memory
+      ✓ should save the result to disk cache (16 ms)
+      ✓ should throw error if OpenAI API call fails (6 ms)
+    generateEmbedding() - cache hit
+      ✓ should return cached embedding without calling API (1 ms)
+      ✓ should update LRU ordering on cache hit (207 ms)
+      ✓ should load from disk cache if not in memory (4 ms)
+    generateBatch()
+      ✓ should return empty array for empty input (1 ms)
+      ✓ should generate embeddings for all uncached texts in single API call (1 ms)
+      ✓ should maintain input order in output
+      ✓ should use cached embeddings and only generate uncached ones (203 ms)
+      ✓ should update LRU ordering for cache hits (102 ms)
+      ✓ should load from disk cache for batch requests (105 ms)
+      ✓ should cache all new embeddings from batch (5 ms)
+      ✓ should throw error if batch API call fails
+    cosineSimilarity()
+      ✓ should calculate correct similarity for identical vectors (1 ms)
+      ✓ should calculate correct similarity for orthogonal vectors
+      ✓ should calculate correct similarity for opposite vectors (1 ms)
+      ✓ should calculate correct similarity for arbitrary vectors
+      ✓ should be symmetric
+      ✓ should return 0 for zero vectors
+      ✓ should throw error for vectors of different lengths (6 ms)
+      ✓ should handle high-dimensional vectors (1 ms)
+      ✓ should handle negative values
+      ✓ should handle decimal values (1 ms)
+    trimCache()
+      ✓ should not trim if cache size is below limit
+      ✓ should trim cache to specified size using LRU eviction (912 ms)
+      ✓ should keep most recently used entries (404 ms)
+      ✓ should automatically trim when cache exceeds maxCacheSize (405 ms)
+      ✓ should not affect disk cache when trimming memory (406 ms)
+      ✓ should handle trimming to zero (1 ms)
+    clearCache()
+      ✓ should clear all in-memory cache (203 ms)
+      ✓ should not affect disk cache (1 ms)
+      ✓ should allow reloading from disk after clear
+    getCacheSize()
+      ✓ should return 0 for empty cache (1 ms)
+      ✓ should return correct count after adding embeddings (404 ms)
+      ✓ should return correct count after trimming (912 ms)
+      ✓ should return 0 after clearing
+    disk cache persistence
+      ✓ should persist cache across service instances (1 ms)
+      ✓ should handle corrupted cache files gracefully
+      ✓ should handle missing cache directory gracefully
+      ✓ should ignore non-JSON files in cache directory (1 ms)
+      ✓ should handle write errors gracefully (16 ms)
+    edge cases
+      ✓ should handle empty string input (1 ms)
+      ✓ should handle very long text input
+      ✓ should handle special characters in text
+      ✓ should handle unicode characters (1 ms)
+      ✓ should handle duplicate texts in batch (3 ms)
+      ✓ should handle single item batch (1 ms)
+      ✓ should use correct model from constructor
+
+  console.error
+    Failed to save to disk cache: Error: ENOENT: no such file or directory, open '/var/folders/2x/pxsr_9190jq1x9nh0r2xj_qm0000gr/T/embedding-prop-test-QROTmo/fb871d1ee198aba27c1f928a428af127.json'
+        at Module.writeFileSync (node:fs:2391:20)
+        at EmbeddingService.saveToDiskCache (/Users/phr23/Writing/Chapter/packages/core/src/services/EmbeddingService.ts:568:10)
+        at /Users/phr23/Writing/Chapter/packages/core/src/services/EmbeddingService.ts:148:14
+        at runNextTicks (node:internal/process/task_queues:64:5)
+        at listOnTimeout (node:internal/timers:567:9)
+        at processTimers (node:internal/timers:541:7)
+        at /Users/phr23/Writing/Chapter/packages/core/src/services/EmbeddingService.ts:331:26
+        at EmbeddingService.processQueue (/Users/phr23/Writing/Chapter/packages/core/src/services/EmbeddingService.ts:359:11) {
+      errno: -2,
+      code: 'ENOENT',
+      syscall: 'open',
+      path: '/var/folders/2x/pxsr_9190jq1x9nh0r2xj_qm0000gr/T/embedding-prop-test-QROTmo/fb871d1ee198aba27c1f928a428af127.json'
+    }
+
+      568 |       fs.writeFileSync(cachePath, JSON.stringify(embedding));
+      569 |     } catch (error) {
+    > 570 |       console.error('Failed to save to disk cache:', error);
+          |               ^
+      571 |     }
+      572 |   }
+      573 | }
+
+      at EmbeddingService.saveToDiskCache (src/services/EmbeddingService.ts:570:15)
+      at src/services/EmbeddingService.ts:148:14
+      at src/services/EmbeddingService.ts:331:26
+      at EmbeddingService.processQueue (src/services/EmbeddingService.ts:359:11)
+
+  console.error
+    Failed to save to disk cache: Error: ENOENT: no such file or directory, open '/var/folders/2x/pxsr_9190jq1x9nh0r2xj_qm0000gr/T/embedding-prop-test-QROTmo/69793ef7ca228043ddc47f3bad0e419b.json'
+        at Module.writeFileSync (node:fs:2391:20)
+        at EmbeddingService.saveToDiskCache (/Users/phr23/Writing/Chapter/packages/core/src/services/EmbeddingService.ts:568:10)
+        at /Users/phr23/Writing/Chapter/packages/core/src/services/EmbeddingService.ts:148:14
+        at /Users/phr23/Writing/Chapter/packages/core/src/services/EmbeddingService.ts:331:26
+        at EmbeddingService.processQueue (/Users/phr23/Writing/Chapter/packages/core/src/services/EmbeddingService.ts:359:11) {
+      errno: -2,
+      code: 'ENOENT',
+      syscall: 'open',
+      path: '/var/folders/2x/pxsr_9190jq1x9nh0r2xj_qm0000gr/T/embedding-prop-test-QROTmo/69793ef7ca228043ddc47f3bad0e419b.json'
+    }
+
+      568 |       fs.writeFileSync(cachePath, JSON.stringify(embedding));
+      569 |     } catch (error) {
+    > 570 |       console.error('Failed to save to disk cache:', error);
+          |               ^
+      571 |     }
+      572 |   }
+      573 | }
+
+      at EmbeddingService.saveToDiskCache (src/services/EmbeddingService.ts:570:15)
+      at src/services/EmbeddingService.ts:148:14
+      at src/services/EmbeddingService.ts:331:26
+      at EmbeddingService.processQueue (src/services/EmbeddingService.ts:359:11)
+
+  console.error
+    Failed to save to disk cache: Error: ENOENT: no such file or directory, open '/var/folders/2x/pxsr_9190jq1x9nh0r2xj_qm0000gr/T/embedding-prop-test-MkPOW5/0e1a9222701041f0fc60ecfe38604bf2.json'
+        at Module.writeFileSync (node:fs:2391:20)
+        at EmbeddingService.saveToDiskCache (/Users/phr23/Writing/Chapter/packages/core/src/services/EmbeddingService.ts:568:10)
+        at /Users/phr23/Writing/Chapter/packages/core/src/services/EmbeddingService.ts:148:14
+        at /Users/phr23/Writing/Chapter/packages/core/src/services/EmbeddingService.ts:331:26
+        at EmbeddingService.processQueue (/Users/phr23/Writing/Chapter/packages/core/src/services/EmbeddingService.ts:359:11) {
+      errno: -2,
+      code: 'ENOENT',
+      syscall: 'open',
+      path: '/var/folders/2x/pxsr_9190jq1x9nh0r2xj_qm0000gr/T/embedding-prop-test-MkPOW5/0e1a9222701041f0fc60ecfe38604bf2.json'
+    }
+
+      568 |       fs.writeFileSync(cachePath, JSON.stringify(embedding));
+      569 |     } catch (error) {
+    > 570 |       console.error('Failed to save to disk cache:', error);
+          |               ^
+      571 |     }
+      572 |   }
+      573 | }
+
+      at EmbeddingService.saveToDiskCache (src/services/EmbeddingService.ts:570:15)
+      at src/services/EmbeddingService.ts:148:14
+      at src/services/EmbeddingService.ts:331:26
+      at EmbeddingService.processQueue (src/services/EmbeddingService.ts:359:11)
+
+  console.error
+    Failed to save to disk cache: Error: ENOENT: no such file or directory, open '/var/folders/2x/pxsr_9190jq1x9nh0r2xj_qm0000gr/T/embedding-prop-test-MkPOW5/30cbbc00b89f8fbc223a429d2c1b662d.json'
+        at Module.writeFileSync (node:fs:2391:20)
+        at EmbeddingService.saveToDiskCache (/Users/phr23/Writing/Chapter/packages/core/src/services/EmbeddingService.ts:568:10)
+        at /Users/phr23/Writing/Chapter/packages/core/src/services/EmbeddingService.ts:148:14
+        at runNextTicks (node:internal/process/task_queues:64:5)
+        at processTimers (node:internal/timers:538:9)
+        at /Users/phr23/Writing/Chapter/packages/core/src/services/EmbeddingService.ts:331:26
+        at EmbeddingService.processQueue (/Users/phr23/Writing/Chapter/packages/core/src/services/EmbeddingService.ts:359:11) {
+      errno: -2,
+      code: 'ENOENT',
+      syscall: 'open',
+      path: '/var/folders/2x/pxsr_9190jq1x9nh0r2xj_qm0000gr/T/embedding-prop-test-MkPOW5/30cbbc00b89f8fbc223a429d2c1b662d.json'
+    }
+
+      568 |       fs.writeFileSync(cachePath, JSON.stringify(embedding));
+      569 |     } catch (error) {
+    > 570 |       console.error('Failed to save to disk cache:', error);
+          |               ^
+      571 |     }
+      572 |   }
+      573 | }
+
+      at EmbeddingService.saveToDiskCache (src/services/EmbeddingService.ts:570:15)
+      at src/services/EmbeddingService.ts:148:14
+      at src/services/EmbeddingService.ts:331:26
+      at EmbeddingService.processQueue (src/services/EmbeddingService.ts:359:11)
+
+  console.error
+    Failed to save to disk cache: Error: ENOENT: no such file or directory, open '/var/folders/2x/pxsr_9190jq1x9nh0r2xj_qm0000gr/T/embedding-prop-test-MkPOW5/032b352b86ea0340289105f9651eaf49.json'
+        at Module.writeFileSync (node:fs:2391:20)
+        at EmbeddingService.saveToDiskCache (/Users/phr23/Writing/Chapter/packages/core/src/services/EmbeddingService.ts:568:10)
+        at /Users/phr23/Writing/Chapter/packages/core/src/services/EmbeddingService.ts:148:14
+        at /Users/phr23/Writing/Chapter/packages/core/src/services/EmbeddingService.ts:331:26
+        at EmbeddingService.processQueue (/Users/phr23/Writing/Chapter/packages/core/src/services/EmbeddingService.ts:359:11) {
+      errno: -2,
+      code: 'ENOENT',
+      syscall: 'open',
+      path: '/var/folders/2x/pxsr_9190jq1x9nh0r2xj_qm0000gr/T/embedding-prop-test-MkPOW5/032b352b86ea0340289105f9651eaf49.json'
+    }
+
+      568 |       fs.writeFileSync(cachePath, JSON.stringify(embedding));
+      569 |     } catch (error) {
+    > 570 |       console.error('Failed to save to disk cache:', error);
+          |               ^
+      571 |     }
+      572 |   }
+      573 | }
+
+      at EmbeddingService.saveToDiskCache (src/services/EmbeddingService.ts:570:15)
+      at src/services/EmbeddingService.ts:148:14
+      at src/services/EmbeddingService.ts:331:26
+      at EmbeddingService.processQueue (src/services/EmbeddingService.ts:359:11)
+

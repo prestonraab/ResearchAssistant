@@ -383,9 +383,9 @@ export class ClaimStrengthCalculator {
    */
   private hasContradictoryKeywords(text1: string, text2: string): boolean {
     for (const [word1, word2] of this.CONTRADICTORY_PAIRS) {
-      // Check if text1 has word1 and text2 has word2
-      const regex1 = new RegExp(`\\b${word1}\\b`, 'i');
-      const regex2 = new RegExp(`\\b${word2}\\b`, 'i');
+      // Use word stem matching to catch variations like "increase"/"increases"
+      const regex1 = new RegExp(`\\b${word1}`, 'i');
+      const regex2 = new RegExp(`\\b${word2}`, 'i');
 
       if (regex1.test(text1) && regex2.test(text2)) {
         return true;
@@ -514,28 +514,38 @@ export class ClaimStrengthCalculator {
    * Check if two texts have opposing sentiment
    */
   private hasSentimentOpposition(text1: string, text2: string): boolean {
-    const hasPositive1 = this.POSITIVE_WORDS.some((word) => {
-      const regex = new RegExp(`\\b${word}\\b`, 'i');
-      return regex.test(text1);
-    });
+    // Helper to determine effective sentiment (accounting for negation)
+    const getEffectiveSentiment = (text: string): 'positive' | 'negative' | 'neutral' => {
+      const hasNegation = this.hasNegation(text);
+      
+      const hasPositive = this.POSITIVE_WORDS.some((word) => {
+        const regex = new RegExp(`\\b${word}\\b`, 'i');
+        return regex.test(text);
+      });
 
-    const hasNegative1 = this.NEGATIVE_WORDS.some((word) => {
-      const regex = new RegExp(`\\b${word}\\b`, 'i');
-      return regex.test(text1);
-    });
+      const hasNegative = this.NEGATIVE_WORDS.some((word) => {
+        const regex = new RegExp(`\\b${word}\\b`, 'i');
+        return regex.test(text);
+      });
 
-    const hasPositive2 = this.POSITIVE_WORDS.some((word) => {
-      const regex = new RegExp(`\\b${word}\\b`, 'i');
-      return regex.test(text2);
-    });
+      // If negation is present, flip the sentiment
+      if (hasNegation) {
+        if (hasPositive) return 'negative'; // "not effective" = negative
+        if (hasNegative) return 'positive'; // "not ineffective" = positive
+      } else {
+        if (hasPositive) return 'positive';
+        if (hasNegative) return 'negative';
+      }
 
-    const hasNegative2 = this.NEGATIVE_WORDS.some((word) => {
-      const regex = new RegExp(`\\b${word}\\b`, 'i');
-      return regex.test(text2);
-    });
+      return 'neutral';
+    };
 
-    // Opposition exists if one is positive and the other is negative
-    return (hasPositive1 && hasNegative2) || (hasNegative1 && hasPositive2);
+    const sentiment1 = getEffectiveSentiment(text1);
+    const sentiment2 = getEffectiveSentiment(text2);
+
+    // Opposition exists if sentiments are opposite
+    return (sentiment1 === 'positive' && sentiment2 === 'negative') ||
+           (sentiment1 === 'negative' && sentiment2 === 'positive');
   }
 
 }

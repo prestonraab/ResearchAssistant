@@ -386,18 +386,18 @@ export class ZoteroApiService {
    * @returns Array of ZoteroAttachments (typed attachments only)
    */
   async getItemChildren(itemKey: string): Promise<ZoteroAttachment[]> {
+    // Check configuration
+    if (!this.isConfigured()) {
+      this.getLogger().warn('Zotero API not configured');
+      return [];
+    }
+
+    // Validate parameter - throw error for invalid input
+    if (!itemKey || itemKey.trim().length === 0) {
+      throw new Error('Item key cannot be empty');
+    }
+
     try {
-      // Check configuration
-      if (!this.isConfigured()) {
-        this.getLogger().warn('Zotero API not configured');
-        return [];
-      }
-
-      // Validate parameter
-      if (!itemKey || itemKey.trim().length === 0) {
-        throw new Error('Item key cannot be empty');
-      }
-
       // Check cache first
       const cacheKey = `item_children_${itemKey}`;
       const cached = this.getFromCache(cacheKey);

@@ -27,6 +27,7 @@ export class ClaimsManager extends CoreClaimsManager {
   
   private persistence = new ClaimsPersistence();
   private isLoading: boolean = false;
+  private isInMemoryMode: boolean = false;
   
   private pendingReloadTimer: NodeJS.Timeout | undefined;
   private readonly RELOAD_DEBOUNCE_MS = 500;
@@ -38,6 +39,7 @@ export class ClaimsManager extends CoreClaimsManager {
     const workspaceRoot = filePath ? path.dirname(path.dirname(filePath)) : '';
     super(workspaceRoot, options);
     this.filePath = filePath;
+    this.isInMemoryMode = options?.inMemory ?? false;
   }
 
   async updatePath(filePath: string): Promise<void> {
@@ -321,6 +323,11 @@ export class ClaimsManager extends CoreClaimsManager {
   }
 
   private async queuePersist(): Promise<void> {
+    // Skip persistence in in-memory mode
+    if (this.isInMemoryMode) {
+      return;
+    }
+    
     await this.persistence.queuePersist(() => 
       this.persistence.persistClaims(
         this.getClaims(),

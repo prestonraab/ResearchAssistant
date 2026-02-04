@@ -122,7 +122,7 @@ describe('ClaimCompletionProvider', () => {
       uri: { fsPath: '/test/workspace/03_Drafting/manuscript.md' }
     }) as any;
 
-    mockPosition = new vscode.Position(5, 12);
+    mockPosition = new vscode.Position(0, 12);
   });
 
   describe('provideCompletionItems', () => {

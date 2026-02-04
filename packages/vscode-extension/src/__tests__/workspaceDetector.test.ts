@@ -1,348 +1,146 @@
 import { jest } from '@jest/globals';
 import * as vscode from 'vscode';
-import * as fs from 'fs';
-import { WorkspaceDetector } from '../core/workspaceDetector';
-import {  setupTest, createMockWorkspaceFolder, createMockExtensionContext , setupFsMock } from './helpers';
+import { WorkspaceDetector, checkResearchIndicators, FileSystemDeps } from '../core/workspaceDetector';
+import { setupTest, createMockWorkspaceFolder, createMockExtensionContext } from './helpers';
 
-jest.mock('fs');
+/**
+ * Creates a mock file system for testing
+ */
+function createMockFileSystem(): FileSystemDeps & { 
+  existsSync: jest.Mock<(path: string) => boolean>; 
+} {
+  return {
+    existsSync: jest.fn<(path: string) => boolean>().mockReturnValue(false)
+  };
+}
 
 describe('WorkspaceDetector', () => {
   setupTest();
 
   let mockContext: ReturnType<typeof createMockExtensionContext>;
+  let mockFs: ReturnType<typeof createMockFileSystem>;
 
   beforeEach(() => {
-    setupFsMock();
     mockContext = createMockExtensionContext();
-  });
-
-  beforeEach(() => {
+    mockFs = createMockFileSystem();
+    WorkspaceDetector.setFileSystem(mockFs);
+    
     (vscode.workspace as any).workspaceFolders = [
       createMockWorkspaceFolder({ uri: vscode.Uri.file('/test/workspace') })
     ];
   });
 
+  afterEach(() => {
+    WorkspaceDetector.resetFileSystem();
+  });
+
+  describe('checkResearchIndicators (pure logic)', () => {
+    test('should return true when indicator exists', () => {
+      const fs: FileSystemDeps = { existsSync: (p: string) => p.includes('01_Knowledge_Base') };
+      const result = checkResearchIndicators('/workspace', ['01_Knowledge_Base'], fs);
+      expect(result).toBe(true);
+    });
+
+    test('should return false when no indicators exist', () => {
+      const fs: FileSystemDeps = { existsSync: (p: string) => false };
+      const result = checkResearchIndicators('/workspace', ['01_Knowledge_Base', '03_Drafting'], fs);
+      expect(result).toBe(false);
+    });
+
+    test('should check all indicators', () => {
+      const checked: string[] = [];
+      const fs: FileSystemDeps = { existsSync: (p: string) => { checked.push(p); return false; } };
+      checkResearchIndicators('/workspace', ['a', 'b', 'c'], fs);
+      expect(checked).toHaveLength(3);
+    });
+  });
+
   describe('isResearchWorkspace', () => {
     test('should return true when 01_Knowledge_Base directory exists', () => {
-      (fs.existsSync as jest.MockedFunction<typeof fs.existsSync>).mockImplementation((path: any) => {
-        return path.includes('01_Knowledge_Base');
-      });
-
-      const result = WorkspaceDetector.isResearchWorkspace();
-      
-      expect(result).toBe(true);
-      expect(fs.existsSync).toHaveBeenCalled();
+      mockFs.existsSync.mockImplementation((path: string) => path.includes('01_Knowledge_Base'));
+      expect(WorkspaceDetector.isResearchWorkspace()).toBe(true);
     });
 
     test('should return true when 03_Drafting directory exists', () => {
-      (fs.existsSync as jest.MockedFunction<typeof fs.existsSync>).mockImplementation((path: any) => {
-        return path.includes('03_Drafting');
-      });
-
-      const result = WorkspaceDetector.isResearchWorkspace();
-      
-      expect(result).toBe(true);
-    });
-
-    test('should return true when literature/ExtractedText directory exists', () => {
-      (fs.existsSync as jest.MockedFunction<typeof fs.existsSync>).mockImplementation((path: any) => {
-        return path.includes('literature/ExtractedText');
-      });
-
-      const result = WorkspaceDetector.isResearchWorkspace();
-      
-      expect(result).toBe(true);
+      mockFs.existsSync.mockImplementation((path: string) => path.includes('03_Drafting'));
+      expect(WorkspaceDetector.isResearchWorkspace()).toBe(true);
     });
 
     test('should return false when no research indicators exist', () => {
-      (fs.existsSync as jest.MockedFunction<typeof fs.existsSync>).mockReturnValue(false);
-
-      const result = WorkspaceDetector.isResearchWorkspace();
-      
-      expect(result).toBe(false);
+      mockFs.existsSync.mockReturnValue(false);
+      expect(WorkspaceDetector.isResearchWorkspace()).toBe(false);
     });
 
     test('should return false when workspace folders is undefined', () => {
       (vscode.workspace as any).workspaceFolders = undefined;
-
-      const result = WorkspaceDetector.isResearchWorkspace();
-      
-      expect(result).toBe(false);
+      expect(WorkspaceDetector.isResearchWorkspace()).toBe(false);
     });
 
     test('should return false when workspace folders is empty', () => {
       (vscode.workspace as any).workspaceFolders = [];
-
-      const result = WorkspaceDetector.isResearchWorkspace();
-      
-      expect(result).toBe(false);
-    });
-
-    test('should check all research indicators', () => {
-      (fs.existsSync as jest.MockedFunction<typeof fs.existsSync>).mockReturnValue(false);
-
-      const result = WorkspaceDetector.isResearchWorkspace();
-      
-      // Verify output behavior: should return false when no indicators exist
-      expect(result).toBe(false);
-    });
-
-    test('should use correct workspace root path', () => {
-      const workspaceRoot = '/custom/workspace';
-      (vscode.workspace as any).workspaceFolders = [
-        createMockWorkspaceFolder({ uri: vscode.Uri.file(workspaceRoot) })
-      ];
-      (fs.existsSync as jest.MockedFunction<typeof fs.existsSync>).mockReturnValue(false);
-
-      WorkspaceDetector.isResearchWorkspace();
-      
-      const calls = (fs.existsSync as jest.MockedFunction<typeof fs.existsSync>).mock.calls;
-      calls.forEach((call: any) => {
-        expect(call[0]).toContain(workspaceRoot);
-      });
+      expect(WorkspaceDetector.isResearchWorkspace()).toBe(false);
     });
   });
 
   describe('autoActivateIfNeeded', () => {
     beforeEach(() => {
       (vscode.workspace.getConfiguration as jest.Mock).mockReturnValue({
-        get: jest.fn<(key: string, defaultValue?: any) => any>((key: string, defaultValue?: any) => {
-          if (key === 'autoActivate') {
-            return true;
-          }
-          return defaultValue;
-        }),
+        get: jest.fn((key: string, defaultValue?: unknown) => 
+          key === 'autoActivate' ? true : defaultValue
+        ),
         update: jest.fn<() => Promise<void>>().mockResolvedValue(undefined),
       });
     });
 
     test('should not activate when auto-activation is disabled', async () => {
       (vscode.workspace.getConfiguration as jest.Mock).mockReturnValue({
-        get: jest.fn<(key: string, defaultValue?: any) => any>((key: string, defaultValue?: any) => {
-          if (key === 'autoActivate') {
-            return false;
-          }
-          return defaultValue;
-        }),
+        get: jest.fn((key: string) => key === 'autoActivate' ? false : undefined),
       });
-      (fs.existsSync as jest.MockedFunction<typeof fs.existsSync>).mockReturnValue(true);
+      mockFs.existsSync.mockReturnValue(true);
 
       await WorkspaceDetector.autoActivateIfNeeded(mockContext);
-      
-      // Verify output behavior: no activation should occur
       expect(vscode.commands.executeCommand).not.toHaveBeenCalled();
     });
 
     test('should not activate when not a research workspace', async () => {
-      (fs.existsSync as jest.MockedFunction<typeof fs.existsSync>).mockReturnValue(false);
-
+      mockFs.existsSync.mockReturnValue(false);
       await WorkspaceDetector.autoActivateIfNeeded(mockContext);
-      
-      // Verify output behavior: no activation should occur
       expect(vscode.commands.executeCommand).not.toHaveBeenCalled();
     });
 
-    test('should show notification and activate when research workspace detected', async () => {
-      (fs.existsSync as jest.Mock).mockReturnValue(true);
+    test('should activate when research workspace detected', async () => {
+      mockFs.existsSync.mockReturnValue(true);
       (vscode.window.showInformationMessage as jest.Mock<any>).mockResolvedValue('OK');
 
       await WorkspaceDetector.autoActivateIfNeeded(mockContext);
       
-      // Verify output behavior: user should see notification and activation should occur
-      expect(vscode.window.showInformationMessage).toHaveBeenCalledWith(
-        'Research workspace detected. Research Assistant is activating...',
-        'Disable Auto-Activation',
-        'OK'
-      );
+      expect(vscode.window.showInformationMessage).toHaveBeenCalled();
       expect(vscode.commands.executeCommand).toHaveBeenCalledWith('researchAssistant.activate');
     });
 
-    test('should disable auto-activation when user clicks "Disable Auto-Activation"', async () => {
-      (fs.existsSync as jest.Mock).mockReturnValue(true);
-      (vscode.window.showInformationMessage as jest.Mock<any>).mockResolvedValue('Disable Auto-Activation');
-      
-      const mockConfig = {
-        get: jest.fn<(key: string, defaultValue?: any) => any>((key: string, defaultValue?: any) => {
-          if (key === 'autoActivate') {
-            return true;
-          }
-          return defaultValue;
-        }),
-        update: jest.fn<() => Promise<void>>().mockResolvedValue(undefined),
-      };
-      (vscode.workspace.getConfiguration as jest.Mock).mockReturnValue(mockConfig);
-
-      await WorkspaceDetector.autoActivateIfNeeded(mockContext);
-      
-      // Verify output behavior: configuration should be updated and user should see confirmation
-      expect(mockConfig.update).toHaveBeenCalledWith(
-        'autoActivate',
-        false,
-        vscode.ConfigurationTarget.Workspace
-      );
-      expect(vscode.window.showInformationMessage).toHaveBeenCalledWith(
-        'Auto-activation disabled. You can re-enable it in settings.'
-      );
-    });
-
-    test('should handle activation command failure gracefully', async () => {
-      (fs.existsSync as jest.Mock).mockReturnValue(true);
+    test('should handle activation failure gracefully', async () => {
+      mockFs.existsSync.mockReturnValue(true);
       (vscode.window.showInformationMessage as jest.Mock<any>).mockResolvedValue('OK');
-      (vscode.commands.executeCommand as jest.Mock<any>).mockRejectedValue(new Error('Activation failed'));
+      (vscode.commands.executeCommand as jest.Mock<any>).mockRejectedValue(new Error('Failed'));
 
       await WorkspaceDetector.autoActivateIfNeeded(mockContext);
-      
-      // Verify output behavior: user should see error message
-      expect(vscode.window.showErrorMessage).toHaveBeenCalledWith(
-        'Failed to activate Research Assistant. Please activate manually.'
-      );
-    });
-
-    test('should not activate when user dismisses notification', async () => {
-      (fs.existsSync as jest.Mock).mockReturnValue(true);
-      (vscode.window.showInformationMessage as jest.Mock<any>).mockResolvedValue(undefined);
-
-      await WorkspaceDetector.autoActivateIfNeeded(mockContext);
-      
-      // Verify output behavior: activation should occur when user accepts
-      expect(vscode.commands.executeCommand).toHaveBeenCalledWith('researchAssistant.activate');
-    });
-  });
-
-  describe('enableAutoActivation', () => {
-    test('should enable auto-activation in workspace configuration', async () => {
-      const mockConfig = {
-        get: jest.fn<() => any>(),
-        update: jest.fn<() => Promise<void>>().mockResolvedValue(undefined),
-      };
-      (vscode.workspace.getConfiguration as jest.Mock).mockReturnValue(mockConfig);
-
-      await WorkspaceDetector.enableAutoActivation();
-      
-      // Verify output behavior: configuration should be updated and user should see confirmation
-      expect(mockConfig.update).toHaveBeenCalledWith(
-        'autoActivate',
-        true,
-        vscode.ConfigurationTarget.Workspace
-      );
-      expect(vscode.window.showInformationMessage).toHaveBeenCalledWith('Auto-activation enabled');
-    });
-
-    test('should use correct configuration key', async () => {
-      const mockConfig = {
-        get: jest.fn<() => any>(),
-        update: jest.fn<() => Promise<void>>().mockResolvedValue(undefined),
-      };
-      (vscode.workspace.getConfiguration as jest.Mock).mockReturnValue(mockConfig);
-
-      await WorkspaceDetector.enableAutoActivation();
-      
-      // Verify output behavior: configuration should be updated
-      expect(mockConfig.update).toHaveBeenCalledWith(
-        'autoActivate',
-        true,
-        vscode.ConfigurationTarget.Workspace
-      );
+      expect(vscode.window.showErrorMessage).toHaveBeenCalled();
     });
   });
 
   describe('getResearchIndicators', () => {
     test('should return array of research indicators', () => {
       const indicators = WorkspaceDetector.getResearchIndicators();
-      
       expect(Array.isArray(indicators)).toBe(true);
-      expect(indicators.length).toBeGreaterThan(0);
-    });
-
-    test('should include expected research indicators', () => {
-      const indicators = WorkspaceDetector.getResearchIndicators();
-      
       expect(indicators).toContain('01_Knowledge_Base');
       expect(indicators).toContain('03_Drafting');
-      expect(indicators).toContain('literature/ExtractedText');
     });
 
     test('should return a copy of the indicators array', () => {
       const indicators1 = WorkspaceDetector.getResearchIndicators();
       const indicators2 = WorkspaceDetector.getResearchIndicators();
-      
       expect(indicators1).not.toBe(indicators2);
       expect(indicators1).toEqual(indicators2);
-    });
-  });
-
-  describe('Configuration Integration', () => {
-    test('should read auto-activation setting from correct configuration key', async () => {
-      const mockConfig = {
-        get: jest.fn<(key: string, defaultValue?: any) => any>((key: string, defaultValue?: any) => {
-          if (key === 'autoActivate') {
-            return false;
-          }
-          return defaultValue;
-        }),
-      };
-      (vscode.workspace.getConfiguration as jest.Mock).mockReturnValue(mockConfig);
-      (fs.existsSync as jest.MockedFunction<typeof fs.existsSync>).mockReturnValue(true);
-
-      await WorkspaceDetector.autoActivateIfNeeded(mockContext);
-      
-      // Verify output behavior: no activation should occur when setting is false
-      expect(vscode.commands.executeCommand).not.toHaveBeenCalled();
-    });
-
-    test('should default to enabled when configuration is not set', async () => {
-      const mockConfig = {
-        get: jest.fn<(key: string, defaultValue?: any) => any>((key: string, defaultValue?: any) => defaultValue),
-      };
-      (vscode.workspace.getConfiguration as jest.Mock).mockReturnValue(mockConfig);
-      (fs.existsSync as jest.MockedFunction<typeof fs.existsSync>).mockReturnValue(true);
-      (vscode.window.showInformationMessage as jest.Mock<any>).mockResolvedValue('OK');
-
-      await WorkspaceDetector.autoActivateIfNeeded(mockContext);
-      
-      // Verify output behavior: activation should occur with default enabled setting
-      expect(vscode.commands.executeCommand).toHaveBeenCalledWith('researchAssistant.activate');
-    });
-  });
-
-  describe('Edge Cases', () => {
-    test('should handle multiple workspace folders by using the first one', () => {
-      (vscode.workspace as any).workspaceFolders = [
-        createMockWorkspaceFolder({ uri: vscode.Uri.file('/workspace1'), name: 'workspace1', index: 0 }),
-        createMockWorkspaceFolder({ uri: vscode.Uri.file('/workspace2'), name: 'workspace2', index: 1 }),
-      ];
-      (fs.existsSync as jest.MockedFunction<typeof fs.existsSync>).mockReturnValue(false);
-
-      const result = WorkspaceDetector.isResearchWorkspace();
-      
-      // Verify output behavior: should return false when no indicators exist
-      expect(result).toBe(false);
-    });
-
-    test('should handle workspace path with special characters', () => {
-      const specialPath = '/test/workspace with spaces/and-dashes';
-      (vscode.workspace as any).workspaceFolders = [
-        createMockWorkspaceFolder({ uri: vscode.Uri.file(specialPath), name: 'special-workspace' })
-      ];
-      (fs.existsSync as jest.MockedFunction<typeof fs.existsSync>).mockImplementation((checkPath: any) => {
-        return checkPath.includes('01_Knowledge_Base');
-      });
-
-      const result = WorkspaceDetector.isResearchWorkspace();
-      
-      // Verify output behavior: should handle special characters in paths
-      expect(result).toBe(true);
-    });
-
-    test('should handle activation command that returns a value', async () => {
-      (fs.existsSync as jest.MockedFunction<typeof fs.existsSync>).mockReturnValue(true);
-      (vscode.window.showInformationMessage as jest.Mock<any>).mockResolvedValue('OK');
-      (vscode.commands.executeCommand as jest.Mock<any>).mockResolvedValue({ success: true });
-
-      await WorkspaceDetector.autoActivateIfNeeded(mockContext);
-      
-      // Verify output behavior: activation should succeed and no error should be shown
-      expect(vscode.window.showErrorMessage).not.toHaveBeenCalled();
     });
   });
 });

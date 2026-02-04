@@ -115,7 +115,7 @@ describe('PaperRanker', () => {
         { paper: papers[2], relevanceScore: 0.7, semanticSimilarity: 0.7, citationBoost: 0.2, estimatedReadingTime: 25 },
         { paper: papers[0], relevanceScore: 0.6, semanticSimilarity: 0.7, citationBoost: 0.05, estimatedReadingTime: 30 }
       ];
-      paperRanker['coreRanker'].rankPapersForSection.mockResolvedValueOnce(mockRanked);
+      (paperRanker['coreRanker'] as any).rankPapersForSection.mockResolvedValueOnce(mockRanked);
 
       const ranked = await paperRanker.rankPapers(papers, section);
 
@@ -145,7 +145,7 @@ describe('PaperRanker', () => {
         { paper: papers[0], relevanceScore: 0.8, semanticSimilarity: 0.7, citationBoost: 0.3, estimatedReadingTime: 20 },
         { paper: papers[1], relevanceScore: 0.7, semanticSimilarity: 0.7, citationBoost: 0.05, estimatedReadingTime: 25 }
       ];
-      paperRanker['coreRanker'].rankPapersForSection.mockResolvedValueOnce(mockRanked);
+      (paperRanker['coreRanker'] as any).rankPapersForSection.mockResolvedValueOnce(mockRanked);
 
       const ranked = await paperRanker.rankPapers(papers, section, citedByMap);
 
@@ -170,7 +170,7 @@ describe('PaperRanker', () => {
         { paper: papers[1], relevanceScore: 0.7, semanticSimilarity: 0.7, citationBoost: 0.1, estimatedReadingTime: 25 },
         { paper: papers[2], relevanceScore: 0.7, semanticSimilarity: 0.7, citationBoost: 0.1, estimatedReadingTime: 17 }
       ];
-      paperRanker['coreRanker'].rankPapersForSection.mockResolvedValueOnce(mockRanked);
+      (paperRanker['coreRanker'] as any).rankPapersForSection.mockResolvedValueOnce(mockRanked);
 
       const ranked = await paperRanker.rankPapers(papers, section);
 
@@ -195,7 +195,7 @@ describe('PaperRanker', () => {
         { paper: papers[1], relevanceScore: 0.7, semanticSimilarity: 0.7, citationBoost: 0.1, estimatedReadingTime: 20 },
         { paper: papers[2], relevanceScore: 0.5, semanticSimilarity: 0.7, citationBoost: 0.1, estimatedReadingTime: 20 }
       ];
-      paperRanker['coreRanker'].rankPapersForSection.mockResolvedValueOnce(mockRanked);
+      (paperRanker['coreRanker'] as any).rankPapersForSection.mockResolvedValueOnce(mockRanked);
 
       const ranked = await paperRanker.rankPapers(papers, section);
 
@@ -207,7 +207,7 @@ describe('PaperRanker', () => {
 
     test('should handle empty paper list', async () => {
       const section = createSection('Topic', ['Content']);
-      paperRanker['coreRanker'].rankPapersForSection.mockResolvedValueOnce([]);
+      (paperRanker['coreRanker'] as any).rankPapersForSection.mockResolvedValueOnce([]);
       
       const ranked = await paperRanker.rankPapers([], section);
       
@@ -221,7 +221,7 @@ describe('PaperRanker', () => {
       const mockRanked = [
         { paper: papers[0], relevanceScore: 0.5, semanticSimilarity: 0.5, citationBoost: 0.1, estimatedReadingTime: 20 }
       ];
-      paperRanker['coreRanker'].rankPapersForSection.mockResolvedValueOnce(mockRanked);
+      (paperRanker['coreRanker'] as any).rankPapersForSection.mockResolvedValueOnce(mockRanked);
 
       const ranked = await paperRanker.rankPapers(papers, section);
 
@@ -238,7 +238,7 @@ describe('PaperRanker', () => {
       const mockRanked = [
         { paper: papers[0], relevanceScore: 0.6, semanticSimilarity: 0.5, citationBoost: 0.1, estimatedReadingTime: 20 }
       ];
-      paperRanker['coreRanker'].rankPapersForSection.mockResolvedValueOnce(mockRanked);
+      (paperRanker['coreRanker'] as any).rankPapersForSection.mockResolvedValueOnce(mockRanked);
 
       const ranked = await paperRanker.rankPapers(papers, section);
 
@@ -311,7 +311,7 @@ describe('PaperRanker', () => {
         { paper: papers[0], relevanceScore: 0.9, semanticSimilarity: 0.8, citationBoost: 0.1, estimatedReadingTime: 20 },
         { paper: papers[1], relevanceScore: 0.1, semanticSimilarity: 0.05, citationBoost: 0.05, estimatedReadingTime: 20 }
       ];
-      paperRanker['coreRanker'].rankPapersForSection.mockResolvedValueOnce(mockRanked);
+      (paperRanker['coreRanker'] as any).rankPapersForSection.mockResolvedValueOnce(mockRanked);
 
       const ranked = await paperRanker.rankPapers(papers, section);
       const filtered = paperRanker.filterByRelevance(ranked, 0.3);
@@ -330,7 +330,7 @@ describe('PaperRanker', () => {
       const mockRanked = [
         { paper: papers[0], relevanceScore: 0.5, semanticSimilarity: 0.5, citationBoost: 0.1, estimatedReadingTime: 20 }
       ];
-      paperRanker['coreRanker'].rankPapersForSection.mockResolvedValueOnce(mockRanked);
+      (paperRanker['coreRanker'] as any).rankPapersForSection.mockResolvedValueOnce(mockRanked);
 
       const ranked = await paperRanker.rankPapers(papers, section);
       const filtered = paperRanker.filterByRelevance(ranked);
@@ -347,7 +347,7 @@ describe('PaperRanker', () => {
       const mockRanked = [
         { paper: papers[0], relevanceScore: 0.5, semanticSimilarity: 0.5, citationBoost: 0.1, estimatedReadingTime: 20 }
       ];
-      paperRanker['coreRanker'].rankPapersForSection.mockResolvedValueOnce(mockRanked);
+      (paperRanker['coreRanker'] as any).rankPapersForSection.mockResolvedValueOnce(mockRanked);
 
       const ranked = await paperRanker.rankPapers(papers, section);
       const filtered = paperRanker.filterByRelevance(ranked, 2.0); // Impossibly high threshold
@@ -373,7 +373,7 @@ describe('PaperRanker', () => {
         { paper: papers[2], relevanceScore: 0.7, semanticSimilarity: 0.7, citationBoost: 0.1, estimatedReadingTime: 40 },
         { paper: papers[3], relevanceScore: 0.7, semanticSimilarity: 0.7, citationBoost: 0.1, estimatedReadingTime: 75 }
       ];
-      paperRanker['coreRanker'].rankPapersForSection.mockResolvedValueOnce(mockRanked);
+      (paperRanker['coreRanker'] as any).rankPapersForSection.mockResolvedValueOnce(mockRanked);
 
       const ranked = await paperRanker.rankPapers(papers, section);
       const grouped = paperRanker.groupByReadingTime(ranked);
@@ -397,7 +397,7 @@ describe('PaperRanker', () => {
       const mockRanked = [
         { paper: papers[0], relevanceScore: 0.7, semanticSimilarity: 0.7, citationBoost: 0.1, estimatedReadingTime: 10 }
       ];
-      paperRanker['coreRanker'].rankPapersForSection.mockResolvedValueOnce(mockRanked);
+      (paperRanker['coreRanker'] as any).rankPapersForSection.mockResolvedValueOnce(mockRanked);
 
       const ranked = await paperRanker.rankPapers(papers, section);
       const grouped = paperRanker.groupByReadingTime(ranked);
@@ -480,7 +480,7 @@ describe('PaperRanker', () => {
       const mockRanked = [
         { paper: papers[0], relevanceScore: 0.7, semanticSimilarity: 0.7, citationBoost: 0, estimatedReadingTime: 20 }
       ];
-      paperRanker['coreRanker'].rankPapersForSection.mockResolvedValueOnce(mockRanked);
+      (paperRanker['coreRanker'] as any).rankPapersForSection.mockResolvedValueOnce(mockRanked);
 
       const ranked = await paperRanker.rankPapers(papers, section);
 
@@ -494,7 +494,7 @@ describe('PaperRanker', () => {
       const mockRanked = [
         { paper: papers[0], relevanceScore: 0.7, semanticSimilarity: 0.7, citationBoost: 0.05, estimatedReadingTime: 20 }
       ];
-      paperRanker['coreRanker'].rankPapersForSection.mockResolvedValueOnce(mockRanked);
+      (paperRanker['coreRanker'] as any).rankPapersForSection.mockResolvedValueOnce(mockRanked);
 
       const ranked = await paperRanker.rankPapers(papers, section);
 
@@ -508,7 +508,7 @@ describe('PaperRanker', () => {
       const mockRanked = [
         { paper: papers[0], relevanceScore: 0.8, semanticSimilarity: 0.7, citationBoost: 0.5, estimatedReadingTime: 20 }
       ];
-      paperRanker['coreRanker'].rankPapersForSection.mockResolvedValueOnce(mockRanked);
+      (paperRanker['coreRanker'] as any).rankPapersForSection.mockResolvedValueOnce(mockRanked);
 
       const ranked = await paperRanker.rankPapers(papers, section);
 
@@ -526,7 +526,7 @@ describe('PaperRanker', () => {
       const mockRanked = [
         { paper: papers[0], relevanceScore: 0.7, semanticSimilarity: 0.7, citationBoost: 0.05, estimatedReadingTime: 20 }
       ];
-      paperRanker['coreRanker'].rankPapersForSection.mockResolvedValueOnce(mockRanked);
+      (paperRanker['coreRanker'] as any).rankPapersForSection.mockResolvedValueOnce(mockRanked);
 
       const ranked = await paperRanker.rankPapers(papers, section, citedByMap);
 
@@ -541,7 +541,7 @@ describe('PaperRanker', () => {
       const mockRanked = [
         { paper: papers[0], relevanceScore: 0.7, semanticSimilarity: 0.7, citationBoost: 0.1, estimatedReadingTime: 20 }
       ];
-      paperRanker['coreRanker'].rankPapersForSection.mockResolvedValueOnce(mockRanked);
+      (paperRanker['coreRanker'] as any).rankPapersForSection.mockResolvedValueOnce(mockRanked);
 
       const ranked = await paperRanker.rankPapers(papers, section);
 
@@ -557,7 +557,7 @@ describe('PaperRanker', () => {
       const mockRanked = [
         { paper: papers[0], relevanceScore: 0.7, semanticSimilarity: 0.7, citationBoost: 0.1, estimatedReadingTime: 20 }
       ];
-      paperRanker['coreRanker'].rankPapersForSection.mockResolvedValueOnce(mockRanked);
+      (paperRanker['coreRanker'] as any).rankPapersForSection.mockResolvedValueOnce(mockRanked);
 
       const ranked = await paperRanker.rankPapers(papers, section);
 
@@ -578,7 +578,7 @@ describe('PaperRanker', () => {
         { paper: papers[0], relevanceScore: 0.9, semanticSimilarity: 0.85, citationBoost: 0.1, estimatedReadingTime: 20 },
         { paper: papers[1], relevanceScore: 0.2, semanticSimilarity: 0.1, citationBoost: 0.1, estimatedReadingTime: 20 }
       ];
-      paperRanker['coreRanker'].rankPapersForSection.mockResolvedValueOnce(mockRanked);
+      (paperRanker['coreRanker'] as any).rankPapersForSection.mockResolvedValueOnce(mockRanked);
 
       const ranked = await paperRanker.rankPapers(papers, section);
 
@@ -600,7 +600,7 @@ describe('PaperRanker', () => {
         citationBoost: 0.1,
         estimatedReadingTime: 20
       }));
-      paperRanker['coreRanker'].rankPapersForSection.mockResolvedValueOnce(mockRanked);
+      (paperRanker['coreRanker'] as any).rankPapersForSection.mockResolvedValueOnce(mockRanked);
 
       // Should not throw and should complete efficiently
       const ranked = await paperRanker.rankPapers(papers, section);

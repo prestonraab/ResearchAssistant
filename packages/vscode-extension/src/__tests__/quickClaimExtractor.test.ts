@@ -259,6 +259,7 @@ describe('QuickClaimExtractor', () => {
       await quickClaimExtractor.saveAndVerify(claim);
 
       // Verify integration boundary: verification should be triggered
+      // This is an integration boundary - we verify the service was called
       expect(mockAutoQuoteVerifier.verifyOnSave).toHaveBeenCalledWith(claim);
     });
 

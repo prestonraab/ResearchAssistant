@@ -501,21 +501,37 @@ describe('InlineSearchProvider', () => {
 
   describe('Command Registration', () => {
     test('should register all required commands', () => {
-      const commands = provider.registerCommands();
+      // Mock vscode.commands.registerCommand to capture registered commands
+      const registeredCommands: string[] = [];
+      const mockRegisterCommand = jest.fn<(command: string, callback: any) => vscode.Disposable>(
+        (command: string, callback: any) => {
+          registeredCommands.push(command);
+          return { dispose: jest.fn() } as any;
+        }
+      );
+      
+      const originalRegisterCommand = vscode.commands.registerCommand;
+      (vscode.commands.registerCommand as any) = mockRegisterCommand;
 
-      expect(commands).toHaveLength(3);
-      expect(vscode.commands.registerCommand).toHaveBeenCalledWith(
-        'researchAssistant.rememberInlineSearch',
-        expect.any(Function)
-      );
-      expect(vscode.commands.registerCommand).toHaveBeenCalledWith(
-        'researchAssistant.openPaperFromInlineSearch',
-        expect.any(Function)
-      );
-      expect(vscode.commands.registerCommand).toHaveBeenCalledWith(
-        'researchAssistant.clearInlineSearchHistory',
-        expect.any(Function)
-      );
+      try {
+        const disposables = provider.registerCommands();
+
+        // Verify output behavior: correct number of commands registered
+        expect(disposables).toHaveLength(3);
+        
+        // Verify each disposable is properly structured
+        expect(disposables[0]).toHaveProperty('dispose');
+        expect(disposables[1]).toHaveProperty('dispose');
+        expect(disposables[2]).toHaveProperty('dispose');
+        
+        // Verify command names were registered
+        expect(registeredCommands).toContain('researchAssistant.rememberInlineSearch');
+        expect(registeredCommands).toContain('researchAssistant.openPaperFromInlineSearch');
+        expect(registeredCommands).toContain('researchAssistant.clearInlineSearchHistory');
+      } finally {
+        // Restore original
+        (vscode.commands.registerCommand as any) = originalRegisterCommand;
+      }
     });
   });
 

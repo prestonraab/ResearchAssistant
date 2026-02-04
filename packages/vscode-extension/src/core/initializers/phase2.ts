@@ -91,13 +91,6 @@ export class Phase2Initializer {
       console.log('[Phase2] Claims loaded successfully');
     } catch (error) {
       console.error('[Phase2] Failed to load claims:', error);
-      
-      // Show user-friendly error message
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      vscode.window.showWarningMessage(
-        `Could not load claims database: ${errorMessage}. Claims-related features will be limited.`
-      );
-      
       // Re-throw to mark as failed in Promise.allSettled
       throw error;
     }
@@ -113,13 +106,6 @@ export class Phase2Initializer {
       console.log('[Phase2] Outline parsed successfully');
     } catch (error) {
       console.error('[Phase2] Failed to parse outline:', error);
-      
-      // Show user-friendly error message
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      vscode.window.showWarningMessage(
-        `Could not parse outline: ${errorMessage}. Outline navigation will be limited.`
-      );
-      
       // Re-throw to mark as failed in Promise.allSettled
       throw error;
     }
@@ -143,11 +129,6 @@ export class Phase2Initializer {
       console.log('[Phase2] Configuration loaded successfully');
     } catch (error) {
       console.error('[Phase2] Failed to load configuration:', error);
-      
-      // Configuration failure is less critical - log but don't show error to user
-      // The extension can still function with default configuration
-      console.warn('[Phase2] Using default configuration');
-      
       // Re-throw to mark as failed in Promise.allSettled
       throw error;
     }

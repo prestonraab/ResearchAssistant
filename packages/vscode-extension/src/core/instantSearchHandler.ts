@@ -5,6 +5,20 @@ import { ZoteroClient, ZoteroItem } from '@research-assistant/core';
 import { ManuscriptContextDetector } from './manuscriptContextDetector';
 
 /**
+ * File system operations interface for dependency injection
+ */
+export interface FileSystemDeps {
+  existsSync(path: string): boolean;
+}
+
+/**
+ * Default file system implementation using Node's fs module
+ */
+export const defaultFileSystem: FileSystemDeps = {
+  existsSync: (p: string) => fs.existsSync(p)
+};
+
+/**
  * InstantSearchHandler enables instant paper search from any selected text in manuscript.md.
  * 
  * Features:
@@ -21,13 +35,21 @@ export class InstantSearchHandler {
   private readonly CACHE_TTL = 5 * 60 * 1000; // 5 minutes
   private readonly SEARCH_TIMEOUT = 2000; // 2 seconds max
   private disposables: vscode.Disposable[] = [];
+  private _fs: FileSystemDeps;
 
   constructor(
     private zoteroClient: ZoteroClient,
     private manuscriptContextDetector: ManuscriptContextDetector,
     private workspaceRoot: string,
-    private extractedTextPath: string
+    private extractedTextPath: string,
+    fileSystem: FileSystemDeps = defaultFileSystem
   ) {
+    this._fs = fileSystem;
+  }
+
+  /** Set custom fs implementation (for testing) */
+  public setFileSystem(fileSystem: FileSystemDeps): void {
+    this._fs = fileSystem;
   }
 
   /**
@@ -281,7 +303,7 @@ export class InstantSearchHandler {
       const extractedPath = path.join(this.extractedTextPath, filename);
 
       // Check if extracted text exists
-      if (fs.existsSync(extractedPath)) {
+      if (this._fs.existsSync(extractedPath)) {
         // Open existing extracted text
         const document = await vscode.workspace.openTextDocument(extractedPath);
         await vscode.window.showTextDocument(document, { preview: false });
@@ -307,7 +329,7 @@ export class InstantSearchHandler {
           const pdfDir = path.join(this.workspaceRoot, 'literature', 'PDFs');
           const pdfPath = path.join(pdfDir, filename.replace(/\.(txt|md)$/, '.pdf'));
 
-          if (fs.existsSync(pdfPath)) {
+          if (this._fs.existsSync(pdfPath)) {
             // Trigger PDF extraction
             await vscode.commands.executeCommand('researchAssistant.extractPdf', pdfPath);
           } else {

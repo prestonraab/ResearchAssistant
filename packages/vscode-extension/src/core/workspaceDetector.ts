@@ -3,6 +3,35 @@ import * as fs from 'fs';
 import * as path from 'path';
 
 /**
+ * File system operations interface for dependency injection
+ */
+export interface FileSystemDeps {
+  existsSync(path: string): boolean;
+}
+
+/**
+ * Default file system implementation using Node's fs module
+ */
+export const defaultFileSystem: FileSystemDeps = {
+  existsSync: (p: string) => fs.existsSync(p)
+};
+
+/**
+ * Pure logic: Check if any research indicators exist in the workspace root.
+ * Extracted for easy testing without mocks.
+ */
+export function checkResearchIndicators(
+  workspaceRoot: string,
+  indicators: string[],
+  fileSystem: FileSystemDeps = defaultFileSystem
+): boolean {
+  return indicators.some(indicator => {
+    const indicatorPath = path.join(workspaceRoot, indicator);
+    return fileSystem.existsSync(indicatorPath);
+  });
+}
+
+/**
  * WorkspaceDetector - Detects if the current workspace is a research workspace
  * and handles auto-activation logic.
  * 
@@ -19,6 +48,19 @@ export class WorkspaceDetector {
   private static readonly CONFIG_KEY = 'researchAssistant';
   private static readonly AUTO_ACTIVATE_KEY = 'autoActivate';
 
+  // Injectable fs for testing
+  private static _fs: FileSystemDeps = defaultFileSystem;
+
+  /** Set custom fs implementation (for testing) */
+  public static setFileSystem(fileSystem: FileSystemDeps): void {
+    this._fs = fileSystem;
+  }
+
+  /** Reset to default fs */
+  public static resetFileSystem(): void {
+    this._fs = defaultFileSystem;
+  }
+
   /**
    * Check if the current workspace is a research workspace
    * by looking for research-specific directories.
@@ -34,11 +76,7 @@ export class WorkspaceDetector {
 
     const workspaceRoot = workspaceFolders[0].uri.fsPath;
 
-    // Check if any of the research indicators exist
-    return this.RESEARCH_INDICATORS.some(indicator => {
-      const indicatorPath = path.join(workspaceRoot, indicator);
-      return fs.existsSync(indicatorPath);
-    });
+    return checkResearchIndicators(workspaceRoot, this.RESEARCH_INDICATORS, this._fs);
   }
 
   /**

@@ -257,6 +257,10 @@ export const CompletionList = jest.fn<any>().mockImplementation((items: any, isI
 
 export const env = {
   openExternal: jest.fn<any>().mockResolvedValue(undefined),
+  clipboard: {
+    writeText: jest.fn<any>().mockResolvedValue(undefined),
+    readText: jest.fn<any>().mockResolvedValue(''),
+  },
 };
 
 export const Selection = jest.fn<any>().mockImplementation((startLine: number, startChar: number, endLine: number, endChar: number) => ({

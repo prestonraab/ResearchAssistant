@@ -1,11 +1,13 @@
 import { jest } from '@jest/globals';
-import { setupFsMock } from '../../__tests__/helpers';
-import { OutlineParser } from '../outlineParserWrapper';
-import * as fs from 'fs/promises';
-import * as path from 'path';
 
-// Mock fs module
-jest.mock('fs/promises');
+// Mock fs module with factory function
+jest.mock('fs/promises', () => ({
+  readFile: jest.fn()
+}));
+
+import * as fs from 'fs/promises';
+import { OutlineParser } from '../outlineParserWrapper';
+
 const mockFs = fs as jest.Mocked<typeof fs>;
 
 describe('OutlineParser', () => {
@@ -13,7 +15,6 @@ describe('OutlineParser', () => {
   const testFilePath = '/test/outline.md';
 
   beforeEach(() => {
-    setupFsMock();
     parser = new OutlineParser(testFilePath);
     jest.clearAllMocks();
   });

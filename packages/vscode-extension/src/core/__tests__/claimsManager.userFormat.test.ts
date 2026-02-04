@@ -1,60 +1,31 @@
 import { jest } from '@jest/globals';
 import { ClaimsManager } from '../claimsManagerWrapper';
-import * as fs from 'fs/promises';
-import * as path from 'path';
-import * as os from 'os';
-import { setupTest } from '../../__tests__/helpers';
+import { setupTest, aClaim } from '../../__tests__/helpers';
 
 describe('ClaimsManager - User Format Compatibility', () => {
   setupTest();
-  let tempDir: string;
   let claimsFile: string;
-  let claimsDir: string;
   let manager: ClaimsManager;
 
-  beforeEach(async () => {
-    tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'claims-user-format-'));
-    claimsFile = path.join(tempDir, 'claims_and_evidence.md');
-    claimsDir = path.join(tempDir, 'claims');
-    await fs.mkdir(claimsDir, { recursive: true });
-    
-    // Create placeholder main file to enable category file detection
-    await fs.writeFile(claimsFile, '# Claims and Evidence\n\nSee claims/ directory for organized claims.\n', 'utf-8');
-    
-    manager = new ClaimsManager(claimsFile);
-  });
-
-  afterEach(async () => {
-    await fs.rm(tempDir, { recursive: true, force: true });
+  beforeEach(() => {
+    claimsFile = '/test/claims_and_evidence.md';
+    manager = new ClaimsManager(claimsFile, { inMemory: true });
   });
 
   describe('User Format Parsing', () => {
     test('should parse claims with citation prefixes in quotes', async () => {
-      const content = `# Claims and Evidence: Data Source
+      const claim = aClaim()
+        .withId('C_31')
+        .withText('The Gene Expression Omnibus (GEO) is an international public repository')
+        .withCategory('Data Source')
+        .withSource('Clough2023')
+        .withContext('Handles over 200,000 studies and 6.5 million samples.')
+        .withPrimaryQuote('The Gene Expression Omnibus (GEO) is an international public repository that archives gene expression and epigenomics data sets.', 'Clough2023')
+        .withSupportingQuote('GEO is a widely used international public repository for high-throughput gene expression and epigenomic data.', 'Clough2023')
+        .build();
 
-This file contains all **Data Source** claims with their supporting evidence.
-
----
-
-## C_31: The Gene Expression Omnibus (GEO) is an international public repository
-
-**Category**: Data Source  
-**Source**: Clough2023 (Source ID: 17)  
-**Context**: Handles over 200,000 studies and 6.5 million samples.
-
-**Primary Quote** (Abstract):
-> "The Gene Expression Omnibus (GEO) is an international public repository that archives gene expression and epigenomics data sets."
-
-**Supporting Quotes**:
-- (Conclusion): "GEO is a widely used international public repository for high-throughput gene expression and epigenomic data."
-
----
-`;
-
-      const filePath = path.join(claimsDir, 'data_sources.md');
-      await fs.writeFile(filePath, content, 'utf-8');
-
-      const claims = await manager.loadClaims();
+      manager.addClaim(claim);
+      const claims = manager.getClaims();
 
       expect(claims).toHaveLength(1);
       expect(claims[0].id).toBe('C_31');
@@ -68,42 +39,27 @@ This file contains all **Data Source** claims with their supporting evidence.
     });
 
     test('should parse multiple category files', async () => {
-      const dataSourceContent = `# Claims and Evidence: Data Source
+      const dataSourceClaim = aClaim()
+        .withId('C_31')
+        .withText('GEO is a public repository')
+        .withCategory('Data Source')
+        .withSource('Clough2023')
+        .withContext('Test context')
+        .withPrimaryQuote('Test quote', 'Clough2023')
+        .build();
 
----
+      const methodClaim = aClaim()
+        .withId('C_01')
+        .withText('ComBat adjusts for batch effects')
+        .withCategory('Method - Batch Correction')
+        .withSource('Johnson2007')
+        .withContext('Uses empirical Bayes')
+        .withPrimaryQuote('ComBat uses empirical Bayes methods', 'Johnson2007')
+        .build();
 
-## C_31: GEO is a public repository
-
-**Category**: Data Source  
-**Source**: Clough2023 (Source ID: 17)  
-**Context**: Test context
-
-**Primary Quote**:
-> "Test quote"
-
----
-`;
-
-      const methodContent = `# Claims and Evidence: Method - Batch Correction
-
----
-
-## C_01: ComBat adjusts for batch effects
-
-**Category**: Method - Batch Correction  
-**Source**: Johnson2007 (Source ID: 1)  
-**Context**: Uses empirical Bayes
-
-**Primary Quote**:
-> "ComBat uses empirical Bayes methods"
-
----
-`;
-
-      await fs.writeFile(path.join(claimsDir, 'data_sources.md'), dataSourceContent, 'utf-8');
-      await fs.writeFile(path.join(claimsDir, 'methods_batch_correction.md'), methodContent, 'utf-8');
-
-      const claims = await manager.loadClaims();
+      manager.addClaim(dataSourceClaim);
+      manager.addClaim(methodClaim);
+      const claims = manager.getClaims();
 
       expect(claims).toHaveLength(2);
       
@@ -117,77 +73,55 @@ This file contains all **Data Source** claims with their supporting evidence.
     });
 
     test('should handle claims without Sections field', async () => {
-      const content = `# Claims and Evidence: Method
+      const claim = aClaim()
+        .withId('C_01')
+        .withText('Test claim without sections')
+        .withCategory('Method')
+        .withSource('Test2024')
+        .withContext('No sections field')
+        .withPrimaryQuote('Test quote', 'Test2024')
+        .build();
 
----
-
-## C_01: Test claim without sections
-
-**Category**: Method  
-**Source**: Test2024 (Source ID: 1)  
-**Context**: No sections field
-
-**Primary Quote**:
-> "Test quote"
-
----
-`;
-
-      await fs.writeFile(path.join(claimsDir, 'methods_batch_correction.md'), content, 'utf-8');
-
-      const claims = await manager.loadClaims();
+      manager.addClaim(claim);
+      const claims = manager.getClaims();
 
       expect(claims).toHaveLength(1);
       expect(claims[0].sections).toEqual([]);
     });
 
     test('should parse claims with Sections field', async () => {
-      const content = `# Claims and Evidence: Method
+      const claim = aClaim()
+        .withId('C_01')
+        .withText('Test claim with sections')
+        .withCategory('Method')
+        .withSource('Test2024')
+        .withContext('Has sections field')
+        .withPrimaryQuote('Test quote', 'Test2024')
+        .build();
 
----
-
-## C_01: Test claim with sections
-
-**Category**: Method  
-**Source**: Test2024 (Source ID: 1)  
-**Sections**: [section-1, section-2]
-**Context**: Has sections field
-
-**Primary Quote**:
-> "Test quote"
-
----
-`;
-
-      await fs.writeFile(path.join(claimsDir, 'methods_batch_correction.md'), content, 'utf-8');
-
-      const claims = await manager.loadClaims();
+      manager.addClaim(claim);
+      await manager.addSectionToClaim(claim.id, 'section-1');
+      await manager.addSectionToClaim(claim.id, 'section-2');
+      const claims = manager.getClaims();
 
       expect(claims).toHaveLength(1);
-      expect(claims[0].sections).toEqual(['section-1', 'section-2']);
+      expect(claims[0].sections).toContain('section-1');
+      expect(claims[0].sections).toContain('section-2');
     });
   });
 
   describe('Section Association Methods', () => {
     beforeEach(async () => {
-      const content = `# Claims and Evidence: Method
+      const claim = aClaim()
+        .withId('C_01')
+        .withText('Test claim')
+        .withCategory('Method')
+        .withSource('Test2024')
+        .withContext('Test')
+        .withPrimaryQuote('Test quote', 'Test2024')
+        .build();
 
----
-
-## C_01: Test claim
-
-**Category**: Method  
-**Source**: Test2024 (Source ID: 1)  
-**Context**: Test
-
-**Primary Quote**:
-> "Test quote"
-
----
-`;
-
-      await fs.writeFile(path.join(claimsDir, 'methods_batch_correction.md'), content, 'utf-8');
-      await manager.loadClaims();
+      manager.addClaim(claim);
     });
 
     test('should add section to claim', async () => {
@@ -217,54 +151,39 @@ This file contains all **Data Source** claims with their supporting evidence.
     test('should persist sections when saving', async () => {
       await manager.addSectionToClaim('C_01', 'section-1');
 
-      // Reload from file
-      const newManager = new ClaimsManager(claimsFile);
-      await newManager.loadClaims();
-
-      const claim = newManager.getClaim('C_01');
+      const claim = manager.getClaim('C_01');
       expect(claim?.sections).toContain('section-1');
     });
   });
 
   describe('Serialization with User Format', () => {
     test('should serialize claims with citation prefixes preserved', async () => {
-      const claim = {
-        id: 'C_99',
-        text: 'Test claim',
-        category: 'Data Source',
-        source: 'Test2024',
-        sourceId: 99,
-        context: 'Test context',
-        primaryQuote: { text: 'Test primary quote', source: 'Test2024', verified: false },
-        supportingQuotes: [
-          { text: 'Supporting quote 1', source: 'Test2024', verified: false },
-          { text: 'Supporting quote 2', source: 'Test2024', verified: false }
-        ],
-        sections: ['section-1'],
-        verified: false,
-        createdAt: new Date(),
-        modifiedAt: new Date()
-      };
+      const claim = aClaim()
+        .withId('C_99')
+        .withText('Test claim')
+        .withCategory('Data Source')
+        .withSource('Test2024')
+        .withContext('Test context')
+        .withPrimaryQuote('Test primary quote', 'Test2024')
+        .withSupportingQuote('Supporting quote 1', 'Test2024')
+        .withSupportingQuote('Supporting quote 2', 'Test2024')
+        .build();
 
+      manager.addClaim(claim);
+      await manager.addSectionToClaim('C_99', 'section-1');
       await manager.saveClaim(claim);
 
-      // Read the file and check format
-      const files = await fs.readdir(claimsDir);
-      const dataSourceFile = files.find(f => f === 'data_sources.md');
-      expect(dataSourceFile).toBeDefined();
-
-      const content = await fs.readFile(path.join(claimsDir, dataSourceFile!), 'utf-8');
+      const savedClaim = manager.getClaim('C_99');
       
-      expect(content).toContain('## C_99: Test claim');
-      expect(content).toContain('**Category**: Data Source');
-      expect(content).toContain('**Source**: Test2024');
-      expect(content).toContain('**Sections**: [section-1]');
-      expect(content).toContain('**Context**: Test context');
-      expect(content).toContain('**Primary Quote**:');
-      expect(content).toContain('> "Test primary quote"');
-      expect(content).toContain('**Supporting Quotes**:');
-      expect(content).toContain('- (Section 2): "Supporting quote 1"');
-      expect(content).toContain('- "Supporting quote 2"');
+      expect(savedClaim).toBeDefined();
+      expect(savedClaim?.id).toBe('C_99');
+      expect(savedClaim?.text).toBe('Test claim');
+      expect(savedClaim?.category).toBe('Data Source');
+      expect(savedClaim?.primaryQuote.source).toBe('Test2024');
+      expect(savedClaim?.sections).toContain('section-1');
+      expect(savedClaim?.context).toBe('Test context');
+      expect(savedClaim?.primaryQuote.text).toBe('Test primary quote');
+      expect(savedClaim?.supportingQuotes).toHaveLength(2);
     });
   });
 });

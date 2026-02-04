@@ -21,7 +21,7 @@ export class ClaimCompletionProvider implements vscode.CompletionItemProvider {
     context: vscode.CompletionContext
   ): Promise<vscode.CompletionItem[] | vscode.CompletionList | undefined> {
     // Get the line text up to the cursor position
-    const linePrefix = document.lineAt(position).text.substring(0, position.character);
+    const linePrefix = document.lineAt(position.line).text.substring(0, position.character);
     
     // Check if we should trigger completion (using pure function)
     if (!shouldTriggerCompletion(linePrefix)) {

@@ -244,7 +244,7 @@ describe('Phase1Initializer', () => {
       expect(writingModeCall).toBeDefined();
       
       // Call the stub handler
-      const handler = writingModeCall![1];
+      const handler = writingModeCall![1] as (...args: any[]) => void;
       handler();
 
       expect(vscode.window.showInformationMessage).toHaveBeenCalledWith(

@@ -19,18 +19,68 @@ export class ClaimsParser {
     const id = headerMatch[1];
     const text = headerMatch[2].trim();
     
+    // Extract category from **Category**: line
+    let category = '';
+    const categoryMatch = block.match(/\*\*Category\*\*:\s*(.+?)(?:\s*\n|$)/);
+    if (categoryMatch) {
+      category = categoryMatch[1].trim();
+    }
+    
+    // Extract context from **Context**: line
+    let context = '';
+    const contextMatch = block.match(/\*\*Context\*\*:\s*(.+?)(?:\n\n|\n\*\*|$)/);
+    if (contextMatch) {
+      context = contextMatch[1].trim();
+    }
+    
+    // Extract sections from **Sections**: line
+    let sections: string[] = [];
+    const sectionsMatch = block.match(/\*\*Sections\*\*:\s*\[(.+?)\]/);
+    if (sectionsMatch) {
+      sections = sectionsMatch[1].split(',').map(s => s.trim()).filter(s => s.length > 0);
+    }
+    
+    // Extract primary quote
+    let primaryQuoteText = '';
+    let primaryQuoteSource = '';
+    let primaryQuoteSourceId: number | undefined;
+    let primaryQuoteVerified = false;
+    
+    const sourceMatch = block.match(/\*\*Source\*\*:\s*(.+?)(?:\s*\(Source ID:\s*(.+?)\))?(?:\s*\n|$)/);
+    if (sourceMatch) {
+      primaryQuoteSource = sourceMatch[1].trim();
+      if (sourceMatch[2]) {
+        const parsed = parseInt(sourceMatch[2].trim(), 10);
+        if (!isNaN(parsed)) {
+          primaryQuoteSourceId = parsed;
+        } else {
+          primaryQuoteSourceId = undefined;
+        }
+      } else {
+        primaryQuoteSourceId = undefined;
+      }
+    } else {
+      primaryQuoteSourceId = undefined;
+    }
+    
+    const primaryQuoteMatch = block.match(/\*\*Primary Quote\*\*[^:]*:\s*\n>\s*"(.+?)"/);
+    if (primaryQuoteMatch) {
+      primaryQuoteText = primaryQuoteMatch[1];
+    }
+    
     return {
       id,
       text,
-      category: '',
-      context: '',
+      category,
+      context,
       primaryQuote: {
-        text: '',
-        source: '',
-        verified: false
+        text: primaryQuoteText,
+        source: primaryQuoteSource,
+        sourceId: primaryQuoteSourceId,
+        verified: primaryQuoteVerified
       },
       supportingQuotes: [],
-      sections: [],
+      sections,
       verified: false,
       createdAt: new Date(),
       modifiedAt: new Date()

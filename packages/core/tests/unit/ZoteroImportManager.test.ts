@@ -99,7 +99,7 @@ describe('ZoteroImportManager', () => {
     it('should filter annotations by type "highlight"', async () => {
       const annotations: ZoteroAnnotation[] = [
         {
-          key: 'ANN1',
+          key: 'ANN1_highlight_001',
           type: 'highlight',
           text: 'Highlight text',
           color: '#ffff00',
@@ -109,7 +109,7 @@ describe('ZoteroImportManager', () => {
           parentItemKey: 'ITEM123',
         },
         {
-          key: 'ANN2',
+          key: 'ANN2_note_0001',
           type: 'note',
           text: 'Note text',
           color: '#ffffff',
@@ -119,7 +119,7 @@ describe('ZoteroImportManager', () => {
           parentItemKey: 'ITEM123',
         },
         {
-          key: 'ANN3',
+          key: 'ANN3_highlight_002',
           type: 'highlight',
           text: 'Another highlight',
           color: '#ffff00',
@@ -141,7 +141,7 @@ describe('ZoteroImportManager', () => {
     it('should extract metadata from highlights', async () => {
       const annotations: ZoteroAnnotation[] = [
         {
-          key: 'ANN1',
+          key: 'ANN1_highlight_001',
           type: 'highlight',
           text: 'Test highlight text',
           color: '#ffff00',
@@ -165,7 +165,7 @@ describe('ZoteroImportManager', () => {
       expect(quote).toBeDefined();
       expect(quote?.text).toBe('Test highlight text');
       expect(quote?.pageNumber).toBe(5);
-      expect(quote?.zoteroMetadata?.annotationKey).toBe('ANN1');
+      expect(quote?.zoteroMetadata?.annotationKey).toBe('ANN1_highlight_001');
       expect(quote?.zoteroMetadata?.highlightColor).toBe('#ffff00');
       expect(quote?.zoteroMetadata?.importedAt).toBe('2024-01-15T10:30:00Z');
       expect(quote?.zoteroMetadata?.itemKey).toBe('ITEM123');
@@ -174,7 +174,7 @@ describe('ZoteroImportManager', () => {
     it('should set fromZotero flag on imported quotes', async () => {
       const annotations: ZoteroAnnotation[] = [
         {
-          key: 'ANN1',
+          key: 'ANN1_highlight_001',
           type: 'highlight',
           text: 'Highlight text',
           color: '#ffff00',
@@ -200,7 +200,7 @@ describe('ZoteroImportManager', () => {
     it('should return result with counts', async () => {
       const annotations: ZoteroAnnotation[] = [
         {
-          key: 'ANN1',
+          key: 'ANN1_highlight_001',
           type: 'highlight',
           text: 'Highlight 1',
           color: '#ffff00',
@@ -210,7 +210,7 @@ describe('ZoteroImportManager', () => {
           parentItemKey: 'ITEM123',
         },
         {
-          key: 'ANN2',
+          key: 'ANN2_highlight_002',
           type: 'highlight',
           text: 'Highlight 2',
           color: '#ffff00',
@@ -235,7 +235,7 @@ describe('ZoteroImportManager', () => {
   describe('importSingleHighlight()', () => {
     it('should create quote with original text when no document text provided', async () => {
       const highlight: ZoteroAnnotation = {
-        key: 'ANN1',
+        key: 'ANN1_highlight_001',
         type: 'highlight',
         text: 'Highlight text',
         color: '#ffff00',
@@ -252,12 +252,12 @@ describe('ZoteroImportManager', () => {
       const quote = quoteManager.getQuote(quoteId!);
       expect(quote?.text).toBe('Highlight text');
       expect(quote?.pageNumber).toBe(5);
-      expect(quote?.zoteroMetadata?.annotationKey).toBe('ANN1');
+      expect(quote?.zoteroMetadata?.annotationKey).toBe('ANN1_highlight_001');
     });
 
     it('should use fuzzy matched text when match succeeds', async () => {
       const highlight: ZoteroAnnotation = {
-        key: 'ANN1',
+        key: 'ANN1_highlight_001',
         type: 'highlight',
         text: 'Highlight text',
         color: '#ffff00',
@@ -294,7 +294,7 @@ describe('ZoteroImportManager', () => {
 
     it('should store original text when matched text differs', async () => {
       const highlight: ZoteroAnnotation = {
-        key: 'ANN1',
+        key: 'ANN1_highlight_001',
         type: 'highlight',
         text: 'Highlight text',
         color: '#ffff00',
@@ -327,7 +327,7 @@ describe('ZoteroImportManager', () => {
 
     it('should use original text when fuzzy match fails', async () => {
       const highlight: ZoteroAnnotation = {
-        key: 'ANN1',
+        key: 'ANN1_highlight_001',
         type: 'highlight',
         text: 'Highlight text',
         color: '#ffff00',
@@ -359,7 +359,7 @@ describe('ZoteroImportManager', () => {
 
     it('should call fuzzy matcher with correct parameters', async () => {
       const highlight: ZoteroAnnotation = {
-        key: 'ANN1',
+        key: 'ANN1_highlight_001',
         type: 'highlight',
         text: 'Highlight text',
         color: '#ffff00',
@@ -396,7 +396,7 @@ describe('ZoteroImportManager', () => {
 
     it('should return null when highlight text is missing', async () => {
       const invalidHighlight: ZoteroAnnotation = {
-        key: 'ANN1',
+        key: 'ANN1_highlight_001',
         type: 'highlight',
         text: '', // Missing text
         color: '#ffff00',
@@ -413,7 +413,7 @@ describe('ZoteroImportManager', () => {
 
     it('should return null when highlight color is missing', async () => {
       const invalidHighlight: ZoteroAnnotation = {
-        key: 'ANN1',
+        key: 'ANN1_highlight_001',
         type: 'highlight',
         text: 'Highlight text',
         color: '', // Missing color
@@ -430,7 +430,7 @@ describe('ZoteroImportManager', () => {
 
     it('should handle errors gracefully and return null', async () => {
       const highlight: ZoteroAnnotation = {
-        key: 'ANN1',
+        key: 'ANN1_highlight_001',
         type: 'highlight',
         text: 'Highlight text',
         color: '#ffff00',
@@ -463,7 +463,7 @@ describe('ZoteroImportManager', () => {
     it('should import multiple highlights successfully', async () => {
       const annotations: ZoteroAnnotation[] = [
         {
-          key: 'ANN1',
+          key: 'ANN1_highlight_001',
           type: 'highlight',
           text: 'First highlight',
           color: '#ffff00',
@@ -473,7 +473,7 @@ describe('ZoteroImportManager', () => {
           parentItemKey: 'ITEM123',
         },
         {
-          key: 'ANN2',
+          key: 'ANN2_highlight_002',
           type: 'highlight',
           text: 'Second highlight',
           color: '#ffff00',

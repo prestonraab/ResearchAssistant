@@ -86,21 +86,132 @@ export interface MockableEmbeddingService {
  * Use this instead of creating inline mocks to maintain type safety
  * 
  * Note: We mock only the public interface, not private properties.
+ * The mock uses semantic-aware embeddings for testing:
+ * - Identical text: 1.0
+ * - Synonyms/similar meaning: 0.75-0.95
+ * - Different topics: 0.0-0.3
  */
 export const createMockEmbeddingService = (): jest.Mocked<MockableEmbeddingService> => {
+  // Store embeddings by text for consistent similarity calculations
+  const embeddingCache = new Map<string, number[]>();
+  
+  // Semantic word groups for similarity
+  const semanticGroups: Record<string, string[]> = {
+    'improve': ['improve', 'enhance', 'boost', 'increase', 'better', 'superior'],
+    'worsen': ['worsen', 'degrade', 'decrease', 'lower', 'worse', 'inferior'],
+    'effective': ['effective', 'successful', 'efficient', 'powerful', 'strong'],
+    'ineffective': ['ineffective', 'unsuccessful', 'inefficient', 'weak', 'poor'],
+    'accuracy': ['accuracy', 'precision', 'performance', 'results', 'classification'],
+    'batch': ['batch', 'correction', 'adjustment', 'normalization', 'processing'],
+    'machine': ['machine', 'learning', 'deep', 'neural', 'algorithm'],
+  };
+  
+  // Helper to get semantic group for a word
+  const getSemanticGroup = (word: string): string | null => {
+    const lowerWord = word.toLowerCase();
+    for (const [group, words] of Object.entries(semanticGroups)) {
+      if (words.some(w => lowerWord.includes(w) || w.includes(lowerWord))) {
+        return group;
+      }
+    }
+    return null;
+  };
+  
+  // Helper to generate semantic embedding from text
+  const generateDeterministicEmbedding = (text: string): number[] => {
+    if (embeddingCache.has(text)) {
+      return embeddingCache.get(text)!;
+    }
+    
+    const normalized = text.toLowerCase().trim();
+    const words = normalized.split(/\s+/);
+    
+    // Create embedding with semantic awareness
+    const embedding = new Array(1536).fill(0);
+    
+    // Add semantic group features
+    const semanticFeatures = new Map<string, number>();
+    for (const word of words) {
+      const group = getSemanticGroup(word);
+      if (group) {
+        semanticFeatures.set(group, (semanticFeatures.get(group) || 0) + 1);
+      }
+    }
+    
+    // Encode semantic features into embedding
+    let featureIdx = 0;
+    for (const [group, count] of semanticFeatures.entries()) {
+      const groupHash = group.split('').reduce((h, c) => ((h << 5) - h) + c.charCodeAt(0), 0);
+      const baseIdx = Math.abs(groupHash) % 1536;
+      
+      // Spread the feature across multiple dimensions
+      for (let i = 0; i < 10; i++) {
+        const idx = (baseIdx + i * 153) % 1536;
+        embedding[idx] += (count / words.length) * 0.3;
+      }
+    }
+    
+    // Add character-based features for uniqueness
+    for (let i = 0; i < normalized.length; i++) {
+      const charCode = normalized.charCodeAt(i);
+      const idx = (i * 7 + charCode) % 1536;
+      embedding[idx] += 0.05;
+    }
+    
+    // Add word count feature
+    const wordCountIdx = 1500;
+    embedding[wordCountIdx] = Math.min(words.length / 20, 1); // Normalize to [0, 1]
+    
+    // Normalize the embedding to unit length
+    let norm = 0;
+    for (let i = 0; i < embedding.length; i++) {
+      norm += embedding[i] * embedding[i];
+    }
+    norm = Math.sqrt(norm);
+    if (norm > 0) {
+      for (let i = 0; i < embedding.length; i++) {
+        embedding[i] /= norm;
+      }
+    }
+    
+    embeddingCache.set(text, embedding);
+    return embedding;
+  };
+  
   return {
-    generateEmbedding: jest.fn<(text: string) => Promise<number[]>>().mockResolvedValue(
-      new Array(1536).fill(0).map(() => Math.random())
+    generateEmbedding: jest.fn<(text: string) => Promise<number[]>>().mockImplementation(
+      async (text: string) => generateDeterministicEmbedding(text)
     ),
-    generateBatch: jest.fn<(texts: string[]) => Promise<number[][]>>().mockResolvedValue([
-      new Array(1536).fill(0).map(() => Math.random()),
-      new Array(1536).fill(0).map(() => Math.random())
-    ]),
-    generateBatchParallel: jest.fn<(texts: string[], batchSize?: number) => Promise<number[][]>>().mockResolvedValue([]),
-    cosineSimilarity: jest.fn<(vec1: number[], vec2: number[]) => number>().mockReturnValue(0.85),
+    generateBatch: jest.fn<(texts: string[]) => Promise<number[][]>>().mockImplementation(
+      async (texts: string[]) => texts.map(text => generateDeterministicEmbedding(text))
+    ),
+    generateBatchParallel: jest.fn<(texts: string[], batchSize?: number) => Promise<number[][]>>().mockImplementation(
+      async (texts: string[]) => texts.map(text => generateDeterministicEmbedding(text))
+    ),
+    cosineSimilarity: jest.fn<(vec1: number[], vec2: number[]) => number>().mockImplementation(
+      (vec1: number[], vec2: number[]) => {
+        // Calculate cosine similarity
+        let dotProduct = 0;
+        let norm1 = 0;
+        let norm2 = 0;
+        
+        const len = Math.min(vec1.length, vec2.length);
+        for (let i = 0; i < len; i++) {
+          dotProduct += vec1[i] * vec2[i];
+          norm1 += vec1[i] * vec1[i];
+          norm2 += vec2[i] * vec2[i];
+        }
+        
+        norm1 = Math.sqrt(norm1);
+        norm2 = Math.sqrt(norm2);
+        
+        if (norm1 === 0 || norm2 === 0) return 0;
+        return dotProduct / (norm1 * norm2);
+      }
+    ),
     trimCache: jest.fn<(maxSize: number) => void>(),
-    clearCache: jest.fn<() => void>(),
-    getCacheSize: jest.fn<() => number>().mockReturnValue(0)
+    clearCache: jest.fn<() => void>().mockImplementation(() => embeddingCache.clear()),
+    getCacheSize: jest.fn<() => number>().mockImplementation(() => embeddingCache.size)
   } as jest.Mocked<MockableEmbeddingService>;
 };
 
@@ -384,6 +495,7 @@ export const createMockZoteroApiService = () => {
     isConfigured: jest.fn<() => boolean>().mockReturnValue(true),
     testConnection: jest.fn<() => Promise<boolean>>().mockResolvedValue(true),
     semanticSearch: jest.fn<(query: string) => Promise<any[]>>().mockResolvedValue([]),
+    getItems: jest.fn<(limit?: number) => Promise<any[]>>().mockResolvedValue([]),
     getCollectionItems: jest.fn<() => Promise<any[]>>().mockResolvedValue([]),
     getRecentItems: jest.fn<() => Promise<any[]>>().mockResolvedValue([]),
     getItemChildren: jest.fn<() => Promise<any[]>>().mockResolvedValue([]),

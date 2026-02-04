@@ -1,6 +1,6 @@
 import { jest } from '@jest/globals';
 import * as vscode from 'vscode';
-import * as fs from 'fs/promises';
+import * as fs from 'fs';
 
 /**
  * Common test setup utilities
@@ -655,60 +655,63 @@ export const expectFirstArgEquals = (mock: jest.Mock, value: number) => {
 // ============================================================================
 
 /**
- * Setup fs/promises mock with default implementations
+ * Setup fs mock with default implementations
  * Call this in beforeEach to ensure fs methods are jest.fn()
  * 
- * Note: Uses Object.defineProperty to work around read-only exports
+ * Handles both synchronous (existsSync, readFileSync) and asynchronous (readFile, writeFile) methods.
+ * Works with jest.mock('fs') at module level.
  * 
  * @example
+ * // At module level:
+ * jest.mock('fs');
+ * 
+ * // In test:
  * beforeEach(() => {
  *   setupFsMock();
  * });
  */
 export const setupFsMock = () => {
-  // Use Object.defineProperty to override read-only fs/promises exports
-  if (!jest.isMockFunction(fs.readFile)) {
-    Object.defineProperty(fs, 'readFile', {
-      value: jest.fn<() => Promise<string>>().mockResolvedValue(''),
-      writable: true,
-      configurable: true
-    });
-  }
-  if (!jest.isMockFunction(fs.writeFile)) {
-    Object.defineProperty(fs, 'writeFile', {
-      value: jest.fn<() => Promise<void>>().mockResolvedValue(undefined),
-      writable: true,
-      configurable: true
-    });
-  }
-  if (!jest.isMockFunction(fs.readdir)) {
-    Object.defineProperty(fs, 'readdir', {
-      value: jest.fn<() => Promise<string[]>>().mockResolvedValue([]),
-      writable: true,
-      configurable: true
-    });
-  }
-  if (!jest.isMockFunction(fs.stat)) {
-    Object.defineProperty(fs, 'stat', {
-      value: jest.fn<() => Promise<any>>().mockResolvedValue({}),
-      writable: true,
-      configurable: true
-    });
-  }
-  if (!jest.isMockFunction(fs.mkdir)) {
-    Object.defineProperty(fs, 'mkdir', {
-      value: jest.fn<() => Promise<void>>().mockResolvedValue(undefined),
-      writable: true,
-      configurable: true
-    });
-  }
-  if (!jest.isMockFunction(fs.unlink)) {
-    Object.defineProperty(fs, 'unlink', {
-      value: jest.fn<() => Promise<void>>().mockResolvedValue(undefined),
-      writable: true,
-      configurable: true
-    });
-  }
+  // Cast fs to Mocked type to access mock methods
+  const mockFs = fs as jest.Mocked<typeof fs>;
+  
+  // Synchronous fs methods
+  const syncMethods = [
+    { name: 'existsSync' as const, returnValue: false },
+    { name: 'readFileSync' as const, returnValue: '' },
+    { name: 'statSync' as const, returnValue: {} },
+    { name: 'readdirSync' as const, returnValue: [] },
+    { name: 'writeFileSync' as const, returnValue: undefined },
+    { name: 'mkdirSync' as const, returnValue: undefined },
+    { name: 'unlinkSync' as const, returnValue: undefined }
+  ];
+
+  // Asynchronous fs methods
+  const asyncMethods = [
+    { name: 'readFile' as const, returnValue: '' },
+    { name: 'writeFile' as const, returnValue: undefined },
+    { name: 'readdir' as const, returnValue: [] },
+    { name: 'stat' as const, returnValue: {} },
+    { name: 'mkdir' as const, returnValue: undefined },
+    { name: 'unlink' as const, returnValue: undefined }
+  ];
+
+  // Setup synchronous methods
+  syncMethods.forEach(({ name, returnValue }) => {
+    const method = (mockFs as any)[name];
+    if (method && jest.isMockFunction(method)) {
+      (method as jest.Mock).mockClear();
+      (method as jest.Mock).mockReturnValue(returnValue);
+    }
+  });
+
+  // Setup asynchronous methods
+  asyncMethods.forEach(({ name, returnValue }) => {
+    const method = (mockFs as any)[name];
+    if (method && jest.isMockFunction(method)) {
+      (method as jest.Mock).mockClear();
+      (method as any).mockResolvedValue(returnValue as any);
+    }
+  });
 };
 
 /**

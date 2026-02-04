@@ -5,6 +5,22 @@ import { PDFExtractionService } from './pdfExtractionService';
 import { OutlineParser } from './outlineParserWrapper';
 
 /**
+ * File system operations interface for dependency injection
+ */
+export interface FileSystemDeps {
+  existsSync: (path: string) => boolean;
+  readdirSync: (path: string) => string[];
+}
+
+/**
+ * Default file system implementation using Node's fs module
+ */
+export const defaultFileSystem: FileSystemDeps = {
+  existsSync: fs.existsSync,
+  readdirSync: (p: string) => fs.readdirSync(p) as string[]
+};
+
+/**
  * Status of fulltext availability for a Zotero item
  */
 export interface FulltextStatus {
@@ -42,14 +58,17 @@ export class FulltextStatusManager {
   private lastScanTime: Date | null = null;
   private extractedTextPath: string;
   private pdfDir: string;
+  private fs: FileSystemDeps;
 
   constructor(
     private readonly pdfExtractionService: PDFExtractionService,
     private readonly outlineParser: OutlineParser,
-    private readonly workspaceRoot: string
+    private readonly workspaceRoot: string,
+    fileSystem: FileSystemDeps = defaultFileSystem
   ) {
     this.extractedTextPath = path.join(workspaceRoot, 'literature', 'ExtractedText');
     this.pdfDir = path.join(workspaceRoot, 'literature', 'PDFs');
+    this.fs = fileSystem;
   }
 
   /**
@@ -80,8 +99,8 @@ export class FulltextStatusManager {
     const processedBasenames = new Set<string>();
 
     // First, scan PDFs directory
-    if (fs.existsSync(this.pdfDir)) {
-      const pdfFiles = fs.readdirSync(this.pdfDir)
+    if (this.fs.existsSync(this.pdfDir)) {
+      const pdfFiles = this.fs.readdirSync(this.pdfDir)
         .filter(f => f.toLowerCase().endsWith('.pdf'));
 
       for (const pdfFile of pdfFiles) {
@@ -112,8 +131,8 @@ export class FulltextStatusManager {
     }
 
     // Also scan ExtractedText directory for files without PDFs
-    if (fs.existsSync(this.extractedTextPath)) {
-      const extractedFiles = fs.readdirSync(this.extractedTextPath)
+    if (this.fs.existsSync(this.extractedTextPath)) {
+      const extractedFiles = this.fs.readdirSync(this.extractedTextPath)
         .filter(f => f.toLowerCase().endsWith('.txt') || f.toLowerCase().endsWith('.md'));
 
       for (const extractedFile of extractedFiles) {
@@ -154,7 +173,7 @@ export class FulltextStatusManager {
   private checkLocalFulltext(basename: string): boolean {
     const txtPath = path.join(this.extractedTextPath, `${basename}.txt`);
     const mdPath = path.join(this.extractedTextPath, `${basename}.md`);
-    return fs.existsSync(txtPath) || fs.existsSync(mdPath);
+    return this.fs.existsSync(txtPath) || this.fs.existsSync(mdPath);
   }
 
   /**
@@ -164,10 +183,10 @@ export class FulltextStatusManager {
     const txtPath = path.join(this.extractedTextPath, `${basename}.txt`);
     const mdPath = path.join(this.extractedTextPath, `${basename}.md`);
     
-    if (fs.existsSync(txtPath)) {
+    if (this.fs.existsSync(txtPath)) {
       return txtPath;
     }
-    if (fs.existsSync(mdPath)) {
+    if (this.fs.existsSync(mdPath)) {
       return mdPath;
     }
     return undefined;
@@ -178,7 +197,7 @@ export class FulltextStatusManager {
    */
   private findPdfPath(basename: string): string | undefined {
     const pdfPath = path.join(this.pdfDir, `${basename}.pdf`);
-    return fs.existsSync(pdfPath) ? pdfPath : undefined;
+    return this.fs.existsSync(pdfPath) ? pdfPath : undefined;
   }
 
   /**

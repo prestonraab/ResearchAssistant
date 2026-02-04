@@ -11,6 +11,10 @@ interface VerificationResult {
   context?: string;
 }
 
+// Mock the UnifiedQuoteSearch and LiteratureIndexer to prevent file system access
+jest.mock('../services/unifiedQuoteSearch');
+jest.mock('../services/literatureIndexer');
+
 describe('AutoQuoteVerifier', () => {
   setupTest();
 
@@ -53,7 +57,7 @@ describe('AutoQuoteVerifier', () => {
       expect(verifier.getQueueSize()).toBe(0);
     });
 
-    test('should add claim to queue if it has quote and source', async () => {
+    test('should add claim to queue if it has quote and source', () => {
       const claim = aClaim()
         .withId('C_01')
         .withText('Test claim')
@@ -63,14 +67,11 @@ describe('AutoQuoteVerifier', () => {
 
       verifier.verifyOnSave(claim);
 
-      // Queue size should be 1 immediately after adding
-      expect(verifier.getQueueSize()).toBeGreaterThanOrEqual(1);
-      
-      // Wait for processing to complete
-      await new Promise(resolve => setTimeout(resolve, 100));
+      // Queue size should be 1 immediately after adding (before async processing)
+      expect(verifier.getQueueSize()).toBe(1);
     });
 
-    test('should update existing queue item if claim already in queue', async () => {
+    test('should update existing queue item if claim already in queue', () => {
       const claim = aClaim()
         .withId('C_01')
         .withText('Test claim')
@@ -79,12 +80,12 @@ describe('AutoQuoteVerifier', () => {
         .build();
 
       verifier.verifyOnSave(claim);
-      expect(verifier.getQueueSize()).toBeGreaterThanOrEqual(1);
+      expect(verifier.getQueueSize()).toBe(1);
       
       verifier.verifyOnSave(claim); // Add same claim again
 
-      // Should still be 1 or more (depending on processing state)
-      expect(verifier.getQueueSize()).toBeGreaterThanOrEqual(0);
+      // Should still be 1 (updated, not added again)
+      expect(verifier.getQueueSize()).toBe(1);
     });
   });
 
@@ -155,7 +156,7 @@ describe('AutoQuoteVerifier', () => {
       expect(verifier.getQueueSize()).toBe(0);
     });
 
-    test('should return correct queue size', async () => {
+    test('should return correct queue size', () => {
       const claim = aClaim()
         .withId('C_01')
         .withText('Test claim')
@@ -165,11 +166,8 @@ describe('AutoQuoteVerifier', () => {
 
       verifier.verifyOnSave(claim);
 
-      // Queue size should be at least 1 immediately after adding
-      expect(verifier.getQueueSize()).toBeGreaterThanOrEqual(1);
-      
-      // Wait for processing
-      await new Promise(resolve => setTimeout(resolve, 100));
+      // Queue size should be 1 immediately after adding
+      expect(verifier.getQueueSize()).toBe(1);
     });
   });
 
@@ -186,21 +184,18 @@ describe('AutoQuoteVerifier', () => {
   });
 
   describe('Error handling', () => {
-    test('should handle concurrent verification requests', async () => {
+    test('should handle concurrent verification requests', () => {
       const claim1 = aClaim().withId('C_01').withPrimaryQuote('Quote 1', 'Author2020').build();
       const claim2 = aClaim().withId('C_02').withPrimaryQuote('Quote 2', 'Author2021').build();
 
       verifier.verifyOnSave(claim1);
       verifier.verifyOnSave(claim2);
 
-      // Queue should have at least 1 item (may be processing)
-      expect(verifier.getQueueSize()).toBeGreaterThanOrEqual(1);
-      
-      // Wait for processing
-      await new Promise(resolve => setTimeout(resolve, 100));
+      // Queue should have 2 items
+      expect(verifier.getQueueSize()).toBe(2);
     });
 
-    test('should handle queue processing errors gracefully', async () => {
+    test('should handle queue processing errors gracefully', () => {
       const claim = aClaim()
         .withId('C_01')
         .withPrimaryQuote('Test quote', 'Author2020')
@@ -211,11 +206,8 @@ describe('AutoQuoteVerifier', () => {
 
       verifier.verifyOnSave(claim);
 
-      // Queue should have at least 1 item
-      expect(verifier.getQueueSize()).toBeGreaterThanOrEqual(1);
-      
-      // Wait for processing
-      await new Promise(resolve => setTimeout(resolve, 100));
+      // Queue should have 1 item
+      expect(verifier.getQueueSize()).toBe(1);
     });
   });
 });

@@ -80,7 +80,7 @@ describe('Phase2Initializer', () => {
         initialize: (jest.fn() as jest.Mock<any>).mockResolvedValue(undefined as any),
         getUserPreferences: jest.fn().mockReturnValue({})
       },
-      zoteroApiService: {
+      zoteroClient: {
         initialize: jest.fn()
       }
     } as any;
@@ -139,7 +139,7 @@ describe('Phase2Initializer', () => {
       expect(mockProviders.papers.refresh).toHaveBeenCalled();
     });
 
-    test('should configure Zotero API service if credentials are available', async () => {
+    test('should configure Zotero client if credentials are available', async () => {
       mockState.configurationManager.getUserPreferences = jest.fn().mockReturnValue({
         zoteroApiKey: 'test-key',
         zoteroUserId: 'test-user'
@@ -148,19 +148,19 @@ describe('Phase2Initializer', () => {
       const initializer = new Phase2Initializer(mockPhase1);
       await initializer.initialize(mockState);
 
-      expect(mockState.zoteroApiService.initialize).toHaveBeenCalledWith(
+      expect(mockState.zoteroClient.initialize).toHaveBeenCalledWith(
         'test-key',
         'test-user'
       );
     });
 
-    test('should not configure Zotero API service if credentials are missing', async () => {
+    test('should not configure Zotero client if credentials are missing', async () => {
       mockState.configurationManager.getUserPreferences = jest.fn().mockReturnValue({});
 
       const initializer = new Phase2Initializer(mockPhase1);
       await initializer.initialize(mockState);
 
-      expect(mockState.zoteroApiService.initialize).not.toHaveBeenCalled();
+      expect(mockState.zoteroClient.initialize).not.toHaveBeenCalled();
     });
   });
 
@@ -189,7 +189,7 @@ describe('Phase2Initializer', () => {
       await initializer.initialize(mockState);
 
       expect(vscode.window.showWarningMessage).toHaveBeenCalledWith(
-        expect.stringContaining('Could not load claims database'),
+        expect.stringContaining('1 operation(s) failed'),
         'View Output'
       );
     });
@@ -218,7 +218,7 @@ describe('Phase2Initializer', () => {
       await initializer.initialize(mockState);
 
       expect(vscode.window.showWarningMessage).toHaveBeenCalledWith(
-        expect.stringContaining('Could not parse outline'),
+        expect.stringContaining('1 operation(s) failed'),
         'View Output'
       );
     });
