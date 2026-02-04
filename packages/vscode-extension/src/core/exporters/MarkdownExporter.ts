@@ -7,123 +7,172 @@ import type { CoverageMetrics } from '../coverageAnalyzer';
 import { ManuscriptParser } from './ManuscriptParser';
 import { CitationCollector } from './CitationCollector';
 import { ReportGenerator } from './ReportGenerator';
+import { BibTeXGenerator } from './BibTeXGenerator';
+import type { ZoteroApiService, ZoteroItem } from '../../services/zoteroApiService';
+import * as fs from 'fs';
+import * as path from 'path';
 
 export type ExportFormat = 'markdown' | 'csv' | 'json';
 
 /**
  * Handles markdown export functionality
- * Generates markdown with Pandoc-style footnotes and bibliography
+ * Generates markdown with Pandoc-citeproc citations [@citekey] and accompanying .bib file
  */
 export class MarkdownExporter {
   private citationCollector: CitationCollector;
 
   constructor(
     private sentenceClaimQuoteLinkManager?: SentenceClaimQuoteLinkManager,
-    private claimsManager?: ClaimsManager
+    private claimsManager?: ClaimsManager,
+    private zoteroApiService?: ZoteroApiService
   ) {
     this.citationCollector = new CitationCollector(sentenceClaimQuoteLinkManager, claimsManager);
   }
 
   /**
-   * Export manuscript with marked citations as Markdown with Pandoc-style footnotes
+   * Export manuscript with Pandoc-citeproc style citations
+   * Converts \cite{KEY} to [@KEY] and generates accompanying .bib file
    */
   public async exportManuscriptMarkdown(
     manuscriptText: string,
     options: ManuscriptExportOptions
   ): Promise<string> {
-    return this.generateMarkdownWithFootnotes(manuscriptText, options);
+    // Convert \cite{} to Pandoc [@] format
+    let processedText = this.convertCitationsToPandoc(manuscriptText);
+    
+    // Remove HTML comment markers
+    processedText = this.removeHtmlComments(processedText);
+    
+    // Extract citation keys and generate .bib file
+    const citeKeys = this.extractCitationKeys(manuscriptText);
+    if (citeKeys.size > 0 && options.outputPath) {
+      await this.generateBibFile(citeKeys, options.outputPath);
+    }
+    
+    // Add YAML front matter for Pandoc
+    const yamlHeader = this.generateYamlHeader(options);
+    
+    return yamlHeader + processedText;
   }
 
   /**
-   * Generate markdown with Pandoc-style footnotes
-   * Removes HTML comment markers (<!-- [undefined] -->) from the manuscript
+   * Convert LaTeX \cite{KEY} citations to Pandoc [@KEY] format
    */
-  private async generateMarkdownWithFootnotes(
-    manuscriptText: string,
-    options: ManuscriptExportOptions
-  ): Promise<string> {
-    const lines: string[] = [];
-    const footnotes: Map<number, string> = new Map();
-    const allCitations: CitedQuote[] = [];
-    let footnoteIndex = 1;
-    const manuscriptId = options.manuscriptId || 'default';
-
-    // Parse manuscript into sections (this now removes HTML comments)
-    const sections = ManuscriptParser.parseManuscriptSections(manuscriptText);
-
-    for (const section of sections) {
-      lines.push(section.heading);
-      lines.push('');
-
-      // Process each paragraph
-      for (const paragraph of section.paragraphs) {
-        let processedParagraph = paragraph;
-
-        // Parse sentences in paragraph (this now removes HTML comments)
-        const sentences = ManuscriptParser.parseSentencesSimple(paragraph);
-
-        for (const sentence of sentences) {
-          // Get citations for this sentence
-          const citations = await this.citationCollector.collectCitationsForSentence(sentence.id);
-
-          if (citations.length > 0) {
-            allCitations.push(...citations);
-
-            // Add footnote references to sentence
-            let sentenceWithFootnotes = sentence.text;
-
-            for (const citation of citations) {
-              const footnoteId = this.generateFootnoteId(footnoteIndex);
-              const footnoteText = `${citation.quoteText} (${citation.source}${citation.year ? ', ' + citation.year : ''})`;
-
-              footnotes.set(footnoteIndex, footnoteText);
-              sentenceWithFootnotes += ` ${footnoteId}`;
-              footnoteIndex++;
-            }
-
-            processedParagraph = processedParagraph.replace(sentence.text, sentenceWithFootnotes);
-          }
-        }
-
-        lines.push(processedParagraph);
-        lines.push('');
+  private convertCitationsToPandoc(text: string): string {
+    // Convert \cite{KEY} to [@KEY]
+    // Also handles multiple citations: \cite{KEY1,KEY2} -> [@KEY1; @KEY2]
+    return text.replace(/\\cite\{([^}]+)\}/g, (match, keys) => {
+      const keyList = keys.split(',').map((k: string) => k.trim());
+      if (keyList.length === 1) {
+        return `[@${keyList[0]}]`;
       }
+      return '[' + keyList.map((k: string) => `@${k}`).join('; ') + ']';
+    });
+  }
 
-      // Add footnotes for this section if document-scoped
-      if (options.footnoteScope === 'section') {
-        for (const [index, text] of footnotes.entries()) {
-          lines.push(`${this.generateFootnoteId(index)}: ${text}`);
-        }
-        lines.push('');
-        footnotes.clear();
-        footnoteIndex = 1;
-      }
+  /**
+   * Remove HTML comment markers from text
+   */
+  private removeHtmlComments(text: string): string {
+    // Remove <!-- [ANSWERED] -->, <!-- [undefined] -->, <!-- Source: ... --> etc.
+    return text.replace(/<!--\s*\[?[^\]]*\]?\s*-->/g, '').trim();
+  }
+
+  /**
+   * Extract all citation keys from manuscript
+   */
+  private extractCitationKeys(text: string): Set<string> {
+    const keys = new Set<string>();
+    const regex = /\\cite\{([^}]+)\}/g;
+    let match;
+    
+    while ((match = regex.exec(text)) !== null) {
+      const keyList = match[1].split(',').map(k => k.trim());
+      keyList.forEach(k => keys.add(k));
+    }
+    
+    return keys;
+  }
+
+  /**
+   * Generate YAML front matter for Pandoc
+   */
+  private generateYamlHeader(options: ManuscriptExportOptions): string {
+    const bibFile = options.outputPath 
+      ? path.basename(options.outputPath).replace(/\.md$/, '.bib')
+      : 'references.bib';
+    
+    return `---
+bibliography: ${bibFile}
+csl: apa.csl
+link-citations: true
+---
+
+`;
+  }
+
+  /**
+   * Generate .bib file from citation keys using Zotero API
+   */
+  private async generateBibFile(citeKeys: Set<string>, outputPath: string): Promise<void> {
+    const bibPath = outputPath.replace(/\.md$/, '.bib');
+    
+    if (!this.zoteroApiService || !this.zoteroApiService.isConfigured()) {
+      // Generate basic .bib file without Zotero metadata
+      await this.generateBasicBibFile(citeKeys, bibPath);
+      return;
     }
 
-    // Add bibliography if requested
-    if (options.includeBibliography !== false) {
-      lines.push('## Bibliography');
-      lines.push('');
-
-      const bibliography = await this.buildBibliography(allCitations);
-      for (const entry of bibliography) {
-        lines.push(entry);
+    try {
+      // Fetch items from Zotero
+      const items = await this.zoteroApiService.getItems(100);
+      
+      // Filter items that match our citation keys
+      const matchedItems = items.filter(item => citeKeys.has(item.key));
+      
+      // Create cite key map
+      const citeKeyMap = new Map<string, string>();
+      for (const item of matchedItems) {
+        citeKeyMap.set(item.key, item.key);
       }
-      lines.push('');
+
+      // Generate BibTeX content
+      const bibContent = BibTeXGenerator.generateBibFile(matchedItems, citeKeyMap);
+      
+      // Write .bib file
+      const dir = path.dirname(bibPath);
+      if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive: true });
+      }
+      fs.writeFileSync(bibPath, bibContent, 'utf-8');
+    } catch (error) {
+      console.warn('Failed to generate .bib file from Zotero:', error);
+      await this.generateBasicBibFile(citeKeys, bibPath);
+    }
+  }
+
+  /**
+   * Generate basic .bib file without Zotero metadata
+   */
+  private async generateBasicBibFile(citeKeys: Set<string>, bibPath: string): Promise<void> {
+    const entries: string[] = [];
+
+    for (const key of citeKeys) {
+      const bibEntry = `@misc{${key},
+  author = {Unknown},
+  title = {${key}},
+  year = {n.d.}
+}`;
+      entries.push(bibEntry);
     }
 
-    // Add document-scoped footnotes if applicable
-    if (options.footnoteScope !== 'section' && footnotes.size > 0) {
-      lines.push('## Footnotes');
-      lines.push('');
-
-      for (const [index, text] of footnotes.entries()) {
-        lines.push(`${this.generateFootnoteId(index)}: ${text}`);
-      }
-      lines.push('');
+    const bibContent = entries.join('\n\n');
+    
+    const dir = path.dirname(bibPath);
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
     }
-
-    return lines.join('\n');
+    fs.writeFileSync(bibPath, bibContent, 'utf-8');
   }
 
   /**
@@ -148,38 +197,5 @@ export class MarkdownExporter {
    */
   public generateReadingProgressMarkdown(statuses: unknown[]): string {
     return ReportGenerator.generateReadingProgressMarkdown(statuses);
-  }
-
-  /**
-   * Generate unique footnote ID
-   */
-  private generateFootnoteId(index: number): string {
-    return `^${index}`;
-  }
-
-  /**
-   * Build bibliography from all cited sources
-   */
-  private async buildBibliography(allCitations: CitedQuote[]): Promise<string[]> {
-    const sources = new Map<string, CitedQuote>();
-
-    // Collect unique sources
-    for (const citation of allCitations) {
-      const key = `${citation.source}`;
-      if (!sources.has(key)) {
-        sources.set(key, citation);
-      }
-    }
-
-    // Sort by source
-    const sortedSources = Array.from(sources.values()).sort((a, b) =>
-      a.source.localeCompare(b.source)
-    );
-
-    // Format bibliography entries
-    return sortedSources.map(citation => {
-      const year = citation.year ? ` (${citation.year})` : '';
-      return `- ${citation.source}${year}`;
-    });
   }
 }

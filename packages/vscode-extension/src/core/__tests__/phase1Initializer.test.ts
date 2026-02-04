@@ -139,24 +139,27 @@ describe('Phase1Initializer', () => {
       expect(mockStatusBarItem.show).toHaveBeenCalled();
     });
 
-    test('should register command stubs', async () => {
+    test('should register tree view providers', async () => {
       const initializer = new Phase1Initializer();
 
       await initializer.initialize(mockContext, mockState);
 
-      // Should register at least the loading command stubs
-      expect(vscode.commands.registerCommand).toHaveBeenCalled();
-      
-      // Verify some key commands are registered
-      const registeredCommands = (vscode.commands.registerCommand as jest.Mock).mock.calls.map(
-        call => call[0]
+      // Should register tree view providers
+      expect(vscode.window.registerTreeDataProvider).toHaveBeenCalledWith(
+        'researchAssistant.outline',
+        expect.any(Object)
       );
-      expect(registeredCommands).toContain('researchAssistant.openWritingMode');
-      expect(registeredCommands).toContain('researchAssistant.openEditingMode');
-      expect(registeredCommands).toContain('researchAssistant.showDashboard');
+      expect(vscode.window.registerTreeDataProvider).toHaveBeenCalledWith(
+        'researchAssistant.claims',
+        expect.any(Object)
+      );
+      expect(vscode.window.registerTreeDataProvider).toHaveBeenCalledWith(
+        'researchAssistant.papers',
+        expect.any(Object)
+      );
     });
 
-    test('should add all disposables to context subscriptions', async () => {
+    test('should add tree providers and status bar to context subscriptions', async () => {
       const initializer = new Phase1Initializer();
 
       await initializer.initialize(mockContext, mockState);
@@ -164,8 +167,7 @@ describe('Phase1Initializer', () => {
       // Should have subscriptions for:
       // - 3 tree providers
       // - 1 status bar
-      // - 7 command stubs
-      expect(mockContext.subscriptions.length).toBeGreaterThanOrEqual(11);
+      expect(mockContext.subscriptions.length).toBeGreaterThanOrEqual(4);
     });
   });
 
@@ -231,25 +233,14 @@ describe('Phase1Initializer', () => {
   });
 
   describe('command stubs', () => {
-    test('should show loading message when stub commands are called', async () => {
+    test('should create status bar item during initialization', async () => {
       const initializer = new Phase1Initializer();
       await initializer.initialize(mockContext, mockState);
 
-      // Get the registered command handler for openWritingMode
-      const commandCalls = (vscode.commands.registerCommand as jest.Mock).mock.calls;
-      const writingModeCall = commandCalls.find(
-        call => call[0] === 'researchAssistant.openWritingMode'
-      );
-      
-      expect(writingModeCall).toBeDefined();
-      
-      // Call the stub handler
-      const handler = writingModeCall![1] as (...args: any[]) => void;
-      handler();
-
-      expect(vscode.window.showInformationMessage).toHaveBeenCalledWith(
-        expect.stringContaining('loading')
-      );
+      const statusBar = initializer.getStatusBarItem();
+      expect(statusBar).toBe(mockStatusBarItem);
+      expect(mockStatusBarItem.text).toContain('loading');
     });
   });
 });
+

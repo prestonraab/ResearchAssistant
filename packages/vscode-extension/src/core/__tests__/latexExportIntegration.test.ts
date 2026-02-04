@@ -173,7 +173,7 @@ This is a sentence.`;
 
       const content = fs.readFileSync(outputPath, 'utf-8');
       expect(content).toContain('\\footnote{');
-      expect(content).toContain('\\section*{Bibliography}');
+      expect(content).toContain('\\bibliographystyle{apalike}');
     });
 
     test('should export with document-scoped footnotes', async () => {
@@ -536,12 +536,9 @@ Sentence 1. Sentence 2.`;
       expect(fs.existsSync(outputPath)).toBe(true);
 
       const content = fs.readFileSync(outputPath, 'utf-8');
-      expect(content).toContain('\\section*{Bibliography}');
-      expect(content).toContain('\\begin{itemize}');
-      // Bibliography entries include the source (which may contain year)
-      expect(content).toContain('\\item Smith 2020');
-      expect(content).toContain('\\item Jones 2021');
-      expect(content).toContain('\\end{itemize}');
+      // Now uses BibTeX format instead of itemize
+      expect(content).toContain('\\bibliographystyle{apalike}');
+      expect(content).toContain('\\bibliography{references}');
     });
   });
 });

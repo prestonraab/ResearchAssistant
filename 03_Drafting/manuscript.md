@@ -234,8 +234,8 @@
 > For gene expression data, where biological classes may not be linearly separable due to complex regulatory networks and pathway interactions, the ability to learn non-linear boundaries is crucial.
 > Support vector machines identify optimal decision boundaries by finding hyperplanes that maximize the margin between classes.
 > SVMs are particularly effective for the $p \gg n$ problem in gene expression data because they focus on support vectors—the most informative samples near the decision boundary—rather than attempting to model all samples equally.
-> The kernel trick allows SVMs to implicitly map gene expression profiles into higher-dimensional spaces where complex, non-linear biological patterns become linearly separable, making them versatile for diverse biological patterns.
-> \cite{IWRVSPHQ} Neural networks, including multi-layer perceptrons and more sophisticated architectures, can achieve excellent performance when sufficient data are available.
+> The kernel trick allows SVMs to implicitly map gene expression profiles into higher-dimensional spaces where complex, non-linear biological patterns become linearly separable, making them versatile for diverse biological patterns (Guyon 2002).
+> Neural networks, including multi-layer perceptrons and more sophisticated architectures, can achieve excellent performance when sufficient data are available.
 > For gene expression data, neural networks can learn hierarchical representations where early layers capture individual gene patterns and deeper layers integrate these into pathway-level or systems-level features.
 > Neural networks outperform other methods only when training set sizes are very large, as the high-dimensional nature of gene expression data (many features, few samples) has historically limited deep learning effectiveness.
 > Deep learning approaches have shown particular promise for identifying complex, non-linear patterns in gene expression data that may be missed by simpler methods.
@@ -343,9 +343,9 @@
 > These results suggest that mutual nearest neighbor-based correction methods, while effective for discrete cell populations in single-cell data, may disrupt continuous biological variation patterns in bulk RNA-seq data.
 
 > [!question]- Why does MNN fail for bulk RNA-seq? The "Islands vs. Continent" Problem (status:: undefined)
-> MNN was designed for single-cell data where discrete cell populations exist as "islands"—distinct cell types with clear boundaries in expression space.
-> \cite{7PZXDBIM} The method works by finding mutual nearest neighbors between these islands across batches, assuming that the same cell types exist in both datasets.
-> \cite{7PZXDBIM} Bulk RNA-seq data, in contrast, represent a "continent"—continuous variation across samples with no discrete boundaries.
+> MNN was designed for single-cell data where discrete cell populations exist as "islands"—distinct cell types with clear boundaries in expression space (Stuart 2019).
+> The method works by finding mutual nearest neighbors between these islands across batches, assuming that the same cell types exist in both datasets (Stuart 2019).
+> Bulk RNA-seq data, in contrast, represent a "continent"—continuous variation across samples with no discrete boundaries.
 > Each bulk sample is an aggregate of multiple cell types, creating a smooth gradient of expression rather than distinct clusters.
 > When MNN attempts to find "nearest neighbors" in this continuous space, it creates artificial discontinuities by forcing samples into discrete correspondence, disrupting the biological gradients that classifiers need to learn.
 > This fundamental mismatch between the method's assumptions (discrete populations) and the data structure (continuous variation) explains why MNN-based approaches consistently degrade classifier performance on bulk RNA-seq data.
@@ -435,12 +435,7 @@
 
 > [!question]- What technical details should be captured in a summary table? (status:: undefined)
 > The table should capture Study, Region, Population, Sample Type, Design, and Key Characteristics to provide a comprehensive view of the heterogeneity.
-> | Study | Region | Population | Sample Type | Design | Key Characteristics | |-------|--------|------------|-------------|--------|---------------------| | Zak et al.
-> (2016) \cite{ATTXF4B6} | South Africa | Adolescents (12-18 years) | Whole blood | Prospective cohort | Longitudinal sampling every 6 months to predict progression  | | Suliman et al.
-> (2018) \cite{Suliman2018_Key} | South Africa, Gambia, Ethiopia | Adults | Whole blood | Prospective cohort | Household contacts, RISK4 four-gene signature for TB progression  | | Anderson et al.
-> (2014) \cite{Anderson2014_Key} | South Africa, Malawi, Kenya | Children | Whole blood | Case-control | Childhood TB diagnosis, 51-transcript signature  | | Leong et al.
-> (2018) \cite{AABTK2K9} | India | Adults | Whole blood | Case-control | South Indian population, active vs latent  | | Kaforou et al.
-> (2013) \cite{GVWW6MZB} | South Africa | Adults (Xhosa, 18+) | Whole blood | Case-control | HIV-infected and -uninfected cohorts  | [source:: C_69, C_70, C_68, C_71, C_73 ]
+> | Study | Region | Population | Sample Type | Design | Key Characteristics | |-------|--------|------------|-------------|--------|---------------------| | Zak et al. (2016) | South Africa | Adolescents (12-18 years) | Whole blood | Prospective cohort | Longitudinal sampling every 6 months to predict progression  | | Suliman et al. (2018) | South Africa, Gambia, Ethiopia | Adults | Whole blood | Prospective cohort | Household contacts, RISK4 four-gene signature for TB progression  | | Anderson et al. (2014) | South Africa, Malawi, Kenya | Children | Whole blood | Case-control | Childhood TB diagnosis, 51-transcript signature  | | Leong et al. (2018) | India | Adults | Whole blood | Case-control | South Indian population, active vs latent  | | Kaforou et al. (2013) | South Africa | Adults (Xhosa, 18+) | Whole blood | Case-control | HIV-infected and -uninfected cohorts  | [source:: C_69, C_70, C_68, C_71, C_73 ]
 
 > [!question]- How does this collection test cross-population generalizability? (status:: undefined)
 > This collection spans adolescent and adult prospective cohorts, pediatric and adult case-control studies, whole blood samples, and four continents (Africa, Asia, North America) with diverse genetic backgrounds and HIV co-infection patterns.
@@ -760,9 +755,9 @@
 
 > [!question]- The Risk of Batch as a Latent Feature (Shortcut Learning) (status:: undefined)
 > However, a critical risk emerges in self-supervised learning: if the model is not explicitly de-biased during training, it may learn to represent "batch" as one of its primary latent dimensions.
-> \cite{DCHDE4E7} This phenomenon is known as "Shortcut Learning" in the machine learning literature—the model takes the shortcut of learning the batch (which is easy to identify) rather than the biology (which is hard).
-> \cite{DCHDE4E7} Since batch effects often explain substantial variance in genomic data, an unsupervised model optimizing for reconstruction or contrastive objectives may inadvertently encode batch identity as a core feature.
-> \cite{DCHDE4E7} This creates a subtle failure mode where the model appears to learn rich representations but has actually learned to distinguish technical artifacts rather than biological patterns.
+> This phenomenon is known as "Shortcut Learning" in the machine learning literature—the model takes the shortcut of learning the batch (which is easy to identify) rather than the biology (which is hard) (Geirhos 2020).
+> Since batch effects often explain substantial variance in genomic data, an unsupervised model optimizing for reconstruction or contrastive objectives may inadvertently encode batch identity as a core feature (Geirhos 2020).
+> This creates a subtle failure mode where the model appears to learn rich representations but has actually learned to distinguish technical artifacts rather than biological patterns (Geirhos 2020).
 > [source:: C_101(Geirhos 2020)]
 
 > [!question]- How might SSL models inadvertently encode batch identity? (status:: undefined)
@@ -786,9 +781,9 @@
 
 > [!question]- What are batch-aware training strategies? (status:: undefined)
 > Batch-aware training strategies explicitly incorporate batch information during model training to learn batch-invariant representations.
-> \cite{XDFQK28Q} Gradient Reversal Layers (GRL) add an adversarial component to the neural network that tries to predict the batch label from the learned representations, while the main network tries to prevent this prediction.
-> \cite{XDFQK28Q} This adversarial training forces the network to learn features that are useful for the biological task but uninformative about batch identity—effectively making the model "forget" the batch during training.
-> \cite{XDFQK28Q} Domain adaptation techniques similarly aim to align the feature distributions across batches, allowing models trained on one set of technical conditions to generalize to others.
+> Gradient Reversal Layers (GRL) add an adversarial component to the neural network that tries to predict the batch label from the learned representations, while the main network tries to prevent this prediction (Ganin 2017).
+> This adversarial training forces the network to learn features that are useful for the biological task but uninformative about batch identity—effectively making the model "forget" the batch during training (Ganin 2017).
+> Domain adaptation techniques similarly aim to align the feature distributions across batches, allowing models trained on one set of technical conditions to generalize to others (Ganin 2017).
 > These approaches represent a paradigm shift from correcting the data before training to training models that are inherently robust to batch effects.
 > [source:: C_103(Ganin 2017)]
 
@@ -820,16 +815,16 @@
 
 > [!question]- DNA Methylation: Beta distribution (use limma or ComBat on M-values) (status:: undefined)
 > DNA methylation beta values are bounded between 0 and 1, representing the proportion of methylated sites, and approximately follow a beta distribution.
-> \cite{BIEDGK29} This bounded nature violates the assumptions of methods designed for unbounded continuous or count data.
-> \cite{BIEDGK29} Practitioners typically transform beta values to M-values (log2 ratio of methylated to unmethylated intensities) before applying ComBat or limma, as M-values have better statistical properties for differential methylation analysis.
-> \cite{BIEDGK29} The recommended practice is to use M-values for statistical testing while reporting beta-values for biological interpretation, balancing statistical validity with interpretability.
-> \cite{BIEDGK29} Specialized methods like GMQN (Gaussian Mixture Quantile Normalization) have been developed specifically for methylation data.
-> [source:: C_93(Xiong 2022)]
+> This bounded nature violates the assumptions of methods designed for unbounded continuous or count data (Du 2010).
+> Practitioners typically transform beta values to M-values (log2 ratio of methylated to unmethylated intensities) before applying ComBat or limma, as M-values have better statistical properties for differential methylation analysis (Du 2010).
+> The recommended practice is to use M-values for statistical testing while reporting beta-values for biological interpretation, balancing statistical validity with interpretability (Du 2010).
+> Specialized methods like GMQN (Gaussian Mixture Quantile Normalization) have been developed specifically for methylation data.
+> [source:: C_93(Du 2010)]
 
 > [!question]- Protein abundance (Mass Spec): Often log-normal (status:: undefined)
 > Mass spectrometry data for protein abundance are often log-normally distributed and may have substantial missingness due to detection limits.
-> \cite{V3WF2W22} These data remain inherently biased due to sample handling and instrumentation differences.
-> \cite{V3WF2W22} ComBat's Gaussian assumptions may be more appropriate for log-transformed proteomics data than for RNA-seq counts, though the high degree of missingness requires specialized handling that differs from RNA-seq workflows.
+> These data remain inherently biased due to sample handling and instrumentation differences (Välikangas 2016).
+> ComBat's Gaussian assumptions may be more appropriate for log-transformed proteomics data than for RNA-seq counts, though the high degree of missingness requires specialized handling that differs from RNA-seq workflows (Välikangas 2016).
 > [source:: C_96(Välikangas 2016)]
 
 > [!question]- Key insight: While the math changes, the strategy of location/scale adjustment is foundational (status:: undefined)
