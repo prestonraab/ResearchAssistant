@@ -74,7 +74,7 @@ export class ServiceState {
     this.exportService = new ExportService(this.sentenceClaimQuoteLinkManager, this.claimsManager, this.sentenceParser);
     this.zoteroClient = new ZoteroClient();
     this.unifiedSearchService = new UnifiedSearchService(this.zoteroClient, this.claimsManager, this.embeddingService, workspaceRoot);
-    this.literatureIndexer = new LiteratureIndexer(workspaceRoot, config.extractedTextPath);
+    this.literatureIndexer = new LiteratureIndexer(workspaceRoot, this.embeddingService, config.extractedTextPath);
     this.verificationFeedbackLoop = new VerificationFeedbackLoop(this.literatureIndexer, apiKey, coreState.getAbsolutePath(config.extractedTextPath), workspaceRoot);
     this.zoteroAvailabilityManager = new ZoteroAvailabilityManager(this.zoteroClient);
     this.quoteManager = new QuoteManager();

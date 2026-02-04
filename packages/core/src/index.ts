@@ -352,7 +352,7 @@ export { SearchQueryGenerator } from './services/SearchQueryGenerator.js';
  * Services for indexing and searching literature.
  */
 export { LiteratureIndexer } from './services/LiteratureIndexer.js';
-export { EmbeddingStore, EmbeddedSnippet, QuantizedSnippet, EmbeddingIndex } from './services/EmbeddingStore.js';
+export { EmbeddingStore, EmbeddedSnippet, EmbeddedSnippetWithSimilarity, QuantizedSnippet, EmbeddingIndex } from './services/EmbeddingStore.js';
 export { SnippetExtractor } from './services/SnippetExtractor.js';
 export { EmbeddingQuantizer } from './services/EmbeddingQuantizer.js';
 export { TextNormalizer } from './utils/text-normalizer.js';

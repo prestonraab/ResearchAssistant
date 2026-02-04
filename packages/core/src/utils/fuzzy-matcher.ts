@@ -267,6 +267,18 @@ export class FuzzyMatcher {
   }
 
   /**
+   * Async version of findMatch - delegates to sync version since it's now fast enough
+   * Kept for backward compatibility with vscode-extension
+   */
+  async findMatchAsync(
+    highlightText: string,
+    documentText: string,
+    pageNumber?: number
+  ): Promise<FuzzyMatchResult> {
+    return this.findMatch(highlightText, documentText, pageNumber);
+  }
+
+  /**
    * Find the position in the original document text corresponding to a position
    * in the normalized text
    * 

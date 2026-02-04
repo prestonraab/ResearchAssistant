@@ -17,12 +17,12 @@ export class LiteratureIndexer {
 
   constructor(
     workspaceRoot: string,
-    embeddingService: EmbeddingService,
+    embeddingService: EmbeddingService | null = null,
     extractedTextPath: string = 'literature/ExtractedText'
   ) {
     this.embeddingStore = new EmbeddingStore(workspaceRoot);
     this.snippetExtractor = new SnippetExtractor();
-    this.embeddingService = embeddingService;
+    this.embeddingService = embeddingService as EmbeddingService; // Will be null if not provided
     this.extractedTextPath = path.join(workspaceRoot, extractedTextPath);
   }
 
@@ -130,6 +130,24 @@ export class LiteratureIndexer {
     
     const results = await this.embeddingStore.searchByEmbedding(queryEmbedding, limit);
     console.log('[LiteratureIndexer] Search returned', results.length, 'results');
+    
+    return results;
+  }
+
+  async searchSnippetsWithSimilarity(query: string, limit: number = 10): Promise<import('./EmbeddingStore.js').EmbeddedSnippetWithSimilarity[]> {
+    console.log('[LiteratureIndexer] searchSnippetsWithSimilarity called with query:', query.substring(0, 50));
+    
+    const queryEmbedding = await this.embeddingService.generateEmbedding(query);
+    
+    if (!queryEmbedding) {
+      console.warn('[LiteratureIndexer] Failed to embed query');
+      return [];
+    }
+
+    console.log('[LiteratureIndexer] Query embedding generated, searching store');
+    
+    const results = await this.embeddingStore.searchByEmbeddingWithSimilarity(queryEmbedding, limit);
+    console.log('[LiteratureIndexer] Search returned', results.length, 'results with similarity scores');
     
     return results;
   }
