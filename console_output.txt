@@ -1,31 +1,274 @@
-[Extension Host] [LiteratureIndexer] searchSnippetsWithSimilarity called with query: To date, mass spectrometry (MS) data remain inhere
-workbench.desktop.main.js:34   ERR [Extension Host] [ClaimReview] Failed to search for quote: TypeError: Cannot read properties of null (reading 'generateEmbedding')
-	at In.searchSnippetsWithSimilarity (/Users/phr23/.kiro/extensions/research-tools.research-assistant-0.1.0/dist/extension.js:3791:3324)
-	at e.verifyAllQuotes (/Users/phr23/.kiro/extensions/research-tools.research-assistant-0.1.0/dist/extension.js:4284:24186)
-	at async Promise.all (index 0)
-	at async e.loadAndDisplayClaim (/Users/phr23/.kiro/extensions/research-tools.research-assistant-0.1.0/dist/extension.js:4284:21735)
-	at async e._showInternal (/Users/phr23/.kiro/extensions/research-tools.research-assistant-0.1.0/dist/extension.js:4284:18057)
-	at async /Users/phr23/.kiro/extensions/research-tools.research-assistant-0.1.0/dist/extension.js:4284:17912
-	at async r8.benchmarkModeLoad (/Users/phr23/.kiro/extensions/research-tools.research-assistant-0.1.0/dist/extension.js:3798:10556)
-	at async e.show (/Users/phr23/.kiro/extensions/research-tools.research-assistant-0.1.0/dist/extension.js:4284:17854)
-	at async /Users/phr23/.kiro/extensions/research-tools.research-assistant-0.1.0/dist/extension.js:4412:639
-	at async Vb.h (file:///Users/phr23/Desktop/Kiro.app/Contents/Resources/app/out/vs/workbench/api/node/extensionHostProcess.js:112:41557)
-	at async Vb.h (file:///Users/phr23/Desktop/Kiro.app/Contents/Resources/app/out/vs/workbench/api/node/extensionHostProcess.js:112:41557)
-workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Failed to search for quote: TypeError: Cannot read properties of null (reading 'generateEmbedding')
-	at In.searchSnippetsWithSimilarity (/Users/phr23/.kiro/extensions/research-tools.research-assistant-0.1.0/dist/extension.js:3791:3324)
-	at e.verifyAllQuotes (/Users/phr23/.kiro/extensions/research-tools.research-assistant-0.1.0/dist/extension.js:4284:24186)
-	at async Promise.all (index 0)
-	at async e.loadAndDisplayClaim (/Users/phr23/.kiro/extensions/research-tools.research-assistant-0.1.0/dist/extension.js:4284:21735)
-	at async e._showInternal (/Users/phr23/.kiro/extensions/research-tools.research-assistant-0.1.0/dist/extension.js:4284:18057)
-	at async /Users/phr23/.kiro/extensions/research-tools.research-assistant-0.1.0/dist/extension.js:4284:17912
-	at async r8.benchmarkModeLoad (/Users/phr23/.kiro/extensions/research-tools.research-assistant-0.1.0/dist/extension.js:3798:10556)
-	at async e.show (/Users/phr23/.kiro/extensions/research-tools.research-assistant-0.1.0/dist/extension.js:4284:17854)
-	at async /Users/phr23/.kiro/extensions/research-tools.research-assistant-0.1.0/dist/extension.js:4412:639
-	at async Vb.h (file:///Users/phr23/Desktop/Kiro.app/Contents/Resources/app/out/vs/workbench/api/node/extensionHostProcess.js:112:41557)
-	at async Vb.h (file:///Users/phr23/Desktop/Kiro.app/Contents/Resources/app/out/vs/workbench/api/node/extensionHostProcess.js:112:41557)
-workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Quote verification complete
-workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Stored context: 
-{claimId: 'C_96'}
-claimReview.js:289 [ClaimReview] Verification progress: 1 / 1
-claimReview.js:899 [ClaimReview] Verification results updated: 1 results
+workbench.desktop.main.js:523 [Extension Host] High memory usage in claim review mode: 558MB / 620MB
+ubs @ workbench.desktop.main.js:523
+$logExtensionHostMessage @ workbench.desktop.main.js:523
+S @ workbench.desktop.main.js:11502
+Q @ workbench.desktop.main.js:11502
+M @ workbench.desktop.main.js:11502
+L @ workbench.desktop.main.js:11502
+(anonymous) @ workbench.desktop.main.js:11502
+C @ workbench.desktop.main.js:29
+fire @ workbench.desktop.main.js:29
+fire @ workbench.desktop.main.js:550
+l.onmessage @ workbench.desktop.main.js:11513
+workbench.desktop.main.js:34  INFO Extension host (LocalProcess pid: 32191) is responsive.
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Cancelling previous claim operations
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Initial claim loaded, starting background operations
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Claim has quotes - starting verification workflow
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Found cached validation result
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Manuscript usage locations loaded
+workbench.desktop.main.js:523 [Extension Host] [LiteratureIndexer] searchSnippetsWithSimilarity called with query: to date, mass spectrometry (ms) data remain inhere
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Orphan citations loaded: 0
+claimReview.js:1720 [ClaimReview] Operations cancelled: Switching to new claim
+workbench.desktop.main.js:523 [Extension Host] [LiteratureIndexer] Query embedding generated, searching store
+workbench.desktop.main.js:523 [Extension Host] [EmbeddingStore] Vectra search completed in 0.02ms, returning 0 results
+workbench.desktop.main.js:523 [Extension Host] [LiteratureIndexer] Search returned 0 results with similarity scores
+claimReview.js:184 [ClaimReview] Displaying claim: {id: 'C_96', text: 'Mass spectrometry-based proteomics data are inhere…o sample handling and instrumentation differences', category: 'Challenge', source: 'Välikangas2016', primaryQuote: {…}, …}
+claimReview.js:916 [ClaimReview] Validation result updated
+claimReview.js:927 [ClaimReview] Usage locations updated: 1 locations
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Cancelling previous claim operations
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Initial claim loaded, starting background operations
+claimReview.js:1720 [ClaimReview] Operations cancelled: Switching to new claim
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Claim has quotes - starting verification workflow
+claimReview.js:184 [ClaimReview] Displaying claim: {id: 'C_90', text: 'RMA cannot be used in clinical settings where samp…ust be processed individually or in small batches', category: 'Challenge', source: 'McCall2010', primaryQuote: {…}, …}
+claimReview.js:337 [ClaimReview] No cached validation - showing Validate button
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Manuscript usage locations loaded
+workbench.desktop.main.js:523 [Extension Host] [QuoteVerificationService] Cache hit for quote from McCall2010
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Orphan citations loaded: 0
+claimReview.js:927 [ClaimReview] Usage locations updated: 0 locations
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Primary quote verification result: {verified: true, similarity: 1}
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Running embedding search...
+workbench.desktop.main.js:523 [Extension Host] [LiteratureIndexer] searchSnippetsWithSimilarity called with query: Furthermore, for microarrays to be used in clinica
+workbench.desktop.main.js:523 [Extension Host] [LiteratureIndexer] Query embedding generated, searching store
+workbench.desktop.main.js:523 [Extension Host] [EmbeddingStore] Vectra search completed in 0.02ms, returning 0 results
+workbench.desktop.main.js:523 [Extension Host] [LiteratureIndexer] Search returned 0 results with similarity scores
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Running unified quote search...
+workbench.desktop.main.js:523 [Extension Host] [LiteratureIndexer] searchSnippetsWithSimilarity called with query: furthermore, for microarrays to be used in clinica
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Cancelling previous claim operations
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Initial claim loaded, starting background operations
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Claim has quotes - starting verification workflow
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Found cached validation result
+claimReview.js:1720 [ClaimReview] Operations cancelled: Switching to new claim
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Manuscript usage locations loaded
+workbench.desktop.main.js:523 [Extension Host] [LiteratureIndexer] searchSnippetsWithSimilarity called with query: to date, mass spectrometry (ms) data remain inhere
+claimReview.js:184 [ClaimReview] Displaying claim: {id: 'C_96', text: 'Mass spectrometry-based proteomics data are inhere…o sample handling and instrumentation differences', category: 'Challenge', source: 'Välikangas2016', primaryQuote: {…}, …}
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Orphan citations loaded: 0
+workbench.desktop.main.js:523 [Extension Host] [LiteratureIndexer] Query embedding generated, searching store
+workbench.desktop.main.js:523 [Extension Host] [EmbeddingStore] Vectra search completed in 0.02ms, returning 0 results
+workbench.desktop.main.js:523 [Extension Host] [LiteratureIndexer] Search returned 0 results with similarity scores
+claimReview.js:916 [ClaimReview] Validation result updated
+claimReview.js:927 [ClaimReview] Usage locations updated: 1 locations
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Cancelling previous claim operations
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Initial claim loaded, starting background operations
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Claim has quotes - starting verification workflow
+claimReview.js:1720 [ClaimReview] Operations cancelled: Switching to new claim
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Manuscript usage locations loaded
+claimReview.js:184 [ClaimReview] Displaying claim: {id: 'C_107', text: 'Gene expression classifiers must maintain accuracy… in different hospitals using different equipment', category: 'Challenge', source: 'Talhouk2016', primaryQuote: {…}, …}
+workbench.desktop.main.js:523 [Extension Host] [LiteratureIndexer] searchSnippetsWithSimilarity called with query: a major weakness in many high-throughput genomic s
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Orphan citations loaded: 0
+workbench.desktop.main.js:523 [Extension Host] [LiteratureIndexer] Query embedding generated, searching store
+workbench.desktop.main.js:523 [Extension Host] [EmbeddingStore] Vectra search completed in 0.01ms, returning 0 results
+workbench.desktop.main.js:523 [Extension Host] [LiteratureIndexer] Search returned 0 results with similarity scores
+claimReview.js:337 [ClaimReview] No cached validation - showing Validate button
+claimReview.js:927 [ClaimReview] Usage locations updated: 0 locations
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Cancelling previous claim operations
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Initial claim loaded, starting background operations
+claimReview.js:1720 [ClaimReview] Operations cancelled: Switching to new claim
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Claim has quotes - starting verification workflow
+claimReview.js:184 [ClaimReview] Displaying claim: {id: 'C_90', text: 'RMA cannot be used in clinical settings where samp…ust be processed individually or in small batches', category: 'Challenge', source: 'McCall2010', primaryQuote: {…}, …}
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Manuscript usage locations loaded
+workbench.desktop.main.js:523 [Extension Host] [QuoteVerificationService] Cache hit for quote from McCall2010
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Orphan citations loaded: 0
+claimReview.js:337 [ClaimReview] No cached validation - showing Validate button
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Primary quote verification result: {verified: true, similarity: 1}
+claimReview.js:927 [ClaimReview] Usage locations updated: 0 locations
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Running embedding search...
+workbench.desktop.main.js:523 [Extension Host] [LiteratureIndexer] searchSnippetsWithSimilarity called with query: Furthermore, for microarrays to be used in clinica
+workbench.desktop.main.js:523 [Extension Host] [LiteratureIndexer] Query embedding generated, searching store
+workbench.desktop.main.js:523 [Extension Host] [EmbeddingStore] Vectra search completed in 0.01ms, returning 0 results
+workbench.desktop.main.js:523 [Extension Host] [LiteratureIndexer] Search returned 0 results with similarity scores
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Running unified quote search...
+workbench.desktop.main.js:523 [Extension Host] [LiteratureIndexer] searchSnippetsWithSimilarity called with query: furthermore, for microarrays to be used in clinica
+workbench.desktop.main.js:523 [Extension Host] [NgramIndex] Query: 249 total 6-grams, 126 rare
+workbench.desktop.main.js:523 [Extension Host] [NgramIndex] Found 10 candidates (required 37+ matches, 30%+ containment)
+workbench.desktop.main.js:523 [Extension Host] [UnifiedQuoteSearch] Trigram pre-filter: 10 candidate docs (vs scanning all files)
+workbench.desktop.main.js:523 [Extension Host] [UnifiedQuoteSearch] Found exact match via trigram, stopping early
+workbench.desktop.main.js:523 [Extension Host] [QuoteVerificationCache] Evicted LRU entry (access count: 1)
+workbench.desktop.main.js:523 [Extension Host] [QuoteVerificationService] Cached verification result for Välikangas2016 (similarity: 1.00)
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Quote verification cancelled
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Quote verification cancelled
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Stored context: {claimId: 'C_96'}
+workbench.desktop.main.js:523 [Extension Host] [NgramIndex] Query: 249 total 6-grams, 126 rare
+workbench.desktop.main.js:523 [Extension Host] [NgramIndex] Found 10 candidates (required 37+ matches, 30%+ containment)
+workbench.desktop.main.js:523 [Extension Host] [UnifiedQuoteSearch] Trigram pre-filter: 10 candidate docs (vs scanning all files)
+workbench.desktop.main.js:523 [Extension Host] [UnifiedQuoteSearch] Found exact match via trigram, stopping early
+workbench.desktop.main.js:523 [Extension Host] [QuoteVerificationService] Cached verification result for Välikangas2016 (similarity: 1.00)
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Quote verification cancelled
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Quote verification cancelled
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Stored context: {claimId: 'C_96'}
+workbench.desktop.main.js:523 [Extension Host] [NgramIndex] Query: 153 total 6-grams, 82 rare
+workbench.desktop.main.js:523 [Extension Host] [NgramIndex] Found 16 candidates (required 24+ matches, 30%+ containment)
+workbench.desktop.main.js:523 [Extension Host] [UnifiedQuoteSearch] Trigram pre-filter: 16 candidate docs (vs scanning all files)
+workbench.desktop.main.js:523 [Extension Host] [UnifiedQuoteSearch] Found exact match via trigram, stopping early
+workbench.desktop.main.js:523 [Extension Host] [QuoteVerificationCache] Evicted LRU entry (access count: 1)
+workbench.desktop.main.js:523 [Extension Host] [QuoteVerificationService] Cached verification result for Talhouk2016 (similarity: 1.00)
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Quote verification cancelled
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Quote verification cancelled
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Stored context: {claimId: 'C_107'}
+workbench.desktop.main.js:523 [Extension Host] [QuoteVerificationCache] Evicted LRU entry (access count: 1)
+workbench.desktop.main.js:523 [Extension Host] [QuoteVerificationService] Cached verification result for Buus2021 (similarity: 0.99)
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Quote verification cancelled
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Quote verification cancelled
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Stored context: {claimId: 'C_107'}
+workbench.desktop.main.js:523 [Extension Host] [LiteratureIndexer] Query embedding generated, searching store
+workbench.desktop.main.js:523 [Extension Host] [EmbeddingStore] Vectra search completed in 0.02ms, returning 0 results
+workbench.desktop.main.js:523 [Extension Host] [LiteratureIndexer] Search returned 0 results with similarity scores
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Quote verification cancelled
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Quote verification cancelled
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Stored context: {claimId: 'C_90'}
+workbench.desktop.main.js:523 [Extension Host] [LiteratureIndexer] Query embedding generated, searching store
+workbench.desktop.main.js:523 [Extension Host] [EmbeddingStore] Vectra search completed in 0.02ms, returning 0 results
+workbench.desktop.main.js:523 [Extension Host] [LiteratureIndexer] Search returned 0 results with similarity scores
+workbench.desktop.main.js:523 [Extension Host] [NgramIndex] Query: 112 total 6-grams, 45 rare
+workbench.desktop.main.js:523 [Extension Host] [NgramIndex] Found 20 candidates (required 13+ matches, 30%+ containment)
+workbench.desktop.main.js:523 [Extension Host] [UnifiedQuoteSearch] Trigram pre-filter: 20 candidate docs (vs scanning all files)
+workbench.desktop.main.js:523 [Extension Host] [UnifiedQuoteSearch] Found exact match via trigram, stopping early
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Fuzzy search found 1 matches, top similarity: 1.000 in McCall et al. - 2010 - Frozen robust multiarray analysis (fRMA).txt
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Using fuzzy results (only match)
+workbench.desktop.main.js:523 [Extension Host] [PersistenceUtils] ✓ write applications.md (2ms)
+workbench.desktop.main.js:523 [Extension Host] [PersistenceUtils] ✓ write challenges.md (2ms)
+workbench.desktop.main.js:523 [Extension Host] [PersistenceUtils] ✓ write methods_batch_correction.md (2ms)
+workbench.desktop.main.js:523 [Extension Host] [PersistenceUtils] ✓ write results.md (1ms)
+workbench.desktop.main.js:523 [Extension Host] [PersistenceUtils] ✓ write data_sources.md (1ms)
+workbench.desktop.main.js:523 [Extension Host] [PersistenceUtils] ✓ write data_trends.md (1ms)
+workbench.desktop.main.js:523 [Extension Host] [PersistenceUtils] ✓ write impacts.md (1ms)
+workbench.desktop.main.js:523 [Extension Host] [PersistenceUtils] ✓ write phenomena.md (1ms)
+workbench.desktop.main.js:523 [Extension Host] [PersistenceUtils] ✓ write uncategorized.md (1ms)
+workbench.desktop.main.js:523 [Extension Host] Persisted 168 claims across 9 file(s)
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Auto-updated primary quote metadata, source, and verification: {metadata: {…}, source: 'McCall2010', similarity: '1.000', verified: true}
+claimReview.js:289 [ClaimReview] Verification progress: 1 / 2
+workbench.desktop.main.js:523 [Extension Host] [LiteratureIndexer] searchSnippetsWithSimilarity called with query: the dependence on multiple arrays has 2 drawbacks:
 workbench.desktop.main.js:523 [Extension Host] [QuoteVerificationCache] Saved 200 entries to /Users/phr23/Writing/Chapter/.cache/quote-verification.json
+workbench.desktop.main.js:523 [Extension Host] [LiteratureIndexer] Query embedding generated, searching store
+workbench.desktop.main.js:523 [Extension Host] [EmbeddingStore] Vectra search completed in 0.01ms, returning 0 results
+workbench.desktop.main.js:523 [Extension Host] [LiteratureIndexer] Search returned 0 results with similarity scores
+workbench.desktop.main.js:523 [Extension Host] [NgramIndex] Query: 210 total 6-grams, 110 rare
+workbench.desktop.main.js:523 [Extension Host] [NgramIndex] Found 12 candidates (required 33+ matches, 30%+ containment)
+workbench.desktop.main.js:523 [Extension Host] [UnifiedQuoteSearch] Trigram pre-filter: 12 candidate docs (vs scanning all files)
+workbench.desktop.main.js:34  INFO Extension host (LocalProcess pid: 32191) is unresponsive.
+workbench.desktop.main.js:11513 Extension Host
+workbench.desktop.main.js:11513 Debugger attached.
+workbench.desktop.main.js:34  INFO UNRESPONSIVE extension host: starting to profile NOW
+workbench.desktop.main.js:34  WARN UNRESPONSIVE extension host: 'research-tools.research-assistant' took 99.91251646313818% of 4997.708ms, saved PROFILE here: 'file:///var/folders/2x/pxsr_9190jq1x9nh0r2xj_qm0000gr/T/exthost-d03c51.cpuprofile'
+warn @ workbench.desktop.main.js:34
+warn @ workbench.desktop.main.js:34
+warn @ workbench.desktop.main.js:11483
+r @ workbench.desktop.main.js:11530
+await in r
+q @ workbench.desktop.main.js:11530
+await in q
+C @ workbench.desktop.main.js:29
+fire @ workbench.desktop.main.js:29
+(anonymous) @ workbench.desktop.main.js:11509
+C @ workbench.desktop.main.js:29
+fire @ workbench.desktop.main.js:29
+(anonymous) @ workbench.desktop.main.js:11502
+C @ workbench.desktop.main.js:29
+fire @ workbench.desktop.main.js:29
+I @ workbench.desktop.main.js:11502
+H @ workbench.desktop.main.js:11502
+(anonymous) @ workbench.desktop.main.js:11502
+h @ workbench.desktop.main.js:30
+g @ workbench.desktop.main.js:30
+setTimeout
+e.setTimeout @ workbench.desktop.main.js:722
+schedule @ workbench.desktop.main.js:30
+H @ workbench.desktop.main.js:11502
+(anonymous) @ workbench.desktop.main.js:11502
+h @ workbench.desktop.main.js:30
+g @ workbench.desktop.main.js:30
+setTimeout
+e.setTimeout @ workbench.desktop.main.js:722
+schedule @ workbench.desktop.main.js:30
+H @ workbench.desktop.main.js:11502
+(anonymous) @ workbench.desktop.main.js:11502
+h @ workbench.desktop.main.js:30
+g @ workbench.desktop.main.js:30
+setTimeout
+e.setTimeout @ workbench.desktop.main.js:722
+schedule @ workbench.desktop.main.js:30
+F @ workbench.desktop.main.js:11502
+U @ workbench.desktop.main.js:11502
+n.<computed>.o.charCodeAt.n.<computed> @ workbench.desktop.main.js:11502
+(anonymous) @ workbench.desktop.main.js:506
+C @ workbench.desktop.main.js:29
+fire @ workbench.desktop.main.js:29
+(anonymous) @ workbench.desktop.main.js:557
+C @ workbench.desktop.main.js:29
+fire @ workbench.desktop.main.js:29
+(anonymous) @ workbench.desktop.main.js:11682
+(anonymous) @ workbench.desktop.main.js:11682
+H.onmessage @ workbench.desktop.main.js:11682
+workbench.desktop.main.js:34   ERR Error: Aborted onWillSaveTextDocument-event after 1750ms
+    at workbench.desktop.main.js:555:10248
+error @ workbench.desktop.main.js:34
+error @ workbench.desktop.main.js:34
+error @ workbench.desktop.main.js:11483
+(anonymous) @ workbench.desktop.main.js:11484
+await in (anonymous)
+o @ workbench.desktop.main.js:1241
+(anonymous) @ workbench.desktop.main.js:1241
+w @ workbench.desktop.main.js:1241
+withProgress @ workbench.desktop.main.js:1241
+participate @ workbench.desktop.main.js:11484
+runSaveParticipants @ workbench.desktop.main.js:11484
+(anonymous) @ workbench.desktop.main.js:1259
+Ob @ workbench.desktop.main.js:1259
+(anonymous) @ workbench.desktop.main.js:1259
+o @ workbench.desktop.main.js:1241
+(anonymous) @ workbench.desktop.main.js:1241
+w @ workbench.desktop.main.js:1241
+withProgress @ workbench.desktop.main.js:1241
+Nb @ workbench.desktop.main.js:1259
+save @ workbench.desktop.main.js:1259
+(anonymous) @ workbench.desktop.main.js:607
+setTimeout
+e.setTimeout @ workbench.desktop.main.js:722
+O @ workbench.desktop.main.js:607
+N @ workbench.desktop.main.js:607
+(anonymous) @ workbench.desktop.main.js:607
+C @ workbench.desktop.main.js:29
+D @ workbench.desktop.main.js:29
+fire @ workbench.desktop.main.js:29
+(anonymous) @ workbench.desktop.main.js:525
+C @ workbench.desktop.main.js:29
+fire @ workbench.desktop.main.js:29
+Jb @ workbench.desktop.main.js:1259
+(anonymous) @ workbench.desktop.main.js:1259
+(anonymous) @ workbench.desktop.main.js:267
+C @ workbench.desktop.main.js:29
+D @ workbench.desktop.main.js:29
+fire @ workbench.desktop.main.js:29
+endDeferredEmit @ workbench.desktop.main.js:276
+pushEditOperations @ workbench.desktop.main.js:274
+c @ workbench.desktop.main.js:277
+executeCommands @ workbench.desktop.main.js:277
+G @ workbench.desktop.main.js:276
+(anonymous) @ workbench.desktop.main.js:277
+L @ workbench.desktop.main.js:277
+paste @ workbench.desktop.main.js:277
+(anonymous) @ workbench.desktop.main.js:278
+(anonymous) @ workbench.desktop.main.js:278
+batchChanges @ workbench.desktop.main.js:280
+X @ workbench.desktop.main.js:278
+W @ workbench.desktop.main.js:278
+paste @ workbench.desktop.main.js:278
+$b @ workbench.desktop.main.js:280
+trigger @ workbench.desktop.main.js:280
+N @ workbench.desktop.main.js:416
+await in N
+(anonymous) @ workbench.desktop.main.js:416
+await in (anonymous)
+An @ workbench.desktop.main.js:30
+G @ workbench.desktop.main.js:416
+D @ workbench.desktop.main.js:416
+(anonymous) @ workbench.desktop.main.js:416

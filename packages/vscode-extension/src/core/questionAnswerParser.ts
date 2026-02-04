@@ -301,31 +301,20 @@ export class QuestionAnswerParser {
    * Format answer text as callout lines (prefixed with >)
    * Converts legacy <!-- Source: --> to [source:: ] inline fields
    * Preserves author-year citations in [source:: C_XX(Author Year, ...)] format
+   * 
+   * Keeps the answer as a single block without sentence splitting to preserve
+   * natural formatting and spacing.
    */
   private formatAnswerAsCallout(answer: string): string {
     // Convert legacy Source comments to inline fields
     let converted = answer.replace(/<!--\s*Source:\s*([^-]+?)-->/g, '[source:: $1]');
     
-    // Split into reasonable line lengths for readability
-    // Keep sentences together when possible
-    const sentences = converted.split(/(?<=[.!?])\s+/);
-    const lines: string[] = [];
-    let currentLine = '';
+    // Split into lines and prefix each with >
+    // This preserves the original line breaks from the answer
+    const lines = converted.split('\n');
+    const formattedLines = lines.map(line => '> ' + line);
     
-    for (const sentence of sentences) {
-      if (currentLine.length + sentence.length > 100 && currentLine.length > 0) {
-        lines.push('> ' + currentLine.trim());
-        currentLine = sentence;
-      } else {
-        currentLine += (currentLine ? ' ' : '') + sentence;
-      }
-    }
-    
-    if (currentLine.trim()) {
-      lines.push('> ' + currentLine.trim());
-    }
-    
-    return lines.join('\n');
+    return formattedLines.join('\n');
   }
 
   /**

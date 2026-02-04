@@ -286,6 +286,10 @@ export class ClaimReviewProvider {
         const verificationPromise = this.verifyAllQuotes(claim, signal).then(results => {
           if (signal.aborted) return [];
           console.log('[ClaimReview] Quote verification complete');
+          
+          // Fire verification events to update tree view
+          this.fireVerificationEvents(claim, results);
+          
           this.panel?.webview.postMessage({
             type: 'updateVerificationResults',
             verificationResults: results
@@ -472,52 +476,22 @@ export class ClaimReviewProvider {
             similarity: primaryResult.similarity
           });
 
-          // Search to get/update metadata - optimize by checking existing source first
+          // Search to get/update metadata using unified quote search (faster, already optimized)
           let alternativeSources: any[] = [];
           let searchStatus: 'not_searched' | 'searching' | 'found' | 'not_found' = 'searching';
           
           try {
             checkCancelled();
             
-            // ALWAYS run both embedding and fuzzy searches to find the best match
-            // This ensures we find exact matches even when embeddings return semantic matches from wrong papers
-            
-            // Run embedding search
-            console.log('[ClaimReview] Running embedding search...');
-            const snippets = await this.literatureIndexer.searchSnippetsWithSimilarity(quoteText, 5);
-            
-            checkCancelled();
-            
-            let embeddingResults: any[] = [];
-            if (snippets && snippets.length > 0) {
-              embeddingResults = snippets
-                .filter(snippet => snippet.similarity >= 0.7)
-                .map(snippet => ({
-                  source: snippet.fileName.replace(/\.txt$/, '').replace(/ - /g, ' '),
-                  similarity: snippet.similarity,
-                  matchedText: snippet.text,
-                  context: `Lines ${snippet.startLine}-${snippet.endLine}`,
-                  metadata: {
-                    sourceFile: snippet.fileName,
-                    startLine: snippet.startLine,
-                    endLine: snippet.endLine
-                  }
-                }));
-              console.log('[ClaimReview] Embedding search found', embeddingResults.length, 'matches, top similarity:', 
-                embeddingResults[0]?.similarity.toFixed(3), 'in', embeddingResults[0]?.metadata.sourceFile);
-            }
-            
-            checkCancelled();
-            
-            // ALWAYS run unified quote search - combines embedding and fuzzy matching
+            // Use unified quote search - combines n-gram pre-filtering + fuzzy matching
+            // Much faster than running embedding search separately
             console.log('[ClaimReview] Running unified quote search...');
             const searchResults = await this.unifiedQuoteSearch.search(quoteText, 5, signal);
             
             checkCancelled();
             
-            let fuzzyAlternatives: any[] = [];
             if (searchResults.length > 0) {
-              fuzzyAlternatives = searchResults.map(result => ({
+              alternativeSources = searchResults.map(result => ({
                 source: result.sourceFile.replace(/\.txt$/, '').replace(/ - /g, ' '),
                 similarity: result.similarity,
                 matchedText: result.matchedText,
@@ -528,27 +502,8 @@ export class ClaimReviewProvider {
                   endLine: result.endLine
                 }
               }));
-              console.log('[ClaimReview] Fuzzy search found', fuzzyAlternatives.length, 'matches, top similarity:', 
-                fuzzyAlternatives[0]?.similarity.toFixed(3), 'in', fuzzyAlternatives[0]?.metadata.sourceFile);
-            }
-            
-            // Compare results and use whichever has higher similarity
-            if (embeddingResults.length > 0 && fuzzyAlternatives.length > 0) {
-              if (fuzzyAlternatives[0].similarity > embeddingResults[0].similarity) {
-                console.log('[ClaimReview] Using fuzzy results (better match:', 
-                  fuzzyAlternatives[0].similarity.toFixed(3), 'vs', embeddingResults[0].similarity.toFixed(3), ')');
-                alternativeSources = fuzzyAlternatives;
-              } else {
-                console.log('[ClaimReview] Using embedding results (better match:', 
-                  embeddingResults[0].similarity.toFixed(3), 'vs', fuzzyAlternatives[0].similarity.toFixed(3), ')');
-                alternativeSources = embeddingResults;
-              }
-            } else if (fuzzyAlternatives.length > 0) {
-              console.log('[ClaimReview] Using fuzzy results (only match)');
-              alternativeSources = fuzzyAlternatives;
-            } else if (embeddingResults.length > 0) {
-              console.log('[ClaimReview] Using embedding results (only match)');
-              alternativeSources = embeddingResults;
+              console.log('[ClaimReview] Quote search found', alternativeSources.length, 'matches, top similarity:', 
+                alternativeSources[0]?.similarity.toFixed(3), 'in', alternativeSources[0]?.metadata.sourceFile);
             }
             
             checkCancelled();
@@ -631,47 +586,20 @@ export class ClaimReviewProvider {
 
           checkCancelled();
 
-          // Search to get/update metadata - optimize by checking existing source first
+          // Search to get/update metadata using unified quote search (faster, already optimized)
           let alternativeSources: any[] = [];
           let searchStatus: 'not_searched' | 'searching' | 'found' | 'not_found' = 'searching';
           
           try {
             checkCancelled();
             
-            // ALWAYS run both embedding and fuzzy searches to find the best match
-            
-            // Run embedding search
-            const snippets = await this.literatureIndexer.searchSnippetsWithSimilarity(quoteText, 5);
-            
-            checkCancelled();
-            
-            let embeddingResults: any[] = [];
-            if (snippets && snippets.length > 0) {
-              embeddingResults = snippets
-                .filter(snippet => snippet.similarity >= 0.7)
-                .map(snippet => ({
-                  source: snippet.fileName.replace(/\.txt$/, '').replace(/ - /g, ' '),
-                  similarity: snippet.similarity,
-                  matchedText: snippet.text,
-                  context: `Lines ${snippet.startLine}-${snippet.endLine}`,
-                  metadata: {
-                    sourceFile: snippet.fileName,
-                    startLine: snippet.startLine,
-                    endLine: snippet.endLine
-                  }
-                }));
-            }
-            
-            checkCancelled();
-            
-            // ALWAYS run unified quote search
+            // Use unified quote search - combines n-gram pre-filtering + fuzzy matching
             const searchResults = await this.unifiedQuoteSearch.search(quoteText, 5, signal);
             
             checkCancelled();
             
-            let fuzzyAlternatives: any[] = [];
             if (searchResults.length > 0) {
-              fuzzyAlternatives = searchResults.map(matchResult => ({
+              alternativeSources = searchResults.map(matchResult => ({
                 source: matchResult.sourceFile.replace(/\.txt$/, '').replace(/ - /g, ' '),
                 similarity: matchResult.similarity,
                 matchedText: matchResult.matchedText,
@@ -682,17 +610,6 @@ export class ClaimReviewProvider {
                   endLine: matchResult.endLine
                 }
               }));
-            }
-            
-            // Compare and use best match
-            if (embeddingResults.length > 0 && fuzzyAlternatives.length > 0) {
-              alternativeSources = fuzzyAlternatives[0].similarity > embeddingResults[0].similarity 
-                ? fuzzyAlternatives 
-                : embeddingResults;
-            } else if (fuzzyAlternatives.length > 0) {
-              alternativeSources = fuzzyAlternatives;
-            } else if (embeddingResults.length > 0) {
-              alternativeSources = embeddingResults;
             }
             
             checkCancelled();
@@ -763,6 +680,19 @@ export class ClaimReviewProvider {
       }
       console.error('Failed to verify quotes:', error);
       return [];
+    }
+  }
+
+  /**
+   * Fire verification events to update tree view
+   * Called after quotes are verified to propagate status to Claims Tree
+   */
+  private fireVerificationEvents(claim: any, results: any[]): void {
+    // Fire event for the claim itself if all quotes are verified
+    const allVerified = results.every(r => r.verified);
+    if (allVerified && results.length > 0) {
+      console.log('[ClaimReview] All quotes verified for', claim.id, '- firing verification event');
+      this.extensionState.autoQuoteVerifier.fireVerificationEvent(claim.id, true);
     }
   }
 

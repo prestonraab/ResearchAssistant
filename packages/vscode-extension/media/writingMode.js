@@ -389,6 +389,7 @@ function renderInsertZone(afterIndex) {
       </div>
       <div class="insert-zone-center">
         <button class="insert-zone-btn insert-pair-btn" data-after-index="${afterIndex}">+ Question</button>
+        <button class="insert-zone-btn insert-break-btn" data-after-index="${afterIndex}">+ Break</button>
       </div>
       <div class="insert-zone-right"></div>
     </div>
@@ -478,7 +479,6 @@ function renderPair(pair) {
                 <option value="PARTIAL" ${status === 'PARTIAL' ? 'selected' : ''}>Partial</option>
                 <option value="ANSWERED" ${status === 'ANSWERED' ? 'selected' : ''}>Answered</option>
               </select>
-              <button class="paragraph-break-btn" data-pair-id="${pair.id}" title="Insert paragraph break after this item">¶</button>
               <button class="citations-toggle-btn" data-pair-id="${pair.id}" title="Toggle citations">📌${citationBadge}</button>
               <button class="delete-btn" data-pair-id="${pair.id}" title="Delete">🗑️</button>
             </div>
@@ -748,19 +748,6 @@ function attachPairListeners() {
     });
   });
 
-  // Paragraph break buttons
-  document.querySelectorAll('.paragraph-break-btn').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      const pairId = e.currentTarget.dataset.pairId;
-      console.log('[WritingMode] Paragraph break button clicked for pair:', pairId);
-      if (pairId) {
-        insertParagraphBreak(pairId);
-      }
-    });
-  });
-
   // Citations toggle buttons
   document.querySelectorAll('.citations-toggle-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
@@ -817,6 +804,13 @@ function attachPairListeners() {
     btn.addEventListener('click', (e) => {
       const afterIndex = parseInt(e.target.dataset.afterIndex);
       insertSectionAfter(afterIndex);
+    });
+  });
+
+  document.querySelectorAll('.insert-break-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const afterIndex = parseInt(e.target.dataset.afterIndex);
+      insertParagraphBreakAfter(afterIndex);
     });
   });
 
@@ -1152,7 +1146,40 @@ function deletePair(pairId) {
 }
 
 /**
- * Insert paragraph break after a pair
+ * Insert paragraph break after a specific index
+ */
+function insertParagraphBreakAfter(afterIndex) {
+  saveStateToUndo();
+  
+  // Create a break marker pair
+  const breakMarker = {
+    id: 'break_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
+    question: '',
+    answer: '---',
+    displayAnswer: '---',
+    status: 'BREAK',
+    claims: [],
+    linkedSources: [],
+    isBreakMarker: true
+  };
+  
+  // Insert at the correct position
+  state.pairs.splice(afterIndex + 1, 0, breakMarker);
+  
+  // Update positions
+  state.pairs.forEach((pair, index) => {
+    pair.position = index;
+  });
+  
+  renderPairs();
+  state.isDirty = true;
+  scheduleAutoSave();
+  
+  showTemporaryNotification('Paragraph break inserted', 'info');
+}
+
+/**
+ * Insert paragraph break after a pair (legacy function, kept for compatibility)
  * Adds a '---' marker that will be converted to a paragraph break on export
  */
 function insertParagraphBreak(pairId) {
@@ -1168,26 +1195,7 @@ function insertParagraphBreak(pairId) {
     return;
   }
   
-  // Create a break marker pair
-  const breakMarker = {
-    id: 'break_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
-    question: '',
-    answer: '---',
-    displayAnswer: '---',
-    status: 'BREAK',
-    claims: [],
-    linkedSources: [],
-    isBreakMarker: true
-  };
-  
-  // Insert after the current pair
-  state.pairs.splice(pairIndex + 1, 0, breakMarker);
-  
-  renderPairs();
-  state.isDirty = true;
-  scheduleAutoSave();
-  
-  showTemporaryNotification('Paragraph break inserted', 'info');
+  insertParagraphBreakAfter(pairIndex);
 }
 
 /**
@@ -1422,7 +1430,8 @@ function closeFindBar() {
  * Perform search and find all matches
  */
 function performSearch(searchTerm) {
-  state.findState.searchTerm = searchTerm.toLowerCase();
+  const lowerSearchTerm = searchTerm.toLowerCase();
+  state.findState.searchTerm = lowerSearchTerm;
   state.findState.matches = [];
   state.findState.currentMatchIndex = 0;
   
@@ -1436,17 +1445,17 @@ function performSearch(searchTerm) {
   
   // Search in questions
   document.querySelectorAll('.question-text').forEach(element => {
-    findMatchesInElement(element, searchTerm);
+    findMatchesInElement(element, lowerSearchTerm);
   });
   
   // Search in answers
   document.querySelectorAll('.answer-editor').forEach(element => {
-    findMatchesInElement(element, searchTerm);
+    findMatchesInElement(element, lowerSearchTerm);
   });
   
   // Search in section titles
   document.querySelectorAll('.section-title').forEach(element => {
-    findMatchesInElement(element, searchTerm);
+    findMatchesInElement(element, lowerSearchTerm);
   });
   
   // Highlight first match if any
@@ -1488,33 +1497,69 @@ function findMatchesInElement(element, searchTerm) {
 function highlightMatch(matchIndex) {
   if (matchIndex < 0 || matchIndex >= state.findState.matches.length) return;
   
-  // Remove previous highlights
-  document.querySelectorAll('.find-match').forEach(el => {
-    el.classList.remove('current');
-  });
-  
   const match = state.findState.matches[matchIndex];
   const element = match.element;
   
-  // For textarea elements, we can't use DOM manipulation, so just scroll
+  // Update current match index
+  state.findState.currentMatchIndex = matchIndex;
+  
+  // For textarea elements, select the text
   if (element.tagName === 'TEXTAREA') {
     element.focus();
     element.setSelectionRange(match.startIndex, match.endIndex);
     return;
   }
   
-  // For contenteditable elements, wrap the match in a span
-  const text = element.textContent;
-  const before = text.substring(0, match.startIndex);
-  const matchText = text.substring(match.startIndex, match.endIndex);
-  const after = text.substring(match.endIndex);
+  // For contenteditable elements, just focus and scroll into view
+  // Don't modify the DOM as it breaks subsequent searches
+  element.focus();
   
-  element.innerHTML = 
-    escapeHtml(before) + 
-    `<span class="find-match current">${escapeHtml(matchText)}</span>` + 
-    escapeHtml(after);
+  // Try to scroll the match into view
+  const range = document.createRange();
+  const sel = window.getSelection();
   
-  state.findState.currentMatchIndex = matchIndex;
+  try {
+    // Get the text node and position
+    let charCount = 0;
+    let nodeStack = [element];
+    let node, foundStart = false, foundEnd = false;
+    let startNode, startOffset, endNode, endOffset;
+    
+    while (!foundEnd && (node = nodeStack.pop())) {
+      if (node.nodeType === 3) { // Text node
+        const nextCharCount = charCount + node.length;
+        
+        if (!foundStart && match.startIndex < nextCharCount) {
+          foundStart = true;
+          startNode = node;
+          startOffset = match.startIndex - charCount;
+        }
+        
+        if (foundStart && match.endIndex <= nextCharCount) {
+          foundEnd = true;
+          endNode = node;
+          endOffset = match.endIndex - charCount;
+        }
+        
+        charCount = nextCharCount;
+      } else {
+        let i = node.childNodes.length;
+        while (i--) {
+          nodeStack.push(node.childNodes[i]);
+        }
+      }
+    }
+    
+    if (foundStart && foundEnd) {
+      range.setStart(startNode, startOffset);
+      range.setEnd(endNode, endOffset);
+      sel.removeAllRanges();
+      sel.addRange(range);
+    }
+  } catch (e) {
+    // Silently fail if we can't set selection
+    console.debug('[WritingMode] Could not set selection for match:', e);
+  }
 }
 
 /**
@@ -1669,8 +1714,8 @@ function handleOrphanCitationsUpdate(message) {
 
   // message.orphanCitations is a map of pairId -> { orphan: [], matched: [] }
   for (const [pairId, citationData] of Object.entries(message.orphanCitations)) {
-    const orphanList = (citationData as any).orphan || [];
-    const matchedList = (citationData as any).matched || [];
+    const orphanList = citationData.orphan || [];
+    const matchedList = citationData.matched || [];
     updateCitationHighlighting(pairId, orphanList, matchedList);
   }
 }

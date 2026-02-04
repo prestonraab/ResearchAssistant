@@ -94,8 +94,8 @@ export class DocumentBuilder {
                 
                 for (let i = 0; i < sentences.length; i++) {
                   const sentence = sentences[i];
-                  // Add text run for the sentence with space after (except for last sentence)
-                  const sentenceText = i < sentences.length - 1 ? sentence.text + ' ' : sentence.text;
+                  // Use the sentence text as-is (no extra spaces added)
+                  const sentenceText = sentence.text;
                   
                   // Parse citations from the sentence text
                   const sentenceRuns = this.parseCitationsFromText(sentenceText);
@@ -145,8 +145,8 @@ export class DocumentBuilder {
               
               for (let i = 0; i < sentences.length; i++) {
                 const sentence = sentences[i];
-                // Add text run for the sentence with space after (except for last sentence)
-                const sentenceText = i < sentences.length - 1 ? sentence.text + ' ' : sentence.text;
+                // Use the sentence text as-is (no extra spaces added)
+                const sentenceText = sentence.text;
                 
                 // Parse citations from the sentence text
                 const sentenceRuns = this.parseCitationsFromText(sentenceText);
@@ -184,8 +184,8 @@ export class DocumentBuilder {
             // Process each sentence
             for (let i = 0; i < sentences.length; i++) {
               const sentence = sentences[i];
-              // Add text run for the sentence with space after (except for last sentence)
-              const sentenceText = i < sentences.length - 1 ? sentence.text + ' ' : sentence.text;
+              // Use the sentence text as-is (no extra spaces added between sentences)
+              const sentenceText = sentence.text;
               
               // Parse citations from the sentence text
               const sentenceRuns = this.parseCitationsFromText(sentenceText);
@@ -300,6 +300,9 @@ export class DocumentBuilder {
    * Parse paragraph into sentences using the SentenceParser
    * This generates proper sentence IDs that match the citation system
    * Also extracts images and tables from markdown
+   * 
+   * For Q&A content (callout format), we treat the entire answer block as a single sentence
+   * to avoid unnecessary sentence splitting and preserve the original formatting.
    */
   private parseSentencesWithParser(paragraph: string, manuscriptId: string): Sentence[] {
     if (!this.sentenceParser) {
@@ -307,7 +310,31 @@ export class DocumentBuilder {
       return ManuscriptParser.parseSentencesSimple(paragraph);
     }
     
-    return this.sentenceParser.parseSentences(paragraph, manuscriptId);
+    // For Q&A content in callout format (lines starting with >), 
+    // combine all lines into a single sentence with spaces
+    if (paragraph.startsWith('>')) {
+      // Remove callout markers and join lines with spaces
+      const cleanedText = paragraph
+        .split('\n')
+        .map(line => line.replace(/^>\s*/, '').trim())
+        .filter(line => line.length > 0)
+        .join(' ');
+      
+      return [{
+        id: `S_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        text: cleanedText,
+        startIndex: 0,
+        endIndex: cleanedText.length
+      }];
+    }
+    
+    // For regular paragraphs, treat as a single sentence to avoid splitting
+    return [{
+      id: `S_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      text: paragraph,
+      startIndex: 0,
+      endIndex: paragraph.length
+    }];
   }
 
   /**

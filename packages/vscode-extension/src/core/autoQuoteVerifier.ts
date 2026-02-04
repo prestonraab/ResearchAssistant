@@ -66,6 +66,13 @@ export class AutoQuoteVerifier {
   }
 
   /**
+   * Fire a verification event (used by ClaimReviewProvider to propagate verification status)
+   */
+  fireVerificationEvent(claimId: string, verified: boolean): void {
+    this.onDidVerifyEmitter.fire({ claimId, verified });
+  }
+
+  /**
    * Add a claim to the verification queue
    */
   private addToQueue(claim: Claim): void {
