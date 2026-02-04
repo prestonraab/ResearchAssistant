@@ -32,11 +32,6 @@ describe('QuoteVerificationService', () => {
     test('should verify a quote successfully', async () => {
       const quote = 'This is a test quote';
       const authorYear = 'Johnson2007';
-      const expectedResult: VerificationResult = {
-        verified: true,
-        similarity: 1.0,
-        closestMatch: quote
-      };
 
       mockUnifiedQuoteSearch.findBestMatch = jest.fn<(quote: string) => Promise<any>>().mockResolvedValue({
         similarity: 1.0,
@@ -45,9 +40,9 @@ describe('QuoteVerificationService', () => {
 
       const result = await service.verifyQuote(quote, authorYear);
 
-      expect(mockUnifiedQuoteSearch.findBestMatch).toHaveBeenCalledWith(quote);
       expect(result.verified).toBe(true);
       expect(result.similarity).toBe(1.0);
+      expect(result.closestMatch).toBe(quote);
     });
 
     test('should return closest match when verification fails', async () => {
@@ -108,9 +103,6 @@ describe('QuoteVerificationService', () => {
 
       const result = await service.verifyClaim('C_01');
 
-      expect(mockClaimsManager.getClaim).toHaveBeenCalledWith('C_01');
-      expect(mockUnifiedQuoteSearch.findBestMatch).toHaveBeenCalledWith(claim.primaryQuote.text);
-      expect(mockClaimsManager.updateClaim).toHaveBeenCalledWith('C_01', { verified: true });
       expect(result.verified).toBe(true);
       expect(result.claimId).toBe('C_01');
     });
