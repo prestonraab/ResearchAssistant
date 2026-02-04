@@ -397,6 +397,29 @@ export {
   type AnnotationQueryService,
 } from './services/SyncManager.js';
 
+/**
+ * Citation Source Mapper
+ * 
+ * Maps author-year citations to source files and metadata from sources.md registry.
+ * Caches mappings with invalidation on file change.
+ */
+export {
+  CitationSourceMapper,
+  type SourceMapping,
+} from './services/CitationSourceMapper.js';
+
+/**
+ * Orphan Citation Validator
+ * 
+ * Validates citations against claim quotes to identify orphan citations.
+ * Returns validation status: matched, orphan-citation, unmapped-source, missing-claim, missing-quote.
+ * Caches validation results with manuscript hash invalidation.
+ */
+export {
+  OrphanCitationValidator,
+  type CitationValidationResult,
+} from './services/OrphanCitationValidator.js';
+
 // ============================================================================
 // Caching Services
 // ============================================================================

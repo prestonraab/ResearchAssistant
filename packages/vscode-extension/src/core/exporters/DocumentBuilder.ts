@@ -4,6 +4,7 @@ import type { ManuscriptExportOptions, CitedQuote } from '../exportService';
 import { TableImageRenderer } from './TableImageRenderer';
 import { ManuscriptParser } from './ManuscriptParser';
 import { CitationCollector } from './CitationCollector';
+import { SourceTagParser } from './SourceTagParser';
 import { SentenceClaimQuoteLinkManager } from '../sentenceClaimQuoteLinkManager';
 import { ClaimsManager } from '../claimsManagerWrapper';
 import type { ZoteroApiService, ZoteroItem } from '../../services/zoteroApiService';
@@ -311,21 +312,24 @@ export class DocumentBuilder {
 
   /**
    * Parse BibTeX citations from text
-   * Converts \cite{KEY} to citation runs
+   * Converts \cite{KEY} and [source:: C_XX(AuthorYear)] to citation runs
    * 
    * @param text The text to parse
    * @returns Array of runs (text and citation)
    */
   private parseCitationsFromText(text: string): DocumentRun[] {
+    // First, convert [source:: ...] tags to \cite{} format for unified processing
+    const convertedText = this.convertSourceTagsToCite(text);
+    
     const runs: DocumentRun[] = [];
     const citationRegex = /\\cite\{([^}]+)\}/g;
     let lastIndex = 0;
     let match;
 
-    while ((match = citationRegex.exec(text)) !== null) {
+    while ((match = citationRegex.exec(convertedText)) !== null) {
       // Add text before citation
       if (match.index > lastIndex) {
-        const textBefore = text.substring(lastIndex, match.index);
+        const textBefore = convertedText.substring(lastIndex, match.index);
         runs.push({
           type: 'text',
           content: textBefore
@@ -356,10 +360,10 @@ export class DocumentBuilder {
     }
 
     // Add remaining text
-    if (lastIndex < text.length) {
+    if (lastIndex < convertedText.length) {
       runs.push({
         type: 'text',
-        content: text.substring(lastIndex)
+        content: convertedText.substring(lastIndex)
       });
     }
 
@@ -367,11 +371,34 @@ export class DocumentBuilder {
     if (runs.length === 0) {
       runs.push({
         type: 'text',
-        content: text
+        content: convertedText
       });
     }
 
     return runs;
+  }
+
+  /**
+   * Convert [source:: C_XX(AuthorYear)] tags to \cite{AuthorYear} format
+   * Only claims with (AuthorYear) are converted; others are removed
+   */
+  private convertSourceTagsToCite(text: string): string {
+    return SourceTagParser.convertSourceTagsToCitations(text, (authorYears) => {
+      if (authorYears.length === 0) return '';
+      const keys = authorYears.map(ay => this.normalizeAuthorYear(ay));
+      return `\\cite{${keys.join(',')}}`;
+    });
+  }
+
+  /**
+   * Normalize AuthorYear to a valid citation key
+   * "Zou 2005" -> "Zou2005"
+   */
+  private normalizeAuthorYear(authorYear: string): string {
+    return authorYear
+      .replace(/\s+/g, '')  // Remove spaces
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, '')  // Remove diacritics
+      .replace(/[^a-zA-Z0-9]/g, '');  // Remove special chars
   }
 
   /**
@@ -416,13 +443,19 @@ export class DocumentBuilder {
       return;
     }
 
-    // Extract all citation keys from manuscript
+    // Extract all citation keys from manuscript (legacy \cite{} format)
     const citationRegex = /\\cite\{([^}]+)\}/g;
     const citeKeys = new Set<string>();
     let match;
     
     while ((match = citationRegex.exec(manuscriptText)) !== null) {
       citeKeys.add(match[1]);
+    }
+
+    // Also extract AuthorYear keys from [source:: ...] tags
+    const authorYears = SourceTagParser.getAllAuthorYears(manuscriptText);
+    for (const ay of authorYears) {
+      citeKeys.add(this.normalizeAuthorYear(ay));
     }
 
     if (citeKeys.size === 0) {
@@ -434,13 +467,31 @@ export class DocumentBuilder {
       const items = await this.zoteroApiService.getItems(100);
       
       for (const item of items) {
+        // Cache by Zotero key
         if (citeKeys.has(item.key)) {
           this.zoteroItemCache.set(item.key, item);
+        }
+        
+        // Also cache by AuthorYear format for source tag lookups
+        const itemAuthorYear = this.getItemAuthorYear(item);
+        const normalizedAuthorYear = this.normalizeAuthorYear(itemAuthorYear);
+        if (citeKeys.has(normalizedAuthorYear)) {
+          this.zoteroItemCache.set(normalizedAuthorYear, item);
         }
       }
     } catch (error) {
       // Silently fail - citations will just use fallback display
       console.warn('Failed to prefetch Zotero metadata:', error);
     }
+  }
+
+  /**
+   * Get AuthorYear string from Zotero item
+   */
+  private getItemAuthorYear(item: ZoteroItem): string {
+    const firstAuthor = item.creators?.[0];
+    const authorName = firstAuthor?.lastName || firstAuthor?.name || 'Unknown';
+    const year = item.date?.match(/\d{4}/)?.[0] || '';
+    return `${authorName}${year}`;
   }
 }

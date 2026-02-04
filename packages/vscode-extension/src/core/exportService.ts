@@ -62,11 +62,7 @@ export class ExportService {
       sentenceParser,
       zoteroApiService
     );
-    this.markdownExporter = new MarkdownExporter(
-      sentenceClaimQuoteLinkManager,
-      claimsManager,
-      zoteroApiService
-    );
+    this.markdownExporter = new MarkdownExporter(zoteroApiService);
     this.wordExporter = new WordExporter();
     this.csvExporter = new CSVExporter();
   }
