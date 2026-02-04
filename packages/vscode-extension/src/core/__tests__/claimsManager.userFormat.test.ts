@@ -60,12 +60,11 @@ This file contains all **Data Source** claims with their supporting evidence.
       expect(claims[0].id).toBe('C_31');
       expect(claims[0].text).toBe('The Gene Expression Omnibus (GEO) is an international public repository');
       expect(claims[0].category).toBe('Data Source');
-      expect(claims[0].source).toBe('Clough2023');
-      expect(claims[0].sourceId).toBe(17);
+      expect(claims[0].primaryQuote.source).toBe('Clough2023');
       expect(claims[0].context).toBe('Handles over 200,000 studies and 6.5 million samples.');
-      expect(claims[0].primaryQuote).toContain('Gene Expression Omnibus');
+      expect(claims[0].primaryQuote.text).toContain('Gene Expression Omnibus');
       expect(claims[0].supportingQuotes).toHaveLength(1);
-      expect(claims[0].supportingQuotes[0]).toContain('widely used');
+      expect(claims[0].supportingQuotes[0].text).toContain('widely used');
     });
 
     test('should parse multiple category files', async () => {
@@ -236,8 +235,11 @@ This file contains all **Data Source** claims with their supporting evidence.
         source: 'Test2024',
         sourceId: 99,
         context: 'Test context',
-        primaryQuote: 'Test primary quote',
-        supportingQuotes: ['(Section 2): Supporting quote 1', 'Supporting quote 2'],
+        primaryQuote: { text: 'Test primary quote', source: 'Test2024', verified: false },
+        supportingQuotes: [
+          { text: 'Supporting quote 1', source: 'Test2024', verified: false },
+          { text: 'Supporting quote 2', source: 'Test2024', verified: false }
+        ],
         sections: ['section-1'],
         verified: false,
         createdAt: new Date(),
@@ -255,7 +257,7 @@ This file contains all **Data Source** claims with their supporting evidence.
       
       expect(content).toContain('## C_99: Test claim');
       expect(content).toContain('**Category**: Data Source');
-      expect(content).toContain('**Source**: Test2024 (Source ID: 99)');
+      expect(content).toContain('**Source**: Test2024');
       expect(content).toContain('**Sections**: [section-1]');
       expect(content).toContain('**Context**: Test context');
       expect(content).toContain('**Primary Quote**:');

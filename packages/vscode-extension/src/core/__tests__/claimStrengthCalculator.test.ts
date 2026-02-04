@@ -28,7 +28,6 @@ describe('ClaimStrengthCalculator', () => {
     .withId(id)
     .withText(text)
     .withSource(source)
-    .withSourceId(sourceId)
     .build();
 
   describe('Unit Tests', () => {
@@ -57,7 +56,7 @@ describe('ClaimStrengthCalculator', () => {
         expect(result.strengthScore).toBeGreaterThan(0);
         
         // Should not include claims from the same source
-        const hasSameSource = result.supportingClaims.some(sc => sc.source === claim1.source);
+        const hasSameSource = result.supportingClaims.some(sc => sc.source === claim1.primaryQuote.source);
         expect(hasSameSource).toBe(false);
       });
 

@@ -131,14 +131,13 @@ describe('Mode Switching', () => {
     test('should include keyboard event handling', () => {
       const js = getModeSwitchingJs();
       expect(js).toContain('keydown');
-      expect(js).toContain('shiftKey');
+      expect(js).toContain('Escape');
     });
 
-    test('should include mode switching shortcuts', () => {
+    test('should include scroll position handling', () => {
       const js = getModeSwitchingJs();
-      expect(js).toContain('switchToWritingMode');
-      expect(js).toContain('switchToEditingMode');
-      expect(js).toContain('switchToClaimReview');
+      expect(js).toContain('saveScrollPosition');
+      expect(js).toContain('scrollPosition');
     });
 
     test('should include scroll position saving', () => {

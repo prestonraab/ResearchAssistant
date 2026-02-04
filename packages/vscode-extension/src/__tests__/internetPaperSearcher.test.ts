@@ -102,7 +102,7 @@ describe('InternetPaperSearcher', () => {
           year: 2023,
           abstract: 'Abstract A',
           doi: '10.1111/a',
-          source: 'arxiv',
+          source: 'crossref',
         },
       ];
 
@@ -136,6 +136,11 @@ describe('InternetPaperSearcher', () => {
       // Should keep both since they can't be matched
       expect(deduped.length).toBe(2);
     });
+
+    test('should preserve order during deduplication with multiple papers', async () => {
+      const papers: ExternalPaper[] = [
+        {
+          title: 'Old Paper',
           authors: ['Author A'],
           year: 2020,
           abstract: 'Abstract',
@@ -178,7 +183,7 @@ describe('InternetPaperSearcher', () => {
     });
 
     test('should display quick pick with formatted results', async () => {
-      const mockShowQuickPick = vscode.window.showQuickPick as jest.Mock;
+      const mockShowQuickPick = vscode.window.showQuickPick as jest.Mock<any>;
       mockShowQuickPick.mockResolvedValue(null);
 
       const papers: ExternalPaper[] = [
@@ -196,7 +201,7 @@ describe('InternetPaperSearcher', () => {
 
       expect(mockShowQuickPick).toHaveBeenCalled();
       const callArgs = mockShowQuickPick.mock.calls[0];
-      const items = callArgs[0];
+      const items = callArgs[0] as any;
       
       expect(items.length).toBe(1);
       expect(items[0].label).toContain('Test Paper');
@@ -205,7 +210,7 @@ describe('InternetPaperSearcher', () => {
     });
 
     test('should truncate long author lists with et al.', async () => {
-      const mockShowQuickPick = vscode.window.showQuickPick as jest.Mock;
+      const mockShowQuickPick = vscode.window.showQuickPick as jest.Mock<any>;
       mockShowQuickPick.mockResolvedValue(null);
 
       const papers: ExternalPaper[] = [
@@ -220,12 +225,12 @@ describe('InternetPaperSearcher', () => {
 
       await searcher.displayExternalResults(papers);
 
-      const items = mockShowQuickPick.mock.calls[0][0];
+      const items = mockShowQuickPick.mock.calls[0][0] as any;
       expect(items[0].description).toContain('et al.');
     });
 
     test('should include source and DOI in detail', async () => {
-      const mockShowQuickPick = vscode.window.showQuickPick as jest.Mock;
+      const mockShowQuickPick = vscode.window.showQuickPick as jest.Mock<any>;
       mockShowQuickPick.mockResolvedValue(null);
 
       const papers: ExternalPaper[] = [
@@ -241,7 +246,7 @@ describe('InternetPaperSearcher', () => {
 
       await searcher.displayExternalResults(papers);
 
-      const items = mockShowQuickPick.mock.calls[0][0];
+      const items = mockShowQuickPick.mock.calls[0][0] as any;
       expect(items[0].detail).toContain('PUBMED');
       expect(items[0].detail).toContain('DOI: 10.1234/test');
     });
@@ -249,8 +254,8 @@ describe('InternetPaperSearcher', () => {
 
   describe('importToZotero', () => {
     test('should show progress during import', async () => {
-      const mockWithProgress = vscode.window.withProgress as jest.Mock;
-      const mockShowInfo = vscode.window.showInformationMessage as jest.Mock;
+      const mockWithProgress = vscode.window.withProgress as jest.Mock<any>;
+      const mockShowInfo = vscode.window.showInformationMessage as jest.Mock<any>;
       mockShowInfo.mockResolvedValue(null);
 
       const paper: ExternalPaper = {

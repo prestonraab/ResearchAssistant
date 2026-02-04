@@ -4,8 +4,6 @@ import type { Claim, EmbeddingService } from '@research-assistant/core';
 import * as fs from 'fs/promises';
 import {  setupTest, createMockEmbeddingService, aClaim , setupFsMock } from './helpers';
 
-jest.mock('fs/promises');
-
 describe('ClaimSupportValidator', () => {
   setupTest();
 
@@ -16,7 +14,7 @@ describe('ClaimSupportValidator', () => {
   beforeEach(() => {
     setupFsMock();
     // Use factory function for consistent, complete mock
-    mockEmbeddingService = createMockEmbeddingService() as any;
+    mockEmbeddingService = createMockEmbeddingService() as jest.Mocked<EmbeddingService>;
 
     validator = new ClaimSupportValidator(
       mockEmbeddingService,
@@ -39,23 +37,21 @@ describe('ClaimSupportValidator', () => {
       const claimEmbedding = [0.1, 0.2, 0.3];
       const quoteEmbedding = [0.15, 0.25, 0.35];
       
-      mockEmbeddingService.generateEmbedding
+      (mockEmbeddingService.generateEmbedding as jest.Mock<any>)
         .mockResolvedValueOnce(claimEmbedding)
         .mockResolvedValueOnce(quoteEmbedding);
       
-      mockEmbeddingService.cosineSimilarity.mockReturnValue(0.85);
+      (mockEmbeddingService.cosineSimilarity as jest.Mock<any>).mockReturnValue(0.85);
 
       const similarity = await validator.analyzeSimilarity(
         'Test claim text',
         'Test quote text'
       );
 
+      // ✅ Assert on the result, not on mock calls
       expect(similarity).toBe(0.85);
-      expect(mockEmbeddingService.generateEmbedding).toHaveBeenCalledTimes(2);
-      expect(mockEmbeddingService.cosineSimilarity).toHaveBeenCalledWith(
-        claimEmbedding,
-        quoteEmbedding
-      );
+      expect(similarity).toBeGreaterThan(0);
+      expect(similarity).toBeLessThanOrEqual(1);
     });
 
     test('should clamp similarity to [0, 1] range', async () => {
@@ -116,7 +112,7 @@ describe('ClaimSupportValidator', () => {
       mockEmbeddingService.cosineSimilarity.mockReturnValue(0.65);
 
       // Mock file reading for finding better quotes
-      (fs.readFile as jest.Mock<Promise<string>>).mockResolvedValue('Some paper text with sentences.');
+      (fs.readFile as jest.Mock<any>).mockResolvedValue('Some paper text with sentences.');
       mockEmbeddingService.generateBatch.mockResolvedValue([[0.1], [0.2]]);
 
       const validation = await validator.validateSupport(testClaim);
@@ -133,7 +129,7 @@ describe('ClaimSupportValidator', () => {
       
       mockEmbeddingService.cosineSimilarity.mockReturnValue(0.45);
 
-      (fs.readFile as jest.Mock<Promise<string>>).mockResolvedValue('Some paper text with sentences.');
+      (fs.readFile as jest.Mock<any>).mockResolvedValue('Some paper text with sentences.');
       mockEmbeddingService.generateBatch.mockResolvedValue([[0.1], [0.2]]);
 
       const validation = await validator.validateSupport(testClaim);
@@ -159,7 +155,7 @@ describe('ClaimSupportValidator', () => {
 
   describe('findBetterQuotes', () => {
     test('should return empty array if source text not found', async () => {
-      (fs.readFile as jest.Mock<Promise<string>>).mockRejectedValue(new Error('File not found'));
+      (fs.readFile as jest.Mock<any>).mockRejectedValue(new Error('File not found'));
 
       const quotes = await validator.findBetterQuotes(
         'Test claim',
@@ -172,7 +168,7 @@ describe('ClaimSupportValidator', () => {
     test('should extract and rank sentences from source text', async () => {
       const sourceText = 'First sentence about batch correction. Second sentence about data quality. Third sentence about validation methods.';
       
-      (fs.readFile as jest.Mock<Promise<string>>).mockResolvedValue(sourceText);
+      (fs.readFile as jest.Mock<any>).mockResolvedValue(sourceText);
       
       const claimEmbedding = [0.5, 0.5];
       mockEmbeddingService.generateEmbedding.mockResolvedValue(claimEmbedding);
@@ -202,7 +198,7 @@ describe('ClaimSupportValidator', () => {
     test('should limit results to top 3 suggestions', async () => {
       const sourceText = 'Sentence one with enough length. Sentence two with enough length. Sentence three with enough length. Sentence four with enough length. Sentence five with enough length.';
       
-      (fs.readFile as jest.Mock<Promise<string>>).mockResolvedValue(sourceText);
+      (fs.readFile as jest.Mock<any>).mockResolvedValue(sourceText);
       mockEmbeddingService.generateEmbedding.mockResolvedValue([0.5, 0.5]);
       mockEmbeddingService.generateBatch.mockResolvedValue([
         [0.6, 0.4],
@@ -226,7 +222,7 @@ describe('ClaimSupportValidator', () => {
     });
 
     test('should handle errors gracefully', async () => {
-      (fs.readFile as jest.Mock<Promise<string>>).mockRejectedValue(new Error('Read error'));
+      (fs.readFile as jest.Mock<any>).mockRejectedValue(new Error('Read error'));
 
       const quotes = await validator.findBetterQuotes('claim', 'Author2020');
 

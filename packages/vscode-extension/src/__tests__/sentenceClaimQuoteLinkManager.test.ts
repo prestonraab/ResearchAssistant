@@ -2,6 +2,7 @@ import { jest } from '@jest/globals';
 import { SentenceClaimQuoteLinkManager } from '../core/sentenceClaimQuoteLinkManager';
 import { ClaimsManager } from '../core/claimsManagerWrapper';
 import { setupTest, createMockClaimsManager } from './helpers';
+import { aClaim } from './helpers/builders';
 
 describe('SentenceClaimQuoteLinkManager', () => {
   setupTest();
@@ -11,6 +12,9 @@ describe('SentenceClaimQuoteLinkManager', () => {
 
   beforeEach(() => {
     mockClaimsManager = createMockClaimsManager();
+    // Set up mock to return a real claim when getClaim is called
+    const testClaim = aClaim().withId('claim1').withPrimaryQuote('Test quote').build();
+    mockClaimsManager.getClaim.mockReturnValue(testClaim);
     manager = new SentenceClaimQuoteLinkManager(mockClaimsManager);
   });
 

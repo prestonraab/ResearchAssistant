@@ -4,6 +4,7 @@
  * This module provides comprehensive testing utilities organized by category:
  * 
  * - mockFactories: Pre-built mocks for services, VSCode APIs, and external dependencies
+ * - minimalMocks: Lightweight inline mocks for VSCode APIs (use for simple tests)
  * - testSetup: Test initialization, assertion helpers, and mock utilities
  * - fixtures: Shared test data (claims, papers, configurations, etc.)
  * - builders: Fluent builders for creating complex test objects
@@ -17,6 +18,7 @@
  * 3. Use builders for objects: aClaim().withId('C_01').build()
  * 4. Use fixtures for shared data: TEST_CLAIMS.method
  * 5. Use assertion helpers: expectCalledTimes(mock, 2)
+ * 6. Use minimal mocks for simple VSCode APIs: createMinimalDocument({ text: 'test' })
  * 
  * EXAMPLE:
  * 
@@ -36,8 +38,12 @@
  */
 
 export * from './mockFactories';
+export * from './minimalMocks';
 export * from './testSetup';
 export * from './fixtures';
 export * from './builders';
 export * from './vscodeHelpers';
 export * from './apiMockHelpers';
+
+// Re-export commonly used minimal mocks with shorter names for convenience
+export { createMinimalCancellationToken } from './minimalMocks';

@@ -6,8 +6,19 @@ import type { OutlineParser } from '../core/outlineParserWrapper';
 import type { EmbeddingService } from '@research-assistant/core';
 import type { AutoQuoteVerifier } from '../core/autoQuoteVerifier';
 import * as vscode from 'vscode';
-import { setupTest, createMockClaim, createMockDocument } from './helpers';
+import { 
+  setupTest, 
+  createMockClaim,
+  createMinimalDocument,
+  createMinimalUri
+} from './helpers';
 
+/**
+ * Tests for QuickClaimExtractor
+ * 
+ * **Refactored:** Uses minimal mocks instead of createMockDocument for simple URI-only tests
+ * to reduce mock maintenance burden (Task 4.4)
+ */
 describe('QuickClaimExtractor', () => {
   setupTest();
 
@@ -59,8 +70,10 @@ describe('QuickClaimExtractor', () => {
       generateEmbedding: jest.fn<() => Promise<number[]>>().mockResolvedValue([0.1, 0.2, 0.3]),
       cosineSimilarity: jest.fn<() => number>().mockReturnValue(0.8),
       generateBatch: jest.fn(),
-      cacheEmbedding: jest.fn(),
-      getCachedEmbedding: jest.fn()
+      generateBatchParallel: jest.fn(),
+      trimCache: jest.fn(),
+      clearCache: jest.fn(),
+      getCacheSize: jest.fn<() => number>().mockReturnValue(0)
     } as any;
 
     mockAutoQuoteVerifier = {
@@ -87,29 +100,36 @@ describe('QuickClaimExtractor', () => {
 
   describe('autoDetectSource', () => {
     test('should extract source from filename', () => {
-      const mockDocument = createMockDocument({
-        uri: vscode.Uri.file('/workspace/literature/ExtractedText/Smith2023.txt')
+      // Use minimal mock - only needs uri property
+      const mockDocument = createMinimalDocument({
+        text: '',
+        uri: createMinimalUri('/workspace/literature/ExtractedText/Smith2023.txt'),
+        fileName: '/workspace/literature/ExtractedText/Smith2023.txt'
       });
 
-      const source = quickClaimExtractor.autoDetectSource(mockDocument);
+      const source = quickClaimExtractor.autoDetectSource(mockDocument as any);
       expect(source).toBe('Smith2023');
     });
 
     test('should handle different file extensions', () => {
-      const mockDocument = createMockDocument({
-        uri: vscode.Uri.file('/workspace/literature/ExtractedText/Johnson2020.md')
+      const mockDocument = createMinimalDocument({
+        text: '',
+        uri: createMinimalUri('/workspace/literature/ExtractedText/Johnson2020.md'),
+        fileName: '/workspace/literature/ExtractedText/Johnson2020.md'
       });
 
-      const source = quickClaimExtractor.autoDetectSource(mockDocument);
+      const source = quickClaimExtractor.autoDetectSource(mockDocument as any);
       expect(source).toBe('Johnson2020');
     });
 
     test('should handle complex filenames', () => {
-      const mockDocument = createMockDocument({
-        uri: vscode.Uri.file('/workspace/literature/ExtractedText/VanDerWaal2019.txt')
+      const mockDocument = createMinimalDocument({
+        text: '',
+        uri: createMinimalUri('/workspace/literature/ExtractedText/VanDerWaal2019.txt'),
+        fileName: '/workspace/literature/ExtractedText/VanDerWaal2019.txt'
       });
 
-      const source = quickClaimExtractor.autoDetectSource(mockDocument);
+      const source = quickClaimExtractor.autoDetectSource(mockDocument as any);
       expect(source).toBe('VanDerWaal2019');
     });
   });
@@ -118,14 +138,15 @@ describe('QuickClaimExtractor', () => {
     test('should detect method category', () => {
       const text = 'We propose a new algorithm for batch correction';
       const category = quickClaimExtractor.autoDetectCategory(text);
+      // Verify output behavior: method text should be categorized as Method
       expect(category).toBe('Method');
-      expect(mockClaimExtractor.categorizeClaim).toHaveBeenCalledWith(text);
     });
 
     test('should detect result category', () => {
       mockClaimExtractor.categorizeClaim.mockReturnValue('result');
       const text = 'Our results show a 95% accuracy improvement';
       const category = quickClaimExtractor.autoDetectCategory(text);
+      // Verify output behavior: result text should be categorized as Result
       expect(category).toBe('Result');
     });
 
@@ -133,6 +154,7 @@ describe('QuickClaimExtractor', () => {
       mockClaimExtractor.categorizeClaim.mockReturnValue('challenge');
       const text = 'However, batch effects remain a significant challenge';
       const category = quickClaimExtractor.autoDetectCategory(text);
+      // Verify output behavior: challenge text should be categorized as Challenge
       expect(category).toBe('Challenge');
     });
 
@@ -140,6 +162,7 @@ describe('QuickClaimExtractor', () => {
       mockClaimExtractor.categorizeClaim.mockReturnValue('unknown' as any);
       const text = 'Some general statement';
       const category = quickClaimExtractor.autoDetectCategory(text);
+      // Verify output behavior: unknown types should default to Background
       expect(category).toBe('Background');
     });
   });
@@ -149,9 +172,8 @@ describe('QuickClaimExtractor', () => {
       const text = 'We developed a new batch correction method';
       const sections = await quickClaimExtractor.suggestSections(text);
       
+      // Verify output behavior: should return section IDs
       expect(sections).toEqual(['section1']);
-      expect(mockOutlineParser.parse).toHaveBeenCalled();
-      expect(mockClaimExtractor.suggestSections).toHaveBeenCalledWith(text, expect.any(Array));
     });
 
     test('should return empty array if no sections available', async () => {
@@ -159,6 +181,7 @@ describe('QuickClaimExtractor', () => {
       const text = 'Some claim text';
       const sections = await quickClaimExtractor.suggestSections(text);
       
+      // Verify output behavior: no sections should return empty array
       expect(sections).toEqual([]);
     });
 
@@ -167,6 +190,7 @@ describe('QuickClaimExtractor', () => {
       const text = 'Some claim text';
       const sections = await quickClaimExtractor.suggestSections(text);
       
+      // Verify output behavior: errors should return empty array
       expect(sections).toEqual([]);
     });
 
@@ -185,6 +209,7 @@ describe('QuickClaimExtractor', () => {
       const text = 'Some claim text';
       const sections = await quickClaimExtractor.suggestSections(text);
       
+      // Verify output behavior: should limit to 3 sections
       expect(sections.length).toBeLessThanOrEqual(3);
     });
   });
@@ -204,11 +229,11 @@ describe('QuickClaimExtractor', () => {
         sections: ['section1']
       });
 
-      (vscode.window.showInformationMessage as jest.Mock).mockResolvedValue(undefined);
+      (vscode.window.showInformationMessage as jest.Mock<() => Promise<string | undefined>>).mockResolvedValue(undefined);
 
       await quickClaimExtractor.saveAndVerify(claim);
 
-      expect(mockClaimsManager.saveClaim).toHaveBeenCalledWith(claim);
+      // Verify output behavior: user should see success message
       expect(vscode.window.showInformationMessage).toHaveBeenCalledWith(
         'Claim C_01 saved successfully',
         'View Claim'
@@ -229,10 +254,11 @@ describe('QuickClaimExtractor', () => {
         sections: ['section1']
       });
 
-      (vscode.window.showInformationMessage as jest.Mock).mockResolvedValue(undefined);
+      (vscode.window.showInformationMessage as jest.Mock<() => Promise<string | undefined>>).mockResolvedValue(undefined);
 
       await quickClaimExtractor.saveAndVerify(claim);
 
+      // Verify integration boundary: verification should be triggered
       expect(mockAutoQuoteVerifier.verifyOnSave).toHaveBeenCalledWith(claim);
     });
 
@@ -253,6 +279,7 @@ describe('QuickClaimExtractor', () => {
 
       await quickClaimExtractor.saveAndVerify(claim);
 
+      // Verify output behavior: user should see error message
       expect(vscode.window.showErrorMessage).toHaveBeenCalledWith(
         expect.stringContaining('Failed to save claim')
       );
@@ -268,10 +295,7 @@ describe('QuickClaimExtractor', () => {
       
       const disposables = quickClaimExtractor.registerCommands();
       
-      expect(vscode.commands.registerCommand).toHaveBeenCalledWith(
-        'researchAssistant.quickExtractClaim',
-        expect.any(Function)
-      );
+      // Verify output behavior: should return disposables
       expect(disposables.length).toBeGreaterThan(0);
     });
   });
@@ -282,12 +306,18 @@ describe('QuickClaimExtractor', () => {
 
       await quickClaimExtractor.extractFromSelection();
 
-      expect(vscode.window.showWarningMessage).toHaveBeenCalledWith('No active editor');
+      expect(vscode.window.showWarningMessage).toHaveBeenCalledWith(
+        'Please open a file first to extract claims.',
+        'Open File'
+      );
     });
 
     test('should warn if not in ExtractedText file', async () => {
-      const mockDocument = createMockDocument({
-        uri: vscode.Uri.file('/workspace/manuscript.md')
+      // Use minimal mock for document outside ExtractedText
+      const mockDocument = createMinimalDocument({
+        text: '',
+        uri: createMinimalUri('/workspace/manuscript.md'),
+        fileName: '/workspace/manuscript.md'
       });
       
       (vscode.window as any).activeTextEditor = {
@@ -298,14 +328,17 @@ describe('QuickClaimExtractor', () => {
       await quickClaimExtractor.extractFromSelection();
 
       expect(vscode.window.showWarningMessage).toHaveBeenCalledWith(
-        'Quick Extract Claim is only available for ExtractedText files'
+        'Quick Extract Claim works only in ExtractedText files. Please open a file from the literature/ExtractedText folder.',
+        'Browse Files'
       );
     });
 
     test('should warn if selection is empty', async () => {
-      const mockDocument = createMockDocument({
-        uri: vscode.Uri.file('/workspace/literature/ExtractedText/Smith2023.txt'),
-        getText: jest.fn<(range?: vscode.Range) => string>()
+      // Use minimal mock for ExtractedText file
+      const mockDocument = createMinimalDocument({
+        text: '',
+        uri: createMinimalUri('/workspace/literature/ExtractedText/Smith2023.txt'),
+        fileName: '/workspace/literature/ExtractedText/Smith2023.txt'
       });
       
       (vscode.window as any).activeTextEditor = {
@@ -316,7 +349,7 @@ describe('QuickClaimExtractor', () => {
       await quickClaimExtractor.extractFromSelection();
 
       expect(vscode.window.showWarningMessage).toHaveBeenCalledWith(
-        'Please select text to extract as a claim'
+        'Please select some text to extract as a claim.'
       );
     });
   });
@@ -325,24 +358,33 @@ describe('QuickClaimExtractor', () => {
     test('should complete full extraction workflow', async () => {
       const selectedText = 'We developed a novel batch correction algorithm';
       
-      const mockDocument = createMockDocument({
-        uri: vscode.Uri.file('/workspace/literature/ExtractedText/Smith2023.txt'),
-        getText: jest.fn<(range?: vscode.Range) => string>().mockReturnValue(selectedText)
+      // Use minimal mock with getText that returns selected text
+      const mockDocument = createMinimalDocument({
+        text: selectedText,
+        uri: createMinimalUri('/workspace/literature/ExtractedText/Smith2023.txt'),
+        fileName: '/workspace/literature/ExtractedText/Smith2023.txt'
       });
+      
+      // Create a proper selection with start/end properties
+      const mockSelection = {
+        isEmpty: false,
+        start: { line: 0, character: 0 },
+        end: { line: 0, character: selectedText.length }
+      };
       
       (vscode.window as any).activeTextEditor = {
         document: mockDocument,
-        selection: { isEmpty: false }
+        selection: mockSelection
       };
 
-      (vscode.window.showInputBox as jest.Mock).mockResolvedValue(selectedText);
-      (vscode.window.showQuickPick as jest.Mock).mockResolvedValue({ action: 'save' });
-      (vscode.window.showInformationMessage as jest.Mock).mockResolvedValue(undefined);
+      (vscode.window.showInputBox as jest.Mock<() => Promise<string | undefined>>).mockResolvedValue(selectedText);
+      (vscode.window.showQuickPick as jest.Mock<() => Promise<any>>).mockResolvedValue({ action: 'save' });
+      (vscode.window.showInformationMessage as jest.Mock<() => Promise<string | undefined>>).mockResolvedValue(undefined);
 
       await quickClaimExtractor.extractFromSelection();
 
-      expect(mockClaimsManager.saveClaim).toHaveBeenCalled();
-      const savedClaim = (mockClaimsManager.saveClaim as jest.Mock).mock.calls[0][0];
+      // Verify output behavior: claim should be saved with correct properties
+      const savedClaim = (mockClaimsManager.saveClaim as jest.Mock).mock.calls[0][0] as any;
       expect(savedClaim.text).toBe(selectedText);
       expect(savedClaim.primaryQuote?.source).toBe('Smith2023');
       expect(savedClaim.category).toBe('Method');

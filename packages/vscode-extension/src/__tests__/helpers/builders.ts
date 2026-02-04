@@ -53,6 +53,11 @@ export class ClaimBuilder {
     return this;
   }
 
+  withSource(source: string): this {
+    this.claim.primaryQuote.source = source;
+    return this;
+  }
+
   withSupportingQuote(quote: string, source?: string): this {
     this.claim.supportingQuotes.push({
       text: quote,

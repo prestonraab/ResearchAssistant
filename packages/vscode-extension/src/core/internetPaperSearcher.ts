@@ -176,4 +176,14 @@ export class InternetPaperSearcher extends CoreInternetPaperSearcher {
       );
     }
   }
+
+  /**
+   * Cleanup resources
+   */
+  public dispose(): void {
+    // Cleanup any resources if needed
+  }
 }
+
+// Re-export ExternalPaper for test use
+export { ExternalPaper };

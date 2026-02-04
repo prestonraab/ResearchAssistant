@@ -1,13 +1,14 @@
 import * as vscode from 'vscode';
 import * as https from 'https';
 import { TextNormalizer } from '@research-assistant/core';
+import type { EmbeddingServiceInterface } from '../types';
 
 /**
  * Service for generating embeddings using OpenAI API
  * Caches embeddings in memory to avoid redundant API calls
  * Normalizes text before embedding to handle OCR artifacts
  */
-export class EmbeddingService {
+export class EmbeddingService implements EmbeddingServiceInterface {
   private apiKey: string;
   private model: string;
   private cache: Map<string, number[]> = new Map();
@@ -144,5 +145,36 @@ export class EmbeddingService {
    */
   getCacheStats(): { size: number; maxSize: number } {
     return { size: this.cache.size, maxSize: this.CACHE_SIZE };
+  }
+
+  /**
+   * Generate embedding for text (interface method)
+   */
+  async generateEmbedding(text: string): Promise<number[]> {
+    const result = await this.embed(text);
+    return result || [];
+  }
+
+  /**
+   * Get cache size
+   */
+  getCacheSize(): number {
+    return this.cache.size;
+  }
+
+  /**
+   * Trim cache to a percentage of max size
+   */
+  trimCache(percentage: number): void {
+    const targetSize = Math.floor(this.CACHE_SIZE * (percentage / 100));
+    if (this.cache.size > targetSize) {
+      const entriesToRemove = this.cache.size - targetSize;
+      let removed = 0;
+      for (const key of this.cache.keys()) {
+        if (removed >= entriesToRemove) break;
+        this.cache.delete(key);
+        removed++;
+      }
+    }
   }
 }

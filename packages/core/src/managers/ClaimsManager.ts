@@ -2,6 +2,14 @@ import * as fs from 'fs/promises';
 import * as path from 'path';
 import type { Claim, SourcedQuote } from '../types/index.js';
 
+export interface ClaimsManagerOptions {
+  /**
+   * If true, the manager operates in memory-only mode without file I/O.
+   * Useful for testing where you want to inject claims directly.
+   */
+  inMemory?: boolean;
+}
+
 /**
  * ClaimsManager handles loading and querying claims from the workspace.
  * 
@@ -15,12 +23,20 @@ import type { Claim, SourcedQuote } from '../types/index.js';
  * This is a read-only implementation - file writing should be handled by
  * the consuming application (extension or MCP server).
  * 
+ * For testing, the manager can be created in in-memory mode where claims
+ * are managed directly without file I/O.
+ * 
  * @example
  * ```typescript
+ * // File-based mode
  * const manager = new ClaimsManager('/path/to/workspace');
  * await manager.loadClaims();
  * const claim = manager.getClaim('C_01');
- * const sourceClaims = manager.findClaimsBySource('Smith2020');
+ * 
+ * // In-memory mode for testing
+ * const testManager = new ClaimsManager('', { inMemory: true });
+ * testManager.addClaim({ id: 'C_01', text: 'Test claim', ... });
+ * const claim = testManager.getClaim('C_01');
  * ```
  */
 export class ClaimsManager {
@@ -30,14 +46,22 @@ export class ClaimsManager {
   private claimsBySection: Map<string, Claim[]> = new Map();
   private workspaceRoot: string;
   private loaded: boolean = false;
+  private inMemoryMode: boolean = false;
 
   /**
    * Create a new ClaimsManager instance.
    * 
-   * @param workspaceRoot - Absolute path to the workspace root directory
+   * @param workspaceRoot - Absolute path to the workspace root directory (can be empty string for in-memory mode)
+   * @param options - Configuration options
    */
-  constructor(workspaceRoot: string) {
+  constructor(workspaceRoot: string, options?: ClaimsManagerOptions) {
     this.workspaceRoot = workspaceRoot;
+    this.inMemoryMode = options?.inMemory ?? false;
+    
+    // In-memory mode is immediately "loaded" since there's no file I/O
+    if (this.inMemoryMode) {
+      this.loaded = true;
+    }
   }
 
   /**
@@ -47,10 +71,18 @@ export class ClaimsManager {
    * falls back to single claims_and_evidence.md file if the directory is
    * empty or doesn't exist.
    * 
+   * Note: In in-memory mode, this method does nothing and returns the current claims.
+   * 
    * @returns Array of loaded claims
    * @throws Error if there are issues reading files (other than not found)
+   * @throws Error if called in in-memory mode
    */
   async loadClaims(): Promise<Claim[]> {
+    if (this.inMemoryMode) {
+      // In-memory mode doesn't load from files
+      return [...this.claims];
+    }
+
     this.claims = [];
     this.claimsById.clear();
     this.claimsBySource.clear();
@@ -517,5 +549,56 @@ export class ClaimsManager {
    */
   isLoaded(): boolean {
     return this.loaded;
+  }
+
+  /**
+   * Add a claim directly to the manager (in-memory mode only).
+   * 
+   * This method is primarily intended for testing, allowing you to inject
+   * claims without file I/O. It can only be used when the manager is in
+   * in-memory mode.
+   * 
+   * @param claim - The claim to add
+   * @throws Error if not in in-memory mode
+   * 
+   * @example
+   * ```typescript
+   * const manager = new ClaimsManager('', { inMemory: true });
+   * manager.addClaim({
+   *   id: 'C_01',
+   *   text: 'Test claim',
+   *   category: 'Method',
+   *   verified: false,
+   *   primaryQuote: { text: 'Quote', source: 'Source', verified: false },
+   *   supportingQuotes: [],
+   *   sections: []
+   * });
+   * ```
+   */
+  addClaim(claim: Claim): void {
+    if (!this.inMemoryMode) {
+      throw new Error('addClaim() can only be used in in-memory mode. Create the manager with { inMemory: true }');
+    }
+
+    // Add to main array
+    this.claims.push(claim);
+
+    // Update indexes
+    this.claimsById.set(claim.id, claim);
+
+    // Index by source
+    const source = claim.primaryQuote.source;
+    if (!this.claimsBySource.has(source)) {
+      this.claimsBySource.set(source, []);
+    }
+    this.claimsBySource.get(source)!.push(claim);
+
+    // Index by sections
+    for (const section of claim.sections) {
+      if (!this.claimsBySection.has(section)) {
+        this.claimsBySection.set(section, []);
+      }
+      this.claimsBySection.get(section)!.push(claim);
+    }
   }
 }

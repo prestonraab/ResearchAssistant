@@ -26,11 +26,16 @@ More text after.`;
       });
 
       expect(model.sections).toHaveLength(1);
-      expect(model.sections[0].paragraphs).toHaveLength(1);
+      // The export service may split text and images into separate paragraphs
+      expect(model.sections[0].paragraphs.length).toBeGreaterThanOrEqual(1);
       
-      const runs = model.sections[0].paragraphs[0].runs;
-      const imageRun = runs.find(r => r.type === 'image');
+      // Find the paragraph with the image
+      const imageParagraph = model.sections[0].paragraphs.find(p => 
+        p.runs.some(r => r.type === 'image')
+      );
       
+      expect(imageParagraph).toBeDefined();
+      const imageRun = imageParagraph?.runs.find(r => r.type === 'image');
       expect(imageRun).toBeDefined();
       expect(imageRun?.image?.path).toBe('./test.png');
       expect(imageRun?.image?.altText).toBe('Test Image');

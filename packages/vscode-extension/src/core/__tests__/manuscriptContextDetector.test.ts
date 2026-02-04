@@ -3,6 +3,7 @@ import * as vscode from 'vscode';
 import { ManuscriptContextDetector } from '../manuscriptContextDetector';
 import { ClaimsManager } from '../claimsManagerWrapper';
 import type { Claim, OutlineSection } from '@research-assistant/core';
+import { createMinimalPosition } from '../../__tests__/helpers/minimalMocks';
 
 // Mock vscode
 jest.mock('vscode', () => ({
@@ -51,7 +52,7 @@ jest.mock('vscode', () => ({
 
 // Mock fs/promises
 jest.mock('fs/promises', () => ({
-  readFile: jest.fn().mockResolvedValue('')
+  readFile: (jest.fn() as jest.Mock<any>).mockResolvedValue('')
 }));
 
 describe('ManuscriptContextDetector', () => {
@@ -61,7 +62,6 @@ describe('ManuscriptContextDetector', () => {
   const coverageThresholds = { low: 3, moderate: 6, strong: 7 };
 
   beforeEach(() => {
-    setupFsMock();
     // Create mock claims manager
     mockClaimsManager = {
       getClaims: jest.fn().mockReturnValue([]),
@@ -100,8 +100,8 @@ describe('ManuscriptContextDetector', () => {
 
   describe('detectCurrentSection', () => {
     test('should detect section at cursor position', () => {
-      const position = new vscode.Position(5, 0);
-      const section = detector.detectCurrentSection(position);
+      const position = createMinimalPosition(5, 0);
+      const section = detector.detectCurrentSection(position as any);
       
       // Initially null since no manuscript is parsed
       expect(section).toBeNull();

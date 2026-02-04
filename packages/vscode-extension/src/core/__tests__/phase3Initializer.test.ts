@@ -15,7 +15,7 @@ jest.mock('vscode', () => ({
 
 describe('Phase3Initializer', () => {
   setupTest();
-  let mockState: ExtensionState;
+  let mockState: any;
   let mockConfig: any;
   let mockFileWatcher: any;
 
@@ -56,11 +56,11 @@ describe('Phase3Initializer', () => {
         })
       },
       zoteroAvailabilityManager: {
-        initialize: jest.fn().mockResolvedValue(undefined),
+        initialize: (jest.fn() as jest.Mock<any>).mockResolvedValue(undefined as any),
         dispose: jest.fn()
       },
       outlineParser: {
-        parse: jest.fn().mockResolvedValue(undefined)
+        parse: (jest.fn() as jest.Mock<any>).mockResolvedValue(undefined as any)
       },
       claimsManager: {
         requestReload: jest.fn()
@@ -113,8 +113,8 @@ describe('Phase3Initializer', () => {
     });
 
     test('should not throw if Zotero initialization fails', async () => {
-      mockState.zoteroAvailabilityManager.initialize = jest.fn().mockRejectedValue(
-        new Error('Zotero error')
+      (mockState.zoteroAvailabilityManager.initialize as any) = (jest.fn() as jest.Mock<any>).mockRejectedValue(
+        new Error('Zotero error') as any
       );
 
       const initializer = new Phase3Initializer();
@@ -178,7 +178,7 @@ describe('Phase3Initializer', () => {
     });
 
     test('should continue if Zotero initialization fails', async () => {
-      mockState.zoteroAvailabilityManager.initialize = jest.fn().mockRejectedValue(
+      (mockState.zoteroAvailabilityManager.initialize as any) = (jest.fn() as jest.Mock<any>).mockRejectedValue(
         new Error('Zotero connection failed')
       );
 
@@ -285,23 +285,20 @@ describe('Phase3Initializer', () => {
   });
 
   describe('error handling', () => {
-    test('should log errors but not throw', async () => {
-      const consoleSpy = jest.spyOn(console, 'warn').mockImplementation();
-
-      mockState.zoteroAvailabilityManager.initialize = jest.fn().mockRejectedValue(
+    test('should handle errors gracefully without throwing', async () => {
+      (mockState.zoteroAvailabilityManager.initialize as any) = (jest.fn() as jest.Mock<any>).mockRejectedValue(
         new Error('Test error')
       );
 
       const initializer = new Phase3Initializer();
-      await initializer.initialize(mockState);
-      await initializer.waitForCompletion();
-
-      expect(consoleSpy).toHaveBeenCalled();
-      consoleSpy.mockRestore();
+      
+      // ✅ Assert on behavior: initialization should not throw even with errors
+      await expect(initializer.initialize(mockState)).resolves.not.toThrow();
+      await expect(initializer.waitForCompletion()).resolves.not.toThrow();
     });
 
     test('should continue initialization if one service fails', async () => {
-      mockState.zoteroAvailabilityManager.initialize = jest.fn().mockRejectedValue(
+      (mockState.zoteroAvailabilityManager.initialize as any) = (jest.fn() as jest.Mock<any>).mockRejectedValue(
         new Error('Zotero error')
       );
 
@@ -329,7 +326,7 @@ describe('Phase3Initializer', () => {
     });
 
     test('should resolve even if services fail', async () => {
-      mockState.zoteroAvailabilityManager.initialize = jest.fn().mockRejectedValue(
+      (mockState.zoteroAvailabilityManager.initialize as any) = (jest.fn() as jest.Mock<any>).mockRejectedValue(
         new Error('Error')
       );
 

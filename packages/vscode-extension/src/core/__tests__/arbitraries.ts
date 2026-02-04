@@ -152,7 +152,11 @@ export const claimTextArbitrary = () =>
  * Generate random quotes
  */
 export const quoteArbitrary = () =>
-  fc.string({ minLength: 30, maxLength: 300 });
+  fc.record({
+    text: fc.string({ minLength: 30, maxLength: 300 }),
+    source: sourceArbitrary(),
+    verified: fc.boolean()
+  });
 
 /**
  * Generate a random claim
@@ -162,8 +166,6 @@ export const claimArbitrary = (): fc.Arbitrary<Claim> =>
     id: claimIdArbitrary(),
     text: claimTextArbitrary(),
     category: claimCategoryArbitrary(),
-    source: sourceArbitrary(),
-    sourceId: fc.integer({ min: 1, max: 100 }),
     context: fc.option(fc.string({ minLength: 10, maxLength: 100 }), { nil: '' }),
     primaryQuote: quoteArbitrary(),
     supportingQuotes: fc.array(quoteArbitrary(), { maxLength: 3 }),

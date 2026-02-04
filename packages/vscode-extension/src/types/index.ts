@@ -337,12 +337,10 @@ export interface EmbeddingServiceInterface {
   generateEmbedding(text: string): Promise<number[]>;
   getCacheSize(): number;
   trimCache(percentage: number): void;
-  [key: string]: unknown;
 }
 
 export interface PaperRanker {
   rank(papers: unknown[], query: string): Array<{ paper: { itemKey: string }; score: number }>;
-  [key: string]: unknown;
 }
 
 // ============================================================================

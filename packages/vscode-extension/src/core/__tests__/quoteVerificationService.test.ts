@@ -40,7 +40,7 @@ describe('QuoteVerificationService', () => {
         similarity: 1.0
       });
 
-      mockUnifiedQuoteSearch.findBestMatch = jest.fn().mockResolvedValue(expectedResult);
+      mockUnifiedQuoteSearch.findBestMatch = (jest.fn() as jest.Mock<any>).mockResolvedValue(expectedResult);
 
       const result = await service.verifyQuote(quote, authorYear);
 
@@ -54,16 +54,16 @@ describe('QuoteVerificationService', () => {
       const expectedResult = createMockVerificationResult({
         verified: false,
         similarity: 0.85,
-        closestMatch: 'This is a similar quote',
-        context: 'surrounding context'
+        nearestMatch: 'This is a similar quote',
+        confidence: 0.85
       });
 
-      mockUnifiedQuoteSearch.findBestMatch = jest.fn().mockResolvedValue(expectedResult);
+      mockUnifiedQuoteSearch.findBestMatch = (jest.fn() as jest.Mock<any>).mockResolvedValue(expectedResult);
 
       const result = await service.verifyQuote(quote, authorYear);
 
       expect(result.verified).toBe(false);
-      expect(result.closestMatch).toBe('This is a similar quote');
+      expect((result as any).nearestMatch).toBe('This is a similar quote');
       expect(result.similarity).toBe(0.85);
     });
 
@@ -79,7 +79,7 @@ describe('QuoteVerificationService', () => {
       const quote = 'This is a test quote';
       const authorYear = 'Johnson2007';
 
-      mockUnifiedQuoteSearch.findBestMatch = jest.fn().mockRejectedValue(new Error('MCP connection failed'));
+      mockUnifiedQuoteSearch.findBestMatch = (jest.fn() as jest.Mock<any>).mockRejectedValue(new Error('MCP connection failed'));
 
       await expect(service.verifyQuote(quote, authorYear)).rejects.toThrow('Failed to verify quote: MCP connection failed');
     });
@@ -91,19 +91,18 @@ describe('QuoteVerificationService', () => {
         id: 'C_01',
         text: 'Test claim',
         category: 'Method',
-        source: 'Johnson2007',
-        sourceId: 1,
         primaryQuote: { text: 'This is a test quote', source: 'Johnson2007', verified: false }
       });
 
       const verificationResult = createMockVerificationResult({
         verified: true,
-        similarity: 1.0
+        similarity: 1.0,
+        confidence: 1.0
       });
 
       mockClaimsManager.getClaim = jest.fn().mockReturnValue(claim);
-      mockUnifiedQuoteSearch.findBestMatch = jest.fn().mockResolvedValue(verificationResult);
-      mockClaimsManager.updateClaim = jest.fn().mockResolvedValue(undefined);
+      mockUnifiedQuoteSearch.findBestMatch = (jest.fn() as jest.Mock<any>).mockResolvedValue(verificationResult);
+      mockClaimsManager.updateClaim = (jest.fn() as jest.Mock<any>).mockResolvedValue(undefined);
 
       const result = await service.verifyClaim('C_01');
 
@@ -131,7 +130,7 @@ describe('QuoteVerificationService', () => {
         source: 'Johnson2007',
         sourceId: 1,
         context: 'Test context',
-        primaryQuote: '',
+        primaryQuote: { text: '', source: '', verified: false },
         supportingQuotes: [],
         sections: [],
         verified: false,
@@ -155,7 +154,7 @@ describe('QuoteVerificationService', () => {
         source: '',
         sourceId: 1,
         context: 'Test context',
-        primaryQuote: 'This is a test quote',
+        primaryQuote: { text: 'This is a test quote', source: '', verified: false },
         supportingQuotes: [],
         sections: [],
         verified: false,
@@ -179,7 +178,7 @@ describe('QuoteVerificationService', () => {
         source: 'Johnson2007',
         sourceId: 1,
         context: 'Test context',
-        primaryQuote: 'This is a test quote',
+        primaryQuote: { text: 'This is a test quote', source: 'Johnson2007', verified: false },
         supportingQuotes: [],
         sections: [],
         verified: false,
@@ -194,8 +193,8 @@ describe('QuoteVerificationService', () => {
       };
 
       mockClaimsManager.getClaim = jest.fn().mockReturnValue(claim);
-      mockUnifiedQuoteSearch.findBestMatch = jest.fn().mockResolvedValue(verificationResult);
-      mockClaimsManager.updateClaim = jest.fn().mockResolvedValue(undefined);
+      mockUnifiedQuoteSearch.findBestMatch = (jest.fn() as jest.Mock<any>).mockResolvedValue(verificationResult);
+      mockClaimsManager.updateClaim = (jest.fn() as jest.Mock<any>).mockResolvedValue(undefined);
 
       const result = await service.verifyClaim('C_01');
 
@@ -212,7 +211,7 @@ describe('QuoteVerificationService', () => {
         source: 'Johnson2007',
         sourceId: 1,
         context: 'Test context',
-        primaryQuote: 'This is a test quote',
+        primaryQuote: { text: 'This is a test quote', source: 'Johnson2007', verified: false },
         supportingQuotes: [],
         sections: [],
         verified: false,
@@ -221,7 +220,7 @@ describe('QuoteVerificationService', () => {
       };
 
       mockClaimsManager.getClaim = jest.fn().mockReturnValue(claim);
-      mockUnifiedQuoteSearch.findBestMatch = jest.fn().mockRejectedValue(new Error('Network error'));
+      mockUnifiedQuoteSearch.findBestMatch = (jest.fn() as jest.Mock<any>).mockRejectedValue(new Error('Network error'));
 
       const result = await service.verifyClaim('C_01');
 
@@ -241,7 +240,7 @@ describe('QuoteVerificationService', () => {
         context: 'surrounding context'
       };
 
-      mockUnifiedQuoteSearch.findBestMatch = jest.fn().mockResolvedValue(expectedResult);
+      mockUnifiedQuoteSearch.findBestMatch = (jest.fn() as jest.Mock<any>).mockResolvedValue(expectedResult);
 
       const result = await service.findClosestMatch(quote, authorYear);
 
@@ -250,7 +249,7 @@ describe('QuoteVerificationService', () => {
     });
 
     test('should handle errors when finding closest match', async () => {
-      mockUnifiedQuoteSearch.findBestMatch = jest.fn().mockRejectedValue(new Error('Source not found'));
+      mockUnifiedQuoteSearch.findBestMatch = (jest.fn() as jest.Mock<any>).mockRejectedValue(new Error('Source not found'));
 
       await expect(service.findClosestMatch('test', 'Unknown2000')).rejects.toThrow('Source not found');
     });
@@ -266,7 +265,7 @@ describe('QuoteVerificationService', () => {
           source: 'Johnson2007',
           sourceId: 1,
           context: 'Test context',
-          primaryQuote: 'Quote 1',
+          primaryQuote: { text: 'Quote 1', source: 'Johnson2007', verified: false },
           supportingQuotes: [],
           sections: [],
           verified: false,
@@ -280,7 +279,7 @@ describe('QuoteVerificationService', () => {
           source: 'Smith2010',
           sourceId: 2,
           context: 'Test context',
-          primaryQuote: 'Quote 2',
+          primaryQuote: { text: 'Quote 2', source: 'Smith2010', verified: false },
           supportingQuotes: [],
           sections: [],
           verified: false,
@@ -298,7 +297,7 @@ describe('QuoteVerificationService', () => {
         .mockResolvedValueOnce({ verified: true, similarity: 1.0 })
         .mockResolvedValueOnce({ verified: false, similarity: 0.75, closestMatch: 'Similar quote' });
       
-      mockClaimsManager.updateClaim = jest.fn().mockResolvedValue(undefined);
+      mockClaimsManager.updateClaim = (jest.fn() as jest.Mock<any>).mockResolvedValue(undefined);
 
       const result = await service.verifyAllClaims();
 
@@ -320,7 +319,7 @@ describe('QuoteVerificationService', () => {
           source: 'Johnson2007',
           sourceId: 1,
           context: 'Test context',
-          primaryQuote: 'Quote 1',
+          primaryQuote: { text: 'Quote 1', source: 'Johnson2007', verified: false },
           supportingQuotes: [],
           sections: [],
           verified: false,
@@ -334,7 +333,7 @@ describe('QuoteVerificationService', () => {
           source: 'Smith2010',
           sourceId: 2,
           context: 'Test context',
-          primaryQuote: '',
+          primaryQuote: { text: '', source: '', verified: false },
           supportingQuotes: [],
           sections: [],
           verified: false,
@@ -345,8 +344,8 @@ describe('QuoteVerificationService', () => {
 
       mockClaimsManager.getClaims = jest.fn().mockReturnValue(claims);
       mockClaimsManager.getClaim = jest.fn().mockReturnValueOnce(claims[0]);
-      mockUnifiedQuoteSearch.findBestMatch = jest.fn().mockResolvedValue({ verified: true, similarity: 1.0 });
-      mockClaimsManager.updateClaim = jest.fn().mockResolvedValue(undefined);
+      mockUnifiedQuoteSearch.findBestMatch = (jest.fn() as jest.Mock<any>).mockResolvedValue({ verified: true, similarity: 1.0 });
+      mockClaimsManager.updateClaim = (jest.fn() as jest.Mock<any>).mockResolvedValue(undefined);
 
       const result = await service.verifyAllClaims();
 
@@ -364,7 +363,7 @@ describe('QuoteVerificationService', () => {
           source: 'Johnson2007',
           sourceId: 1,
           context: 'Test context',
-          primaryQuote: 'Quote 1',
+          primaryQuote: { text: 'Quote 1', source: 'Johnson2007', verified: false },
           supportingQuotes: [],
           sections: [],
           verified: false,
@@ -375,7 +374,7 @@ describe('QuoteVerificationService', () => {
 
       mockClaimsManager.getClaims = jest.fn().mockReturnValue(claims);
       mockClaimsManager.getClaim = jest.fn().mockReturnValue(claims[0]);
-      mockUnifiedQuoteSearch.findBestMatch = jest.fn().mockRejectedValue(new Error('Network error'));
+      mockUnifiedQuoteSearch.findBestMatch = (jest.fn() as jest.Mock<any>).mockRejectedValue(new Error('Network error'));
 
       const result = await service.verifyAllClaims();
 
@@ -397,7 +396,7 @@ describe('QuoteVerificationService', () => {
           source: 'Johnson2007',
           sourceId: 1,
           context: 'Test context',
-          primaryQuote: 'Quote 1',
+          primaryQuote: { text: 'Quote 1', source: 'Johnson2007', verified: false },
           supportingQuotes: [],
           sections: [],
           verified: false,
@@ -411,7 +410,7 @@ describe('QuoteVerificationService', () => {
           source: 'Smith2010',
           sourceId: 2,
           context: 'Test context',
-          primaryQuote: 'Quote 2',
+          primaryQuote: { text: 'Quote 2', source: 'Smith2010', verified: false },
           supportingQuotes: [],
           sections: [],
           verified: false,
@@ -429,7 +428,7 @@ describe('QuoteVerificationService', () => {
         .mockResolvedValueOnce({ verified: true, similarity: 1.0 })
         .mockResolvedValueOnce({ verified: true, similarity: 1.0 });
       
-      mockClaimsManager.updateClaim = jest.fn().mockResolvedValue(undefined);
+      mockClaimsManager.updateClaim = (jest.fn() as jest.Mock<any>).mockResolvedValue(undefined);
 
       const result = await service.verifyClaimsBatch(['C_01', 'C_02']);
 
@@ -454,7 +453,7 @@ describe('QuoteVerificationService', () => {
 
   describe('updateClaimVerificationStatus', () => {
     test('should update claim verification status', async () => {
-      mockClaimsManager.updateClaim = jest.fn().mockResolvedValue(undefined);
+      mockClaimsManager.updateClaim = (jest.fn() as jest.Mock<any>).mockResolvedValue(undefined);
 
       await service.updateClaimVerificationStatus('C_01', true);
 
@@ -472,7 +471,7 @@ describe('QuoteVerificationService', () => {
           source: 'Johnson2007',
           sourceId: 1,
           context: 'Test context',
-          primaryQuote: 'Quote 1',
+          primaryQuote: { text: 'Quote 1', source: 'Johnson2007', verified: false },
           supportingQuotes: [],
           sections: [],
           verified: false,
@@ -486,7 +485,7 @@ describe('QuoteVerificationService', () => {
           source: 'Smith2010',
           sourceId: 2,
           context: 'Test context',
-          primaryQuote: 'Quote 2',
+          primaryQuote: { text: 'Quote 2', source: 'Smith2010', verified: false },
           supportingQuotes: [],
           sections: [],
           verified: true,
@@ -500,7 +499,7 @@ describe('QuoteVerificationService', () => {
           source: 'Brown2015',
           sourceId: 3,
           context: 'Test context',
-          primaryQuote: '',
+          primaryQuote: { text: '', source: '', verified: false },
           supportingQuotes: [],
           sections: [],
           verified: false,
@@ -528,7 +527,7 @@ describe('QuoteVerificationService', () => {
           source: 'Johnson2007',
           sourceId: 1,
           context: 'Test context',
-          primaryQuote: 'Quote 1',
+          primaryQuote: { text: 'Quote 1', source: 'Johnson2007', verified: false },
           supportingQuotes: [],
           sections: [],
           verified: true,
@@ -542,7 +541,7 @@ describe('QuoteVerificationService', () => {
           source: 'Smith2010',
           sourceId: 2,
           context: 'Test context',
-          primaryQuote: 'Quote 2',
+          primaryQuote: { text: 'Quote 2', source: 'Smith2010', verified: false },
           supportingQuotes: [],
           sections: [],
           verified: false,
@@ -556,7 +555,7 @@ describe('QuoteVerificationService', () => {
           source: 'Brown2015',
           sourceId: 3,
           context: 'Test context',
-          primaryQuote: '',
+          primaryQuote: { text: '', source: '', verified: false },
           supportingQuotes: [],
           sections: [],
           verified: false,

@@ -4,11 +4,11 @@ import type { Claim } from '@research-assistant/core';
 
 // Create a mock embedding service
 const mockEmbeddingService = {
-  generateEmbedding: jest.fn().mockResolvedValue(new Array(1536).fill(0).map(() => Math.random()) as number[]),
-  generateBatch: jest.fn().mockImplementation((texts: string[]) => 
-    Promise.resolve(texts.map(() => new Array(1536).fill(0).map(() => Math.random())) as number[][])
+  generateEmbedding: jest.fn<(text: string) => Promise<number[]>>().mockResolvedValue(new Array(1536).fill(0).map(() => Math.random())),
+  generateBatch: jest.fn<(texts: string[]) => Promise<number[][]>>().mockImplementation((texts: any) => 
+    Promise.resolve(texts.map(() => new Array(1536).fill(0).map(() => Math.random())))
   ),
-  cosineSimilarity: jest.fn((a: number[], b: number[]) => {
+  cosineSimilarity: jest.fn<(a: number[], b: number[]) => number>().mockImplementation((a: number[], b: number[]) => {
     return 0.5 + Math.random() * 0.3;
   })
 } as any;
@@ -31,10 +31,8 @@ describe('SynthesisEngine', () => {
     id,
     text,
     category,
-    source,
-    sourceId: parseInt(id.replace('C_', ''), 10),
     context: '',
-    primaryQuote: { text: `Quote for ${text}`, source },
+    primaryQuote: { text: `Quote for ${text}`, source, sourceId: 1, verified: false },
     supportingQuotes: [],
     sections: [],
     verified: false,

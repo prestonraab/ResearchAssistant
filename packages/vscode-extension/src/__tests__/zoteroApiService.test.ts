@@ -1,6 +1,7 @@
 import { jest } from '@jest/globals';
 import { ZoteroClient, ZoteroItem } from '@research-assistant/core';
 import { EmbeddingService } from '@research-assistant/core';
+import { ZoteroApiService } from '../services/zoteroApiService';
 import { 
   setupTest, 
   createMockZoteroItem, 
@@ -21,11 +22,12 @@ describe('ZoteroApiService', () => {
 
   let service: ZoteroApiService;
   let mockEmbeddingService: jest.Mocked<EmbeddingService>;
-  let fetchSpy: jest.SpyInstance;
+  let fetchSpy: jest.Mock<any>;
 
   beforeEach(() => {
     // Use jest.spyOn for global fetch - automatically cleaned up by setupTest()
-    fetchSpy = jest.spyOn(global, 'fetch' as any).mockResolvedValue(
+    fetchSpy = jest.spyOn(global, 'fetch' as any) as jest.Mock<any>;
+    fetchSpy.mockResolvedValue(
       createMockFetchResponse({})
     );
 
@@ -33,7 +35,7 @@ describe('ZoteroApiService', () => {
     service.initialize('test-api-key', 'test-user-id');
     
     // Use factory function for consistent, complete mock
-    mockEmbeddingService = createMockEmbeddingService();
+    mockEmbeddingService = createMockEmbeddingService() as any;
     (service as any).embeddingService = mockEmbeddingService;
   });
 

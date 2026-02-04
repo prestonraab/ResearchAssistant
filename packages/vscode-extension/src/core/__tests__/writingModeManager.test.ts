@@ -70,31 +70,28 @@ describe('WritingModeManager', () => {
     });
   });
 
-  describe('scroll position', () => {
+  describe('center item tracking', () => {
     beforeEach(() => {
       manager.initializeState('manuscript.md', 'outline.md');
     });
 
-    test('should save scroll position', () => {
-      manager.saveScrollPosition(100);
-      expect(manager.getScrollPosition()).toBe(100);
+    test('should save and retrieve center item ID', () => {
+      manager.saveCenterItemId('item-123', 100);
+      expect(manager.getCenterItemId()).toBe('item-123');
+      expect(manager.getCenterItemPosition()).toBe(100);
     });
 
-    test('should return 0 by default', () => {
-      expect(manager.getScrollPosition()).toBe(0);
+    test('should return undefined by default', () => {
+      expect(manager.getCenterItemId()).toBeUndefined();
+      expect(manager.getCenterItemPosition()).toBeUndefined();
     });
 
-    test('should handle large scroll positions', () => {
-      manager.saveScrollPosition(999999);
-      expect(manager.getScrollPosition()).toBe(999999);
-    });
-
-    test('should update timestamp on scroll', () => {
-      manager.saveScrollPosition(100);
+    test('should update timestamp on center item change', () => {
+      manager.saveCenterItemId('item-1', 100);
       const state1 = manager.getState();
 
       setTimeout(() => {
-        manager.saveScrollPosition(200);
+        manager.saveCenterItemId('item-2', 200);
         const state2 = manager.getState();
 
         expect(state2!.lastUpdated.getTime()).toBeGreaterThanOrEqual(state1!.lastUpdated.getTime());
@@ -134,12 +131,6 @@ describe('WritingModeManager', () => {
       const state = manager.initializeState('', '');
       expect(state.manuscriptPath).toBe('');
       expect(state.outlinePath).toBe('');
-    });
-
-    test('should handle negative scroll position', () => {
-      manager.initializeState('manuscript.md', 'outline.md');
-      manager.saveScrollPosition(-100);
-      expect(manager.getScrollPosition()).toBe(-100);
     });
   });
 });

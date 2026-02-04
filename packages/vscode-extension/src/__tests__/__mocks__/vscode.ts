@@ -95,6 +95,16 @@ export const workspace = {
     onDidDelete: jest.fn<any>(),
     dispose: jest.fn<any>(),
   })),
+  openTextDocument: jest.fn<any>().mockResolvedValue(undefined),
+  onDidOpenTextDocument: jest.fn<any>(() => ({
+    dispose: jest.fn<any>(),
+  })),
+  onDidCloseTextDocument: jest.fn<any>(() => ({
+    dispose: jest.fn<any>(),
+  })),
+  onDidChangeTextDocument: jest.fn<any>(() => ({
+    dispose: jest.fn<any>(),
+  })),
 };
 
 export const commands = {
@@ -121,10 +131,24 @@ export const ThemeIcon = jest.fn<any>((id: string) => ({ id }));
 export const RelativePattern = jest.fn<any>();
 
 export const Uri = {
-  file: jest.fn<any>((path: string) => ({ fsPath: path })),
-  parse: jest.fn<any>((uri: string) => ({ toString: () => uri })),
+  file: jest.fn<any>((path: string) => ({ fsPath: path, scheme: 'file' })),
+  parse: jest.fn<any>((uri: string) => {
+    // Parse the URI to extract scheme
+    const match = uri.match(/^([a-z][a-z0-9+.-]*):(.*)$/i);
+    const scheme = match ? match[1] : 'file';
+    return { 
+      toString: () => uri,
+      scheme,
+      fsPath: uri,
+      authority: '',
+      path: uri,
+      query: '',
+      fragment: ''
+    };
+  }),
   joinPath: jest.fn<any>((base: any, ...paths: string[]) => ({
-    fsPath: `${base.fsPath}/${paths.join('/')}`
+    fsPath: `${base.fsPath}/${paths.join('/')}`,
+    scheme: base.scheme || 'file'
   })),
 };
 

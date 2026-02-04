@@ -10,6 +10,7 @@ export class ManuscriptParser {
    * Removes HTML comment markers (<!-- [undefined] -->) that appear in the manuscript
    * Removes question markers (legacy **Question?** and Obsidian callouts) and combines answers into paragraphs
    * Removes inline fields like (status:: X) and [source:: X] for clean export
+   * Preserves markdown tables as separate paragraphs
    */
   public static parseManuscriptSections(text: string): Array<{ heading: string; paragraphs: string[] }> {
     const sections: Array<{ heading: string; paragraphs: string[] }> = [];
@@ -18,6 +19,8 @@ export class ManuscriptParser {
     let currentSection = { heading: '', paragraphs: [] as string[] };
     let currentParagraph = '';
     let inCallout = false;
+    let inTable = false;
+    let tableLines: string[] = [];
 
     for (const line of lines) {
       let cleanedLine = line.trim();
@@ -29,6 +32,28 @@ export class ManuscriptParser {
       
       // Remove legacy question markers (bold text ending with ?)
       cleanedLine = cleanedLine.replace(/\*\*[^*]+\?\*\*\s*/g, '');
+      
+      // Check if this line is part of a markdown table
+      const isTableLine = cleanedLine.includes('|');
+      
+      if (isTableLine) {
+        // If we were in a paragraph, save it first
+        if (currentParagraph.trim() && !inTable) {
+          currentSection.paragraphs.push(currentParagraph.trim());
+          currentParagraph = '';
+        }
+        
+        inTable = true;
+        tableLines.push(cleanedLine);
+        continue;
+      } else if (inTable) {
+        // End of table - save it as a paragraph
+        if (tableLines.length > 0) {
+          currentSection.paragraphs.push(tableLines.join('\n'));
+          tableLines = [];
+        }
+        inTable = false;
+      }
       
       // Handle Obsidian callout format
       // Skip question line: > [!question]- Question text? (status:: X)
@@ -93,6 +118,11 @@ export class ManuscriptParser {
         // Add to current paragraph
         currentParagraph += (currentParagraph ? ' ' : '') + cleanedLine;
       }
+    }
+
+    // Save final table if any
+    if (inTable && tableLines.length > 0) {
+      currentSection.paragraphs.push(tableLines.join('\n'));
     }
 
     // Save final section

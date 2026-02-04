@@ -5,7 +5,7 @@ import { ExtensionState } from '../core/state';
 import { ClaimsManager } from '../core/claimsManagerWrapper';
 import type { Claim, OutlineSection } from '@research-assistant/core';
 import { OutlineParser } from '../core/outlineParserWrapper';
-import { setupTest, aClaim, aZoteroItem, createMockEmbeddingService } from './helpers';
+import { setupTest, aClaim, aZoteroItem, createMockEmbeddingService, createMinimalDocument, createMinimalCancellationToken } from './helpers';
 
 // Type definitions for mocks
 type MockClaimsManager = {
@@ -43,6 +43,7 @@ describe('ClaimCompletionProvider', () => {
       .withCategory('Result')
       .withContext('Study on ML algorithms')
       .withPrimaryQuote('ML algorithms showed 95% accuracy', 'Smith2020')
+      .withSections(['section-1'])
       .verified()
       .build(),
     aClaim()
@@ -51,6 +52,7 @@ describe('ClaimCompletionProvider', () => {
       .withCategory('Method')
       .withContext('Best practices for data preparation')
       .withPrimaryQuote('Preprocessing significantly impacts model performance', 'Jones2021')
+      .withSections(['section-2'])
       .build(),
     aClaim()
       .withId('C_03')
@@ -58,6 +60,7 @@ describe('ClaimCompletionProvider', () => {
       .withCategory('Challenge')
       .withContext('Limitations of deep learning')
       .withPrimaryQuote('Deep learning models need thousands of examples', 'Brown2019')
+      .withSections(['section-1'])
       .verified()
       .build()
   ];
@@ -83,16 +86,21 @@ describe('ClaimCompletionProvider', () => {
 
   beforeEach(() => {
     // Create mock claims manager with typed methods
+    const getClaims = jest.fn<() => Claim[]>().mockReturnValue(mockClaims);
+    const getClaim = jest.fn<(id: string) => Claim | null>().mockImplementation((id: string) => mockClaims.find(c => c.id === id) || null);
+    const loadClaims = jest.fn<() => Promise<Claim[]>>().mockResolvedValue(mockClaims);
+    
     mockClaimsManager = {
-      getClaims: jest.fn<() => Claim[]>().mockReturnValue(mockClaims),
-      getClaim: jest.fn<(id: string) => Claim | null>((id: string) => mockClaims.find(c => c.id === id) || null),
-      loadClaims: jest.fn<() => Promise<Claim[]>>().mockResolvedValue(mockClaims)
-    };
+      getClaims,
+      getClaim,
+      loadClaims
+    } as any;
 
-    // Create mock outline parser
+    // Create mock outline parser with proper typing
     mockOutlineParser = {
-      parse: jest.fn<() => Promise<OutlineSection[]>>().mockResolvedValue(mockSections)
-    };
+      parse: jest.fn<(content: string) => Promise<OutlineSection[]>>()
+        .mockResolvedValue(mockSections)
+    } as any;
 
     // Create mock extension state using factory for embedding service
     const mockEmbeddingService = createMockEmbeddingService();
@@ -100,7 +108,7 @@ describe('ClaimCompletionProvider', () => {
       claimsManager: mockClaimsManager,
       outlineParser: mockOutlineParser,
       embeddingService: mockEmbeddingService,
-      getAbsolutePath: jest.fn<(path: string) => string>((path: string) => `/test/workspace/${path}`),
+      getAbsolutePath: jest.fn((path) => `/test/workspace/${path}`),
       getConfig: jest.fn().mockReturnValue({
         outlinePath: '03_Drafting/outline.md'
       })
@@ -108,18 +116,18 @@ describe('ClaimCompletionProvider', () => {
 
     provider = new ClaimCompletionProvider(mockState as any);
 
-    // Create mock document with proper typing
-    mockDocument = {
-      uri: { fsPath: '/test/workspace/03_Drafting/manuscript.md' },
-      lineAt: jest.fn().mockReturnValue({ text: 'Some text C_' })
-    } as unknown as vscode.TextDocument;
+    // Create mock document with proper typing using minimal mock helper
+    mockDocument = createMinimalDocument({
+      text: 'Some text C_',
+      uri: { fsPath: '/test/workspace/03_Drafting/manuscript.md' }
+    }) as any;
 
     mockPosition = new vscode.Position(5, 12);
   });
 
   describe('provideCompletionItems', () => {
     test('should return undefined if line does not end with "C_"', async () => {
-      mockDocument.lineAt = jest.fn().mockReturnValue({ text: 'Some text' });
+      (mockDocument.lineAt as any) = jest.fn().mockReturnValue({ text: 'Some text' });
 
       const result = await provider.provideCompletionItems(
         mockDocument,
@@ -176,9 +184,9 @@ describe('ClaimCompletionProvider', () => {
     test('should prioritize claims from current section', async () => {
       // Mock document is in outline file at line 5 (within section-1)
       mockDocument = {
-        uri: { fsPath: '/test/workspace/03_Drafting/outline.md' },
+        uri: { fsPath: '/test/workspace/03_Drafting/outline.md' } as any,
         lineAt: jest.fn().mockReturnValue({ text: 'Some text C_' })
-      };
+      } as any;
 
       const result = await provider.provideCompletionItems(
         mockDocument,
@@ -275,7 +283,7 @@ describe('ClaimCompletionProvider', () => {
       const position = new vscode.Position(5, 12);
       
       mockDocument = {
-        uri: { fsPath: '/test/workspace/03_Drafting/chapter.md' },
+        uri: { fsPath: '/test/workspace/03_Drafting/chapter.md' } as any,
         lineAt: jest.fn((lineOrPosition: any) => {
           const line = typeof lineOrPosition === 'number' ? lineOrPosition : lineOrPosition.line;
           if (line === 3) {
@@ -286,7 +294,7 @@ describe('ClaimCompletionProvider', () => {
           }
           return { text: '' };
         })
-      };
+      } as any;
       
       const result = await provider.provideCompletionItems(
         mockDocument,
@@ -305,8 +313,8 @@ describe('ClaimCompletionProvider', () => {
 
     test('should fall back to ID sorting when no section context', async () => {
       mockDocument = {
-        uri: { fsPath: '/test/workspace/03_Drafting/notes.md' },
-        lineAt: jest.fn<any>().mockReturnValue({ text: 'Some text C_' })
+        uri: { fsPath: '/test/workspace/03_Drafting/notes.md' } as any,
+        lineAt: jest.fn().mockReturnValue({ text: 'Some text C_' })
       } as any;
 
       const result = await provider.provideCompletionItems(
@@ -325,7 +333,7 @@ describe('ClaimCompletionProvider', () => {
     });
 
     test('should handle embedding service errors gracefully', async () => {
-      (mockState.embeddingService.generateEmbedding as jest.Mock).mockRejectedValue(
+      (mockState.embeddingService.generateEmbedding as any).mockRejectedValue(
         new Error('Embedding service unavailable')
       );
 

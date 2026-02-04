@@ -1,52 +1,55 @@
 # Test Organization
 
-This directory contains tests for the VSCode extension, organized by test type and purpose.
+This directory contains tests for the VSCode extension.
+
+## Testing Strategy
+
+**See [TESTING_STRATEGY.md](./TESTING_STRATEGY.md) for the complete testing guide.**
+
+The guide covers:
+- When to use pure logic tests vs integration tests
+- How to use test data builders
+- When mocking is appropriate
+- Good vs bad test examples
+- Refactoring existing code
+
+## Quick Start
+
+```typescript
+import { setupTest, aClaim, createMinimalDocument } from './helpers';
+
+describe('MyComponent', () => {
+  setupTest(); // Always include - clears mocks between tests
+  
+  test('should do something', () => {
+    const claim = aClaim().withId('C_01').build();
+    const doc = createMinimalDocument({ text: 'test' });
+    // ... test logic
+  });
+});
+```
 
 ## Directory Structure
 
 ```
 __tests__/
+├── TESTING_STRATEGY.md   # Complete testing guide (READ THIS FIRST)
 ├── helpers/              # Shared test utilities
 │   ├── mockFactories.ts  # Factory functions for creating mocks
+│   ├── minimalMocks.ts   # Lightweight VSCode API mocks
 │   ├── fixtures.ts       # Shared test data
 │   ├── builders.ts       # Builder pattern for complex objects
-│   ├── vscodeHelpers.ts  # VSCode-specific test helpers
 │   └── testSetup.ts      # Common setup/teardown utilities
-├── unit/                 # Unit tests (heavy mocking)
-├── integration/          # Integration tests (minimal mocking)
 └── jest.setup.ts         # Global Jest configuration
 
-core/__tests__/           # Tests for core services (mixed unit/integration)
-ui/__tests__/             # Tests for UI components (unit tests)
+core/__tests__/           # Tests for core services
+ui/__tests__/             # Tests for UI components
 ```
-
-## Test Types
-
-### Unit Tests (`__tests__/unit/`)
-- Test individual functions/classes in isolation
-- Heavy use of mocks for dependencies
-- Fast execution
-- Focus on logic and edge cases
-
-**When to use**: Testing business logic, algorithms, data transformations
-
-### Integration Tests (`__tests__/integration/` and `core/__tests__/`)
-- Test multiple components working together
-- Minimal mocking (only external services)
-- May use real file system with temp directories
-- Slower but more realistic
-
-**When to use**: Testing workflows, file operations, service interactions
-
-### UI Tests (`ui/__tests__/`)
-- Test VSCode UI components (providers, decorators, etc.)
-- Mock VSCode APIs
-- Test user interactions and display logic
 
 ## Helper Utilities
 
-### Mock Factories (`helpers/mockFactories.ts`)
-Create type-safe mocks for common objects:
+### Test Data Builders (`helpers/builders.ts`)
+Create complex test objects with fluent API:
 
 ```typescript
 import { createMockClaim, createMockDocument, createMockMCPClient } from './helpers';

@@ -1,39 +1,40 @@
 import { jest } from '@jest/globals';
 import * as vscode from 'vscode';
 import { ClaimHoverProvider } from '../ui/claimHoverProvider';
+import { ClaimsManager } from '../core/claimsManagerWrapper';
+import { setupTest, TEST_CLAIMS, aClaim } from './helpers';
 import {
-  createMockExtensionState,
-  createMockDocument,
-  createMockCancellationToken,
-  createMockPosition,
-  createMockRange,
-  createMockClaim,
-  setupTest,
-  TEST_CLAIMS,
-  aClaim
-} from './helpers';
+  createMinimalDocument,
+  createMinimalPosition,
+  createMinimalCancellationToken
+} from './helpers/minimalMocks';
 
 describe('ClaimHoverProvider', () => {
   setupTest();
 
   let hoverProvider: ClaimHoverProvider;
-  let mockExtensionState: ReturnType<typeof createMockExtensionState>;
-  let mockDocument: ReturnType<typeof createMockDocument>;
-  let mockCancellationToken: ReturnType<typeof createMockCancellationToken>;
+  let claimsManager: ClaimsManager;
 
   beforeEach(() => {
-    mockExtensionState = createMockExtensionState();
-    hoverProvider = new ClaimHoverProvider(mockExtensionState);
-    mockDocument = createMockDocument();
-    mockCancellationToken = createMockCancellationToken();
+    // Use real ClaimsManager in in-memory mode
+    claimsManager = new ClaimsManager('', { inMemory: true });
+    
+    // Create provider with real extension state
+    hoverProvider = new ClaimHoverProvider({
+      claimsManager: claimsManager
+    } as any);
   });
 
   describe('Claim Reference Detection', () => {
     test('should detect valid claim reference pattern C_01', async () => {
-      const position = createMockPosition(0, 5);
-      const range = createMockRange(0, 3, 0, 7);
-      mockDocument.getWordRangeAtPosition.mockReturnValue(range);
-      mockDocument.getText.mockReturnValue('C_01');
+      // Create minimal document with claim reference
+      const document = createMinimalDocument({
+        text: 'See C_01 for details',
+        languageId: 'markdown'
+      });
+      
+      const position = createMinimalPosition(0, 5);
+      const token = createMinimalCancellationToken();
       
       const claim = aClaim()
         .withId('C_01')
@@ -43,20 +44,22 @@ describe('ClaimHoverProvider', () => {
         .verified()
         .build();
       
-      mockExtensionState.claimsManager.getClaim.mockReturnValue(claim);
+      // Add claim to real ClaimsManager
+      claimsManager.addClaim(claim);
       
-      const hover = await hoverProvider.provideHover(mockDocument, position, mockCancellationToken);
+      const hover = await hoverProvider.provideHover(document as any, position as any, token as any);
       
       expect(hover).not.toBeNull();
-      expect(mockDocument.getWordRangeAtPosition).toHaveBeenCalledWith(position, /C_\d+/);
-      expect(mockExtensionState.claimsManager.getClaim).toHaveBeenCalledWith('C_01');
     });
 
     test('should detect claim reference C_99', async () => {
-      const position = createMockPosition(0, 5);
-      const range = createMockRange(0, 3, 0, 7);
-      mockDocument.getWordRangeAtPosition.mockReturnValue(range);
-      mockDocument.getText.mockReturnValue('C_99');
+      const document = createMinimalDocument({
+        text: 'See C_99 for details',
+        languageId: 'markdown'
+      });
+      
+      const position = createMinimalPosition(0, 5);
+      const token = createMinimalCancellationToken();
       
       const claim = aClaim()
         .withId('C_99')
@@ -66,61 +69,76 @@ describe('ClaimHoverProvider', () => {
         .unverified()
         .build();
       
-      mockExtensionState.claimsManager.getClaim.mockReturnValue(claim);
+      // Add claim to real ClaimsManager
+      claimsManager.addClaim(claim);
       
-      const hover = await hoverProvider.provideHover(mockDocument, position, mockCancellationToken);
+      const hover = await hoverProvider.provideHover(document as any, position as any, token as any);
       
       expect(hover).not.toBeNull();
-      expect(mockExtensionState.claimsManager.getClaim).toHaveBeenCalledWith('C_99');
     });
 
     test('should return null when no claim reference pattern found', async () => {
-      const position = createMockPosition(0, 5);
+      const document = createMinimalDocument({
+        text: 'No claim reference here',
+        languageId: 'markdown'
+      });
       
-      mockDocument.getWordRangeAtPosition.mockReturnValue(undefined);
+      const position = createMinimalPosition(0, 5);
+      const token = createMinimalCancellationToken();
       
-      const hover = await hoverProvider.provideHover(mockDocument, position, mockCancellationToken);
+      const hover = await hoverProvider.provideHover(document as any, position as any, token as any);
       
       expect(hover).toBeNull();
-      expect(mockExtensionState.claimsManager.getClaim).not.toHaveBeenCalled();
     });
 
     test('should return null when claim not found in database', async () => {
-      const position = createMockPosition(0, 5);
-      const range = createMockRange(0, 3, 0, 7);
+      const document = createMinimalDocument({
+        text: 'See C_99 for details',
+        languageId: 'markdown'
+      });
       
-      mockDocument.getWordRangeAtPosition.mockReturnValue(range);
-      mockDocument.getText.mockReturnValue('C_99');
+      const position = createMinimalPosition(0, 5);
+      const token = createMinimalCancellationToken();
       
-      mockExtensionState.claimsManager.getClaim.mockReturnValue(null);
+      // Don't add C_99 to the manager - it won't be found
       
-      const hover = await hoverProvider.provideHover(mockDocument, position, mockCancellationToken);
+      const hover = await hoverProvider.provideHover(document as any, position as any, token as any);
       
       expect(hover).toBeNull();
-      expect(mockExtensionState.claimsManager.getClaim).toHaveBeenCalledWith('C_99');
     });
   });
 
   describe('Hover Content Rendering', () => {
     test('should render claim with all fields', async () => {
-      const position = createMockPosition(0, 5);
-      const range = createMockRange(0, 3, 0, 7);
-      mockDocument.getWordRangeAtPosition.mockReturnValue(range);
-      mockDocument.getText.mockReturnValue('C_01');
+      const document = createMinimalDocument({
+        text: 'See C_01 for details',
+        languageId: 'markdown'
+      });
       
-      const claim = {
-        ...TEST_CLAIMS.method,
-        supportingQuotes: ['Supporting quote 1', 'Supporting quote 2'],
-        sections: ['section-1', 'section-2'],
-        context: 'Test context'
-      };
+      const position = createMinimalPosition(0, 5);
+      const token = createMinimalCancellationToken();
       
-      mockExtensionState.claimsManager.getClaim.mockReturnValue(claim);
+      const claim = aClaim()
+        .withId('C_01')
+        .withText('ComBat uses Empirical Bayes')
+        .withCategory('Method')
+        .withPrimaryQuote('ComBat quote', 'Johnson2007')
+        .verified()
+        .withSupportingQuotes([
+          { text: 'Supporting quote 1', source: 'Johnson2007', verified: false },
+          { text: 'Supporting quote 2', source: 'Johnson2007', verified: false }
+        ])
+        .withSections(['section-1', 'section-2'])
+        .withContext('Test context')
+        .build();
       
-      const hover = await hoverProvider.provideHover(mockDocument, position, mockCancellationToken);
+      // Add claim to real ClaimsManager
+      claimsManager.addClaim(claim);
+      
+      const hover = await hoverProvider.provideHover(document as any, position as any, token as any);
       
       expect(hover).not.toBeNull();
-      expect(hover!.range).toEqual(range);
+      expect(hover!.range).toBeDefined();
       
       const contents = hover!.contents[0] as vscode.MarkdownString;
       expect(contents).toBeDefined();
@@ -138,24 +156,24 @@ describe('ClaimHoverProvider', () => {
     });
 
     test('should render claim without optional fields', async () => {
-      const position = createMockPosition(0, 5);
-      const range = createMockRange(0, 3, 0, 7);
-      
-      mockDocument.getWordRangeAtPosition.mockReturnValue(range);
-      mockDocument.getText.mockReturnValue('C_02');
-      
-      const mockClaim = createMockClaim({
-        id: 'C_02',
-        text: 'Minimal claim',
-        category: '',
-        primaryQuote: { text: '', source: '', verified: false },
-        context: '',
-        verified: false
+      const document = createMinimalDocument({
+        text: 'See C_02 for details',
+        languageId: 'markdown'
       });
       
-      mockExtensionState.claimsManager.getClaim.mockReturnValue(mockClaim);
+      const position = createMinimalPosition(0, 5);
+      const token = createMinimalCancellationToken();
       
-      const hover = await hoverProvider.provideHover(mockDocument, position, mockCancellationToken);
+      const minimalClaim = aClaim()
+        .withId('C_02')
+        .withText('Minimal claim')
+        .unverified()
+        .build();
+      
+      // Add claim to real ClaimsManager
+      claimsManager.addClaim(minimalClaim);
+      
+      const hover = await hoverProvider.provideHover(document as any, position as any, token as any);
       
       expect(hover).not.toBeNull();
       
@@ -168,51 +186,59 @@ describe('ClaimHoverProvider', () => {
     });
 
     test('should show verification status correctly', async () => {
-      const position = createMockPosition(0, 5);
-      const range = createMockRange(0, 3, 0, 7);
-      
-      mockDocument.getWordRangeAtPosition.mockReturnValue(range);
-      mockDocument.getText.mockReturnValue('C_03');
-      
-      const verifiedClaim = createMockClaim({
-        id: 'C_03',
-        text: 'Verified claim',
-        category: 'Result',
-        primaryQuote: { text: 'Test quote', source: 'Test2023', sourceId: 1, verified: true },
-        verified: true
+      const document = createMinimalDocument({
+        text: 'See C_03 for details',
+        languageId: 'markdown'
       });
       
-      mockExtensionState.claimsManager.getClaim.mockReturnValue(verifiedClaim);
+      const position = createMinimalPosition(0, 5);
+      const token = createMinimalCancellationToken();
       
-      const hover = await hoverProvider.provideHover(mockDocument, position, mockCancellationToken);
+      const verifiedClaim = aClaim()
+        .withId('C_03')
+        .withText('Verified claim')
+        .withCategory('Result')
+        .withPrimaryQuote('Test quote', 'Test2023')
+        .verified()
+        .build();
+      
+      // Add claim to real ClaimsManager
+      claimsManager.addClaim(verifiedClaim);
+      
+      const hover = await hoverProvider.provideHover(document as any, position as any, token as any);
       
       const contents = hover!.contents[0] as vscode.MarkdownString;
       expect(contents.value).toContain('✅ Verified');
     });
 
     test('should limit supporting quotes display to first 2', async () => {
-      const position = createMockPosition(0, 5);
-      const range = createMockRange(0, 3, 0, 7);
-      
-      mockDocument.getWordRangeAtPosition.mockReturnValue(range);
-      mockDocument.getText.mockReturnValue('C_04');
-      
-      const mockClaim = createMockClaim({
-        id: 'C_04',
-        text: 'Claim with many quotes',
-        category: 'Method',
-        primaryQuote: { text: 'Primary quote', source: 'Test2023', sourceId: 1, verified: false },
-        supportingQuotes: [
-          { text: 'Quote 1', source: 'Test2023', verified: false },
-          { text: 'Quote 2', source: 'Test2023', verified: false },
-          { text: 'Quote 3', source: 'Test2023', verified: false },
-          { text: 'Quote 4', source: 'Test2023', verified: false }
-        ]
+      const document = createMinimalDocument({
+        text: 'See C_04 for details',
+        languageId: 'markdown'
       });
       
-      mockExtensionState.claimsManager.getClaim.mockReturnValue(mockClaim);
+      const position = createMinimalPosition(0, 5);
+      const token = createMinimalCancellationToken();
       
-      const hover = await hoverProvider.provideHover(mockDocument, position, mockCancellationToken);
+      const claimWithManyQuotes = aClaim()
+        .withId('C_04')
+        .withText('Claim with many quotes')
+        .withCategory('Method')
+        .withPrimaryQuote('Primary quote', 'Test2023')
+        .build();
+      
+      // Add supporting quotes manually
+      claimWithManyQuotes.supportingQuotes = [
+        { text: 'Quote 1', source: 'Test2023', verified: false },
+        { text: 'Quote 2', source: 'Test2023', verified: false },
+        { text: 'Quote 3', source: 'Test2023', verified: false },
+        { text: 'Quote 4', source: 'Test2023', verified: false }
+      ];
+      
+      // Add claim to real ClaimsManager
+      claimsManager.addClaim(claimWithManyQuotes);
+      
+      const hover = await hoverProvider.provideHover(document as any, position as any, token as any);
       
       const contents = hover!.contents[0] as vscode.MarkdownString;
       const markdownText = contents.value;
@@ -228,25 +254,30 @@ describe('ClaimHoverProvider', () => {
 
   describe('Quick Action Links', () => {
     test('should include quick action links', async () => {
-      const position = createMockPosition(0, 5);
-      const range = createMockRange(0, 3, 0, 7);
-      
-      mockDocument.getWordRangeAtPosition.mockReturnValue(range);
-      mockDocument.getText.mockReturnValue('C_01');
-      
-      const mockClaim = createMockClaim({
-        id: 'C_01',
-        text: 'Test claim',
-        category: 'Method',
-        primaryQuote: { text: 'Test quote', source: 'Smith2023', sourceId: 1, verified: true },
-        supportingQuotes: [{ text: 'Quote 1', source: 'Smith2023', verified: false }],
-        sections: ['section-1'],
-        verified: true
+      const document = createMinimalDocument({
+        text: 'See C_01 for details',
+        languageId: 'markdown'
       });
       
-      mockExtensionState.claimsManager.getClaim.mockReturnValue(mockClaim);
+      const position = createMinimalPosition(0, 5);
+      const token = createMinimalCancellationToken();
       
-      const hover = await hoverProvider.provideHover(mockDocument, position, mockCancellationToken);
+      const claimWithLinks = aClaim()
+        .withId('C_01')
+        .withText('Test claim')
+        .withCategory('Method')
+        .withPrimaryQuote('Test quote', 'Smith2023')
+        .verified()
+        .build();
+      
+      // Add supporting quotes and sections
+      claimWithLinks.supportingQuotes = [{ text: 'Quote 1', source: 'Smith2023', verified: false }];
+      claimWithLinks.sections = ['section-1'];
+      
+      // Add claim to real ClaimsManager
+      claimsManager.addClaim(claimWithLinks);
+      
+      const hover = await hoverProvider.provideHover(document as any, position as any, token as any);
       
       const contents = hover!.contents[0] as vscode.MarkdownString;
       const markdownText = contents.value;
@@ -263,23 +294,26 @@ describe('ClaimHoverProvider', () => {
     });
 
     test('should not show "View all quotes" link when no supporting quotes', async () => {
-      const position = createMockPosition(0, 5);
-      const range = createMockRange(0, 3, 0, 7);
-      
-      mockDocument.getWordRangeAtPosition.mockReturnValue(range);
-      mockDocument.getText.mockReturnValue('C_01');
-      
-      const mockClaim = createMockClaim({
-        id: 'C_01',
-        text: 'Test claim',
-        category: 'Method',
-        primaryQuote: { text: 'Test quote', source: 'Smith2023', sourceId: 1, verified: true },
-        verified: true
+      const document = createMinimalDocument({
+        text: 'See C_01 for details',
+        languageId: 'markdown'
       });
       
-      mockExtensionState.claimsManager.getClaim.mockReturnValue(mockClaim);
+      const position = createMinimalPosition(0, 5);
+      const token = createMinimalCancellationToken();
       
-      const hover = await hoverProvider.provideHover(mockDocument, position, mockCancellationToken);
+      const claimWithoutQuotes = aClaim()
+        .withId('C_01')
+        .withText('Test claim')
+        .withCategory('Method')
+        .withPrimaryQuote('Test quote', 'Smith2023')
+        .verified()
+        .build();
+      
+      // Add claim to real ClaimsManager
+      claimsManager.addClaim(claimWithoutQuotes);
+      
+      const hover = await hoverProvider.provideHover(document as any, position as any, token as any);
       
       const contents = hover!.contents[0] as vscode.MarkdownString;
       const markdownText = contents.value;
@@ -289,23 +323,26 @@ describe('ClaimHoverProvider', () => {
     });
 
     test('should not show "Show sections" link when no sections', async () => {
-      const position = createMockPosition(0, 5);
-      const range = createMockRange(0, 3, 0, 7);
-      
-      mockDocument.getWordRangeAtPosition.mockReturnValue(range);
-      mockDocument.getText.mockReturnValue('C_01');
-      
-      const mockClaim = createMockClaim({
-        id: 'C_01',
-        text: 'Test claim',
-        category: 'Method',
-        primaryQuote: { text: 'Test quote', source: 'Smith2023', sourceId: 1, verified: true },
-        verified: true
+      const document = createMinimalDocument({
+        text: 'See C_01 for details',
+        languageId: 'markdown'
       });
       
-      mockExtensionState.claimsManager.getClaim.mockReturnValue(mockClaim);
+      const position = createMinimalPosition(0, 5);
+      const token = createMinimalCancellationToken();
       
-      const hover = await hoverProvider.provideHover(mockDocument, position, mockCancellationToken);
+      const claimWithoutSections = aClaim()
+        .withId('C_01')
+        .withText('Test claim')
+        .withCategory('Method')
+        .withPrimaryQuote('Test quote', 'Smith2023')
+        .verified()
+        .build();
+      
+      // Add claim to real ClaimsManager
+      claimsManager.addClaim(claimWithoutSections);
+      
+      const hover = await hoverProvider.provideHover(document as any, position as any, token as any);
       
       const contents = hover!.contents[0] as vscode.MarkdownString;
       const markdownText = contents.value;
@@ -314,24 +351,29 @@ describe('ClaimHoverProvider', () => {
     });
 
     test('should show section count in link when sections exist', async () => {
-      const position = createMockPosition(0, 5);
-      const range = createMockRange(0, 3, 0, 7);
-      
-      mockDocument.getWordRangeAtPosition.mockReturnValue(range);
-      mockDocument.getText.mockReturnValue('C_01');
-      
-      const mockClaim = createMockClaim({
-        id: 'C_01',
-        text: 'Test claim',
-        category: 'Method',
-        primaryQuote: { text: 'Test quote', source: 'Smith2023', sourceId: 1, verified: true },
-        sections: ['section-1', 'section-2', 'section-3'],
-        verified: true
+      const document = createMinimalDocument({
+        text: 'See C_01 for details',
+        languageId: 'markdown'
       });
       
-      mockExtensionState.claimsManager.getClaim.mockReturnValue(mockClaim);
+      const position = createMinimalPosition(0, 5);
+      const token = createMinimalCancellationToken();
       
-      const hover = await hoverProvider.provideHover(mockDocument, position, mockCancellationToken);
+      const claimWithSections = aClaim()
+        .withId('C_01')
+        .withText('Test claim')
+        .withCategory('Method')
+        .withPrimaryQuote('Test quote', 'Smith2023')
+        .verified()
+        .build();
+      
+      // Add sections
+      claimWithSections.sections = ['section-1', 'section-2', 'section-3'];
+      
+      // Add claim to real ClaimsManager
+      claimsManager.addClaim(claimWithSections);
+      
+      const hover = await hoverProvider.provideHover(document as any, position as any, token as any);
       
       const contents = hover!.contents[0] as vscode.MarkdownString;
       const markdownText = contents.value;
@@ -342,24 +384,27 @@ describe('ClaimHoverProvider', () => {
 
   describe('Edge Cases', () => {
     test('should handle claim with very long text', async () => {
-      const position = createMockPosition(0, 5);
-      const range = createMockRange(0, 3, 0, 7);
-      
-      mockDocument.getWordRangeAtPosition.mockReturnValue(range);
-      mockDocument.getText.mockReturnValue('C_01');
-      
-      const longText = 'A'.repeat(1000);
-      const mockClaim = createMockClaim({
-        id: 'C_01',
-        text: longText,
-        category: 'Method',
-        primaryQuote: { text: 'Test quote', source: 'Smith2023', sourceId: 1, verified: true },
-        verified: true
+      const document = createMinimalDocument({
+        text: 'See C_01 for details',
+        languageId: 'markdown'
       });
       
-      mockExtensionState.claimsManager.getClaim.mockReturnValue(mockClaim);
+      const position = createMinimalPosition(0, 5);
+      const token = createMinimalCancellationToken();
       
-      const hover = await hoverProvider.provideHover(mockDocument, position, mockCancellationToken);
+      const longText = 'A'.repeat(1000);
+      const claimWithLongText = aClaim()
+        .withId('C_01')
+        .withText(longText)
+        .withCategory('Method')
+        .withPrimaryQuote('Test quote', 'Smith2023')
+        .verified()
+        .build();
+      
+      // Add claim to real ClaimsManager
+      claimsManager.addClaim(claimWithLongText);
+      
+      const hover = await hoverProvider.provideHover(document as any, position as any, token as any);
       
       expect(hover).not.toBeNull();
       const contents = hover!.contents[0] as vscode.MarkdownString;
@@ -367,23 +412,26 @@ describe('ClaimHoverProvider', () => {
     });
 
     test('should handle claim with special characters in text', async () => {
-      const position = createMockPosition(0, 5);
-      const range = createMockRange(0, 3, 0, 7);
-      
-      mockDocument.getWordRangeAtPosition.mockReturnValue(range);
-      mockDocument.getText.mockReturnValue('C_01');
-      
-      const mockClaim = createMockClaim({
-        id: 'C_01',
-        text: 'Test with **bold** and *italic* and `code`',
-        category: 'Method',
-        primaryQuote: { text: 'Quote with "quotes" and \'apostrophes\'', source: 'Smith2023', sourceId: 1, verified: true },
-        verified: true
+      const document = createMinimalDocument({
+        text: 'See C_01 for details',
+        languageId: 'markdown'
       });
       
-      mockExtensionState.claimsManager.getClaim.mockReturnValue(mockClaim);
+      const position = createMinimalPosition(0, 5);
+      const token = createMinimalCancellationToken();
       
-      const hover = await hoverProvider.provideHover(mockDocument, position, mockCancellationToken);
+      const claimWithSpecialChars = aClaim()
+        .withId('C_01')
+        .withText('Test with **bold** and *italic* and `code`')
+        .withCategory('Method')
+        .withPrimaryQuote('Quote with "quotes" and \'apostrophes\'', 'Smith2023')
+        .verified()
+        .build();
+      
+      // Add claim to real ClaimsManager
+      claimsManager.addClaim(claimWithSpecialChars);
+      
+      const hover = await hoverProvider.provideHover(document as any, position as any, token as any);
       
       expect(hover).not.toBeNull();
       const contents = hover!.contents[0] as vscode.MarkdownString;

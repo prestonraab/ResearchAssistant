@@ -1,5 +1,5 @@
 import { jest } from '@jest/globals';
-import type { Claim, SourcedQuote, EmbeddingService } from '@research-assistant/core';
+import type { Claim, SourcedQuote } from '@research-assistant/core';
 import * as vscode from 'vscode';
 import type { VerificationResult, ZoteroItem } from '@research-assistant/core';
 import type { ClaimsManager } from '../../core/claimsManagerWrapper';
@@ -68,10 +68,26 @@ export const createMockVerificationResult = (overrides?: Partial<VerificationRes
 // ============================================================================
 
 /**
+ * Interface for the public methods of EmbeddingService that we need to mock.
+ * This avoids TypeScript errors from trying to mock private properties.
+ */
+export interface MockableEmbeddingService {
+  generateEmbedding(text: string): Promise<number[]>;
+  generateBatch(texts: string[]): Promise<number[][]>;
+  generateBatchParallel(texts: string[], batchSize?: number): Promise<number[][]>;
+  cosineSimilarity(vec1: number[], vec2: number[]): number;
+  trimCache(maxSize: number): void;
+  clearCache(): void;
+  getCacheSize(): number;
+}
+
+/**
  * Creates a properly typed mock EmbeddingService
  * Use this instead of creating inline mocks to maintain type safety
+ * 
+ * Note: We mock only the public interface, not private properties.
  */
-export const createMockEmbeddingService = () => {
+export const createMockEmbeddingService = (): jest.Mocked<MockableEmbeddingService> => {
   return {
     generateEmbedding: jest.fn<(text: string) => Promise<number[]>>().mockResolvedValue(
       new Array(1536).fill(0).map(() => Math.random())
@@ -80,14 +96,12 @@ export const createMockEmbeddingService = () => {
       new Array(1536).fill(0).map(() => Math.random()),
       new Array(1536).fill(0).map(() => Math.random())
     ]),
-    generateBatchParallel: jest.fn<(texts: string[]) => Promise<number[][]>>().mockResolvedValue([]),
-    cosineSimilarity: jest.fn<(a: number[], b: number[]) => number>().mockReturnValue(0.85),
-    cacheEmbedding: jest.fn<(key: string, embedding: number[]) => void>(),
-    getCachedEmbedding: jest.fn<(key: string) => number[] | null>().mockReturnValue(null),
-    trimCache: jest.fn<() => void>(),
+    generateBatchParallel: jest.fn<(texts: string[], batchSize?: number) => Promise<number[][]>>().mockResolvedValue([]),
+    cosineSimilarity: jest.fn<(vec1: number[], vec2: number[]) => number>().mockReturnValue(0.85),
+    trimCache: jest.fn<(maxSize: number) => void>(),
     clearCache: jest.fn<() => void>(),
     getCacheSize: jest.fn<() => number>().mockReturnValue(0)
-  };
+  } as jest.Mocked<MockableEmbeddingService>;
 };
 
 /**
@@ -96,12 +110,14 @@ export const createMockEmbeddingService = () => {
 export const createMockClaimsManager = (): jest.Mocked<ClaimsManager> => {
   return {
     getClaim: jest.fn<(id: string) => Claim | null>().mockReturnValue(null),
+    getClaims: jest.fn<() => Claim[]>().mockReturnValue([]),
     saveClaim: jest.fn<(claim: Claim) => Promise<void>>().mockResolvedValue(undefined),
+    updateClaim: jest.fn<(claim: Claim) => Promise<void>>().mockResolvedValue(undefined),
     loadClaims: jest.fn<() => Promise<Claim[]>>().mockResolvedValue([]),
     getAllClaims: jest.fn<() => Claim[]>().mockReturnValue([]),
     deleteClaim: jest.fn<(id: string) => Promise<void>>().mockResolvedValue(undefined),
     updatePath: jest.fn<(path: string) => void>(),
-    onClaimSaved: jest.fn<(callback: (claim: Claim) => void) => { dispose: () => void }>().mockReturnValue({
+    onClaimSaved: jest.fn<() => any>().mockReturnValue({
       dispose: jest.fn()
     })
   } as any as jest.Mocked<ClaimsManager>;
@@ -111,20 +127,20 @@ export const createMockClaimsManager = (): jest.Mocked<ClaimsManager> => {
  * Creates a mock MCP Client for Zotero/verification services
  */
 export const createMockMCPClient = (): any => ({
-  verifyQuote: jest.fn<(quote: string, authorYear: string) => Promise<VerificationResult>>(),
-  zoteroSemanticSearch: jest.fn<(query: string, limit: number) => Promise<ZoteroItem[]>>(),
-  getCollections: jest.fn<() => Promise<any[]>>(),
-  getItemMetadata: jest.fn<(itemKey: string) => Promise<ZoteroItem | null>>(),
-  getItemFulltext: jest.fn<(itemKey: string) => Promise<string>>(),
-  searchQuotes: jest.fn<(searchTerm: string, source?: string) => Promise<any[]>>(),
-  verifyAllQuotes: jest.fn<() => Promise<any>>(),
-  convertDocument: jest.fn<(path: string) => Promise<string>>(),
-  exportToMarkdown: jest.fn<(docKey: string) => Promise<string>>(),
-  isConnected: jest.fn<(serverName: string) => boolean>(),
-  reconnect: jest.fn<(serverName: string) => Promise<void>>(),
+  verifyQuote: jest.fn<() => Promise<any>>().mockResolvedValue({}),
+  zoteroSemanticSearch: jest.fn<() => Promise<any[]>>().mockResolvedValue([]),
+  getCollections: jest.fn<() => Promise<any[]>>().mockResolvedValue([]),
+  getItemMetadata: jest.fn<() => Promise<any>>().mockResolvedValue(null),
+  getItemFulltext: jest.fn<() => Promise<string>>().mockResolvedValue(''),
+  searchQuotes: jest.fn<() => Promise<any[]>>().mockResolvedValue([]),
+  verifyAllQuotes: jest.fn<() => Promise<any>>().mockResolvedValue({}),
+  convertDocument: jest.fn<() => Promise<string>>().mockResolvedValue(''),
+  exportToMarkdown: jest.fn<() => Promise<string>>().mockResolvedValue(''),
+  isConnected: jest.fn<() => boolean>().mockReturnValue(false),
+  reconnect: jest.fn<() => Promise<void>>().mockResolvedValue(undefined),
   dispose: jest.fn<() => void>(),
   clearCache: jest.fn<() => void>(),
-  getCacheStats: jest.fn<() => { size: number; keys: string[] }>(),
+  getCacheStats: jest.fn<() => any>().mockReturnValue({ size: 0, keys: [] }),
 });
 
 /**
@@ -175,7 +191,7 @@ export const createMockDocument = (overrides?: Partial<vscode.TextDocument>): an
     eol,
     lineCount: 10,
     getText: jest.fn().mockReturnValue('Test content'),
-    getWordRangeAtPosition: jest.fn().mockReturnValue(undefined),
+    getWordRangeAtPosition: jest.fn<() => vscode.Range | undefined>().mockReturnValue(undefined),
     validateRange: jest.fn((range: vscode.Range) => range),
     validatePosition: jest.fn((position: vscode.Position) => position),
     offsetAt: jest.fn().mockReturnValue(0),
@@ -330,8 +346,8 @@ export const createMockExtensionContext = (overrides?: Partial<vscode.ExtensionC
     extension: {} as any,
     secrets: {
       get: jest.fn(),
-      store: jest.fn<() => Thenable<void>>().mockResolvedValue(undefined),
-      delete: jest.fn<() => Thenable<void>>().mockResolvedValue(undefined),
+      store: jest.fn<() => Promise<void>>().mockResolvedValue(undefined),
+      delete: jest.fn<() => Promise<void>>().mockResolvedValue(undefined),
       onDidChange: jest.fn()
     } as any,
     languageModelAccessInformation: {} as any,
@@ -367,12 +383,12 @@ export const createMockZoteroApiService = () => {
   return {
     isConfigured: jest.fn<() => boolean>().mockReturnValue(true),
     testConnection: jest.fn<() => Promise<boolean>>().mockResolvedValue(true),
-    semanticSearch: jest.fn<(query: string, limit?: number) => Promise<ZoteroItem[]>>().mockResolvedValue([]),
-    getCollectionItems: jest.fn<(collectionKey: string, limit?: number) => Promise<ZoteroItem[]>>().mockResolvedValue([]),
-    getRecentItems: jest.fn<(limit?: number) => Promise<ZoteroItem[]>>().mockResolvedValue([]),
-    getItemChildren: jest.fn<(itemKey: string) => Promise<any[]>>().mockResolvedValue([]),
-    getPdfAttachments: jest.fn<(itemKey: string) => Promise<any[]>>().mockResolvedValue([]),
-    initialize: jest.fn<(apiKey: string, userId: string) => void>(),
+    semanticSearch: jest.fn<() => Promise<any[]>>().mockResolvedValue([]),
+    getCollectionItems: jest.fn<() => Promise<any[]>>().mockResolvedValue([]),
+    getRecentItems: jest.fn<() => Promise<any[]>>().mockResolvedValue([]),
+    getItemChildren: jest.fn<() => Promise<any[]>>().mockResolvedValue([]),
+    getPdfAttachments: jest.fn<() => Promise<any[]>>().mockResolvedValue([]),
+    initialize: jest.fn<() => void>(),
     dispose: jest.fn<() => void>()
   };
 };
@@ -382,9 +398,12 @@ export const createMockZoteroApiService = () => {
  */
 export const createMockPdfExtractionService = () => {
   return {
-    extractText: jest.fn<(pdfPath: string) => Promise<string>>().mockResolvedValue(''),
-    hasExtractedText: jest.fn<(itemKey: string) => boolean>().mockReturnValue(false),
-    getExtractedTextPath: jest.fn<(itemKey: string) => string>().mockReturnValue('')
+    extractText: jest.fn<() => Promise<any>>().mockResolvedValue({
+      success: true,
+      outputPath: ''
+    }),
+    hasExtractedText: jest.fn<() => boolean>().mockReturnValue(false),
+    getExtractedTextPath: jest.fn<() => string>().mockReturnValue('')
   };
 };
 
@@ -393,11 +412,11 @@ export const createMockPdfExtractionService = () => {
  */
 export const createMockOutlineParser = () => {
   return {
-    parse: jest.fn<(content: string) => any[]>().mockReturnValue([]),
+    parse: jest.fn<() => any[]>().mockReturnValue([]),
     getSections: jest.fn<() => any[]>().mockReturnValue([]),
-    getSection: jest.fn<(id: string) => any | null>().mockReturnValue(null),
-    getSectionById: jest.fn<(id: string) => any | null>().mockReturnValue(null),
-    findSectionByTitle: jest.fn<(title: string) => any | null>().mockReturnValue(null)
+    getSection: jest.fn<() => any>().mockReturnValue(null),
+    getSectionById: jest.fn<() => any>().mockReturnValue(null),
+    findSectionByTitle: jest.fn<() => any>().mockReturnValue(null)
   };
 };
 
@@ -406,8 +425,8 @@ export const createMockOutlineParser = () => {
  */
 export const createMockManuscriptContextDetector = () => {
   return {
-    getContext: jest.fn<() => any | null>().mockReturnValue(null),
-    getCurrentSection: jest.fn<() => any | null>().mockReturnValue(null),
+    getContext: jest.fn<() => any>().mockReturnValue(null),
+    getCurrentSection: jest.fn<() => any>().mockReturnValue(null),
     isInManuscript: jest.fn<() => boolean>().mockReturnValue(false)
   };
 };
@@ -417,12 +436,12 @@ export const createMockManuscriptContextDetector = () => {
  */
 export const createMockUnifiedQuoteSearch = () => {
   return {
-    findBestMatch: jest.fn<(quote: string, authorYear: string) => Promise<VerificationResult>>().mockResolvedValue({
+    findBestMatch: jest.fn<() => Promise<any>>().mockResolvedValue({
       verified: false,
       similarity: 0,
       confidence: 0
     }),
-    search: jest.fn<(query: string) => Promise<any[]>>().mockResolvedValue([]),
+    search: jest.fn<() => Promise<any[]>>().mockResolvedValue([]),
     dispose: jest.fn<() => void>()
   };
 };
@@ -433,9 +452,9 @@ export const createMockUnifiedQuoteSearch = () => {
  */
 export const createMockSentenceClaimQuoteLinkManager = (): jest.Mocked<any> => {
   return {
-    getCitationsForSentence: jest.fn<(sentenceId: string) => any[]>().mockReturnValue([]),
-    addCitation: jest.fn<(sentenceId: string, claimId: string, quoteIndex: number) => void>(),
-    removeCitation: jest.fn<(sentenceId: string, claimId: string) => void>(),
+    getCitationsForSentence: jest.fn<() => any[]>().mockReturnValue([]),
+    addCitation: jest.fn<() => void>(),
+    removeCitation: jest.fn<() => void>(),
     getAllCitations: jest.fn<() => any[]>().mockReturnValue([]),
     clearCitations: jest.fn<() => void>(),
     saveCitations: jest.fn<() => Promise<void>>().mockResolvedValue(undefined),
@@ -449,13 +468,13 @@ export const createMockSentenceClaimQuoteLinkManager = (): jest.Mocked<any> => {
  */
 export const createMockFs = () => {
   return {
-    existsSync: jest.fn<(path: string) => boolean>().mockReturnValue(false),
-    readFileSync: jest.fn<(path: string) => string>().mockReturnValue(''),
-    writeFileSync: jest.fn<(path: string, data: string) => void>(),
-    readdirSync: jest.fn<(path: string) => string[]>().mockReturnValue([]),
-    mkdirSync: jest.fn<(path: string, options?: any) => void>(),
-    unlinkSync: jest.fn<(path: string) => void>(),
-    statSync: jest.fn<(path: string) => any>().mockReturnValue({ isFile: () => true, isDirectory: () => false })
+    existsSync: jest.fn<() => boolean>().mockReturnValue(false),
+    readFileSync: jest.fn<() => string>().mockReturnValue(''),
+    writeFileSync: jest.fn<() => void>(),
+    readdirSync: jest.fn<() => string[]>().mockReturnValue([]),
+    mkdirSync: jest.fn<() => void>(),
+    unlinkSync: jest.fn<() => void>(),
+    statSync: jest.fn<() => any>().mockReturnValue({ isFile: () => true, isDirectory: () => false })
   };
 };
 
@@ -465,13 +484,13 @@ export const createMockFs = () => {
  */
 export const createMockQuoteManager = () => {
   return {
-    getQuote: jest.fn<(id: string) => SourcedQuote | null>().mockReturnValue(null),
-    getAllQuotes: jest.fn<() => SourcedQuote[]>().mockReturnValue([]),
-    saveQuote: jest.fn<(quote: SourcedQuote) => Promise<void>>().mockResolvedValue(undefined),
-    deleteQuote: jest.fn<(id: string) => Promise<void>>().mockResolvedValue(undefined),
-    findQuotesBySource: jest.fn<(source: string) => SourcedQuote[]>().mockReturnValue([]),
-    verifyQuote: jest.fn<(quote: SourcedQuote) => Promise<boolean>>().mockResolvedValue(false),
-    onQuoteSaved: jest.fn<(callback: (quote: SourcedQuote) => void) => { dispose: () => void }>().mockReturnValue({
+    getQuote: jest.fn<() => any>().mockReturnValue(null),
+    getAllQuotes: jest.fn<() => any[]>().mockReturnValue([]),
+    saveQuote: jest.fn<() => Promise<void>>().mockResolvedValue(undefined),
+    deleteQuote: jest.fn<() => Promise<void>>().mockResolvedValue(undefined),
+    findQuotesBySource: jest.fn<() => any[]>().mockReturnValue([]),
+    verifyQuote: jest.fn<() => Promise<boolean>>().mockResolvedValue(false),
+    onQuoteSaved: jest.fn<() => any>().mockReturnValue({
       dispose: jest.fn()
     })
   };
@@ -483,18 +502,18 @@ export const createMockQuoteManager = () => {
  */
 export const createMockCoverageAnalyzer = () => {
   return {
-    analyzeCoverage: jest.fn<(claims: any[]) => any>().mockReturnValue({
+    analyzeCoverage: jest.fn<() => any>().mockReturnValue({
       totalClaims: 0,
       verifiedClaims: 0,
       coverage: 0,
       byCategory: {}
     }),
-    getCoverageBySection: jest.fn<(sectionId: string) => any>().mockReturnValue({
+    getCoverageBySection: jest.fn<() => any>().mockReturnValue({
       coverage: 0,
       claims: []
     }),
-    getUncoveredSections: jest.fn<() => string[]>().mockReturnValue([]),
-    suggestClaims: jest.fn<(sectionId: string) => any[]>().mockReturnValue([])
+    getUncoveredSections: jest.fn<() => any[]>().mockReturnValue([]),
+    suggestClaims: jest.fn<() => any[]>().mockReturnValue([])
   };
 };
 
@@ -504,11 +523,11 @@ export const createMockCoverageAnalyzer = () => {
  */
 export const createMockSearchService = () => {
   return {
-    searchClaims: jest.fn<(query: string) => Promise<any[]>>().mockResolvedValue([]),
-    searchPapers: jest.fn<(query: string) => Promise<any[]>>().mockResolvedValue([]),
-    searchQuotes: jest.fn<(query: string) => Promise<any[]>>().mockResolvedValue([]),
-    indexClaim: jest.fn<(claim: any) => void>(),
-    indexPaper: jest.fn<(paper: any) => void>(),
+    searchClaims: jest.fn<() => Promise<any[]>>().mockResolvedValue([]),
+    searchPapers: jest.fn<() => Promise<any[]>>().mockResolvedValue([]),
+    searchQuotes: jest.fn<() => Promise<any[]>>().mockResolvedValue([]),
+    indexClaim: jest.fn<() => void>(),
+    indexPaper: jest.fn<() => void>(),
     clearIndex: jest.fn<() => void>(),
     getIndexStats: jest.fn<() => any>().mockReturnValue({ claims: 0, papers: 0 })
   };
@@ -520,11 +539,11 @@ export const createMockSearchService = () => {
  */
 export const createMockSynthesisEngine = () => {
   return {
-    synthesizeClaims: jest.fn<(claims: any[]) => Promise<string>>().mockResolvedValue('Synthesized text'),
-    generateSummary: jest.fn<(content: string) => Promise<string>>().mockResolvedValue('Summary'),
-    generateOutline: jest.fn<(content: string) => Promise<any[]>>().mockResolvedValue([]),
-    suggestConnections: jest.fn<(claim: any) => Promise<any[]>>().mockResolvedValue([]),
-    validateConsistency: jest.fn<(claims: any[]) => Promise<any>>().mockResolvedValue({ consistent: true })
+    synthesizeClaims: jest.fn<() => Promise<string>>().mockResolvedValue('Synthesized text'),
+    generateSummary: jest.fn<() => Promise<string>>().mockResolvedValue('Summary'),
+    generateOutline: jest.fn<() => Promise<any[]>>().mockResolvedValue([]),
+    suggestConnections: jest.fn<() => Promise<any[]>>().mockResolvedValue([]),
+    validateConsistency: jest.fn<() => Promise<any>>().mockResolvedValue({ consistent: true })
   };
 };
 
@@ -534,10 +553,10 @@ export const createMockSynthesisEngine = () => {
  */
 export const createMockClaimStrengthCalculator = () => {
   return {
-    calculateStrength: jest.fn<(claim: any) => number>().mockReturnValue(0.5),
-    calculateQuoteStrength: jest.fn<(quote: any) => number>().mockReturnValue(0.5),
-    calculateCategoryStrength: jest.fn<(category: string) => number>().mockReturnValue(0.5),
-    getStrengthBreakdown: jest.fn<(claim: any) => any>().mockReturnValue({
+    calculateStrength: jest.fn<() => number>().mockReturnValue(0.5),
+    calculateQuoteStrength: jest.fn<() => number>().mockReturnValue(0.5),
+    calculateCategoryStrength: jest.fn<() => number>().mockReturnValue(0.5),
+    getStrengthBreakdown: jest.fn<() => any>().mockReturnValue({
       quoteStrength: 0.5,
       categoryStrength: 0.5,
       verificationStrength: 0.5,
@@ -552,11 +571,11 @@ export const createMockClaimStrengthCalculator = () => {
  */
 export const createMockLiteratureIndexer = () => {
   return {
-    indexPaper: jest.fn<(paper: any) => Promise<void>>().mockResolvedValue(undefined),
-    indexBatch: jest.fn<(papers: any[]) => Promise<void>>().mockResolvedValue(undefined),
-    searchByTitle: jest.fn<(title: string) => Promise<any[]>>().mockResolvedValue([]),
-    searchByAuthor: jest.fn<(author: string) => Promise<any[]>>().mockResolvedValue([]),
-    searchByKeyword: jest.fn<(keyword: string) => Promise<any[]>>().mockResolvedValue([]),
+    indexPaper: jest.fn<() => Promise<void>>().mockResolvedValue(undefined),
+    indexBatch: jest.fn<() => Promise<void>>().mockResolvedValue(undefined),
+    searchByTitle: jest.fn<() => Promise<any[]>>().mockResolvedValue([]),
+    searchByAuthor: jest.fn<() => Promise<any[]>>().mockResolvedValue([]),
+    searchByKeyword: jest.fn<() => Promise<any[]>>().mockResolvedValue([]),
     getIndexStats: jest.fn<() => any>().mockReturnValue({ indexed: 0, pending: 0 }),
     clearIndex: jest.fn<() => Promise<void>>().mockResolvedValue(undefined)
   };
@@ -568,11 +587,11 @@ export const createMockLiteratureIndexer = () => {
  */
 export const createMockPaperRanker = () => {
   return {
-    rankPapers: jest.fn<(papers: any[], query: string) => Promise<any[]>>().mockResolvedValue([]),
-    rankByRelevance: jest.fn<(papers: any[], claim: any) => Promise<any[]>>().mockResolvedValue([]),
-    rankByRecency: jest.fn<(papers: any[]) => any[]>().mockReturnValue([]),
-    rankByCitations: jest.fn<(papers: any[]) => any[]>().mockReturnValue([]),
-    getRelevanceScore: jest.fn<(paper: any, query: string) => number>().mockReturnValue(0.5)
+    rankPapers: jest.fn<() => Promise<any[]>>().mockResolvedValue([]),
+    rankByRelevance: jest.fn<() => Promise<any[]>>().mockResolvedValue([]),
+    rankByRecency: jest.fn<() => any[]>().mockReturnValue([]),
+    rankByCitations: jest.fn<() => any[]>().mockReturnValue([]),
+    getRelevanceScore: jest.fn<() => number>().mockReturnValue(0.5)
   };
 };
 
@@ -582,10 +601,10 @@ export const createMockPaperRanker = () => {
  */
 export const createMockInternetPaperSearcher = () => {
   return {
-    search: jest.fn<(query: string, limit?: number) => Promise<any[]>>().mockResolvedValue([]),
-    searchByDOI: jest.fn<(doi: string) => Promise<any | null>>().mockResolvedValue(null),
-    searchByTitle: jest.fn<(title: string) => Promise<any[]>>().mockResolvedValue([]),
-    searchByAuthor: jest.fn<(author: string) => Promise<any[]>>().mockResolvedValue([]),
+    search: jest.fn<() => Promise<any[]>>().mockResolvedValue([]),
+    searchByDOI: jest.fn<() => Promise<any>>().mockResolvedValue(null),
+    searchByTitle: jest.fn<() => Promise<any[]>>().mockResolvedValue([]),
+    searchByAuthor: jest.fn<() => Promise<any[]>>().mockResolvedValue([]),
     getSearchStats: jest.fn<() => any>().mockReturnValue({ searches: 0, results: 0 })
   };
 };
@@ -596,10 +615,10 @@ export const createMockInternetPaperSearcher = () => {
  */
 export const createMockSnippetExtractor = () => {
   return {
-    extractSnippet: jest.fn<(text: string, query: string, contextSize?: number) => string>().mockReturnValue(''),
-    extractSnippets: jest.fn<(text: string, queries: string[], contextSize?: number) => string[]>().mockReturnValue([]),
-    extractAroundPosition: jest.fn<(text: string, position: number, contextSize?: number) => string>().mockReturnValue(''),
-    highlightMatches: jest.fn<(text: string, query: string) => string>().mockReturnValue('')
+    extractSnippet: jest.fn<() => string>().mockReturnValue(''),
+    extractSnippets: jest.fn<() => string[]>().mockReturnValue([]),
+    extractAroundPosition: jest.fn<() => string>().mockReturnValue(''),
+    highlightMatches: jest.fn<() => string>().mockReturnValue('')
   };
 };
 
@@ -613,7 +632,7 @@ export const createMockSyncManager = () => {
     syncClaims: jest.fn<() => Promise<void>>().mockResolvedValue(undefined),
     syncPapers: jest.fn<() => Promise<void>>().mockResolvedValue(undefined),
     getSyncStatus: jest.fn<() => any>().mockReturnValue({ syncing: false, lastSync: null }),
-    onSyncComplete: jest.fn<(callback: () => void) => { dispose: () => void }>().mockReturnValue({
+    onSyncComplete: jest.fn<() => any>().mockReturnValue({
       dispose: jest.fn()
     })
   };
@@ -625,9 +644,9 @@ export const createMockSyncManager = () => {
  */
 export const createMockZoteroImportManager = () => {
   return {
-    importCollection: jest.fn<(collectionKey: string) => Promise<any[]>>().mockResolvedValue([]),
-    importItem: jest.fn<(itemKey: string) => Promise<any>>().mockResolvedValue(null),
-    importBatch: jest.fn<(itemKeys: string[]) => Promise<any[]>>().mockResolvedValue([]),
+    importCollection: jest.fn<() => Promise<any[]>>().mockResolvedValue([]),
+    importItem: jest.fn<() => Promise<any>>().mockResolvedValue(null),
+    importBatch: jest.fn<() => Promise<any[]>>().mockResolvedValue([]),
     getImportStatus: jest.fn<() => any>().mockReturnValue({ importing: false, progress: 0 }),
     cancelImport: jest.fn<() => void>()
   };
@@ -639,14 +658,14 @@ export const createMockZoteroImportManager = () => {
  */
 export const createMockExportService = () => {
   return {
-    buildDocumentModel: jest.fn<(manuscript: string, options: any) => Promise<any>>().mockResolvedValue({
+    buildDocumentModel: jest.fn<() => Promise<any>>().mockResolvedValue({
       sections: [],
       bibliography: [],
       metadata: { footnotes: [] }
     }),
-    exportToWord: jest.fn<(manuscript: string, outputPath: string) => Promise<void>>().mockResolvedValue(undefined),
-    exportToMarkdown: jest.fn<(manuscript: string, outputPath: string) => Promise<void>>().mockResolvedValue(undefined),
-    exportToPdf: jest.fn<(manuscript: string, outputPath: string) => Promise<void>>().mockResolvedValue(undefined),
+    exportToWord: jest.fn<() => Promise<void>>().mockResolvedValue(undefined),
+    exportToMarkdown: jest.fn<() => Promise<void>>().mockResolvedValue(undefined),
+    exportToPdf: jest.fn<() => Promise<void>>().mockResolvedValue(undefined),
     dispose: jest.fn<() => void>()
   };
 };

@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import * as fs from 'fs/promises';
 import * as path from 'path';
-import { ClaimsManager as CoreClaimsManager } from '@research-assistant/core';
+import { ClaimsManager as CoreClaimsManager, ClaimsManagerOptions } from '@research-assistant/core';
 import type { Claim } from '@research-assistant/core';
 import { PersistenceUtils } from './persistenceUtils';
 import { ClaimsParser } from './claimsParser';
@@ -34,9 +34,9 @@ export class ClaimsManager extends CoreClaimsManager {
   // Index signature for interface compatibility
   [key: string]: any;
 
-  constructor(filePath: string) {
-    const workspaceRoot = path.dirname(path.dirname(filePath));
-    super(workspaceRoot);
+  constructor(filePath: string, options?: ClaimsManagerOptions) {
+    const workspaceRoot = filePath ? path.dirname(path.dirname(filePath)) : '';
+    super(workspaceRoot, options);
     this.filePath = filePath;
   }
 
@@ -59,6 +59,11 @@ export class ClaimsManager extends CoreClaimsManager {
   }
 
   async loadClaims(): Promise<Claim[]> {
+    // In-memory mode doesn't load from files - check parent's isLoaded()
+    if (this.isLoaded()) {
+      return this.getClaims();
+    }
+
     if (this.persistence.isCurrentlyWriting()) {
       console.warn('[ClaimsManager] Write in progress, deferring load');
       this.requestReload();
@@ -292,6 +297,27 @@ export class ClaimsManager extends CoreClaimsManager {
 
   serializeClaim(claim: Claim): string {
     return ClaimsParser.serializeClaim(claim);
+  }
+
+  /**
+   * Add a claim directly to the manager (in-memory mode only).
+   * 
+   * This method is primarily intended for testing, allowing you to inject
+   * claims without file I/O. It can only be used when the manager is in
+   * in-memory mode.
+   * 
+   * @param claim - The claim to add
+   * @throws Error if not in in-memory mode
+   */
+  addClaim(claim: Claim): void {
+    // Delegate to parent class (which will check inMemoryMode)
+    super.addClaim(claim);
+    
+    // Update wrapper's state
+    this.mutableClaims.set(claim.id, claim);
+    
+    // Fire change event
+    this.onDidChangeEmitter.fire();
   }
 
   private async queuePersist(): Promise<void> {

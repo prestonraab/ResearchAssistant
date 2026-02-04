@@ -4,7 +4,7 @@ import { InternetPaperSearcher } from '../core/internetPaperSearcher';
 import { ZoteroClient, ZoteroItem } from '@research-assistant/core';
 import { ManuscriptContextDetector } from '../core/manuscriptContextDetector';
 import * as vscode from 'vscode';
-import { setupTest, aZoteroItem } from './helpers';
+import { setupTest, aZoteroItem, createMinimalCancellationToken } from './helpers';
 
 describe('Internet Search Integration', () => {
   setupTest();
@@ -17,13 +17,15 @@ describe('Internet Search Integration', () => {
   const extractedTextPath = '/test/workspace/literature/ExtractedText';
 
   beforeEach(() => {
+    // Create minimal mock for ZoteroService - only needs semanticSearch method
     mockZoteroService = {
       semanticSearch: jest.fn(),
-    } as any;
+    };
 
+    // Create minimal mock for ContextDetector - only needs getContext method
     mockContextDetector = {
       getContext: jest.fn(),
-    } as any;
+    };
 
     instantSearchHandler = new InstantSearchHandler(
       mockZoteroService,
@@ -43,10 +45,10 @@ describe('Internet Search Integration', () => {
   describe('Complete workflow: Zotero search fails -> Internet search -> Import', () => {
     test('should offer internet search when Zotero returns no results', async () => {
       // Mock Zotero search returning empty results
-      const mockSemanticSearch = mockZoteroService.semanticSearch as jest.Mock;
+      const mockSemanticSearch = mockZoteroService.semanticSearch as jest.Mock<any>;
       mockSemanticSearch.mockResolvedValue([]);
 
-      const mockShowInfo = vscode.window.showInformationMessage as jest.Mock;
+      const mockShowInfo = vscode.window.showInformationMessage as jest.Mock<any>;
       mockShowInfo.mockResolvedValue('Search Internet');
 
       // Perform search
@@ -67,10 +69,10 @@ describe('Internet Search Integration', () => {
     });
 
     test('should handle internet search workflow', async () => {
-      const mockShowInputBox = vscode.window.showInputBox as jest.Mock;
+      const mockShowInputBox = vscode.window.showInputBox as jest.Mock<any>;
       mockShowInputBox.mockResolvedValue('machine learning');
 
-      const mockShowQuickPick = vscode.window.showQuickPick as jest.Mock;
+      const mockShowQuickPick = vscode.window.showQuickPick as jest.Mock<any>;
       mockShowQuickPick.mockResolvedValue({
         paper: {
           title: 'Test Paper',
@@ -82,7 +84,7 @@ describe('Internet Search Integration', () => {
         },
       });
 
-      const mockShowInfo = vscode.window.showInformationMessage as jest.Mock;
+      const mockShowInfo = vscode.window.showInformationMessage as jest.Mock<any>;
       mockShowInfo.mockResolvedValue('Copy Metadata');
 
       const mockClipboard = vscode.env.clipboard.writeText as jest.Mock;

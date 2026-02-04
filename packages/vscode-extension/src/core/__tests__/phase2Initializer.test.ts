@@ -31,7 +31,7 @@ jest.mock('vscode', () => ({
 describe('Phase2Initializer', () => {
   setupTest();
   let mockPhase1: Phase1Initializer;
-  let mockState: ExtensionState;
+  let mockState: any;
   let mockStatusBarItem: any;
   let mockProviders: any;
 
@@ -71,13 +71,13 @@ describe('Phase2Initializer', () => {
     // Create mock state
     mockState = {
       claimsManager: {
-        loadClaims: jest.fn().mockResolvedValue(undefined)
+        loadClaims: (jest.fn() as jest.Mock<any>).mockResolvedValue(undefined as any)
       },
       outlineParser: {
-        parse: jest.fn().mockResolvedValue(undefined)
+        parse: (jest.fn() as jest.Mock<any>).mockResolvedValue(undefined as any)
       },
       configurationManager: {
-        initialize: jest.fn().mockResolvedValue(undefined),
+        initialize: (jest.fn() as jest.Mock<any>).mockResolvedValue(undefined as any),
         getUserPreferences: jest.fn().mockReturnValue({})
       },
       zoteroApiService: {
@@ -166,7 +166,7 @@ describe('Phase2Initializer', () => {
 
   describe('error handling', () => {
     test('should continue if claims loading fails', async () => {
-      mockState.claimsManager.loadClaims = jest.fn().mockRejectedValue(
+      mockState.claimsManager.loadClaims = (jest.fn() as jest.Mock<any>).mockRejectedValue(
         new Error('Claims file not found')
       );
 
@@ -181,9 +181,9 @@ describe('Phase2Initializer', () => {
     });
 
     test('should show warning message if claims loading fails', async () => {
-      mockState.claimsManager.loadClaims = jest.fn().mockRejectedValue(
+      mockState.claimsManager.loadClaims = (jest.fn() as jest.Mock<any>).mockRejectedValue(
         new Error('Claims file not found')
-      );
+      ) as any;
 
       const initializer = new Phase2Initializer(mockPhase1);
       await initializer.initialize(mockState);
@@ -195,9 +195,9 @@ describe('Phase2Initializer', () => {
     });
 
     test('should continue if outline parsing fails', async () => {
-      mockState.outlineParser.parse = jest.fn().mockRejectedValue(
+      mockState.outlineParser.parse = (jest.fn() as jest.Mock<any>).mockRejectedValue(
         new Error('Outline file not found')
-      );
+      ) as any;
 
       const initializer = new Phase2Initializer(mockPhase1);
       await initializer.initialize(mockState);
@@ -210,8 +210,8 @@ describe('Phase2Initializer', () => {
     });
 
     test('should show warning message if outline parsing fails', async () => {
-      mockState.outlineParser.parse = jest.fn().mockRejectedValue(
-        new Error('Outline file not found')
+      (mockState.outlineParser.parse as any) = (jest.fn() as jest.Mock<any>).mockRejectedValue(
+        new Error('Outline file not found') as any
       );
 
       const initializer = new Phase2Initializer(mockPhase1);
@@ -224,8 +224,8 @@ describe('Phase2Initializer', () => {
     });
 
     test('should continue if configuration loading fails', async () => {
-      mockState.configurationManager.initialize = jest.fn().mockRejectedValue(
-        new Error('Config error')
+      (mockState.configurationManager.initialize as any) = (jest.fn() as jest.Mock<any>).mockRejectedValue(
+        new Error('Config error') as any
       );
 
       const initializer = new Phase2Initializer(mockPhase1);
@@ -239,11 +239,11 @@ describe('Phase2Initializer', () => {
     });
 
     test('should show warning if multiple operations fail', async () => {
-      mockState.claimsManager.loadClaims = jest.fn().mockRejectedValue(
-        new Error('Claims error')
+      (mockState.claimsManager.loadClaims as any) = (jest.fn() as jest.Mock<any>).mockRejectedValue(
+        new Error('Claims error') as any
       );
-      mockState.outlineParser.parse = jest.fn().mockRejectedValue(
-        new Error('Outline error')
+      (mockState.outlineParser.parse as any) = (jest.fn() as jest.Mock<any>).mockRejectedValue(
+        new Error('Outline error') as any
       );
 
       const initializer = new Phase2Initializer(mockPhase1);
@@ -256,14 +256,14 @@ describe('Phase2Initializer', () => {
     });
 
     test('should handle all operations failing gracefully', async () => {
-      mockState.claimsManager.loadClaims = jest.fn().mockRejectedValue(
-        new Error('Claims error')
+      (mockState.claimsManager.loadClaims as any) = (jest.fn() as jest.Mock<any>).mockRejectedValue(
+        new Error('Claims error') as any
       );
-      mockState.outlineParser.parse = jest.fn().mockRejectedValue(
-        new Error('Outline error')
+      (mockState.outlineParser.parse as any) = (jest.fn() as jest.Mock<any>).mockRejectedValue(
+        new Error('Outline error') as any
       );
-      mockState.configurationManager.initialize = jest.fn().mockRejectedValue(
-        new Error('Config error')
+      (mockState.configurationManager.initialize as any) = (jest.fn() as jest.Mock<any>).mockRejectedValue(
+        new Error('Config error') as any
       );
 
       const initializer = new Phase2Initializer(mockPhase1);
@@ -292,8 +292,8 @@ describe('Phase2Initializer', () => {
 
   describe('graceful degradation', () => {
     test('should allow extension to function with failed claims loading', async () => {
-      mockState.claimsManager.loadClaims = jest.fn().mockRejectedValue(
-        new Error('Claims error')
+      (mockState.claimsManager.loadClaims as any) = (jest.fn() as jest.Mock<any>).mockRejectedValue(
+        new Error('Claims error') as any
       );
 
       const initializer = new Phase2Initializer(mockPhase1);
@@ -306,8 +306,8 @@ describe('Phase2Initializer', () => {
     });
 
     test('should allow extension to function with failed outline parsing', async () => {
-      mockState.outlineParser.parse = jest.fn().mockRejectedValue(
-        new Error('Outline error')
+      (mockState.outlineParser.parse as any) = (jest.fn() as jest.Mock<any>).mockRejectedValue(
+        new Error('Outline error') as any
       );
 
       const initializer = new Phase2Initializer(mockPhase1);
@@ -320,8 +320,8 @@ describe('Phase2Initializer', () => {
     });
 
     test('should use default configuration if loading fails', async () => {
-      mockState.configurationManager.initialize = jest.fn().mockRejectedValue(
-        new Error('Config error')
+      (mockState.configurationManager.initialize as any) = (jest.fn() as jest.Mock<any>).mockRejectedValue(
+        new Error('Config error') as any
       );
 
       const initializer = new Phase2Initializer(mockPhase1);

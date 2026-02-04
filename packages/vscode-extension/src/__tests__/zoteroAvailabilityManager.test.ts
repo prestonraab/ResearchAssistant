@@ -45,7 +45,7 @@ describe('ZoteroAvailabilityManager', () => {
 
   describe('initialization', () => {
     test('should initialize with unavailable status by default', async () => {
-      manager = new ZoteroAvailabilityManager(mockZoteroApiService);
+      manager = new ZoteroAvailabilityManager(mockZoteroApiService as any);
       expect(manager.getAvailabilityStatus()).toBe(false);
     });
 
@@ -53,7 +53,7 @@ describe('ZoteroAvailabilityManager', () => {
       mockZoteroApiService.isConfigured.mockReturnValue(true);
       mockZoteroApiService.testConnection.mockResolvedValue(true);
 
-      manager = new ZoteroAvailabilityManager(mockZoteroApiService);
+      manager = new ZoteroAvailabilityManager(mockZoteroApiService as any);
       await manager.initialize();
 
       expect(mockZoteroApiService.testConnection).toHaveBeenCalled();
@@ -63,7 +63,7 @@ describe('ZoteroAvailabilityManager', () => {
       mockZoteroApiService.isConfigured.mockReturnValue(true);
       mockZoteroApiService.testConnection.mockRejectedValue(new Error('Connection failed'));
 
-      manager = new ZoteroAvailabilityManager(mockZoteroApiService);
+      manager = new ZoteroAvailabilityManager(mockZoteroApiService as any);
       await manager.initialize();
 
       expect(manager.getAvailabilityStatus()).toBe(false);
@@ -72,7 +72,7 @@ describe('ZoteroAvailabilityManager', () => {
 
   describe('checkAvailability', () => {
     beforeEach(() => {
-      manager = new ZoteroAvailabilityManager(mockZoteroApiService);
+      manager = new ZoteroAvailabilityManager(mockZoteroApiService as any);
     });
 
     test('should return true when Zotero is available', async () => {
@@ -86,7 +86,7 @@ describe('ZoteroAvailabilityManager', () => {
     });
 
     test('should return false when Zotero is unavailable', async () => {
-      mockZoteroApiService.isConfigured.mockReturnValue(false);
+      mockZoteroApiService.testConnection.mockResolvedValue(false);
 
       const result = await manager.checkAvailability();
 
@@ -137,7 +137,7 @@ describe('ZoteroAvailabilityManager', () => {
 
   describe('availability status', () => {
     beforeEach(() => {
-      manager = new ZoteroAvailabilityManager(mockZoteroApiService);
+      manager = new ZoteroAvailabilityManager(mockZoteroApiService as any);
     });
 
     test('should return current availability status', async () => {
@@ -154,7 +154,7 @@ describe('ZoteroAvailabilityManager', () => {
 
   describe('availability change notifications', () => {
     beforeEach(() => {
-      manager = new ZoteroAvailabilityManager(mockZoteroApiService);
+      manager = new ZoteroAvailabilityManager(mockZoteroApiService as any);
     });
 
     test('should notify listeners when availability changes from unavailable to available', async () => {
@@ -170,7 +170,6 @@ describe('ZoteroAvailabilityManager', () => {
     });
 
     test('should notify listeners when availability changes from available to unavailable', async () => {
-      mockZoteroApiService.isConfigured.mockReturnValue(true);
       mockZoteroApiService.testConnection.mockResolvedValue(true);
 
       await manager.checkAvailability();
@@ -178,7 +177,7 @@ describe('ZoteroAvailabilityManager', () => {
       const listener = jest.fn();
       manager.onAvailabilityStatusChanged(listener);
 
-      mockZoteroApiService.isConfigured.mockReturnValue(false);
+      mockZoteroApiService.testConnection.mockResolvedValue(false);
 
       // Clear cache to force new check
       await manager.forceRecheck();
@@ -187,7 +186,6 @@ describe('ZoteroAvailabilityManager', () => {
     });
 
     test('should not notify listeners if availability does not change', async () => {
-      mockZoteroApiService.isConfigured.mockReturnValue(true);
       mockZoteroApiService.testConnection.mockResolvedValue(true);
 
       await manager.checkAvailability();
@@ -205,11 +203,11 @@ describe('ZoteroAvailabilityManager', () => {
 
   describe('feature disabling', () => {
     beforeEach(() => {
-      manager = new ZoteroAvailabilityManager(mockZoteroApiService);
+      manager = new ZoteroAvailabilityManager(mockZoteroApiService as any);
     });
 
     test('should disable Zotero commands when unavailable', async () => {
-      mockZoteroApiService.isConfigured.mockReturnValue(false);
+      mockZoteroApiService.testConnection.mockResolvedValue(false);
 
       await manager.checkAvailability();
 
@@ -218,7 +216,7 @@ describe('ZoteroAvailabilityManager', () => {
     });
 
     test('should hide Zotero UI elements when unavailable', async () => {
-      mockZoteroApiService.isConfigured.mockReturnValue(false);
+      mockZoteroApiService.testConnection.mockResolvedValue(false);
 
       await manager.checkAvailability();
 
@@ -232,7 +230,7 @@ describe('ZoteroAvailabilityManager', () => {
       mockZoteroApiService.isConfigured.mockReturnValue(true);
       mockZoteroApiService.testConnection.mockResolvedValue(true);
 
-      manager = new ZoteroAvailabilityManager(mockZoteroApiService);
+      manager = new ZoteroAvailabilityManager(mockZoteroApiService as any);
       
       // Verify that the manager starts as unavailable
       expect(manager.getAvailabilityStatus()).toBe(false);
@@ -251,7 +249,7 @@ describe('ZoteroAvailabilityManager', () => {
       mockZoteroApiService.isConfigured.mockReturnValue(true);
       mockZoteroApiService.testConnection.mockResolvedValue(true);
 
-      manager = new ZoteroAvailabilityManager(mockZoteroApiService);
+      manager = new ZoteroAvailabilityManager(mockZoteroApiService as any);
 
       // First check
       await manager.checkAvailability();
@@ -265,7 +263,7 @@ describe('ZoteroAvailabilityManager', () => {
 
   describe('disposal', () => {
     beforeEach(() => {
-      manager = new ZoteroAvailabilityManager(mockZoteroApiService);
+      manager = new ZoteroAvailabilityManager(mockZoteroApiService as any);
     });
 
     test('should dispose resources on dispose', () => {

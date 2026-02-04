@@ -50,10 +50,9 @@ describe('ClaimsManager', () => {
       expect(claims[0].id).toBe('C_01');
       expect(claims[0].text).toBe('ComBat uses Empirical Bayes to estimate location and scale parameters');
       expect(claims[0].category).toBe('Method');
-      expect(claims[0].source).toBe('Johnson2007');
-      expect(claims[0].sourceId).toBe(1);
+      expect(claims[0].primaryQuote.source).toBe('Johnson2007');
       expect(claims[0].context).toBe('Assumes Gaussian distribution.');
-      expect(claims[0].primaryQuote).toContain('We propose parametric and non-parametric');
+      expect(claims[0].primaryQuote.text).toContain('We propose parametric and non-parametric');
       expect(claims[0].supportingQuotes).toHaveLength(2);
     });
 
@@ -94,7 +93,7 @@ describe('ClaimsManager', () => {
       expect(claims[0].id).toBe('C_03');
       expect(claims[0].text).toBe('Minimal claim');
       expect(claims[0].context).toBe('');
-      expect(claims[0].primaryQuote).toBe('');
+      expect(claims[0].primaryQuote.text).toBe('');
       expect(claims[0].supportingQuotes).toHaveLength(0);
     });
 
@@ -192,11 +191,12 @@ describe('ClaimsManager', () => {
         id: 'C_01',
         text: 'Test claim',
         category: 'Method',
-        source: 'Test2024',
-        sourceId: 1,
         context: 'Test context',
-        primaryQuote: 'Test quote',
-        supportingQuotes: [],
+        primaryQuote: { text: 'Test quote', source: 'Test2024', sourceId: 1, verified: false },
+        supportingQuotes: [
+          { text: 'Supporting quote 1', source: 'Test2024', sourceId: 1, verified: false },
+          { text: 'Supporting quote 2', source: 'Test2024', sourceId: 1, verified: false }
+        ],
         sections: [],
         verified: false,
         createdAt: new Date(),
@@ -516,8 +516,8 @@ describe('ClaimsManager', () => {
 
       expect(merged.id).toMatch(/C_\d+/);
       expect(merged.text).toBe('First claim'); // Uses first claim's text
-      expect(merged.source).toContain('Johnson2007');
-      expect(merged.source).toContain('Zhang2020');
+      expect(merged.primaryQuote.source).toContain('Johnson2007');
+      expect(merged.supportingQuotes.some(q => q.source.includes('Zhang2020'))).toBe(true);
       expect(merged.context).toContain('First context');
       expect(merged.context).toContain('Second context');
     });
@@ -557,11 +557,12 @@ describe('ClaimsManager', () => {
         id: 'C_01',
         text: 'Test claim text',
         category: 'Method',
-        source: 'Test2024',
-        sourceId: 1,
         context: 'Test context',
-        primaryQuote: 'Test primary quote',
-        supportingQuotes: ['Supporting quote 1', 'Supporting quote 2'],
+        primaryQuote: { text: 'Test primary quote', source: 'Test2024', verified: false },
+        supportingQuotes: [
+          { text: 'Supporting quote 1', source: 'Test2024', verified: false },
+          { text: 'Supporting quote 2', source: 'Test2024', verified: false }
+        ],
         sections: [],
         verified: false,
         createdAt: new Date(),
@@ -578,7 +579,7 @@ describe('ClaimsManager', () => {
       expect(claims[0].id).toBe('C_01');
       expect(claims[0].text).toBe('Test claim text');
       expect(claims[0].category).toBe('Method');
-      expect(claims[0].primaryQuote).toBe('Test primary quote');
+      expect(claims[0].primaryQuote.text).toBe('Test primary quote');
       expect(claims[0].supportingQuotes).toHaveLength(2);
     });
 

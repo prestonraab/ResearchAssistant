@@ -277,6 +277,7 @@ export type {
  * Handles loading and querying claims from the workspace.
  */
 export { ClaimsManager } from './managers/ClaimsManager.js';
+export type { ClaimsManagerOptions } from './managers/ClaimsManager.js';
 
 /**
  * Quote Manager

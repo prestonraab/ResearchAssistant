@@ -81,11 +81,11 @@ describe('ExtensionState', () => {
     mockContext = createMockExtensionContext();
 
     // Setup OutlineParser mock
-    MockOutlineParser.prototype.parse = jest.fn().mockResolvedValue([]);
+    MockOutlineParser.prototype.parse = (jest.fn() as jest.Mock<any>).mockResolvedValue([]);
     MockOutlineParser.prototype.updatePath = jest.fn();
 
     // Setup ClaimsManager mock
-    MockClaimsManager.prototype.loadClaims = jest.fn().mockResolvedValue([]);
+    MockClaimsManager.prototype.loadClaims = (jest.fn() as jest.Mock<any>).mockResolvedValue([]);
     MockClaimsManager.prototype.updatePath = jest.fn();
   });
 
@@ -435,7 +435,7 @@ describe('ExtensionState', () => {
         { id: 'section-1', title: 'Section 1', level: 2, content: [], parent: null, children: [], lineStart: 1, lineEnd: 5 }
       ];
       
-      MockOutlineParser.prototype.parse = jest.fn().mockResolvedValue(mockSections);
+      MockOutlineParser.prototype.parse = (jest.fn() as jest.Mock<any>).mockResolvedValue(mockSections);
 
       const state = new ExtensionState(mockContext);
       await state.initialize();

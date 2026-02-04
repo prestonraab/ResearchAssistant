@@ -7,10 +7,18 @@ import * as path from 'path';
 import {  
   setupTest, 
   createMockPdfExtractionService, 
-  createMockOutlineParser 
-, setupFsMock } from './helpers';
+  createMockOutlineParser
+} from './helpers';
 
-jest.mock('fs');
+// Manually mock fs with proper jest.Mock setup
+jest.mock('fs', () => ({
+  existsSync: jest.fn().mockReturnValue(false),
+  readdirSync: jest.fn().mockReturnValue([]),
+  readFileSync: jest.fn().mockReturnValue(''),
+  writeFileSync: jest.fn(),
+  mkdirSync: jest.fn(),
+  unlinkSync: jest.fn()
+}));
 
 describe('FulltextStatusManager', () => {
   setupTest();
@@ -21,12 +29,15 @@ describe('FulltextStatusManager', () => {
   const workspaceRoot = '/test/workspace';
 
   beforeEach(() => {
-    setupFsMock();
     mockPdfService = createMockPdfExtractionService();
     mockOutlineParser = createMockOutlineParser();
 
-    (fs.existsSync as jest.Mock).mockReturnValue(false);
-    (fs.readdirSync as jest.Mock).mockReturnValue([]);
+    // Get the mocked fs functions with proper typing
+    const mockExistsSync = fs.existsSync as jest.Mock<any>;
+    const mockReaddirSync = fs.readdirSync as jest.Mock<any>;
+    
+    mockExistsSync.mockReturnValue(false);
+    mockReaddirSync.mockReturnValue([]);
 
     manager = new FulltextStatusManager(
       mockPdfService as any,
@@ -36,7 +47,7 @@ describe('FulltextStatusManager', () => {
   });
 
   afterEach(() => {
-    manager.dispose?.();
+    // No dispose needed for this manager
   });
 
   describe('scanLibrary', () => {
@@ -46,7 +57,7 @@ describe('FulltextStatusManager', () => {
      */
     test('should identify papers without extracted text', async () => {
       // Mock PDF directory with files but no extracted text
-      (fs.existsSync as jest.Mock).mockImplementation((filePath: string) => {
+      (fs.existsSync as jest.Mock<any>).mockImplementation((filePath: string) => {
         if (filePath.includes('PDFs')) {
           return true;
         }
@@ -56,7 +67,7 @@ describe('FulltextStatusManager', () => {
         return false;
       });
 
-      (fs.readdirSync as jest.Mock).mockImplementation((dirPath: string) => {
+      (fs.readdirSync as jest.Mock<any>).mockImplementation((dirPath: string) => {
         if (dirPath.includes('PDFs')) {
           return ['Smith2023.pdf', 'Jones2022.pdf'];
         }
@@ -80,7 +91,7 @@ describe('FulltextStatusManager', () => {
      */
     test('should detect papers with existing extracted text', async () => {
       // Mock PDF directory exists with files
-      (fs.existsSync as jest.Mock).mockImplementation((filePath: string) => {
+      (fs.existsSync as jest.Mock<any>).mockImplementation((filePath: string) => {
         if (filePath.includes('PDFs')) {
           return true;
         }
@@ -93,7 +104,7 @@ describe('FulltextStatusManager', () => {
         return false;
       });
 
-      (fs.readdirSync as jest.Mock).mockImplementation((dirPath: string) => {
+      (fs.readdirSync as jest.Mock<any>).mockImplementation((dirPath: string) => {
         if (dirPath.includes('PDFs')) {
           return ['Smith2023.pdf'];
         }
@@ -117,11 +128,11 @@ describe('FulltextStatusManager', () => {
      */
     test('should scan local PDF directory for papers', async () => {
       // Mock PDF directory exists with files
-      (fs.existsSync as jest.Mock).mockImplementation((dirPath: string) => {
+      (fs.existsSync as jest.Mock<any>).mockImplementation((dirPath: string) => {
         return dirPath.includes('PDFs') || dirPath.includes('ExtractedText');
       });
 
-      (fs.readdirSync as jest.Mock).mockImplementation((dirPath: string) => {
+      (fs.readdirSync as jest.Mock<any>).mockImplementation((dirPath: string) => {
         if (dirPath.includes('PDFs')) {
           return ['Smith2023.pdf', 'Jones2022.pdf'];
         }
@@ -158,11 +169,11 @@ describe('FulltextStatusManager', () => {
      * Validates: Requirement 44.2
      */
     test('should return only papers missing fulltext that have PDFs', async () => {
-      (fs.existsSync as jest.Mock).mockImplementation((filePath: string) => {
+      (fs.existsSync as jest.Mock<any>).mockImplementation((filePath: string) => {
         return filePath.includes('PDFs') || filePath.includes('ExtractedText');
       });
 
-      (fs.readdirSync as jest.Mock).mockImplementation((dirPath: string) => {
+      (fs.readdirSync as jest.Mock<any>).mockImplementation((dirPath: string) => {
         if (dirPath.includes('PDFs')) {
           return ['Smith2023.pdf', 'Jones2022.pdf'];
         }
@@ -187,11 +198,11 @@ describe('FulltextStatusManager', () => {
      * Validates: Requirement 44.3, 44.4
      */
     test('should extract all missing fulltexts with progress reporting', async () => {
-      (fs.existsSync as jest.Mock).mockImplementation((filePath: string) => {
+      (fs.existsSync as jest.Mock<any>).mockImplementation((filePath: string) => {
         return filePath.includes('PDFs') || filePath.includes('ExtractedText');
       });
 
-      (fs.readdirSync as jest.Mock).mockImplementation((dirPath: string) => {
+      (fs.readdirSync as jest.Mock<any>).mockImplementation((dirPath: string) => {
         if (dirPath.includes('PDFs')) {
           return ['Smith2023.pdf', 'Jones2022.pdf'];
         }
@@ -224,11 +235,11 @@ describe('FulltextStatusManager', () => {
      * Validates: Requirement 44.4
      */
     test('should handle extraction failures and report errors', async () => {
-      (fs.existsSync as jest.Mock).mockImplementation((filePath: string) => {
+      (fs.existsSync as jest.Mock<any>).mockImplementation((filePath: string) => {
         return filePath.includes('PDFs') || filePath.includes('ExtractedText');
       });
 
-      (fs.readdirSync as jest.Mock).mockImplementation((dirPath: string) => {
+      (fs.readdirSync as jest.Mock<any>).mockImplementation((dirPath: string) => {
         if (dirPath.includes('PDFs')) {
           return ['Smith2023.pdf'];
         }
@@ -256,11 +267,11 @@ describe('FulltextStatusManager', () => {
      * Validates: Requirement 44.4
      */
     test('should provide estimated time remaining in progress updates', async () => {
-      (fs.existsSync as jest.Mock).mockImplementation((filePath: string) => {
+      (fs.existsSync as jest.Mock<any>).mockImplementation((filePath: string) => {
         return filePath.includes('PDFs') || filePath.includes('ExtractedText');
       });
 
-      (fs.readdirSync as jest.Mock).mockImplementation((dirPath: string) => {
+      (fs.readdirSync as jest.Mock<any>).mockImplementation((dirPath: string) => {
         if (dirPath.includes('PDFs')) {
           return ['Smith2023.pdf', 'Jones2022.pdf'];
         }
@@ -295,11 +306,11 @@ describe('FulltextStatusManager', () => {
      * Validates: Requirement 44.5
      */
     test('should prioritize papers by relevance to section context', async () => {
-      (fs.existsSync as jest.Mock).mockImplementation((filePath: string) => {
+      (fs.existsSync as jest.Mock<any>).mockImplementation((filePath: string) => {
         return filePath.includes('PDFs') || filePath.includes('ExtractedText');
       });
 
-      (fs.readdirSync as jest.Mock).mockImplementation((dirPath: string) => {
+      (fs.readdirSync as jest.Mock<any>).mockImplementation((dirPath: string) => {
         if (dirPath.includes('PDFs')) {
           return ['BatchCorrection2023.pdf', 'Normalization2022.pdf'];
         }
@@ -323,11 +334,11 @@ describe('FulltextStatusManager', () => {
      * Validates: Requirement 44.5
      */
     test('should sort papers by priority for batch extraction', async () => {
-      (fs.existsSync as jest.Mock).mockImplementation((filePath: string) => {
+      (fs.existsSync as jest.Mock<any>).mockImplementation((filePath: string) => {
         return filePath.includes('PDFs') || filePath.includes('ExtractedText');
       });
 
-      (fs.readdirSync as jest.Mock).mockImplementation((dirPath: string) => {
+      (fs.readdirSync as jest.Mock<any>).mockImplementation((dirPath: string) => {
         if (dirPath.includes('PDFs')) {
           return ['Smith2023.pdf', 'Jones2022.pdf', 'Brown2021.pdf'];
         }
@@ -357,11 +368,11 @@ describe('FulltextStatusManager', () => {
      * Validates: Requirement 44.1
      */
     test('should provide accurate statistics about fulltext coverage', async () => {
-      (fs.existsSync as jest.Mock).mockImplementation((filePath: string) => {
+      (fs.existsSync as jest.Mock<any>).mockImplementation((filePath: string) => {
         return filePath.includes('PDFs') || filePath.includes('ExtractedText');
       });
 
-      (fs.readdirSync as jest.Mock).mockImplementation((dirPath: string) => {
+      (fs.readdirSync as jest.Mock<any>).mockImplementation((dirPath: string) => {
         if (dirPath.includes('PDFs')) {
           return ['Smith2023.pdf', 'Jones2022.pdf', 'Brown2021.pdf'];
         }
@@ -388,11 +399,11 @@ describe('FulltextStatusManager', () => {
      */
     test('should clear cached statuses and reset scan time', async () => {
       // Mock PDF directory with files
-      (fs.existsSync as jest.Mock<boolean>).mockImplementation((dirPath: string) => {
+      (fs.existsSync as jest.Mock<any>).mockImplementation((dirPath: string) => {
         return dirPath.includes('PDFs') || dirPath.includes('ExtractedText');
       });
 
-      (fs.readdirSync as jest.Mock<string[]>).mockImplementation((dirPath: string) => {
+      (fs.readdirSync as jest.Mock<any>).mockImplementation((dirPath: string) => {
         if (dirPath.includes('PDFs')) {
           return ['Smith2023.pdf'];
         }

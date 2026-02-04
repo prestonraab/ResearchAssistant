@@ -31,8 +31,9 @@ export const createDocumentWithText = (text: string, languageId: string = 'markd
 
 /**
  * Create a mock document with claim references
+ * @deprecated Use createDocumentWithClaims from minimalMocks.ts instead
  */
-export const createDocumentWithClaims = (claimIds: string[]) => {
+export const createDocumentWithClaimsLegacy = (claimIds: string[]) => {
   const text = claimIds.map(id => `This sentence references ${id}.`).join('\n');
   return createDocumentWithText(text);
 };
@@ -64,24 +65,28 @@ export const setupWordAtPosition = (
 
 /**
  * Create a position at the start of a document
+ * @deprecated Use startOfDocument from minimalMocks.ts instead
  */
-export const startOfDocument = () => createMockPosition(0, 0);
+export const startOfDocumentLegacy = () => createMockPosition(0, 0);
 
 /**
  * Create a position at a specific line
+ * @deprecated Use startOfLine from minimalMocks.ts instead
  */
-export const startOfLine = (line: number) => createMockPosition(line, 0);
+export const startOfLineLegacy = (line: number) => createMockPosition(line, 0);
 
 /**
  * Create a range spanning entire line
+ * @deprecated Use entireLine from minimalMocks.ts instead
  */
-export const entireLine = (line: number, length: number = 100) => 
+export const entireLineLegacy = (line: number, length: number = 100) => 
   createMockRange(line, 0, line, length);
 
 /**
  * Create a range for a word
+ * @deprecated Use wordRange from minimalMocks.ts instead
  */
-export const wordRange = (line: number, start: number, wordLength: number) =>
+export const wordRangeLegacy = (line: number, start: number, wordLength: number) =>
   createMockRange(line, start, line, start + wordLength);
 
 // ============================================================================

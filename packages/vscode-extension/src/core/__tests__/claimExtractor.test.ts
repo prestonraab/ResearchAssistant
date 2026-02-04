@@ -1,6 +1,6 @@
 import { describe, test, expect, beforeEach } from '@jest/globals';
 import { ClaimExtractor, PotentialClaim } from '../claimExtractor';
-import type { OutlineSection } from '@research-assistant/core';
+import type { OutlineSection, EmbeddingService } from '@research-assistant/core';
 import { setupTest } from '../../__tests__/helpers';
 import { createMockEmbeddingService } from '../../__tests__/helpers/mockFactories';
 
@@ -12,7 +12,7 @@ describe('ClaimExtractor', () => {
 
   beforeEach(() => {
     mockEmbeddingService = createMockEmbeddingService();
-    extractor = new ClaimExtractor(mockEmbeddingService);
+    extractor = new ClaimExtractor(mockEmbeddingService as any);
   });
 
   describe('extractFromText', () => {

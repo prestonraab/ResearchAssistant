@@ -46,13 +46,15 @@ export class TableImageRenderer {
     
     const rows: string[][] = [];
     let hasHeader = false;
+    let separatorFound = false;
     
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i].trim();
       
-      // Skip separator line (e.g., |---|---|)
+      // Check if this is a separator line (e.g., |---|---|)
       if (line.match(/^\|?[\s\-:|]+\|?$/)) {
-        hasHeader = i > 0; // If we see a separator, previous row was header
+        hasHeader = rows.length > 0; // If we have rows before separator, they're headers
+        separatorFound = true;
         continue;
       }
       
@@ -71,6 +73,11 @@ export class TableImageRenderer {
       return null;
     }
     
+    // If no separator was found, assume no header
+    if (!separatorFound) {
+      hasHeader = false;
+    }
+    
     return {
       rows,
       hasHeader
@@ -86,8 +93,22 @@ export class TableImageRenderer {
       return false;
     }
     
-    // Check if first line has pipes and second line is a separator
-    return lines[0].includes('|') && 
-           (lines[1].match(/^\|?[\s\-:|]+\|?$/) !== null);
+    // Check if first line has pipes
+    if (!lines[0].includes('|')) {
+      return false;
+    }
+    
+    // Check if second line is a separator (standard markdown table format)
+    if (lines[1].match(/^\|?[\s\-:|]+\|?$/)) {
+      return true;
+    }
+    
+    // Also accept tables without separators (simple pipe-delimited format)
+    // If we have at least 2 lines with pipes, it's likely a table
+    if (lines.length >= 2 && lines[1].includes('|')) {
+      return true;
+    }
+    
+    return false;
   }
 }

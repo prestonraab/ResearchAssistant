@@ -11,7 +11,7 @@
 
 import { describe, it, expect, beforeEach, afterEach } from '@jest/globals';
 import { ClaimsManager } from '../../src/managers/ClaimsManager.js';
-import type { Claim } from '../../src/types/index.js';
+import type { Claim, SourcedQuote } from '../../src/types/index.js';
 import * as fc from 'fast-check';
 import * as fs from 'fs/promises';
 import * as path from 'path';
@@ -109,17 +109,30 @@ describe('ClaimsManager - Property-Based Tests', () => {
   const supportingQuotesArbitrary = fc.array(quoteArbitrary, { minLength: 0, maxLength: 5 });
 
   /**
+   * Generate a SourcedQuote object
+   */
+  const sourcedQuoteArbitrary: fc.Arbitrary<SourcedQuote> = fc.record({
+    text: quoteArbitrary,
+    source: sourceArbitrary,
+    verified: fc.boolean(),
+    sourceId: fc.option(fc.integer({ min: 0, max: 99999 }), { nil: undefined }),
+  });
+
+  /**
+   * Generate an array of SourcedQuotes
+   */
+  const supportingSourcedQuotesArbitrary = fc.array(sourcedQuoteArbitrary, { maxLength: 5 });
+
+  /**
    * Generate a complete Claim object
    */
   const claimArbitrary: fc.Arbitrary<Claim> = fc.record({
     id: claimIdArbitrary,
     text: nonEmptyTextArbitrary,
     category: categoryArbitrary,
-    source: sourceArbitrary,
-    sourceId: fc.integer({ min: 0, max: 99999 }),
     context: fc.option(nonEmptyTextArbitrary, { nil: '' }).map(opt => opt ?? ''),
-    primaryQuote: quoteArbitrary,
-    supportingQuotes: supportingQuotesArbitrary,
+    primaryQuote: sourcedQuoteArbitrary,
+    supportingQuotes: supportingSourcedQuotesArbitrary,
     sections: sectionsArbitrary,
     verified: fc.boolean(),
     createdAt: fc.date(),
@@ -154,21 +167,21 @@ describe('ClaimsManager - Property-Based Tests', () => {
   function serializeClaim(claim: Claim): string {
     let md = `## ${claim.id}: ${claim.text}\n`;
     md += `**Category**: ${claim.category}\n`;
-    md += `**Source**: ${claim.source}\n`;
+    md += `**Source**: ${claim.primaryQuote.source}\n`;
     
     if (claim.context) {
       md += `**Context**: ${claim.context}\n`;
     }
     
     md += `**Primary Quote**:\n`;
-    md += `> ${claim.primaryQuote}\n\n`;
+    md += `> ${claim.primaryQuote.text}\n\n`;
     
     md += `**Supporting Quotes**:\n`;
     if (claim.supportingQuotes.length === 0) {
       md += '\n';
     } else {
       for (const quote of claim.supportingQuotes) {
-        md += `- (Location): "${quote}"\n`;
+        md += `- (Location): "${quote.text}"\n`;
       }
     }
     
@@ -220,7 +233,7 @@ describe('ClaimsManager - Property-Based Tests', () => {
             expect(found).not.toBeNull();
             expect(found?.id).toBe(claim.id);
             expect(found?.text).toBe(claim.text);
-            expect(found?.source).toBe(claim.source);
+            expect(found?.primaryQuote.source).toBe(claim.primaryQuote.source);
           }
           
           // Property: The total count should match
@@ -276,10 +289,10 @@ describe('ClaimsManager - Property-Based Tests', () => {
           // Group claims by source
           const claimsBySource = new Map<string, Claim[]>();
           for (const claim of claims) {
-            if (!claimsBySource.has(claim.source)) {
-              claimsBySource.set(claim.source, []);
+            if (!claimsBySource.has(claim.primaryQuote.source)) {
+              claimsBySource.set(claim.primaryQuote.source, []);
             }
-            claimsBySource.get(claim.source)!.push(claim);
+            claimsBySource.get(claim.primaryQuote.source)!.push(claim);
           }
           
           // Property: Every source should return all its claims
@@ -289,7 +302,7 @@ describe('ClaimsManager - Property-Based Tests', () => {
             
             // Property: All found claims should have the correct source
             for (const claim of foundClaims) {
-              expect(claim.source).toBe(source);
+              expect(claim.primaryQuote.source).toBe(source);
             }
             
             // Property: All expected claim IDs should be present
@@ -359,7 +372,7 @@ describe('ClaimsManager - Property-Based Tests', () => {
             const manager = await setupWorkspace(claims);
             
             // Check if source/section actually don't exist
-            const existingSources = new Set(claims.map(c => c.source));
+            const existingSources = new Set(claims.map(c => c.primaryQuote.source));
             const existingSections = new Set(claims.flatMap(c => c.sections));
             
             // Property: Non-existent source returns empty array
@@ -412,17 +425,17 @@ describe('ClaimsManager - Property-Based Tests', () => {
             expect(parsedClaim?.id).toBe(originalClaim.id);
             expect(parsedClaim?.text).toBe(originalClaim.text);
             expect(parsedClaim?.category).toBe(originalClaim.category);
-            expect(parsedClaim?.source).toBe(originalClaim.source);
+            expect(parsedClaim?.primaryQuote.source).toBe(originalClaim.primaryQuote.source);
             expect(parsedClaim?.context).toBe(originalClaim.context);
             
             // Quotes should match (after normalization)
-            expect(parsedClaim?.primaryQuote).toBe(originalClaim.primaryQuote);
+            expect(parsedClaim?.primaryQuote.text).toBe(originalClaim.primaryQuote.text);
             expect(parsedClaim?.supportingQuotes.length).toBe(originalClaim.supportingQuotes.length);
             
             // Supporting quotes should match (order may vary in some formats)
-            const parsedQuotes = new Set(parsedClaim?.supportingQuotes || []);
+            const parsedQuoteTexts = new Set(parsedClaim?.supportingQuotes.map(q => q.text) || []);
             for (const quote of originalClaim.supportingQuotes) {
-              expect(parsedQuotes.has(quote)).toBe(true);
+              expect(parsedQuoteTexts.has(quote.text)).toBe(true);
             }
           }
         }),
@@ -463,7 +476,7 @@ describe('ClaimsManager - Property-Based Tests', () => {
             expect(claim2).not.toBeNull();
             expect(claim2?.id).toBe(claim1.id);
             expect(claim2?.text).toBe(claim1.text);
-            expect(claim2?.source).toBe(claim1.source);
+            expect(claim2?.primaryQuote.source).toBe(claim1.primaryQuote.source);
             expect(claim2?.category).toBe(claim1.category);
           }
         }),

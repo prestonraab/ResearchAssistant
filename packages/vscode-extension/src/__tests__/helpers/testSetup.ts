@@ -1,5 +1,6 @@
 import { jest } from '@jest/globals';
 import * as vscode from 'vscode';
+import * as fs from 'fs/promises';
 
 /**
  * Common test setup utilities
@@ -663,16 +664,14 @@ export const expectFirstArgEquals = (mock: jest.Mock, value: number) => {
  * });
  */
 export const setupFsMock = () => {
-  const fs = require('fs/promises');
-  
   if (!jest.isMockFunction(fs.readFile)) {
-    jest.spyOn(fs, 'readFile').mockResolvedValue('');
+    jest.spyOn(fs, 'readFile').mockResolvedValue('' as any);
   }
   if (!jest.isMockFunction(fs.writeFile)) {
     jest.spyOn(fs, 'writeFile').mockResolvedValue(undefined);
   }
   if (!jest.isMockFunction(fs.readdir)) {
-    jest.spyOn(fs, 'readdir').mockResolvedValue([]);
+    jest.spyOn(fs, 'readdir').mockResolvedValue([] as any);
   }
   if (!jest.isMockFunction(fs.stat)) {
     jest.spyOn(fs, 'stat').mockResolvedValue({} as any);
@@ -694,8 +693,6 @@ export const setupFsMock = () => {
  * });
  */
 export const setupVscodeMocks = () => {
-  const vscode = require('vscode');
-  
   if (!jest.isMockFunction(vscode.window.showInformationMessage)) {
     jest.spyOn(vscode.window, 'showInformationMessage').mockResolvedValue(undefined);
   }

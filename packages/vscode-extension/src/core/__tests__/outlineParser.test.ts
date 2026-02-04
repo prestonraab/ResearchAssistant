@@ -1,5 +1,5 @@
 import { jest } from '@jest/globals';
-import { setupFsMock } from '../helpers';
+import { setupFsMock } from '../../__tests__/helpers';
 import { OutlineParser } from '../outlineParserWrapper';
 import * as fs from 'fs/promises';
 import * as path from 'path';

@@ -73,9 +73,9 @@ describe('Keyboard Shortcuts', () => {
 
     test('should include all shortcuts in HTML', () => {
       const html = generateHelpOverlayHtml('writing');
-      expect(html).toContain('Shift+W');
-      expect(html).toContain('Shift+E');
-      expect(html).toContain('Shift+C');
+      expect(html).toContain('Cmd/Ctrl+Alt+W');
+      expect(html).toContain('Cmd/Ctrl+Alt+E');
+      expect(html).toContain('Cmd/Ctrl+Alt+R');
       expect(html).toContain('Esc');
     });
   });

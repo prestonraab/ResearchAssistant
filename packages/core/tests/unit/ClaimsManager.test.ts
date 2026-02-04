@@ -175,13 +175,13 @@ describe('ClaimsManager', () => {
 
       // Verify claims from different files
       const c01 = claims.find(c => c.id === 'C_01');
-      expect(c01?.source).toBe('Smith2020');
+      expect(c01?.primaryQuote.source).toBe('Smith2020');
 
       const c02 = claims.find(c => c.id === 'C_02');
-      expect(c02?.source).toBe('Johnson2021');
+      expect(c02?.primaryQuote.source).toBe('Johnson2021');
 
       const c03 = claims.find(c => c.id === 'C_03');
-      expect(c03?.source).toBe('Lee2022');
+      expect(c03?.primaryQuote.source).toBe('Lee2022');
     });
 
     it('should fallback to single file if claims directory is empty', async () => {
@@ -654,7 +654,7 @@ describe('ClaimsManager', () => {
       const claims = await claimsManager.loadClaims();
 
       expect(claims).toHaveLength(1);
-      expect(claims[0].source).toBe('Smith2020');
+      expect(claims[0].primaryQuote.source).toBe('Smith2020');
     });
 
     it('should handle empty file gracefully', async () => {
@@ -872,6 +872,320 @@ Claims should follow the format below.
       expect(claimsManager.getClaim('C_03')).not.toBeNull();
       expect(claimsManager.getClaim('C_01')).toBeNull();
       expect(claimsManager.getClaim('C_02')).toBeNull();
+    });
+  });
+
+  describe('in-memory mode', () => {
+    let inMemoryManager: ClaimsManager;
+
+    beforeEach(() => {
+      inMemoryManager = new ClaimsManager('', { inMemory: true });
+    });
+
+    it('should create manager in in-memory mode', () => {
+      expect(inMemoryManager.isLoaded()).toBe(true);
+      expect(inMemoryManager.getClaimCount()).toBe(0);
+    });
+
+    it('should allow adding claims directly', () => {
+      const claim = {
+        id: 'C_01',
+        text: 'Test claim',
+        category: 'Method',
+        context: '',
+        verified: false,
+        primaryQuote: { text: 'Test quote', source: 'TestSource', verified: false },
+        supportingQuotes: [],
+        sections: [],
+        createdAt: new Date(),
+        modifiedAt: new Date()
+      };
+
+      inMemoryManager.addClaim(claim);
+
+      expect(inMemoryManager.getClaimCount()).toBe(1);
+      expect(inMemoryManager.getClaim('C_01')).toEqual(claim);
+    });
+
+    it('should support querying added claims by ID', () => {
+      const claim1 = {
+        id: 'C_01',
+        text: 'First claim',
+        category: 'Method',
+        context: '',
+        verified: false,
+        primaryQuote: { text: 'Quote 1', source: 'Source1', verified: false },
+        supportingQuotes: [],
+        sections: [],
+        createdAt: new Date(),
+        modifiedAt: new Date()
+      };
+
+      const claim2 = {
+        id: 'C_02',
+        text: 'Second claim',
+        category: 'Result',
+        context: '',
+        verified: true,
+        primaryQuote: { text: 'Quote 2', source: 'Source2', verified: false },
+        supportingQuotes: [],
+        sections: [],
+        createdAt: new Date(),
+        modifiedAt: new Date()
+      };
+
+      inMemoryManager.addClaim(claim1);
+      inMemoryManager.addClaim(claim2);
+
+      expect(inMemoryManager.getClaim('C_01')).toEqual(claim1);
+      expect(inMemoryManager.getClaim('C_02')).toEqual(claim2);
+      expect(inMemoryManager.getClaim('C_99')).toBeNull();
+    });
+
+    it('should support querying claims by source', () => {
+      const claim1 = {
+        id: 'C_01',
+        text: 'First claim',
+        category: 'Method',
+        context: '',
+        verified: false,
+        primaryQuote: { text: 'Quote 1', source: 'Smith2020', verified: false },
+        supportingQuotes: [],
+        sections: [],
+        createdAt: new Date(),
+        modifiedAt: new Date()
+      };
+
+      const claim2 = {
+        id: 'C_02',
+        text: 'Second claim',
+        category: 'Result',
+        context: '',
+        verified: false,
+        primaryQuote: { text: 'Quote 2', source: 'Smith2020', verified: false },
+        supportingQuotes: [],
+        sections: [],
+        createdAt: new Date(),
+        modifiedAt: new Date()
+      };
+
+      const claim3 = {
+        id: 'C_03',
+        text: 'Third claim',
+        category: 'Result',
+        context: '',
+        verified: false,
+        primaryQuote: { text: 'Quote 3', source: 'Johnson2021', verified: false },
+        supportingQuotes: [],
+        sections: [],
+        createdAt: new Date(),
+        modifiedAt: new Date()
+      };
+
+      inMemoryManager.addClaim(claim1);
+      inMemoryManager.addClaim(claim2);
+      inMemoryManager.addClaim(claim3);
+
+      const smithClaims = inMemoryManager.findClaimsBySource('Smith2020');
+      expect(smithClaims).toHaveLength(2);
+      expect(smithClaims.map(c => c.id)).toEqual(['C_01', 'C_02']);
+
+      const johnsonClaims = inMemoryManager.findClaimsBySource('Johnson2021');
+      expect(johnsonClaims).toHaveLength(1);
+      expect(johnsonClaims[0].id).toBe('C_03');
+    });
+
+    it('should support querying claims by section', () => {
+      const claim1 = {
+        id: 'C_01',
+        text: 'First claim',
+        category: 'Method',
+        context: '',
+        verified: false,
+        primaryQuote: { text: 'Quote 1', source: 'Source1', verified: false },
+        supportingQuotes: [],
+        sections: ['2.1', 'introduction'],
+        createdAt: new Date(),
+        modifiedAt: new Date()
+      };
+
+      const claim2 = {
+        id: 'C_02',
+        text: 'Second claim',
+        category: 'Result',
+        context: '',
+        verified: false,
+        primaryQuote: { text: 'Quote 2', source: 'Source2', verified: false },
+        supportingQuotes: [],
+        sections: ['2.1', '3.2'],
+        createdAt: new Date(),
+        modifiedAt: new Date()
+      };
+
+      const claim3 = {
+        id: 'C_03',
+        text: 'Third claim',
+        category: 'Result',
+        context: '',
+        verified: false,
+        primaryQuote: { text: 'Quote 3', source: 'Source3', verified: false },
+        supportingQuotes: [],
+        sections: ['3.2'],
+        createdAt: new Date(),
+        modifiedAt: new Date()
+      };
+
+      inMemoryManager.addClaim(claim1);
+      inMemoryManager.addClaim(claim2);
+      inMemoryManager.addClaim(claim3);
+
+      const section21Claims = inMemoryManager.findClaimsBySection('2.1');
+      expect(section21Claims).toHaveLength(2);
+      expect(section21Claims.map(c => c.id)).toEqual(['C_01', 'C_02']);
+
+      const section32Claims = inMemoryManager.findClaimsBySection('3.2');
+      expect(section32Claims).toHaveLength(2);
+      expect(section32Claims.map(c => c.id)).toEqual(['C_02', 'C_03']);
+
+      const introClaims = inMemoryManager.findClaimsBySection('introduction');
+      expect(introClaims).toHaveLength(1);
+      expect(introClaims[0].id).toBe('C_01');
+    });
+
+    it('should support getAllClaims', () => {
+      const claim1 = {
+        id: 'C_01',
+        text: 'First claim',
+        category: 'Method',
+        context: '',
+        verified: false,
+        primaryQuote: { text: 'Quote 1', source: 'Source1', verified: false },
+        supportingQuotes: [],
+        sections: [],
+        createdAt: new Date(),
+        modifiedAt: new Date()
+      };
+
+      const claim2 = {
+        id: 'C_02',
+        text: 'Second claim',
+        category: 'Result',
+        context: '',
+        verified: false,
+        primaryQuote: { text: 'Quote 2', source: 'Source2', verified: false },
+        supportingQuotes: [],
+        sections: [],
+        createdAt: new Date(),
+        modifiedAt: new Date()
+      };
+
+      inMemoryManager.addClaim(claim1);
+      inMemoryManager.addClaim(claim2);
+
+      const allClaims = inMemoryManager.getAllClaims();
+      expect(allClaims).toHaveLength(2);
+      expect(allClaims.map(c => c.id)).toEqual(['C_01', 'C_02']);
+    });
+
+    it('should throw error when addClaim is called on non-in-memory manager', () => {
+      const fileManager = new ClaimsManager(tempDir);
+      const claim = {
+        id: 'C_01',
+        text: 'Test claim',
+        category: 'Method',
+        context: '',
+        verified: false,
+        primaryQuote: { text: 'Test quote', source: 'TestSource', verified: false },
+        supportingQuotes: [],
+        sections: [],
+        createdAt: new Date(),
+        modifiedAt: new Date()
+      };
+
+      expect(() => fileManager.addClaim(claim)).toThrow('addClaim() can only be used in in-memory mode');
+    });
+
+    it('should not perform file I/O when loadClaims is called', async () => {
+      const claims = await inMemoryManager.loadClaims();
+      
+      expect(claims).toHaveLength(0);
+      expect(inMemoryManager.isLoaded()).toBe(true);
+    });
+
+    it('should return current claims when loadClaims is called in in-memory mode', async () => {
+      const claim = {
+        id: 'C_01',
+        text: 'Test claim',
+        category: 'Method',
+        context: '',
+        verified: false,
+        primaryQuote: { text: 'Test quote', source: 'TestSource', verified: false },
+        supportingQuotes: [],
+        sections: [],
+        createdAt: new Date(),
+        modifiedAt: new Date()
+      };
+
+      inMemoryManager.addClaim(claim);
+      
+      const claims = await inMemoryManager.loadClaims();
+      expect(claims).toHaveLength(1);
+      expect(claims[0].id).toBe('C_01');
+    });
+
+    it('should handle adding multiple claims with same source', () => {
+      const claim1 = {
+        id: 'C_01',
+        text: 'First claim',
+        category: 'Method',
+        context: '',
+        verified: false,
+        primaryQuote: { text: 'Quote 1', source: 'Smith2020', verified: false },
+        supportingQuotes: [],
+        sections: [],
+        createdAt: new Date(),
+        modifiedAt: new Date()
+      };
+
+      const claim2 = {
+        id: 'C_02',
+        text: 'Second claim',
+        category: 'Result',
+        context: '',
+        verified: false,
+        primaryQuote: { text: 'Quote 2', source: 'Smith2020', verified: false },
+        supportingQuotes: [],
+        sections: [],
+        createdAt: new Date(),
+        modifiedAt: new Date()
+      };
+
+      inMemoryManager.addClaim(claim1);
+      inMemoryManager.addClaim(claim2);
+
+      const smithClaims = inMemoryManager.findClaimsBySource('Smith2020');
+      expect(smithClaims).toHaveLength(2);
+    });
+
+    it('should handle adding claims with multiple sections', () => {
+      const claim = {
+        id: 'C_01',
+        text: 'Multi-section claim',
+        category: 'Method',
+        context: '',
+        verified: false,
+        primaryQuote: { text: 'Quote', source: 'Source', verified: false },
+        supportingQuotes: [],
+        sections: ['2.1', '2.2', '3.1'],
+        createdAt: new Date(),
+        modifiedAt: new Date()
+      };
+
+      inMemoryManager.addClaim(claim);
+
+      expect(inMemoryManager.findClaimsBySection('2.1')).toHaveLength(1);
+      expect(inMemoryManager.findClaimsBySection('2.2')).toHaveLength(1);
+      expect(inMemoryManager.findClaimsBySection('3.1')).toHaveLength(1);
     });
   });
 });
