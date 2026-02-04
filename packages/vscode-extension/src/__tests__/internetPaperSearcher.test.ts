@@ -254,9 +254,8 @@ describe('InternetPaperSearcher', () => {
 
   describe('importToZotero', () => {
     test('should show progress during import', async () => {
-      const mockWithProgress = vscode.window.withProgress as jest.Mock<any>;
-      const mockShowInfo = vscode.window.showInformationMessage as jest.Mock<any>;
-      mockShowInfo.mockResolvedValue(null);
+      const mockWithProgress = vscode.window.withProgress as jest.Mock<(options: any, task: any) => Thenable<any>>;
+      mockWithProgress.mockImplementation((options, task) => task({ report: jest.fn() }));
 
       const paper: ExternalPaper = {
         title: 'Test Paper',
@@ -269,15 +268,15 @@ describe('InternetPaperSearcher', () => {
       await searcher.importToZotero(paper);
 
       expect(mockWithProgress).toHaveBeenCalled();
-      const progressOptions = mockWithProgress.mock.calls[0][0];
-      expect(progressOptions.title).toContain('Importing');
+      const progressOptions = (mockWithProgress.mock.calls[0]?.[0] as any);
+      expect(progressOptions?.title).toContain('Importing');
     });
 
     test('should offer to copy metadata when import requires manual action', async () => {
-      const mockShowInfo = vscode.window.showInformationMessage as jest.Mock;
-      mockShowInfo.mockResolvedValue('Copy Metadata');
+      const mockShowInfo = vscode.window.showInformationMessage as jest.Mock<any>;
+      mockShowInfo.mockResolvedValue('Copy Metadata' as any);
 
-      const mockClipboard = vscode.env.clipboard.writeText as jest.Mock;
+      const mockClipboard = vscode.env.clipboard.writeText as jest.Mock<any>;
 
       const paper: ExternalPaper = {
         title: 'Test Paper',
@@ -299,8 +298,8 @@ describe('InternetPaperSearcher', () => {
     });
 
     test('should return null when user cancels import', async () => {
-      const mockShowInfo = vscode.window.showInformationMessage as jest.Mock;
-      mockShowInfo.mockResolvedValue('Cancel');
+      const mockShowInfo = vscode.window.showInformationMessage as jest.Mock<any>;
+      mockShowInfo.mockResolvedValue('Cancel' as any);
 
       const paper: ExternalPaper = {
         title: 'Test Paper',
@@ -329,8 +328,8 @@ describe('InternetPaperSearcher', () => {
     });
 
     test('should handle command execution errors', async () => {
-      const mockExecuteCommand = vscode.commands.executeCommand as jest.Mock;
-      mockExecuteCommand.mockRejectedValue(new Error('Command failed'));
+      const mockExecuteCommand = vscode.commands.executeCommand as jest.Mock<any>;
+      mockExecuteCommand.mockRejectedValue(new Error('Command failed') as any);
 
       const mockShowError = vscode.window.showErrorMessage as jest.Mock;
 

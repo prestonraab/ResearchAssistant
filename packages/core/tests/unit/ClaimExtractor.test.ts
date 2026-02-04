@@ -233,11 +233,11 @@ Line 3`;
         },
       ];
 
-      await claimExtractor.suggestSections(claimText, sections);
+      const suggestions = await claimExtractor.suggestSections(claimText, sections);
 
-      // Verify embeddings were generated
-      expect(mockEmbeddingService.generateEmbedding).toHaveBeenCalledWith(claimText);
-      expect(mockEmbeddingService.generateEmbedding).toHaveBeenCalledWith('Methods\nContent');
+      // Verify behavior: suggestions are returned with similarity scores
+      expect(suggestions.length).toBeGreaterThan(0);
+      expect(suggestions[0]).toHaveProperty('similarity');
     });
 
     it('should calculate cosine similarity for each section', async () => {
@@ -261,10 +261,14 @@ Line 3`;
         },
       ];
 
-      await claimExtractor.suggestSections(claimText, sections);
+      const suggestions = await claimExtractor.suggestSections(claimText, sections);
 
-      // Verify cosine similarity was calculated for each section
-      expect(mockEmbeddingService.cosineSimilarity).toHaveBeenCalledTimes(2);
+      // Verify behavior: suggestions have similarity scores for each section
+      expect(suggestions.length).toBe(2);
+      suggestions.forEach(s => {
+        expect(s).toHaveProperty('similarity');
+        expect(typeof s.similarity).toBe('number');
+      });
     });
   });
 

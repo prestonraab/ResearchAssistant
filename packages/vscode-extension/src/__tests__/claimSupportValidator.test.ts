@@ -4,6 +4,16 @@ import type { Claim, EmbeddingService } from '@research-assistant/core';
 import * as fs from 'fs/promises';
 import {  setupTest, createMockEmbeddingService, aClaim , setupFsMock } from './helpers';
 
+// Mock fs/promises at module level
+jest.mock('fs/promises', () => ({
+  readFile: jest.fn<(path: string) => Promise<string>>().mockResolvedValue(''),
+  writeFile: jest.fn<(path: string, data: string) => Promise<void>>().mockResolvedValue(undefined),
+  readdir: jest.fn<(path: string) => Promise<string[]>>().mockResolvedValue([]),
+  stat: jest.fn<(path: string) => Promise<any>>().mockResolvedValue({}),
+  mkdir: jest.fn<(path: string) => Promise<void>>().mockResolvedValue(undefined),
+  unlink: jest.fn<(path: string) => Promise<void>>().mockResolvedValue(undefined)
+}));
+
 describe('ClaimSupportValidator', () => {
   setupTest();
 
@@ -12,7 +22,10 @@ describe('ClaimSupportValidator', () => {
   const extractedTextPath = '/test/literature/ExtractedText';
 
   beforeEach(() => {
-    setupFsMock();
+    // Reset fs mocks for each test
+    (fs.readFile as jest.Mock<any>).mockResolvedValue('');
+    (fs.writeFile as jest.Mock<any>).mockResolvedValue(undefined);
+    (fs.readdir as jest.Mock<any>).mockResolvedValue([]);
     // Use factory function for consistent, complete mock
     mockEmbeddingService = createMockEmbeddingService() as jest.Mocked<EmbeddingService>;
 

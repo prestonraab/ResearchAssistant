@@ -383,7 +383,7 @@ export const createMockZoteroApiService = () => {
   return {
     isConfigured: jest.fn<() => boolean>().mockReturnValue(true),
     testConnection: jest.fn<() => Promise<boolean>>().mockResolvedValue(true),
-    semanticSearch: jest.fn<() => Promise<any[]>>().mockResolvedValue([]),
+    semanticSearch: jest.fn<(query: string) => Promise<any[]>>().mockResolvedValue([]),
     getCollectionItems: jest.fn<() => Promise<any[]>>().mockResolvedValue([]),
     getRecentItems: jest.fn<() => Promise<any[]>>().mockResolvedValue([]),
     getItemChildren: jest.fn<() => Promise<any[]>>().mockResolvedValue([]),
@@ -436,7 +436,7 @@ export const createMockManuscriptContextDetector = () => {
  */
 export const createMockUnifiedQuoteSearch = () => {
   return {
-    findBestMatch: jest.fn<() => Promise<any>>().mockResolvedValue({
+    findBestMatch: jest.fn<(quote: string, context?: string) => Promise<VerificationResult>>().mockResolvedValue({
       verified: false,
       similarity: 0,
       confidence: 0
@@ -475,6 +475,31 @@ export const createMockFs = () => {
     mkdirSync: jest.fn<() => void>(),
     unlinkSync: jest.fn<() => void>(),
     statSync: jest.fn<() => any>().mockReturnValue({ isFile: () => true, isDirectory: () => false })
+  };
+};
+
+/**
+ * Creates properly typed VSCode window mocks for UI interactions
+ * Use this to mock vscode.window.showInformationMessage, showQuickPick, etc.
+ */
+export const createMockVSCodeWindow = () => {
+  return {
+    showInformationMessage: jest.fn<(message: string, ...items: string[]) => Thenable<string | undefined>>()
+      .mockResolvedValue(undefined),
+    showWarningMessage: jest.fn<(message: string, ...items: string[]) => Thenable<string | undefined>>()
+      .mockResolvedValue(undefined),
+    showErrorMessage: jest.fn<(message: string, ...items: string[]) => Thenable<string | undefined>>()
+      .mockResolvedValue(undefined),
+    showQuickPick: jest.fn<(items: any[], options?: any) => Thenable<any | undefined>>()
+      .mockResolvedValue(undefined),
+    showInputBox: jest.fn<(options?: any) => Thenable<string | undefined>>()
+      .mockResolvedValue(undefined),
+    showOpenDialog: jest.fn<(options?: any) => Thenable<vscode.Uri[] | undefined>>()
+      .mockResolvedValue(undefined),
+    showSaveDialog: jest.fn<(options?: any) => Thenable<vscode.Uri | undefined>>()
+      .mockResolvedValue(undefined),
+    withProgress: jest.fn<(options: any, task: any) => Thenable<any>>()
+      .mockImplementation((options, task) => task({ report: jest.fn() }))
   };
 };
 

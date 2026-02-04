@@ -658,29 +658,56 @@ export const expectFirstArgEquals = (mock: jest.Mock, value: number) => {
  * Setup fs/promises mock with default implementations
  * Call this in beforeEach to ensure fs methods are jest.fn()
  * 
+ * Note: Uses Object.defineProperty to work around read-only exports
+ * 
  * @example
  * beforeEach(() => {
  *   setupFsMock();
  * });
  */
 export const setupFsMock = () => {
+  // Use Object.defineProperty to override read-only fs/promises exports
   if (!jest.isMockFunction(fs.readFile)) {
-    jest.spyOn(fs, 'readFile').mockResolvedValue('' as any);
+    Object.defineProperty(fs, 'readFile', {
+      value: jest.fn<() => Promise<string>>().mockResolvedValue(''),
+      writable: true,
+      configurable: true
+    });
   }
   if (!jest.isMockFunction(fs.writeFile)) {
-    jest.spyOn(fs, 'writeFile').mockResolvedValue(undefined);
+    Object.defineProperty(fs, 'writeFile', {
+      value: jest.fn<() => Promise<void>>().mockResolvedValue(undefined),
+      writable: true,
+      configurable: true
+    });
   }
   if (!jest.isMockFunction(fs.readdir)) {
-    jest.spyOn(fs, 'readdir').mockResolvedValue([] as any);
+    Object.defineProperty(fs, 'readdir', {
+      value: jest.fn<() => Promise<string[]>>().mockResolvedValue([]),
+      writable: true,
+      configurable: true
+    });
   }
   if (!jest.isMockFunction(fs.stat)) {
-    jest.spyOn(fs, 'stat').mockResolvedValue({} as any);
+    Object.defineProperty(fs, 'stat', {
+      value: jest.fn<() => Promise<any>>().mockResolvedValue({}),
+      writable: true,
+      configurable: true
+    });
   }
   if (!jest.isMockFunction(fs.mkdir)) {
-    jest.spyOn(fs, 'mkdir').mockResolvedValue(undefined);
+    Object.defineProperty(fs, 'mkdir', {
+      value: jest.fn<() => Promise<void>>().mockResolvedValue(undefined),
+      writable: true,
+      configurable: true
+    });
   }
   if (!jest.isMockFunction(fs.unlink)) {
-    jest.spyOn(fs, 'unlink').mockResolvedValue(undefined);
+    Object.defineProperty(fs, 'unlink', {
+      value: jest.fn<() => Promise<void>>().mockResolvedValue(undefined),
+      writable: true,
+      configurable: true
+    });
   }
 };
 

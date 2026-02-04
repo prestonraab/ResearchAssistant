@@ -123,20 +123,12 @@ describe('QuoteVerificationService', () => {
     });
 
     test('should return error when claim has no primary quote', async () => {
-      const claim: Claim = {
-        id: 'C_01',
-        text: 'Test claim',
-        category: 'Method',
-        source: 'Johnson2007',
-        sourceId: 1,
-        context: 'Test context',
-        primaryQuote: { text: '', source: '', verified: false },
-        supportingQuotes: [],
-        sections: [],
-        verified: false,
-        createdAt: new Date(),
-        modifiedAt: new Date()
-      };
+      const claim = aClaim()
+        .withId('C_01')
+        .withText('Test claim')
+        .withCategory('Method')
+        .withPrimaryQuote('', '')
+        .build();
 
       mockClaimsManager.getClaim = jest.fn().mockReturnValue(claim);
 
@@ -147,20 +139,12 @@ describe('QuoteVerificationService', () => {
     });
 
     test('should return error when claim has no source', async () => {
-      const claim: Claim = {
-        id: 'C_01',
-        text: 'Test claim',
-        category: 'Method',
-        source: '',
-        sourceId: 1,
-        context: 'Test context',
-        primaryQuote: { text: 'This is a test quote', source: '', verified: false },
-        supportingQuotes: [],
-        sections: [],
-        verified: false,
-        createdAt: new Date(),
-        modifiedAt: new Date()
-      };
+      const claim = aClaim()
+        .withId('C_01')
+        .withText('Test claim')
+        .withCategory('Method')
+        .withPrimaryQuote('This is a test quote', '')
+        .build();
 
       mockClaimsManager.getClaim = jest.fn().mockReturnValue(claim);
 
@@ -171,25 +155,17 @@ describe('QuoteVerificationService', () => {
     });
 
     test('should not update claim when verification fails', async () => {
-      const claim: Claim = {
-        id: 'C_01',
-        text: 'Test claim',
-        category: 'Method',
-        source: 'Johnson2007',
-        sourceId: 1,
-        context: 'Test context',
-        primaryQuote: { text: 'This is a test quote', source: 'Johnson2007', verified: false },
-        supportingQuotes: [],
-        sections: [],
-        verified: false,
-        createdAt: new Date(),
-        modifiedAt: new Date()
-      };
+      const claim = aClaim()
+        .withId('C_01')
+        .withText('Test claim')
+        .withCategory('Method')
+        .withPrimaryQuote('This is a test quote', 'Johnson2007')
+        .build();
 
       const verificationResult: VerificationResult = {
         verified: false,
         similarity: 0.75,
-        closestMatch: 'This is a similar quote'
+        confidence: 0.75
       };
 
       mockClaimsManager.getClaim = jest.fn().mockReturnValue(claim);
@@ -199,25 +175,17 @@ describe('QuoteVerificationService', () => {
       const result = await service.verifyClaim('C_01');
 
       expect(result.verified).toBe(false);
-      expect(result.closestMatch).toBe('This is a similar quote');
+      expect(result.similarity).toBe(0.75);
       expect(mockClaimsManager.updateClaim).not.toHaveBeenCalled();
     });
 
     test('should handle verification errors gracefully', async () => {
-      const claim: Claim = {
-        id: 'C_01',
-        text: 'Test claim',
-        category: 'Method',
-        source: 'Johnson2007',
-        sourceId: 1,
-        context: 'Test context',
-        primaryQuote: { text: 'This is a test quote', source: 'Johnson2007', verified: false },
-        supportingQuotes: [],
-        sections: [],
-        verified: false,
-        createdAt: new Date(),
-        modifiedAt: new Date()
-      };
+      const claim = aClaim()
+        .withId('C_01')
+        .withText('Test claim')
+        .withCategory('Method')
+        .withPrimaryQuote('This is a test quote', 'Johnson2007')
+        .build();
 
       mockClaimsManager.getClaim = jest.fn().mockReturnValue(claim);
       mockUnifiedQuoteSearch.findBestMatch = (jest.fn() as jest.Mock<any>).mockRejectedValue(new Error('Network error'));
@@ -258,44 +226,28 @@ describe('QuoteVerificationService', () => {
   describe('verifyAllClaims', () => {
     test('should verify all claims in the database', async () => {
       const claims: Claim[] = [
-        {
-          id: 'C_01',
-          text: 'Test claim 1',
-          category: 'Method',
-          source: 'Johnson2007',
-          sourceId: 1,
-          context: 'Test context',
-          primaryQuote: { text: 'Quote 1', source: 'Johnson2007', verified: false },
-          supportingQuotes: [],
-          sections: [],
-          verified: false,
-          createdAt: new Date(),
-          modifiedAt: new Date()
-        },
-        {
-          id: 'C_02',
-          text: 'Test claim 2',
-          category: 'Result',
-          source: 'Smith2010',
-          sourceId: 2,
-          context: 'Test context',
-          primaryQuote: { text: 'Quote 2', source: 'Smith2010', verified: false },
-          supportingQuotes: [],
-          sections: [],
-          verified: false,
-          createdAt: new Date(),
-          modifiedAt: new Date()
-        }
+        aClaim()
+          .withId('C_01')
+          .withText('Test claim 1')
+          .withCategory('Method')
+          .withPrimaryQuote('Quote 1', 'Johnson2007')
+          .build(),
+        aClaim()
+          .withId('C_02')
+          .withText('Test claim 2')
+          .withCategory('Result')
+          .withPrimaryQuote('Quote 2', 'Smith2010')
+          .build()
       ];
 
       mockClaimsManager.getClaims = jest.fn().mockReturnValue(claims);
-      mockClaimsManager.getClaim = jest.fn()
+      (mockClaimsManager.getClaim as jest.Mock<any>)
         .mockReturnValueOnce(claims[0])
         .mockReturnValueOnce(claims[1]);
       
-      mockUnifiedQuoteSearch.findBestMatch = jest.fn()
-        .mockResolvedValueOnce({ verified: true, similarity: 1.0 })
-        .mockResolvedValueOnce({ verified: false, similarity: 0.75, closestMatch: 'Similar quote' });
+      mockUnifiedQuoteSearch.findBestMatch = jest.fn<(quote: string, source: string) => Promise<VerificationResult>>()
+        .mockResolvedValueOnce({ verified: true, similarity: 1.0, confidence: 1.0 })
+        .mockResolvedValueOnce({ verified: false, similarity: 0.75, confidence: 0.75 });
       
       mockClaimsManager.updateClaim = (jest.fn() as jest.Mock<any>).mockResolvedValue(undefined);
 
@@ -312,39 +264,24 @@ describe('QuoteVerificationService', () => {
 
     test('should skip claims without quotes', async () => {
       const claims: Claim[] = [
-        {
-          id: 'C_01',
-          text: 'Test claim 1',
-          category: 'Method',
-          source: 'Johnson2007',
-          sourceId: 1,
-          context: 'Test context',
-          primaryQuote: { text: 'Quote 1', source: 'Johnson2007', verified: false },
-          supportingQuotes: [],
-          sections: [],
-          verified: false,
-          createdAt: new Date(),
-          modifiedAt: new Date()
-        },
-        {
-          id: 'C_02',
-          text: 'Test claim 2',
-          category: 'Result',
-          source: 'Smith2010',
-          sourceId: 2,
-          context: 'Test context',
-          primaryQuote: { text: '', source: '', verified: false },
-          supportingQuotes: [],
-          sections: [],
-          verified: false,
-          createdAt: new Date(),
-          modifiedAt: new Date()
-        }
+        aClaim()
+          .withId('C_01')
+          .withText('Test claim 1')
+          .withCategory('Method')
+          .withPrimaryQuote('Quote 1', 'Johnson2007')
+          .build(),
+        aClaim()
+          .withId('C_02')
+          .withText('Test claim 2')
+          .withCategory('Result')
+          .withPrimaryQuote('', '')
+          .build()
       ];
 
       mockClaimsManager.getClaims = jest.fn().mockReturnValue(claims);
-      mockClaimsManager.getClaim = jest.fn().mockReturnValueOnce(claims[0]);
-      mockUnifiedQuoteSearch.findBestMatch = (jest.fn() as jest.Mock<any>).mockResolvedValue({ verified: true, similarity: 1.0 });
+      (mockClaimsManager.getClaim as jest.Mock<any>).mockReturnValueOnce(claims[0]);
+      mockUnifiedQuoteSearch.findBestMatch = jest.fn<(quote: string, source: string) => Promise<VerificationResult>>()
+        .mockResolvedValue({ verified: true, similarity: 1.0, confidence: 1.0 });
       mockClaimsManager.updateClaim = (jest.fn() as jest.Mock<any>).mockResolvedValue(undefined);
 
       const result = await service.verifyAllClaims();
@@ -356,25 +293,18 @@ describe('QuoteVerificationService', () => {
 
     test('should handle errors during batch verification', async () => {
       const claims: Claim[] = [
-        {
-          id: 'C_01',
-          text: 'Test claim 1',
-          category: 'Method',
-          source: 'Johnson2007',
-          sourceId: 1,
-          context: 'Test context',
-          primaryQuote: { text: 'Quote 1', source: 'Johnson2007', verified: false },
-          supportingQuotes: [],
-          sections: [],
-          verified: false,
-          createdAt: new Date(),
-          modifiedAt: new Date()
-        }
+        aClaim()
+          .withId('C_01')
+          .withText('Test claim 1')
+          .withCategory('Method')
+          .withPrimaryQuote('Quote 1', 'Johnson2007')
+          .build()
       ];
 
       mockClaimsManager.getClaims = jest.fn().mockReturnValue(claims);
       mockClaimsManager.getClaim = jest.fn().mockReturnValue(claims[0]);
-      mockUnifiedQuoteSearch.findBestMatch = (jest.fn() as jest.Mock<any>).mockRejectedValue(new Error('Network error'));
+      mockUnifiedQuoteSearch.findBestMatch = jest.fn<(quote: string, source: string) => Promise<VerificationResult>>()
+        .mockRejectedValue(new Error('Network error'));
 
       const result = await service.verifyAllClaims();
 
@@ -464,48 +394,25 @@ describe('QuoteVerificationService', () => {
   describe('getUnverifiedClaims', () => {
     test('should return only unverified claims with quotes', () => {
       const claims: Claim[] = [
-        {
-          id: 'C_01',
-          text: 'Test claim 1',
-          category: 'Method',
-          source: 'Johnson2007',
-          sourceId: 1,
-          context: 'Test context',
-          primaryQuote: { text: 'Quote 1', source: 'Johnson2007', verified: false },
-          supportingQuotes: [],
-          sections: [],
-          verified: false,
-          createdAt: new Date(),
-          modifiedAt: new Date()
-        },
-        {
-          id: 'C_02',
-          text: 'Test claim 2',
-          category: 'Result',
-          source: 'Smith2010',
-          sourceId: 2,
-          context: 'Test context',
-          primaryQuote: { text: 'Quote 2', source: 'Smith2010', verified: false },
-          supportingQuotes: [],
-          sections: [],
-          verified: true,
-          createdAt: new Date(),
-          modifiedAt: new Date()
-        },
-        {
-          id: 'C_03',
-          text: 'Test claim 3',
-          category: 'Challenge',
-          source: 'Brown2015',
-          sourceId: 3,
-          context: 'Test context',
-          primaryQuote: { text: '', source: '', verified: false },
-          supportingQuotes: [],
-          sections: [],
-          verified: false,
-          createdAt: new Date(),
-          modifiedAt: new Date()
-        }
+        aClaim()
+          .withId('C_01')
+          .withText('Test claim 1')
+          .withCategory('Method')
+          .withPrimaryQuote('Quote 1', 'Johnson2007')
+          .build(),
+        aClaim()
+          .withId('C_02')
+          .withText('Test claim 2')
+          .withCategory('Result')
+          .withPrimaryQuote('Quote 2', 'Smith2010')
+          .verified()
+          .build(),
+        aClaim()
+          .withId('C_03')
+          .withText('Test claim 3')
+          .withCategory('Challenge')
+          .withPrimaryQuote('', '')
+          .build()
       ];
 
       mockClaimsManager.getClaims = jest.fn().mockReturnValue(claims);

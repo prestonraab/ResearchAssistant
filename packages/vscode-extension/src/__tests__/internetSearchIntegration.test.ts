@@ -49,7 +49,7 @@ describe('Internet Search Integration', () => {
       mockSemanticSearch.mockResolvedValue([]);
 
       const mockShowInfo = vscode.window.showInformationMessage as jest.Mock<any>;
-      mockShowInfo.mockResolvedValue('Search Internet');
+      mockShowInfo.mockResolvedValue('Search Internet' as any);
 
       // Perform search
       const results = await instantSearchHandler.searchFromSelection('test query');
@@ -70,7 +70,7 @@ describe('Internet Search Integration', () => {
 
     test('should handle internet search workflow', async () => {
       const mockShowInputBox = vscode.window.showInputBox as jest.Mock<any>;
-      mockShowInputBox.mockResolvedValue('machine learning');
+      mockShowInputBox.mockResolvedValue('machine learning' as any);
 
       const mockShowQuickPick = vscode.window.showQuickPick as jest.Mock<any>;
       mockShowQuickPick.mockResolvedValue({
@@ -82,12 +82,12 @@ describe('Internet Search Integration', () => {
           doi: '10.1234/test',
           source: 'crossref',
         },
-      });
+      } as any);
 
       const mockShowInfo = vscode.window.showInformationMessage as jest.Mock<any>;
-      mockShowInfo.mockResolvedValue('Copy Metadata');
+      mockShowInfo.mockResolvedValue('Copy Metadata' as any);
 
-      const mockClipboard = vscode.env.clipboard.writeText as jest.Mock;
+      const mockClipboard = vscode.env.clipboard.writeText as jest.Mock<any>;
 
       // Simulate internet search (would normally be triggered by user action)
       const results = await internetSearcher.searchExternal('machine learning');

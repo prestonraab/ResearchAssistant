@@ -187,14 +187,14 @@ describe('InstantSearchHandler', () => {
       (vscode.window.withProgress as jest.Mock<any>).mockImplementation(
         async (options: any, task: any) => task({ report: jest.fn() })
       );
-      (vscode.window.showQuickPick as jest.Mock<any>).mockResolvedValue(null);
+      (vscode.window.showQuickPick as jest.Mock<any>).mockResolvedValue(null as any);
 
       await handler.searchFromSelection(longQuery, longContext);
 
-      const calls = mockZoteroApiService.semanticSearch.mock.calls;
+      const calls = (mockZoteroApiService.semanticSearch as jest.Mock<any>).mock.calls;
       expect(calls.length).toBeGreaterThan(0);
-      const calledQuery = calls[0]?.[0];
-      expect(calledQuery?.length).toBeLessThanOrEqual(500);
+      const calledQuery = (calls[0] as any)?.[0];
+      expect((calledQuery as any)?.length).toBeLessThanOrEqual(500);
     });
   });
 
@@ -241,8 +241,8 @@ describe('InstantSearchHandler', () => {
 
       await handler.displayResults([manyAuthorsItem]);
 
-      const callArgs = (mockShowQuickPick.mock.calls[0][0] as any);
-      expect(callArgs[0].description).toContain('et al.');
+      const callArgs = ((mockShowQuickPick as jest.Mock<any>).mock.calls[0]?.[0] as any);
+      expect(callArgs?.[0]?.description).toContain('et al.');
     });
 
     test('should truncate long abstracts in detail field', async () => {
@@ -256,9 +256,9 @@ describe('InstantSearchHandler', () => {
 
       await handler.displayResults([longAbstractItem]);
 
-      const callArgs = (mockShowQuickPick.mock.calls[0][0] as any);
-      expect(callArgs[0].detail).toContain('...');
-      expect(callArgs[0].detail.length).toBeLessThan(160);
+      const callArgs = ((mockShowQuickPick as jest.Mock<any>).mock.calls[0]?.[0] as any);
+      expect(callArgs?.[0]?.detail).toContain('...');
+      expect((callArgs?.[0]?.detail?.length ?? 0)).toBeLessThan(160);
     });
 
     test('should call openOrExtractPaper when item is selected', async () => {
@@ -465,7 +465,7 @@ describe('InstantSearchHandler', () => {
       (vscode.window.withProgress as jest.Mock).mockImplementation(
         async (options: any, task: any) => task({ report: jest.fn() })
       );
-      (vscode.window.showQuickPick as jest.Mock).mockResolvedValue(null);
+      (vscode.window.showQuickPick as jest.Mock<any>).mockResolvedValue(null as any);
 
       // First search to populate cache
       await handler.searchFromSelection('test query');

@@ -19,7 +19,7 @@ describe('PaperRanker', () => {
     // Replace the core ranker's methods with mocks
     const mockRankPapersForSection = jest.fn<(sectionId: string, papers: PaperMetadata[]) => Promise<any[]>>();
     mockRankPapersForSection.mockResolvedValue([]);
-    (paperRanker['coreRanker'].rankPapersForSection as any) = mockRankPapersForSection;
+    (paperRanker['coreRanker'] as any).rankPapersForSection = mockRankPapersForSection as any;
     
     const mockCalculateReadingTime = jest.fn<(paper: PaperMetadata) => number>();
     mockCalculateReadingTime.mockImplementation((paper) => {
@@ -32,7 +32,7 @@ describe('PaperRanker', () => {
       const abstractWords = paper.abstract?.split(/\s+/).length || 100;
       return Math.ceil((abstractWords * 33) / 200);
     });
-    (paperRanker['coreRanker'].calculateReadingTime as any) = mockCalculateReadingTime;
+    (paperRanker['coreRanker'] as any).calculateReadingTime = mockCalculateReadingTime;
   });
 
   // Helper function to create test papers

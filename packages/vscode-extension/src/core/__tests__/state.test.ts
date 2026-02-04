@@ -52,7 +52,7 @@ describe('ExtensionState', () => {
     setupWorkspaceFolders();
 
     // Mock RelativePattern
-    (vscode.RelativePattern as jest.Mock).mockImplementation((base: any, pattern: string) => {
+    (vscode.RelativePattern as jest.Mock<any>).mockImplementation((base: any, pattern: any) => {
       return { base, pattern };
     });
 
@@ -321,8 +321,8 @@ describe('ExtensionState', () => {
       await jest.runAllTimersAsync();
       
       // Now set up the existing mock to fail on the next call
-      (MockOutlineParser.prototype.parse as jest.Mock).mockClear();
-      (MockOutlineParser.prototype.parse as jest.Mock).mockRejectedValueOnce(new Error('Parse error'));
+      (MockOutlineParser.prototype.parse as jest.Mock<any>).mockClear();
+      (MockOutlineParser.prototype.parse as jest.Mock<any>).mockRejectedValueOnce(new Error('Parse error') as any);
 
       // Simulate file change that will cause parse error
       outlineChangeCallbacks.forEach(cb => cb());

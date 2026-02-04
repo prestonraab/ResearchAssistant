@@ -12,12 +12,12 @@ import {
 
 // Manually mock fs with proper jest.Mock setup
 jest.mock('fs', () => ({
-  existsSync: jest.fn().mockReturnValue(false),
-  readdirSync: jest.fn().mockReturnValue([]),
-  readFileSync: jest.fn().mockReturnValue(''),
-  writeFileSync: jest.fn(),
-  mkdirSync: jest.fn(),
-  unlinkSync: jest.fn()
+  existsSync: jest.fn<(path: string) => boolean>().mockReturnValue(false),
+  readdirSync: jest.fn<(path: string) => string[]>().mockReturnValue([]),
+  readFileSync: jest.fn<(path: string) => string>().mockReturnValue(''),
+  writeFileSync: jest.fn<(path: string, data: string) => void>(),
+  mkdirSync: jest.fn<(path: string) => void>(),
+  unlinkSync: jest.fn<(path: string) => void>()
 }));
 
 describe('FulltextStatusManager', () => {
