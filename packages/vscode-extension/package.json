@@ -16,13 +16,6 @@
     "Other"
   ],
   "activationEvents": [
-    "onCommand:researchAssistant.activate",
-    "onCommand:researchAssistant.openWritingMode",
-    "onCommand:researchAssistant.openEditingMode",
-    "onCommand:researchAssistant.openClaimReview",
-    "onView:researchAssistant.outline",
-    "onView:researchAssistant.claims",
-    "onView:researchAssistant.papers"
   ],
   "main": "./dist/extension.js",
   "contributes": {
@@ -561,6 +554,7 @@
   },
   "dependencies": {
     "@research-assistant/core": "*",
-    "docx": "^9.5.1"
+    "docx": "^9.5.1",
+    "openai": "^4.0.0"
   }
 }
