@@ -75,9 +75,14 @@ export class WritingModeProvider {
   }
 
   private async _showInternal(): Promise<void> {
-    // If panel already exists and is not disposed, reveal it
+    // If panel already exists and is not disposed, reveal it and reload data
     if (this.panel && !this.panelDisposed) {
       this.panel.reveal(vscode.ViewColumn.One);
+      
+      // Always reinitialize to pick up changes from Editing Mode
+      console.log('[WritingMode] Reloading data from manuscript...');
+      await this.initializeWritingMode();
+      
       return;
     }
 
@@ -119,6 +124,12 @@ export class WritingModeProvider {
     );
 
     this.disposalManager.registerDisposable(WritingModeProvider.viewType, messageListener);
+
+    // Listen for claim changes to refresh display
+    const claimChangeListener = this.extensionState.claimsManager.onDidChange(() => {
+      this.refreshWritingModeDisplay();
+    });
+    this.disposables.push(claimChangeListener);
 
     // Handle panel disposal
     const disposalListener = this.panel.onDidDispose(() => {
@@ -256,6 +267,49 @@ export class WritingModeProvider {
   }
 
   /**
+   * Refresh writing mode display when claims change
+   * Reloads manuscript and updates the webview with fresh data
+   */
+  private async refreshWritingModeDisplay(): Promise<void> {
+    if (!this.panel || this.panelDisposed) {
+      return;
+    }
+
+    try {
+      // Load and parse manuscript
+      const manuscript = await this.loadManuscript();
+      let questionAnswerPairs = this.questionAnswerParser.parseManuscript(manuscript);
+
+      // Validate Q&A pairs
+      if (!DataValidationService.validateQAPairsArray(questionAnswerPairs)) {
+        console.warn('[WritingMode] Q&A pairs validation failed during refresh');
+        return;
+      }
+
+      // Enrich pairs with linked sources from claims
+      questionAnswerPairs = await this.enrichPairsWithLinkedSources(questionAnswerPairs);
+
+      // Sanitize for webview transmission
+      const sanitizedPairs = DataValidationService.sanitizeQAPairsForWebview(questionAnswerPairs);
+
+      // Send updated pairs to webview
+      this.panel.webview.postMessage({
+        type: 'pairsUpdated',
+        pairs: sanitizedPairs
+      });
+
+      // Update mode context
+      getModeContextManager().setWritingModeContext({
+        pairs: sanitizedPairs
+      });
+
+      console.log('[WritingMode] Display refreshed with updated claims');
+    } catch (error) {
+      console.error('[WritingMode] Failed to refresh display:', error);
+    }
+  }
+
+  /**
    * Enrich question-answer pairs with linked sources from claims
    * Extracts author-year citations from [source:: C_XX(Author Year, ...)] format
    */
@@ -312,6 +366,7 @@ export class WritingModeProvider {
               const isCited = authorYear ? citedSet.has(authorYear) : false;
               
               linkedSources.push({
+                claimId: claimId,  // Track which claim this source belongs to
                 title: claim.text.substring(0, 50) + (claim.text.length > 50 ? '...' : ''),
                 source: claim.primaryQuote.source,
                 quote: claim.primaryQuote.text,
@@ -328,6 +383,7 @@ export class WritingModeProvider {
                 const isCited = authorYear ? citedSet.has(authorYear) : false;
                 
                 linkedSources.push({
+                  claimId: claimId,  // Track which claim this source belongs to
                   title: claim.text.substring(0, 50) + (claim.text.length > 50 ? '...' : ''),
                   source: supportingQuote.source,
                   quote: supportingQuote.text,
@@ -544,10 +600,13 @@ export class WritingModeProvider {
           // Group linkedSources by claim ID
           const sourcesByClaimId = new Map<string, any[]>();
           for (const source of pair.linkedSources) {
-            if (!sourcesByClaimId.has(source.source)) {
-              sourcesByClaimId.set(source.source, []);
+            const claimId = source.claimId;
+            if (claimId) {
+              if (!sourcesByClaimId.has(claimId)) {
+                sourcesByClaimId.set(claimId, []);
+              }
+              sourcesByClaimId.get(claimId)!.push(source);
             }
-            sourcesByClaimId.get(source.source)!.push(source);
           }
 
           // Build new source specs with author-year citations for cited sources
@@ -555,8 +614,8 @@ export class WritingModeProvider {
           for (const claimId of pair.claims || []) {
             const sources = sourcesByClaimId.get(claimId) || [];
             const citedAuthorYears = sources
-              .filter(s => s.cited && s.authorYear)
-              .map(s => s.authorYear);
+              .filter((s: any) => s.cited && s.authorYear)
+              .map((s: any) => s.authorYear);
 
             if (citedAuthorYears.length > 0) {
               sourceSpecs.push(`${claimId}(${citedAuthorYears.join(', ')})`);
@@ -567,11 +626,16 @@ export class WritingModeProvider {
 
           // Update answer with new source specs
           if (sourceSpecs.length > 0) {
-            // Replace old source specs with new ones
-            pair.answer = pair.answer.replace(
-              /\[source::\s*[^\]]+\]/g,
-              `[source:: ${sourceSpecs.join(', ')}]`
-            );
+            // Check if there's an existing source spec to replace
+            if (/\[source::\s*[^\]]+\]/.test(pair.answer)) {
+              pair.answer = pair.answer.replace(
+                /\[source::\s*[^\]]+\]/g,
+                `[source:: ${sourceSpecs.join(', ')}]`
+              );
+            } else {
+              // No existing source spec - append one
+              pair.answer = pair.answer.trim() + ` [source:: ${sourceSpecs.join(', ')}]`;
+            }
           }
         }
       }

@@ -172,6 +172,128 @@ export class PDFExtractionService {
   }
 
   /**
+   * Extract text from a PDF URL (for open access papers)
+   * Downloads the PDF temporarily, extracts text, then cleans up
+   */
+  public async extractFromUrl(pdfUrl: string, paperTitle: string): Promise<ExtractionResult> {
+    const https = await import('https');
+    const http = await import('http');
+    
+    // Sanitize title for filename
+    const sanitizedTitle = paperTitle
+      .replace(/[^a-zA-Z0-9\s-]/g, '')
+      .replace(/\s+/g, '_')
+      .substring(0, 100);
+    
+    const tempPdfPath = path.join(this.workspaceRoot, 'literature', 'PDFs', `${sanitizedTitle}_temp.pdf`);
+    const extractedPath = this.getExtractedTextPath(tempPdfPath);
+    
+    try {
+      // Check if already extracted
+      if (fs.existsSync(extractedPath)) {
+        if (this.debug) console.log(`DEBUG: Text already extracted for ${paperTitle}`);
+        return {
+          success: true,
+          outputPath: extractedPath
+        };
+      }
+      
+      // Ensure PDFs directory exists
+      const pdfsDir = path.dirname(tempPdfPath);
+      if (!fs.existsSync(pdfsDir)) {
+        fs.mkdirSync(pdfsDir, { recursive: true });
+      }
+      
+      if (this.debug) console.log(`DEBUG: Downloading PDF from ${pdfUrl}`);
+      
+      // Download PDF
+      await new Promise<void>((resolve, reject) => {
+        const protocol = pdfUrl.startsWith('https') ? https : http;
+        const file = fs.createWriteStream(tempPdfPath);
+        
+        protocol.get(pdfUrl, (response) => {
+          // Handle redirects
+          if (response.statusCode === 301 || response.statusCode === 302) {
+            const redirectUrl = response.headers.location;
+            if (redirectUrl) {
+              file.close();
+              const redirectProtocol = redirectUrl.startsWith('https') ? https : http;
+              redirectProtocol.get(redirectUrl, (redirectResponse) => {
+                redirectResponse.pipe(file);
+                file.on('finish', () => {
+                  file.close();
+                  resolve();
+                });
+              }).on('error', (err) => {
+                fs.unlinkSync(tempPdfPath);
+                reject(err);
+              });
+            } else {
+              reject(new Error('Redirect without location header'));
+            }
+            return;
+          }
+          
+          if (response.statusCode !== 200) {
+            file.close();
+            fs.unlinkSync(tempPdfPath);
+            reject(new Error(`HTTP ${response.statusCode}`));
+            return;
+          }
+          
+          response.pipe(file);
+          file.on('finish', () => {
+            file.close();
+            resolve();
+          });
+        }).on('error', (err) => {
+          fs.unlinkSync(tempPdfPath);
+          reject(err);
+        });
+        
+        file.on('error', (err) => {
+          file.close();
+          fs.unlinkSync(tempPdfPath);
+          reject(err);
+        });
+      });
+      
+      if (this.debug) console.log(`DEBUG: PDF downloaded, extracting text...`);
+      
+      // Extract text using existing method
+      const result = await this.extractText(tempPdfPath);
+      
+      // Clean up temp PDF
+      try {
+        fs.unlinkSync(tempPdfPath);
+        if (this.debug) console.log(`DEBUG: Cleaned up temp PDF`);
+      } catch (cleanupError) {
+        console.warn(`Failed to clean up temp PDF: ${cleanupError}`);
+      }
+      
+      return result;
+      
+    } catch (error) {
+      // Clean up on error
+      if (fs.existsSync(tempPdfPath)) {
+        try {
+          fs.unlinkSync(tempPdfPath);
+        } catch (cleanupError) {
+          console.warn(`Failed to clean up temp PDF after error: ${cleanupError}`);
+        }
+      }
+      
+      const msg = error instanceof Error ? error.message : String(error);
+      if (this.debug) console.error(`DEBUG: URL extraction exception: ${msg}`);
+      
+      return {
+        success: false,
+        error: `Failed to extract from URL: ${msg}`
+      };
+    }
+  }
+
+  /**
    * Extract text from multiple PDFs in batch
    */
   public async extractBatch(

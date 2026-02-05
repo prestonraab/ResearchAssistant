@@ -1,5 +1,7 @@
 import * as vscode from 'vscode';
 import { InternetPaperSearcher as CoreInternetPaperSearcher, ExternalPaper } from '@research-assistant/core';
+import { PDFExtractionService } from './pdfExtractionService';
+import { ClaimEvidenceFinder, Evidence } from '../services/claimEvidenceFinder';
 
 /**
  * InternetPaperSearcher - VS Code extension wrapper
@@ -7,11 +9,122 @@ import { InternetPaperSearcher as CoreInternetPaperSearcher, ExternalPaper } fro
  * Extends the core InternetPaperSearcher with VS Code-specific UI methods
  * for displaying results and importing to Zotero.
  * 
+ * Implements "two-speed" workflow:
+ * - Fast path: Open access PDFs are fetched and searched immediately
+ * - Slow path: Paywalled papers are marked as "leads" pending Zotero import
+ * 
  * Requirements: 47.1, 47.2, 47.3, 47.4, 47.5
  */
 export class InternetPaperSearcher extends CoreInternetPaperSearcher {
+  private pdfExtractor: PDFExtractionService;
+  private evidenceFinder: ClaimEvidenceFinder;
+
   constructor(private workspaceRoot: string) {
     super();
+    this.pdfExtractor = new PDFExtractionService(workspaceRoot);
+    this.evidenceFinder = new ClaimEvidenceFinder(workspaceRoot);
+  }
+
+  /**
+   * Add a quote from an external paper with automatic evidence extraction
+   * Implements the "two-speed" approach:
+   * - If openAccessPdf exists: fetch, extract, and search for evidence (fast path)
+   * - Otherwise: create abstract lead pending Zotero import (slow path)
+   * 
+   * @param paper - External paper from search results
+   * @param claimText - The claim text to find evidence for
+   * @returns Evidence object (either verified text or abstract lead)
+   */
+  public async addQuoteFromPaper(
+    paper: ExternalPaper,
+    claimText: string
+  ): Promise<Evidence> {
+    const sourceId = paper.doi || paper.url || paper.title;
+
+    // Default to abstract lead
+    let evidence = this.evidenceFinder.createAbstractLead(paper.abstract, sourceId);
+
+    // Try the "lucky path" - open access PDF
+    if (paper.openAccessPdf?.url) {
+      try {
+        await vscode.window.withProgress(
+          {
+            location: vscode.ProgressLocation.Notification,
+            title: 'Extracting evidence from open access PDF...',
+            cancellable: false,
+          },
+          async (progress) => {
+            progress.report({ message: 'Downloading PDF...' });
+            
+            // Extract PDF to text
+            const extractionResult = await this.pdfExtractor.extractFromUrl(
+              paper.openAccessPdf!.url,
+              paper.title
+            );
+
+            if (extractionResult.success && extractionResult.outputPath) {
+              progress.report({ message: 'Searching for evidence...' });
+              
+              // Search for evidence in full text
+              const verifiedEvidence = await this.evidenceFinder.findEvidenceInFullText(
+                claimText,
+                extractionResult.outputPath,
+                sourceId
+              );
+
+              if (verifiedEvidence) {
+                evidence = verifiedEvidence;
+                vscode.window.showInformationMessage(
+                  `✓ Found verified evidence (confidence: ${(verifiedEvidence.confidence * 100).toFixed(0)}%)`
+                );
+              } else {
+                vscode.window.showWarningMessage(
+                  'No strong evidence found in full text. Using abstract as lead.'
+                );
+              }
+            }
+          }
+        );
+      } catch (error) {
+        console.error('[InternetPaperSearcher] Failed to extract from open access PDF:', error);
+        vscode.window.showWarningMessage(
+          'Could not extract from PDF. Using abstract as lead.'
+        );
+      }
+    } else {
+      // No open access PDF - this is a "lead" pending Zotero import
+      vscode.window.showInformationMessage(
+        '📋 Added as lead (abstract only). Import to Zotero to get full text.',
+        'Import to Zotero'
+      ).then(action => {
+        if (action === 'Import to Zotero') {
+          this.importToZotero(paper);
+        }
+      });
+    }
+
+    return evidence;
+  }
+
+  /**
+   * Backfill evidence for a lead when PDF becomes available in Zotero
+   * This is the "slow path" completion - called after Zotero sync
+   * 
+   * @param lead - Existing abstract lead
+   * @param claimText - Original claim text
+   * @param extractedTextPath - Path to extracted PDF text
+   * @returns Upgraded evidence or null if no improvement
+   */
+  public async backfillEvidenceFromZotero(
+    lead: Evidence,
+    claimText: string,
+    extractedTextPath: string
+  ): Promise<Evidence | null> {
+    return this.evidenceFinder.upgradeLeadToVerified(
+      lead,
+      claimText,
+      extractedTextPath
+    );
   }
 
   /**

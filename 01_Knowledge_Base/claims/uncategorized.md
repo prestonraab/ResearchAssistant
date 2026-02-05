@@ -637,3 +637,13 @@ This file contains all **uncategorized** claims with their supporting evidence.
 ---
 
 
+## C_1770304648471: Human diversity is best captured and accounted for using large datasets acquired at great cost.
+
+**Category**: Uncategorized  
+**Source**: Collins and Varmus - 2015  
+**Context**: Precision medicine relies on accurate predictions for patients across the spectrum of human diversity. This diversity is best captured and accounted for using large datasets aquired at great cost.
+
+
+---
+
+

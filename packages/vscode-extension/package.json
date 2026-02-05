@@ -221,6 +221,11 @@
         "icon": "$(sync)"
       },
       {
+        "command": "researchAssistant.checkZoteroLeadBackfill",
+        "title": "Research Assistant: Check for PDF Upgrades",
+        "icon": "$(arrow-up)"
+      },
+      {
         "command": "researchAssistant.jumpToPDF",
         "title": "Jump to PDF in Zotero",
         "icon": "$(link-external)"
@@ -520,6 +525,12 @@
           "type": "boolean",
           "default": true,
           "description": "Automatically activate Research Assistant when a research workspace is detected"
+        },
+        "researchAssistant.semanticScholarApiKey": {
+          "type": "string",
+          "default": "",
+          "description": "Semantic Scholar API key for improved web search. Get one at https://www.semanticscholar.org/product/api",
+          "markdownDescription": "Semantic Scholar API key for improved web search rate limits. [Request one here](https://www.semanticscholar.org/product/api)"
         }
       }
     }

@@ -22,6 +22,7 @@ import { ZoteroAvailabilityManager } from '../../services/zoteroAvailabilityMana
 import { SentenceClaimQuoteLinkManager } from '../sentenceClaimQuoteLinkManager';
 import { OrphanCitationValidator, CitationSourceMapper } from '@research-assistant/core';
 import { ApiKeyValidator } from '../apiKeyValidator';
+import { ZoteroLeadQueue } from '../../services/zoteroLeadQueue';
 
 /** Service state: all service instances and their initialization. */
 export class ServiceState {
@@ -52,6 +53,7 @@ export class ServiceState {
   public syncManager: SyncManager;
   public orphanCitationValidator: OrphanCitationValidator;
   public citationSourceMapper: CitationSourceMapper;
+  public zoteroLeadQueue: ZoteroLeadQueue;
 
   constructor(coreState: CoreState) {
     const { config, workspaceRoot, context } = coreState;
@@ -114,6 +116,9 @@ export class ServiceState {
     // Initialize orphan citation services
     this.citationSourceMapper = new CitationSourceMapper(workspaceRoot);
     this.orphanCitationValidator = new OrphanCitationValidator(this.citationSourceMapper, this.claimsManager as any);
+    
+    // Initialize Zotero lead queue
+    this.zoteroLeadQueue = new ZoteroLeadQueue(workspaceRoot);
     
     // Load source mappings asynchronously (fire and forget)
     this.citationSourceMapper.loadSourceMappings().catch(error => {

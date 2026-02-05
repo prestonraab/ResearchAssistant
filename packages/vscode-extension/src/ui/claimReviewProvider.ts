@@ -836,6 +836,10 @@ export class ClaimReviewProvider {
         await this.handleDeleteQuote(message.claimId, message.quote);
         break;
 
+      case 'recheckQuoteSources':
+        await this.handleRecheckQuoteSources(message.claimId, message.quote);
+        break;
+
       case 'findNewQuotes':
         await this.handleFindNewQuotes(message.claimId, message.query, this.currentAbortController?.signal);
         break;
@@ -845,7 +849,7 @@ export class ClaimReviewProvider {
         break;
 
       case 'addWebQuote':
-        await this.handleAddWebQuote(message.claimId, message.quote, message.source, message.url, message.confidence);
+        await this.handleAddWebQuote(message.claimId, message.quote, message.source, message.url, message.confidence, message.paperData);
         break;
 
       case 'addSupportingQuote':
@@ -1089,6 +1093,64 @@ export class ClaimReviewProvider {
   }
 
   /**
+   * Handle recheck quote sources message
+   * Searches local literature and Zotero to see if the paper has been added
+   */
+  private async handleRecheckQuoteSources(claimId: string, quote: string): Promise<void> {
+    try {
+      const claim = this.extensionState.claimsManager.getClaim(claimId);
+
+      if (!claim) {
+        vscode.window.showErrorMessage('Could not find this claim.');
+        return;
+      }
+
+      // Show progress
+      vscode.window.withProgress(
+        { location: vscode.ProgressLocation.Notification, title: 'Rechecking sources...' },
+        async () => {
+          // Search local literature for the quote
+          const localResults = await this.extensionState.verificationFeedbackLoop.searchLiteratureSnippets(quote, 5);
+          
+          if (localResults.length > 0) {
+            // Found in local literature - update the quote with the source
+            const topResult = localResults[0];
+            const sourceName = topResult.fileName.replace(/\.txt$/, '');
+            
+            if (claim.primaryQuote && claim.primaryQuote.text === quote) {
+              claim.primaryQuote.source = sourceName;
+              claim.primaryQuote.verified = true;
+            } else if (claim.supportingQuotes) {
+              const supportingQuote = claim.supportingQuotes.find((q: any) => q.text === quote);
+              if (supportingQuote) {
+                supportingQuote.source = sourceName;
+                supportingQuote.verified = true;
+              }
+            }
+            
+            await this.extensionState.claimsManager.updateClaim(claimId, claim);
+            await this.loadAndDisplayClaim(claimId);
+            
+            vscode.window.showInformationMessage(
+              `Quote found in local literature: ${sourceName}`
+            );
+          } else {
+            // Not found in local literature
+            vscode.window.showInformationMessage(
+              'Quote not found in local literature. Try adding the paper to Zotero and syncing.'
+            );
+          }
+        }
+      );
+    } catch (error) {
+      console.error('[ClaimReview] Error rechecking quote sources:', error);
+      vscode.window.showErrorMessage(
+        'Unable to recheck sources. Please try again.'
+      );
+    }
+  }
+
+  /**
    * Handle load snippet text message
    */
   private async handleLoadSnippetText(snippetId: string, filePath: string, confidence: number = 0): Promise<void> {
@@ -1213,8 +1275,16 @@ export class ClaimReviewProvider {
 
   /**
    * Handle adding a web quote directly (web results aren't in local index)
+   * Implements "Lucky Path" - if OA PDF available, extract and search for better evidence
    */
-  private async handleAddWebQuote(claimId: string, quote: string, source: string, url: string, confidence: number = 0): Promise<void> {
+  private async handleAddWebQuote(
+    claimId: string, 
+    quote: string, 
+    source: string, 
+    url: string, 
+    confidence: number = 0,
+    paperData?: any
+  ): Promise<void> {
     try {
       const claim = this.extensionState.claimsManager.getClaim(claimId);
 
@@ -1230,16 +1300,97 @@ export class ClaimReviewProvider {
         return;
       }
 
-      // For web quotes, the source is the paper title - mark it as unverified web source
-      const webSource = `[Web] ${source}`;
+      let finalQuote = quote;
+      let finalConfidence = confidence;
+      let quoteType: 'abstract' | 'verified' | 'pending' = 'abstract';
+      let extractedTextPath: string | undefined;
+
+      // Check if this is an open access paper with PDF
+      const openAccessPdf = paperData?.metadata?.paperData?.openAccessPdf;
+      
+      if (openAccessPdf?.url) {
+        console.log(`[ClaimReview] Open access PDF available, attempting extraction: ${openAccessPdf.url}`);
+        
+        // Show progress notification
+        await vscode.window.withProgress(
+          {
+            location: vscode.ProgressLocation.Notification,
+            title: 'Extracting open access PDF...',
+            cancellable: false
+          },
+          async (progress) => {
+            try {
+              // Extract PDF from URL
+              progress.report({ message: 'Downloading PDF...' });
+              const extractionResult = await this.extensionState.pdfExtractionService.extractFromUrl(
+                openAccessPdf.url,
+                source
+              );
+
+              if (extractionResult.success && extractionResult.outputPath) {
+                extractedTextPath = extractionResult.outputPath;
+                progress.report({ message: 'Searching for claim evidence...' });
+                
+                // Search the extracted text for the claim
+                const snippets = await this.extensionState.verificationFeedbackLoop.searchLiteratureSnippets(
+                  claim.text,
+                  10
+                );
+                
+                // Filter to only snippets from this paper
+                const paperSnippets = snippets.filter(s => 
+                  s.filePath === extractedTextPath || 
+                  s.fileName.includes(source.replace(/[^a-zA-Z0-9]/g, '_'))
+                );
+                
+                if (paperSnippets.length > 0) {
+                  // Verify snippets to find best match
+                  const verifications = await Promise.all(
+                    paperSnippets.map(snippet => 
+                      this.extensionState.verificationFeedbackLoop.verifySnippet(claim.text, snippet, 0)
+                    )
+                  );
+                  
+                  // Find best supporting snippet
+                  const bestMatch = verifications
+                    .map((v, i) => ({ verification: v, snippet: paperSnippets[i] }))
+                    .filter(item => item.verification.supports)
+                    .sort((a, b) => b.verification.confidence - a.verification.confidence)[0];
+                  
+                  if (bestMatch) {
+                    finalQuote = bestMatch.snippet.text;
+                    finalConfidence = bestMatch.verification.confidence;
+                    quoteType = 'verified';
+                    console.log(`[ClaimReview] Found better evidence in PDF (confidence: ${finalConfidence.toFixed(2)})`);
+                  } else {
+                    console.log(`[ClaimReview] No better evidence found in PDF, using abstract`);
+                  }
+                } else {
+                  console.log(`[ClaimReview] No snippets found from extracted PDF`);
+                }
+              } else {
+                console.warn(`[ClaimReview] PDF extraction failed: ${extractionResult.error}`);
+              }
+            } catch (error) {
+              console.error('[ClaimReview] Error in Lucky Path extraction:', error);
+              // Fall back to abstract
+            }
+          }
+        );
+      }
+
+      // Mark source appropriately
+      const webSource = (quoteType as string) === 'verified' 
+        ? `${source}` // Verified text from PDF
+        : `[Web Lead] ${source}`; // Just abstract
 
       // If primary quote is empty, add to primary quote instead of supporting
       if (!claim.primaryQuote || !claim.primaryQuote.text || claim.primaryQuote.text.trim() === '') {
         claim.primaryQuote = {
-          text: quote,
+          text: finalQuote,
           source: webSource,
-          verified: false,
-          confidence: confidence > 0 ? confidence : undefined
+          verified: (quoteType as string) === 'verified',
+          confidence: finalConfidence > 0 ? finalConfidence : undefined
         };
       } else {
         // Initialize supporting quotes array if needed
@@ -1248,7 +1399,7 @@ export class ClaimReviewProvider {
         }
 
         // Check if quote already exists
-        const quoteExists = claim.supportingQuotes.some((q: any) => q.text === quote);
+        const quoteExists = claim.supportingQuotes.some((q: any) => q.text === finalQuote);
         if (quoteExists) {
           vscode.window.showWarningMessage('This quote is already in supporting quotes');
           return;
@@ -1256,38 +1407,69 @@ export class ClaimReviewProvider {
 
         // Add quote to supporting quotes
         claim.supportingQuotes.push({
-          text: quote,
+          text: finalQuote,
           source: webSource,
-          verified: false,
-          confidence: confidence > 0 ? confidence : undefined
+          verified: (quoteType as string) === 'verified',
+          confidence: finalConfidence > 0 ? finalConfidence : undefined
         });
       }
 
       // Update claim
       await this.extensionState.claimsManager.updateClaim(claimId, claim);
 
-      // Reload claim display
-      await this.loadAndDisplayClaim(claimId);
-
-      // Offer to open the URL so user can add to Zotero via browser connector
-      if (url) {
-        const action = await vscode.window.showInformationMessage(
-          'Web quote added. Open the paper in your browser to add it to Zotero?',
-          'Open in Browser',
-          'Skip'
-        );
-        
-        if (action === 'Open in Browser') {
-          vscode.env.openExternal(vscode.Uri.parse(url));
-        }
-      } else {
-        vscode.window.showInformationMessage('Web quote added. Consider finding and adding this paper to Zotero for full verification.');
+      // Add to Zotero lead queue if we have paper data
+      if (paperData?.metadata?.paperData && this.extensionState.zoteroLeadQueue) {
+        const paper = paperData.metadata.paperData;
+        await this.extensionState.zoteroLeadQueue.addLead({
+          title: paper.title || source,
+          authors: paper.authors || [],
+          year: paper.year || new Date().getFullYear(),
+          abstract: paper.abstract || paper.snippet || '',
+          url: paper.url || url,
+          doi: paper.doi,
+          claimId: claimId,
+          quoteText: finalQuote,
+          quoteType: quoteType,
+          confidence: finalConfidence
+        });
+        console.log(`[ClaimReview] Added paper to Zotero lead queue: ${paper.title}`);
       }
+
+      // Show appropriate message
+      if ((quoteType as string) === 'verified') {
+        vscode.window.showInformationMessage(
+          `Found verified evidence in open access PDF! Added to Zotero queue.`,
+          'Open in Browser'
+        ).then(action => {
+          if (action === 'Open in Browser' && url) {
+            vscode.env.openExternal(vscode.Uri.parse(url));
+          }
+        });
+      } else {
+        // Offer to open the URL
+        if (url) {
+          vscode.window.showInformationMessage(
+            'Web lead added (abstract only). Open the paper in your browser to add it to Zotero?',
+            'Open in Browser',
+            'Skip'
+          ).then(action => {
+            if (action === 'Open in Browser') {
+              vscode.env.openExternal(vscode.Uri.parse(url));
+            }
+          });
+        } else {
+          vscode.window.showInformationMessage('Web lead added. Consider finding and adding this paper to Zotero for full verification.');
+        }
+      }
+
+      // Reload claim display in background
+      this.loadAndDisplayClaim(claimId);
     } catch (error) {
       vscode.window.showErrorMessage(
         'Unable to add the web quote. Please try again.',
         'Retry'
       );
+      console.error('[ClaimReview] Error adding web quote:', error);
     }
   }
 

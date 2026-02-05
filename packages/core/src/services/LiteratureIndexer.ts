@@ -50,17 +50,32 @@ export class LiteratureIndexer {
 
       console.log(`[LiteratureIndexer] Found ${files.length} text files to check`);
 
-      for (const filePath of files) {
+      // Extract snippets in parallel for all files
+      const filesToIndex: Array<{ filePath: string; content: string }> = [];
+      
+      const extractionPromises = files.map(async (filePath) => {
         try {
           const content = fs.readFileSync(filePath, 'utf-8');
 
           if (!this.embeddingStore.hasFileChanged(filePath, content)) {
             console.log(`[LiteratureIndexer] Skipping unchanged file: ${path.basename(filePath)}`);
             stats.skipped++;
-            continue;
+            return;
           }
 
-          console.log(`[LiteratureIndexer] Indexing file: ${path.basename(filePath)}`);
+          filesToIndex.push({ filePath, content });
+        } catch (error) {
+          console.error(`[LiteratureIndexer] Error reading file ${filePath}:`, error);
+          stats.errors++;
+        }
+      });
+
+      await Promise.all(extractionPromises);
+
+      // Embed files sequentially (one paper at a time)
+      for (const { filePath, content } of filesToIndex) {
+        try {
+          console.log(`[LiteratureIndexer] Embedding ${path.basename(filePath)}`);
           await this.indexFile(filePath, content);
           stats.indexed++;
         } catch (error) {
@@ -79,7 +94,6 @@ export class LiteratureIndexer {
 
   private async indexFile(filePath: string, content: string): Promise<void> {
     const snippets = this.snippetExtractor.extractSnippets(content, path.basename(filePath));
-    console.log(`[LiteratureIndexer] Extracted ${snippets.length} snippets from ${path.basename(filePath)}`);
 
     if (snippets.length === 0) {
       return;
@@ -90,19 +104,18 @@ export class LiteratureIndexer {
       return;
     }
 
-    const embeddedSnippets: EmbeddedSnippet[] = [];
-
-    for (let i = 0; i < snippets.length; i++) {
-      const snippet = snippets[i];
+    try {
+      // Extract all snippet texts for batch embedding
+      const snippetTexts = snippets.map(s => s.text);
       
-      if (i % 10 === 0) {
-        console.log(`[LiteratureIndexer] Embedding snippet ${i + 1}/${snippets.length}`);
-      }
-
-      try {
-        const embedding = await this.embeddingService.generateEmbedding(snippet.text);
+      const embeddings = await this.embeddingService.generateBatch(snippetTexts);
+      
+      const embeddedSnippets: EmbeddedSnippet[] = [];
+      
+      for (let i = 0; i < snippets.length; i++) {
+        const embedding = embeddings[i];
         
-        if (!embedding) {
+        if (!embedding || embedding.length === 0) {
           console.warn(`[LiteratureIndexer] Failed to embed snippet ${i + 1}`);
           continue;
         }
@@ -111,24 +124,25 @@ export class LiteratureIndexer {
           id: `${path.basename(filePath)}_${i}`,
           filePath,
           fileName: path.basename(filePath),
-          text: snippet.text,
+          text: snippets[i].text,
           embedding,
-          startLine: snippet.startLine,
-          endLine: snippet.endLine,
+          startLine: snippets[i].startLine,
+          endLine: snippets[i].endLine,
           timestamp: Date.now()
         });
-      } catch (error) {
-        const errorMsg = error instanceof Error ? error.message : String(error);
-        console.error(`[LiteratureIndexer] Error embedding snippet ${i + 1}: ${errorMsg}`);
-        
-        // If it's an API key error, log it prominently
-        if (errorMsg.includes('401') || errorMsg.includes('Unauthorized') || errorMsg.includes('API key')) {
-          console.error('[LiteratureIndexer] ⚠️  OpenAI API key error - check your configuration in VS Code settings');
-        }
+      }
+
+      await this.embeddingStore.addSnippets(embeddedSnippets, filePath, content);
+      console.log(`[LiteratureIndexer] Finished embedding ${path.basename(filePath)}`);
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      console.error(`[LiteratureIndexer] Error embedding file: ${errorMsg}`);
+      
+      // If it's an API key error, log it prominently
+      if (errorMsg.includes('401') || errorMsg.includes('Unauthorized') || errorMsg.includes('API key')) {
+        console.error('[LiteratureIndexer] ⚠️  OpenAI API key error - check your configuration in VS Code settings');
       }
     }
-
-    await this.embeddingStore.addSnippets(embeddedSnippets, filePath, content);
   }
 
   async searchSnippets(query: string, limit: number = 10): Promise<EmbeddedSnippet[]> {

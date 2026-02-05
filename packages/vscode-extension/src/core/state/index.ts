@@ -48,6 +48,7 @@ export class ExtensionState {
   public get syncManager() { return this.serviceState.syncManager; }
   public get orphanCitationValidator() { return this.serviceState.orphanCitationValidator; }
   public get citationSourceMapper() { return this.serviceState.citationSourceMapper; }
+  public get zoteroLeadQueue() { return this.serviceState.zoteroLeadQueue; }
 
   // Expose UI state
   public get positionMapper() { return this.uiState.positionMapper; }
@@ -141,6 +142,11 @@ export class ExtensionState {
     try {
       await this.serviceState.zoteroAvailabilityManager.initialize();
       console.log('[ResearchAssistant] Zotero availability manager initialized');
+      
+      // Start periodic processing of Zotero lead queue (every 5 minutes)
+      const queueDisposable = this.serviceState.zoteroLeadQueue.startPeriodicProcessing(300000);
+      this.coreState.context.subscriptions.push(queueDisposable);
+      console.log('[ResearchAssistant] Zotero lead queue processing started');
     } catch (error) {
       console.error('Failed to initialize Zotero availability manager:', error);
     }

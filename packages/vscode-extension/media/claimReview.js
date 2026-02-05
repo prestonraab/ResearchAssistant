@@ -495,6 +495,11 @@ function displayQuoteContainer(container, quote, result, type) {
     <button class="btn btn-secondary" data-action="findNewQuotes">Find New</button>
   `;
   
+  // Add Recheck Sources button if quote was not found
+  if (result?.searchStatus === 'not_found') {
+    buttonsHtml = `<button class="btn btn-primary" data-action="recheckSources" data-quote="${escapeHtml(quote)}">Recheck Sources</button>` + buttonsHtml;
+  }
+  
   // Add Jump to PDF button if available
   if (jumpToPdfButtonHtml) {
     buttonsHtml = jumpToPdfButtonHtml + buttonsHtml;
@@ -969,6 +974,9 @@ function handleAction(action) {
     case 'validateSupport':
       validateSupport();
       break;
+    case 'recheckSources':
+      recheckQuoteSources();
+      break;
     case 'switchToEditingMode':
       vscode.postMessage({ type: 'switchToEditingMode' });
       break;
@@ -1221,6 +1229,20 @@ function deleteQuote(quote) {
 }
 
 /**
+ * Recheck if a quote can be found in any source
+ * Used when a quote was previously marked as "not found"
+ */
+function recheckQuoteSources() {
+  if (!currentClaim || !currentClaim.primaryQuote) return;
+  
+  vscode.postMessage({
+    type: 'recheckQuoteSources',
+    claimId: currentClaim.id,
+    quote: currentClaim.primaryQuote.text
+  });
+}
+
+/**
  * Find new quotes
  */
 function findNewQuotes() {
@@ -1368,6 +1390,7 @@ function updateValidationResult(message) {
 
 /**
  * Display new quotes from a round (streaming)
+ * This is called when a round completes with verified supporting quotes
  */
 function displayNewQuotesRound(message) {
   const container = document.getElementById('newQuotesContainer');
@@ -1387,59 +1410,46 @@ function displayNewQuotesRound(message) {
     header.textContent = 'Found Quotes';
   }
 
-  // Add quotes from this round
-  const list = container.querySelector('.new-quotes-list');
-  const status = container.querySelector('.new-quotes-status');
-  
-  message.quotes.forEach((q, i) => {
-    const item = document.createElement('div');
-    item.className = 'new-quote-item';
-    const quoteNumber = list.children.length + 1; // Calculate number when adding
-    
-    // Calculate support percentage and stars from confidence
-    const confidence = q.confidence || 0;
-    const percentage = Math.round(confidence * 100);
-    const stars = Math.round(confidence * 5);
-    const starDisplay = '★'.repeat(stars) + '☆'.repeat(5 - stars);
-    
-    // Build Zotero indicator for search results (Requirements: 4.2)
-    const zoteroIndicator = q.zoteroMetadata && q.zoteroMetadata.fromZotero 
-      ? '<span class="quote-result-zotero-indicator">Zotero</span>'
-      : '';
-    
-    // Build search source indicator for debugging
-    const searchSource = q.searchSource || 'literature';
-    const sourceIndicator = searchSource === 'web' 
-      ? '<span class="quote-source-indicator web">🌐 Web</span>'
-      : '<span class="quote-source-indicator local">📁 Local</span>';
-    
-    item.innerHTML = `
-      <div class="quote-number">${quoteNumber}</div>
-      <div class="quote-details">
-        <div class="quote-summary">"${escapeHtml(q.summary)}"${zoteroIndicator}</div>
-        <div class="quote-source">${sourceIndicator} ${escapeHtml(q.source)} (lines ${q.lineRange})</div>
-        <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid #ccc; display: flex; align-items: center; gap: 12px; font-size: 12px; color: #000;">
-          Support: ${starDisplay} ${percentage}%
-        </div>
-        <button class="btn btn-small btn-primary" data-action="addQuote" data-snippet-id="${escapeHtml(q.id)}" data-file-path="${escapeHtml(q.filePath)}" data-confidence="${confidence}">Add Quote</button>
-      </div>
-    `;
-    
-    // Attach add quote listener
-    const addBtn = item.querySelector('[data-action="addQuote"]');
-    if (addBtn) {
-      addBtn.addEventListener('click', () => {
-        const snippetId = addBtn.getAttribute('data-snippet-id');
-        const filePath = addBtn.getAttribute('data-file-path');
-        const confidence = parseFloat(addBtn.getAttribute('data-confidence')) || 0;
-        acceptNewQuote(snippetId, filePath, confidence);
+  // Update allCandidates with the verified results from this round
+  // This ensures the verification status is reflected
+  message.quotes.forEach(q => {
+    const existing = allCandidates.find(c => c.id === q.id);
+    if (existing) {
+      // Update existing candidate
+      existing.verified = true;
+      existing.supports = true; // These are supporting quotes
+      existing.confidence = q.confidence || 0;
+      console.log('[ClaimReview] Updated candidate from round complete:', q.id);
+    } else {
+      // Add new candidate (in case it wasn't streamed via searchCandidatesFound)
+      allCandidates.push({
+        id: q.id,
+        text: q.summary,
+        source: q.source,
+        lineRange: q.lineRange,
+        filePath: q.filePath,
+        searchSource: q.searchSource || 'literature',
+        round: message.round,
+        verified: true,
+        supports: true,
+        confidence: q.confidence || 0
       });
+      console.log('[ClaimReview] Added new candidate from round complete:', q.id);
     }
-    
-    list.appendChild(item);
   });
+
+  // Re-render with updated data
+  renderTopCandidates(container);
   
-  status.textContent = `Searching round ${message.round}...`;
+  const status = container.querySelector('.new-quotes-status');
+  const supporting = allCandidates.filter(c => c.verified && c.supports).length;
+  const verifying = allCandidates.filter(c => !c.verified).length;
+  
+  if (verifying > 0) {
+    status.textContent = `Found ${supporting} supporting quotes, verifying ${verifying} more...`;
+  } else {
+    status.textContent = `Round ${message.round} complete: ${supporting} supporting quotes`;
+  }
 }
 
 /**
@@ -1550,7 +1560,7 @@ function renderTopCandidates(container) {
             <span class="status-icon">✓</span> Supports claim
             <div style="margin-top: 4px;">Support: ${starDisplay} ${percentage}%</div>
           </div>
-          <button class="btn btn-small btn-primary" data-action="addQuote" data-snippet-id="${escapeHtml(candidate.id)}" data-confidence="${candidate.confidence}" data-search-source="${candidate.searchSource || 'literature'}" data-quote-text="${escapeHtml(candidate.text)}" data-quote-source="${escapeHtml(candidate.source)}" data-quote-url="${escapeHtml(candidate.filePath || '')}">Add Quote</button>
+          <button class="btn btn-small btn-primary" data-action="addQuote" data-snippet-id="${escapeHtml(candidate.id)}" data-confidence="${candidate.confidence}" data-search-source="${candidate.searchSource || 'literature'}" data-quote-text="${escapeHtml(candidate.text)}" data-quote-source="${escapeHtml(candidate.source)}" data-quote-url="${escapeHtml(candidate.filePath || '')}" data-candidate-index="${i}">Add Quote</button>
         </div>
       `;
       
@@ -1560,12 +1570,14 @@ function renderTopCandidates(container) {
         addBtn.addEventListener('click', () => {
           const searchSource = addBtn.getAttribute('data-search-source');
           if (searchSource === 'web') {
-            // For web results, pass the text directly since it's not in the local index
+            // For web results, pass the full candidate data
+            const candidateIndex = parseInt(addBtn.getAttribute('data-candidate-index'));
+            const fullCandidate = allCandidates[candidateIndex];
             const quoteText = addBtn.getAttribute('data-quote-text');
             const quoteSource = addBtn.getAttribute('data-quote-source');
             const quoteUrl = addBtn.getAttribute('data-quote-url');
             const confidence = parseFloat(addBtn.getAttribute('data-confidence')) || 0;
-            acceptWebQuote(quoteText, quoteSource, quoteUrl, confidence);
+            acceptWebQuote(quoteText, quoteSource, quoteUrl, confidence, fullCandidate);
           } else {
             acceptNewQuote(candidate.id, candidate.filePath || '', candidate.confidence);
           }
@@ -1590,13 +1602,17 @@ function renderTopCandidates(container) {
  * Update a candidate's verification status
  */
 function updateCandidateVerification(message) {
+  console.log('[ClaimReview] Verification update received:', message.snippetId, 'supports:', message.supports);
+  
   // Find and update the candidate in our tracking array
   const candidate = allCandidates.find(c => c.id === message.snippetId);
   
   if (!candidate) {
-    console.warn('[ClaimReview] Candidate not found:', message.snippetId);
+    console.warn('[ClaimReview] Candidate not found:', message.snippetId, 'Available IDs:', allCandidates.map(c => c.id));
     return;
   }
+  
+  console.log('[ClaimReview] Updating candidate:', candidate.id, 'verified:', true, 'supports:', message.supports);
   
   candidate.verified = true;
   candidate.supports = message.supports;
@@ -1841,7 +1857,7 @@ function acceptNewQuote(snippetId, filePath, confidence = 0) {
 /**
  * Accept a web quote directly (web results aren't in local index)
  */
-function acceptWebQuote(quoteText, source, url, confidence = 0) {
+function acceptWebQuote(quoteText, source, url, confidence = 0, paperData = null) {
   if (!currentClaim) return;
   
   // For web quotes, we have the text already - just add it directly
@@ -1851,7 +1867,8 @@ function acceptWebQuote(quoteText, source, url, confidence = 0) {
     quote: quoteText,
     source: source,
     url: url,
-    confidence: confidence
+    confidence: confidence,
+    paperData: paperData // Pass full paper metadata
   });
   
   showNotification('Adding web quote...', 'info');

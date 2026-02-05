@@ -10,6 +10,7 @@ import { ManuscriptExportOptions } from '../core/exportService';
 import { SectionTagger } from '../core/sectionTagger';
 import { QuestionAnswerParser } from '../core/questionAnswerParser';
 import { ZoteroAttachment } from '@research-assistant/core';
+import { InternetPaperSearcher } from '../core/internetPaperSearcher';
 
 export function registerManuscriptCommands(
   context: vscode.ExtensionContext,
@@ -44,6 +45,89 @@ export function registerManuscriptCommands(
         await claimMatchingProvider.show(sentenceId, sentenceText);
       } catch (error) {
         vscode.window.showErrorMessage(`Failed to open claim matching: ${error}`);
+      }
+    }),
+
+    vscode.commands.registerCommand('researchAssistant.searchWebForEvidence', async () => {
+      try {
+        // Get claim text from user
+        const claimText = await vscode.window.showInputBox({
+          prompt: 'Enter claim text to find evidence for',
+          placeHolder: 'e.g., Batch correction reduces variance in gene expression data'
+        });
+
+        if (!claimText) {
+          return;
+        }
+
+        // Get search query
+        const searchQuery = await vscode.window.showInputBox({
+          prompt: 'Enter search query (or press Enter to use claim text)',
+          placeHolder: 'Leave empty to search for the claim directly',
+          value: claimText
+        });
+
+        const query = searchQuery || claimText;
+
+        // Search for papers
+        const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+        if (!workspaceRoot) {
+          vscode.window.showErrorMessage('No workspace folder open');
+          return;
+        }
+
+        const searcher = new InternetPaperSearcher(workspaceRoot);
+        
+        await vscode.window.withProgress(
+          {
+            location: vscode.ProgressLocation.Notification,
+            title: 'Searching for papers...',
+            cancellable: false
+          },
+          async () => {
+            const results = await searcher.searchExternal(query);
+            
+            if (results.length === 0) {
+              vscode.window.showInformationMessage('No papers found');
+              return;
+            }
+
+            // Display results and let user select
+            const selectedPaper = await searcher.displayExternalResults(results);
+            
+            if (!selectedPaper) {
+              return;
+            }
+
+            // Add quote with automatic evidence extraction
+            const evidence = await searcher.addQuoteFromPaper(selectedPaper, claimText);
+            
+            // Show result
+            const typeLabel = evidence.type === 'verified_text' ? '✓ Verified' : '📋 Lead';
+            const confidenceLabel = `${(evidence.confidence * 100).toFixed(0)}%`;
+            
+            vscode.window.showInformationMessage(
+              `${typeLabel} evidence added (${confidenceLabel} confidence)`,
+              'View Evidence'
+            ).then(action => {
+              if (action === 'View Evidence') {
+                // Show evidence in new document
+                vscode.workspace.openTextDocument({
+                  content: `# Evidence for: ${claimText}\n\n` +
+                    `**Type:** ${evidence.type}\n` +
+                    `**Confidence:** ${confidenceLabel}\n` +
+                    `**Source:** ${evidence.sourceId}\n` +
+                    `**Location:** ${evidence.location || 'N/A'}\n\n` +
+                    `## Evidence Text\n\n${evidence.content}\n\n` +
+                    (evidence.context ? `## Context\n\n${evidence.context}\n` : ''),
+                  language: 'markdown'
+                }).then(doc => vscode.window.showTextDocument(doc));
+              }
+            });
+          }
+        );
+      } catch (error) {
+        vscode.window.showErrorMessage(`Failed to search for evidence: ${error}`);
       }
     }),
 

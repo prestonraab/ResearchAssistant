@@ -341,6 +341,10 @@ export interface ExternalPaper {
   doi?: string;                  // DOI (optional)
   url?: string;                  // Paper URL (optional)
   pdfUrl?: string;               // PDF URL (optional)
+  openAccessPdf?: {              // Open access PDF info from Semantic Scholar
+    url: string;                 // Direct PDF download URL
+    status?: string;             // Status (e.g., "GOLD", "GREEN", "BRONZE")
+  };
   source: 'scholar' | 'pubmed' | 'crossref'; // Source API
   venue?: string;                // Publication venue (optional)
 }

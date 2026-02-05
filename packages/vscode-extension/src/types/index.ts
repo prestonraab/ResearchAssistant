@@ -6,6 +6,21 @@
 import type { Claim, OutlineSection } from '@research-assistant/core';
 
 // ============================================================================
+// Evidence Types (for claim support from papers)
+// ============================================================================
+
+export type EvidenceType = 'abstract_lead' | 'verified_text';
+
+export interface Evidence {
+  type: EvidenceType;
+  content: string;
+  confidence: number;
+  sourceId: string;
+  location?: string;
+  context?: string;
+}
+
+// ============================================================================
 // Message Types
 // ============================================================================
 

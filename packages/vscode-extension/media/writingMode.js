@@ -270,6 +270,17 @@ window.addEventListener('message', (event) => {
       showErrorNotification(message.message, message.pairId);
       break;
 
+    case 'pairsUpdated':
+      // Refresh the display with updated pairs while preserving scroll position
+      if (message.pairs) {
+        const scrollPosition = window.scrollY;
+        state.pairs = message.pairs;
+        renderPairs(message.pairs);
+        window.scrollTo(0, scrollPosition);
+        console.log('[WritingMode] Pairs updated from backend');
+      }
+      break;
+
     default:
       console.warn('Unknown message type:', message.type);
   }

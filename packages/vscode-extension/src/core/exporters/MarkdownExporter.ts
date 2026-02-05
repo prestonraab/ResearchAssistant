@@ -103,19 +103,90 @@ export class MarkdownExporter {
   /**
    * Remove Obsidian callout syntax for clean export
    * Converts "> [!question]- Title (status:: ...)" blocks to regular text
+   * Consecutive callouts within a section become a single paragraph
+   * Explicit paragraph breaks (---) create new paragraphs
    */
   private removeObsidianCallouts(text: string): string {
-    // Remove callout headers: > [!question]- Title (status:: ...)
-    let result = text.replace(/^>\s*\[![\w-]+\][+-]?\s*[^\n]*\(status::[^)]*\)\s*$/gm, '');
+    // Split into sections by ## headers
+    const sections = text.split(/^(##\s+.*)$/m);
+    const processedSections: string[] = [];
     
-    // Remove standalone status markers
-    result = result.replace(/\(status::\s*\w+\)/g, '');
+    for (let i = 0; i < sections.length; i++) {
+      const section = sections[i];
+      
+      // Keep headers as-is
+      if (section.match(/^##\s+/)) {
+        processedSections.push(section);
+        continue;
+      }
+      
+      // Process section content: extract text from callouts
+      const lines = section.split('\n');
+      const paragraphs: string[] = [];
+      let currentParagraph: string[] = [];
+      
+      for (const line of lines) {
+        // Explicit paragraph break marker
+        if (line.trim() === '---') {
+          if (currentParagraph.length > 0) {
+            paragraphs.push(currentParagraph.join(' '));
+            currentParagraph = [];
+          }
+          continue;
+        }
+        
+        // Skip callout headers: > [!question]- Title (status:: ...)
+        if (line.match(/^>\s*\[![\w-]+\][+-]?\s*.*\(status::[^)]*\)/)) {
+          continue;
+        }
+        
+        // Extract content from blockquote lines
+        if (line.match(/^>\s*/)) {
+          const content = line.replace(/^>\s*/, '').trim();
+          if (content) {
+            // Remove any remaining status markers
+            const cleanContent = content.replace(/\(status::\s*\w+\)/g, '').trim();
+            if (cleanContent) {
+              currentParagraph.push(cleanContent);
+            }
+          }
+          continue;
+        }
+        
+        // Empty line between callout blocks - don't start new paragraph
+        if (line.trim() === '') {
+          continue;
+        }
+        
+        // Non-callout content (regular text) - add to current paragraph
+        const cleanLine = line.replace(/\(status::\s*\w+\)/g, '').trim();
+        if (cleanLine) {
+          currentParagraph.push(cleanLine);
+        }
+      }
+      
+      // Finish current paragraph
+      if (currentParagraph.length > 0) {
+        paragraphs.push(currentParagraph.join(' '));
+      }
+      
+      processedSections.push(paragraphs.join('\n\n'));
+    }
     
-    // Convert blockquote lines to regular text (remove leading >)
-    result = result.replace(/^>\s*/gm, '');
-    
-    // Clean up multiple blank lines
-    result = result.replace(/\n{3,}/g, '\n\n');
+    // Rejoin sections with proper spacing
+    let result = '';
+    for (let i = 0; i < processedSections.length; i++) {
+      const section = processedSections[i].trim();
+      if (!section) continue;
+      
+      if (section.match(/^##\s+/)) {
+        // Add blank line before headers (except at start)
+        result += (result ? '\n\n' : '') + section;
+      } else {
+        // Add content after header
+        result += (result ? '\n\n' : '') + section;
+      }
+    }
     
     return result.trim();
   }

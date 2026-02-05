@@ -1,7 +1,7 @@
 ## Precision Medicine Using Data From Multiple Studies
 
 > [!question]- How much data does prescision medicine require? (status:: undefined)
-> Precision medicine relies on accurate predictions for patients across the spectrum of human diversity. This diversity is best captured and accounted for using large datasets aquired at great cost.
+> Precision medicine relies on accurate predictions for patients across the spectrum of human diversity. This diversity is best captured and accounted for using large datasets aquired at great cost. [source:: C_1770304648471, C_100]
 
 > [!question]- How can dataset size be increased? (status:: undefined)
 > Adding data from independent cohorts has the potential to improve dataset diversity, statistical power, and information via the increase in sample size. These benefits transfers to learners with increased ability to detect patterns and generalize to new data.

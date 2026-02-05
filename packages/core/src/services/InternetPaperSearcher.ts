@@ -19,6 +19,7 @@ import type { ExternalPaper } from '../types/index.js';
  * - Query result caching (24 hour TTL)
  * - Graceful handling of rate limit errors
  * - Independent backoff per API
+ * - Optional Semantic Scholar API key for better rate limits
  * 
  * Rate Limit Sources:
  * - CrossRef: https://www.crossref.org/blog/announcing-changes-to-rest-api-rate-limits/
@@ -28,7 +29,8 @@ import type { ExternalPaper } from '../types/index.js';
  */
 export class InternetPaperSearcher {
   private readonly SEARCH_TIMEOUT = 10000; // 10 seconds
-  private readonly MAX_RESULTS = 10;
+  private readonly MAX_RESULTS = 15;
+  private semanticScholarApiKey?: string;
   
   // Rate limiting configuration (ms between requests per API)
   // Based on official API documentation:
@@ -36,6 +38,7 @@ export class InternetPaperSearcher {
   // - PubMed: 3 req/sec (unauthenticated) or 10 req/sec (with API key)
   // - arXiv: ~1 req/sec (conservative, no official limit but 429 errors reported)
   // - Semantic Scholar: 100 req/5min = 0.33 req/sec (very strict, often rate limits anyway)
+  //   With API key: 1 req/sec guaranteed
   private readonly RATE_LIMITS = {
     crossref: 1000,        // 1 request per second
     pubmed: 333,           // ~3 requests per second
@@ -62,6 +65,24 @@ export class InternetPaperSearcher {
     arxiv: 0,
     semanticscholar: 0,
   };
+
+  /**
+   * Set Semantic Scholar API key for improved rate limits
+   */
+  public setSemanticScholarApiKey(apiKey: string): void {
+    this.semanticScholarApiKey = apiKey;
+    // With API key, we get 0.9 req/sec guaranteed instead of shared pool
+    if (apiKey) {
+      this.RATE_LIMITS.semanticscholar = 1111; // ~0.9 requests per second with API key
+    }
+  }
+
+  /**
+   * Check if Semantic Scholar API key is configured
+   */
+  public hasSemanticScholarApiKey(): boolean {
+    return !!this.semanticScholarApiKey;
+  }
 
   /**
    * Search external sources for papers
@@ -384,20 +405,28 @@ export class InternetPaperSearcher {
 
   /**
    * Search Semantic Scholar for papers
-   * Free API, no authentication required
-   * Note: Has stricter rate limits than other APIs
+   * Uses bulk search endpoint for better filtering and sorting
+   * API key optional but recommended for better rate limits
    */
   private async searchSemanticScholar(query: string): Promise<ExternalPaper[]> {
     try {
       const encodedQuery = encodeURIComponent(query);
-      const url = `https://api.semanticscholar.org/graph/v1/paper/search?query=${encodedQuery}&limit=10&fields=title,url,abstract,year,authors`;
+      // Use bulk search endpoint for better results - supports year filtering and more fields
+      const url = `https://api.semanticscholar.org/graph/v1/paper/search/bulk?query=${encodedQuery}&limit=15&fields=title,url,abstract,year,authors,citationCount,openAccessPdf,fieldsOfStudy`;
+
+      const headers: Record<string, string> = {
+        'User-Agent': 'Research-Assistant/1.0',
+      };
+      
+      // Add API key if available
+      if (this.semanticScholarApiKey) {
+        headers['x-api-key'] = this.semanticScholarApiKey;
+      }
 
       return await new Promise((resolve) => {
         https.get(url, {
           timeout: this.SEARCH_TIMEOUT,
-          headers: {
-            'User-Agent': 'Research-Assistant/1.0',
-          },
+          headers,
         }, (res) => {
           let data = '';
 
@@ -422,9 +451,18 @@ export class InternetPaperSearcher {
                   year: item.year || new Date().getFullYear(),
                   abstract: item.abstract || '',
                   url: item.url || `https://www.semanticscholar.org/paper/${item.paperId}`,
+                  openAccessPdf: item.openAccessPdf ? {
+                    url: item.openAccessPdf.url,
+                    status: item.openAccessPdf.status
+                  } : undefined,
                   source: 'scholar' as const,
-                  venue: 'Semantic Scholar',
+                  venue: item.fieldsOfStudy?.[0]?.category || 'Semantic Scholar',
+                  citationCount: item.citationCount,
                 }));
+                
+                // Sort by citation count (most cited first) for better relevance
+                results.sort((a: any, b: any) => (b.citationCount || 0) - (a.citationCount || 0));
+                
                 resolve(results);
               } else {
                 console.warn(`[InternetPaperSearcher] Semantic Scholar returned ${res.statusCode}`);

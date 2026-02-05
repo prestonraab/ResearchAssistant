@@ -50,6 +50,9 @@ export class VerificationFeedbackLoop {
   private readonly WEAK_SUPPORT_THRESHOLD = 0.6;
   private readonly STRONG_SUPPORT_THRESHOLD = 0.75;
   private extractedTextPath: string;
+  
+  // Track if we've shown the Semantic Scholar API key prompt this session
+  private static hasShownSemanticScholarApiKeyPrompt = false;
 
   constructor(
     literatureIndexer: LiteratureIndexer,
@@ -86,6 +89,14 @@ export class VerificationFeedbackLoop {
     } catch (error) {
       return '';
     }
+  }
+
+  /**
+   * Public method to search snippets in literature
+   * Used for rechecking if a quote can be found in local sources
+   */
+  async searchLiteratureSnippets(query: string, limit: number = 5): Promise<EmbeddedSnippet[]> {
+    return this.literatureIndexer.searchSnippets(query, limit);
   }
 
   /**
@@ -211,6 +222,12 @@ export class VerificationFeedbackLoop {
           currentQuery = await this.refineQuery(claim, verifications);
           console.log('[VerificationFeedbackLoop] Refined query:', currentQuery.substring(0, 50));
         }
+        
+        // On round 3, also trigger web search in parallel with continued local search
+        if (round === 3) {
+          console.log('[VerificationFeedbackLoop] Round 3 reached - triggering web search in parallel');
+          this.runWebSearchInParallel(claim, streamCallbacks, onRoundComplete, signal);
+        }
 
         // Clear verification results from memory after processing
         // Keep only the supporting snippets
@@ -222,58 +239,14 @@ export class VerificationFeedbackLoop {
 
       checkCancelled();
 
-      // If no supporting evidence found in literature, do web search
-      if (supportingSnippets.length === 0) {
+      // If no supporting evidence found in literature and we didn't already run web search, do it now
+      if (supportingSnippets.length === 0 && this.maxRounds < 3) {
         console.log('[VerificationFeedbackLoop] No supporting evidence in literature, attempting web search');
-        const webResults = await this.webSearch(claim);
-        
-        checkCancelled();
-        
-        if (webResults.length > 0) {
-          // Filter out results with no useful content
-          const usefulResults = webResults.filter(r => 
-            r.snippet && 
-            r.snippet.length > 50 && 
-            !r.snippet.startsWith('Abstract available')
-          );
-          
-          if (usefulResults.length > 0) {
-            const webSnippets = usefulResults.map(r => ({
-              ...this.convertWebResultToSnippet(r),
-              searchSource: 'web' as const
-            }));
-            
-            // Stream candidates first
-            if (streamCallbacks?.onCandidatesFound) {
-              streamCallbacks.onCandidatesFound(this.maxRounds + 1, webSnippets as EmbeddedSnippet[]);
-            }
-            
-            // Verify web results too (they need confidence scores)
-            console.log('[VerificationFeedbackLoop] Verifying web results...');
-            const webVerifications = await this.verifySnippetsWithStreaming(
-              claim,
-              webSnippets as EmbeddedSnippet[],
-              [], // No claim embedding for web results
-              this.maxRounds + 1,
-              streamCallbacks?.onVerificationUpdate,
-              signal
-            );
-            
-            checkCancelled();
-            
-            const supportingWebSnippets = webSnippets.filter((_, i) => webVerifications[i]?.supports);
-            
-            const webRound: SearchRound = {
-              round: this.maxRounds + 1,
-              query: `web search: ${claim}`,
-              snippets: webSnippets as EmbeddedSnippet[],
-              verifications: webVerifications,
-              supportingSnippets: supportingWebSnippets as EmbeddedSnippet[]
-            };
-            completedRounds.push(webRound);
-            if (onRoundComplete) {
-              onRoundComplete(webRound);
-            }
+        const webRound = await this.runWebSearch(claim, streamCallbacks, signal);
+        if (webRound) {
+          completedRounds.push(webRound);
+          if (onRoundComplete) {
+            onRoundComplete(webRound);
           }
         }
       }
@@ -286,6 +259,96 @@ export class VerificationFeedbackLoop {
       }
       throw error;
     }
+  }
+  
+  /**
+   * Run web search and return results as a SearchRound
+   */
+  private async runWebSearch(
+    claim: string, 
+    streamCallbacks?: { 
+      onCandidatesFound?: (round: number, candidates: EmbeddedSnippet[]) => void;
+      onVerificationUpdate?: (round: number, snippetId: string, result: VerificationResult) => void;
+    },
+    signal?: AbortSignal
+  ): Promise<SearchRound | null> {
+    try {
+      const webResults = await this.webSearch(claim);
+      
+      if (signal?.aborted) return null;
+      
+      if (webResults.length === 0) return null;
+      
+      // Filter out results with no useful content
+      const usefulResults = webResults.filter(r => 
+        r.snippet && 
+        r.snippet.length > 50 && 
+        !r.snippet.startsWith('Abstract available')
+      );
+      
+      if (usefulResults.length === 0) return null;
+      
+      const webSnippets = usefulResults.map(r => ({
+        ...this.convertWebResultToSnippet(r),
+        searchSource: 'web' as const
+      }));
+      
+      // Stream candidates first
+      if (streamCallbacks?.onCandidatesFound) {
+        streamCallbacks.onCandidatesFound(this.maxRounds + 1, webSnippets as EmbeddedSnippet[]);
+      }
+      
+      // Verify web results too (they need confidence scores)
+      console.log('[VerificationFeedbackLoop] Verifying web results...');
+      const webVerifications = await this.verifySnippetsWithStreaming(
+        claim,
+        webSnippets as EmbeddedSnippet[],
+        [], // No claim embedding for web results
+        this.maxRounds + 1,
+        streamCallbacks?.onVerificationUpdate,
+        signal
+      );
+      
+      if (signal?.aborted) return null;
+      
+      const supportingWebSnippets = webSnippets.filter((_, i) => webVerifications[i]?.supports);
+      
+      return {
+        round: this.maxRounds + 1,
+        query: `web search: ${claim}`,
+        snippets: webSnippets as EmbeddedSnippet[],
+        verifications: webVerifications,
+        supportingSnippets: supportingWebSnippets as EmbeddedSnippet[]
+      };
+    } catch (error: any) {
+      if (error.name === 'AbortError') throw error;
+      console.error('[VerificationFeedbackLoop] Web search failed:', error);
+      return null;
+    }
+  }
+  
+  /**
+   * Run web search in parallel (fire and forget, results stream via callbacks)
+   */
+  private runWebSearchInParallel(
+    claim: string,
+    streamCallbacks?: { 
+      onCandidatesFound?: (round: number, candidates: EmbeddedSnippet[]) => void;
+      onVerificationUpdate?: (round: number, snippetId: string, result: VerificationResult) => void;
+    },
+    onRoundComplete?: (round: SearchRound) => void,
+    signal?: AbortSignal
+  ): void {
+    // Run in background, don't await
+    this.runWebSearch(claim, streamCallbacks, signal).then(webRound => {
+      if (webRound && onRoundComplete && !signal?.aborted) {
+        onRoundComplete(webRound);
+      }
+    }).catch(error => {
+      if (error.name !== 'AbortError') {
+        console.error('[VerificationFeedbackLoop] Parallel web search failed:', error);
+      }
+    });
   }
 
   /**
@@ -478,13 +541,32 @@ Generate a refined search query (2-5 words) that would find more relevant papers
    * - Semantic Scholar (peer-reviewed)
    * - CrossRef (scholarly metadata)
    * - PubMed (biomedical)
-   * All free, no authentication required
+   * Semantic Scholar API key optional but recommended for better rate limits
    */
   private async webSearch(claim: string): Promise<Array<{ title: string; url: string; snippet: string }>> {
     try {
       // Import InternetPaperSearcher from core to reuse unified search
       const { InternetPaperSearcher } = await import('@research-assistant/core');
       const searcher = new InternetPaperSearcher();
+      
+      // Check for Semantic Scholar API key and configure searcher
+      const semanticScholarApiKey = this.getSettingValue('semanticScholarApiKey');
+      if (semanticScholarApiKey) {
+        searcher.setSemanticScholarApiKey(semanticScholarApiKey);
+      } else if (!VerificationFeedbackLoop.hasShownSemanticScholarApiKeyPrompt) {
+        // Show prompt to configure API key (only once per session)
+        VerificationFeedbackLoop.hasShownSemanticScholarApiKeyPrompt = true;
+        
+        vscode.window.showInformationMessage(
+          'Web search works better with a Semantic Scholar API key. Would you like to configure one?',
+          'Configure API Key',
+          'Not Now'
+        ).then(action => {
+          if (action === 'Configure API Key') {
+            vscode.commands.executeCommand('workbench.action.openSettings', 'researchAssistant.semanticScholarApiKey');
+          }
+        });
+      }
       
       // Extract key terms from claim for better search results
       // Academic APIs work better with keyword queries, not full sentences
@@ -550,8 +632,9 @@ Generate a refined search query (2-5 words) that would find more relevant papers
 
   /**
    * Convert web search result to snippet format
+   * Note: The full result object is stored in the candidate's metadata field (added separately)
    */
-  private convertWebResultToSnippet(result: Record<string, unknown>): EmbeddedSnippet {
+  private convertWebResultToSnippet(result: Record<string, unknown>): EmbeddedSnippet & { metadata?: { paperData: Record<string, unknown> } } {
     return {
       id: `web_${Date.now()}_${Math.random()}`,
       filePath: (result.url as string) || '',
@@ -560,7 +643,11 @@ Generate a refined search query (2-5 words) that would find more relevant papers
       embedding: [], // Web results don't have embeddings
       startLine: 0,
       endLine: 0,
-      timestamp: Date.now()
+      timestamp: Date.now(),
+      // Store full paper metadata for later use (type extension)
+      metadata: {
+        paperData: result // Store the entire result object
+      }
     };
   }
 

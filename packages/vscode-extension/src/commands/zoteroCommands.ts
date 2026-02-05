@@ -290,6 +290,269 @@ export function registerZoteroCommands(
     )
   );
 
+  // Command 11.4: Add Paper to Zotero (used by lead queue)
+  context.subscriptions.push(
+    vscode.commands.registerCommand(
+      'researchAssistant.addPaperToZotero',
+      async (paperData?: {
+        title: string;
+        authors: string[] | string;
+        year: number;
+        abstract: string;
+        url: string;
+        doi?: string;
+      }) => {
+        try {
+          // Check if Zotero is available
+          const isAvailable = await zoteroAvailabilityManager.checkAvailability();
+          if (!isAvailable) {
+            const errorDetail = zoteroAvailabilityManager.getLastError();
+            throw new Error(errorDetail || 'Zotero is not available');
+          }
+
+          if (!paperData) {
+            throw new Error('No paper data provided');
+          }
+
+          logger.debug(`Adding paper to Zotero: ${paperData.title}`);
+
+          // Parse authors
+          let creators: Array<{ creatorType: string; firstName?: string; lastName?: string; name?: string }> = [];
+          if (Array.isArray(paperData.authors)) {
+            creators = paperData.authors.map(author => {
+              // If author is in "Last, First" format, split it
+              if (typeof author === 'string' && author.includes(',')) {
+                const [lastName, firstName] = author.split(',').map(s => s.trim());
+                return { creatorType: 'author', firstName, lastName };
+              }
+              // Otherwise treat as full name
+              return { creatorType: 'author', name: author };
+            });
+          } else if (typeof paperData.authors === 'string') {
+            // Parse comma-separated string
+            creators = paperData.authors.split(',').map(author => ({
+              creatorType: 'author',
+              name: author.trim()
+            }));
+          }
+
+          // Create item in Zotero
+          const itemKey = await extensionState.zoteroClient.createItem({
+            itemType: 'journalArticle',
+            title: paperData.title,
+            creators: creators,
+            abstractNote: paperData.abstract,
+            date: paperData.year.toString(),
+            DOI: paperData.doi,
+            url: paperData.url
+          });
+
+          logger.info(`Successfully added paper to Zotero: ${itemKey}`);
+          
+          // Trigger backfill verification for this item
+          vscode.commands.executeCommand('researchAssistant.checkZoteroLeadBackfill', itemKey);
+          
+          return itemKey;
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : String(error);
+          logger.error(`Failed to add paper to Zotero: ${errorMessage}`);
+          throw error;
+        }
+      }
+    )
+  );
+
+  // Command 11.5: Check for lead backfill (triggered when paper added to Zotero)
+  context.subscriptions.push(
+    vscode.commands.registerCommand(
+      'researchAssistant.checkZoteroLeadBackfill',
+      async (itemKey?: string) => {
+        try {
+          if (!extensionState.zoteroLeadQueue) {
+            return;
+          }
+
+          logger.debug(`Checking for lead backfill: ${itemKey || 'all leads'}`);
+
+          // Get all leads from queue
+          const leads = extensionState.zoteroLeadQueue.getLeads();
+          
+          if (leads.length === 0) {
+            return;
+          }
+
+          // Check if any leads can be upgraded
+          for (const lead of leads) {
+            try {
+              // Get the item from Zotero
+              const items = await extensionState.zoteroClient.getItems();
+              const matchedItem = items.find((item: any) => 
+                item.title === lead.title || 
+                (itemKey && item.key === itemKey)
+              );
+
+              if (!matchedItem) {
+                continue;
+              }
+
+              // Check if item has PDF attachment
+              const attachments = await extensionState.zoteroClient.getPdfAttachments(matchedItem.key);
+              const pdfAttachment = attachments.length > 0 ? attachments[0] : null;
+
+              if (!pdfAttachment) {
+                logger.debug(`No PDF found for lead: ${lead.title}`);
+                continue;
+              }
+
+              logger.info(`Found PDF for lead: ${lead.title}, triggering backfill verification`);
+
+              // Trigger backfill verification
+              await vscode.commands.executeCommand(
+                'researchAssistant.backfillLeadVerification',
+                lead.id,
+                matchedItem.key,
+                pdfAttachment.key
+              );
+
+            } catch (error) {
+              logger.warn(`Error checking lead ${lead.title}:`, error);
+              // Continue with next lead
+            }
+          }
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : String(error);
+          logger.error(`Failed to check lead backfill: ${errorMessage}`);
+        }
+      }
+    )
+  );
+
+  // Command 11.6: Backfill lead verification (upgrade abstract to verified quote)
+  context.subscriptions.push(
+    vscode.commands.registerCommand(
+      'researchAssistant.backfillLeadVerification',
+      async (leadId: string, itemKey: string, attachmentKey: string) => {
+        try {
+          if (!extensionState.zoteroLeadQueue) {
+            return;
+          }
+
+          const lead = extensionState.zoteroLeadQueue.getLead(leadId);
+          if (!lead) {
+            logger.warn(`Lead not found: ${leadId}`);
+            return;
+          }
+
+          logger.info(`Backfilling verification for lead: ${lead.title}`);
+
+          await vscode.window.withProgress(
+            {
+              location: vscode.ProgressLocation.Notification,
+              title: `Verifying ${lead.title}...`,
+              cancellable: false
+            },
+            async (progress) => {
+              try {
+                progress.report({ message: 'Extracting PDF text...' });
+
+                // Get the claim
+                const claim = extensionState.claimsManager.getClaim(lead.claimId);
+                if (!claim) {
+                  logger.warn(`Claim not found for lead: ${lead.claimId}`);
+                  return;
+                }
+
+                // Extract text from Zotero PDF
+                // Note: This requires the PDF to be in local Zotero storage
+                // We'll use the literature indexer to find the extracted text
+                const fileName = lead.title.replace(/[^a-zA-Z0-9]/g, '_');
+                
+                progress.report({ message: 'Searching for evidence...' });
+
+                // Search for evidence in the extracted text
+                const snippets = await extensionState.verificationFeedbackLoop.searchLiteratureSnippets(
+                  claim.text,
+                  10
+                );
+
+                // Filter to snippets from this paper
+                const paperSnippets = snippets.filter(s => 
+                  s.fileName.includes(fileName) || s.fileName.includes(lead.title)
+                );
+
+                if (paperSnippets.length === 0) {
+                  logger.info(`No snippets found for ${lead.title}, keeping as abstract lead`);
+                  return;
+                }
+
+                progress.report({ message: 'Verifying evidence...' });
+
+                // Verify snippets
+                const verifications = await Promise.all(
+                  paperSnippets.map(snippet => 
+                    extensionState.verificationFeedbackLoop.verifySnippet(claim.text, snippet, 0)
+                  )
+                );
+
+                // Find best match
+                const bestMatch = verifications
+                  .map((v, i) => ({ verification: v, snippet: paperSnippets[i] }))
+                  .filter(item => item.verification.supports)
+                  .sort((a, b) => b.verification.confidence - a.verification.confidence)[0];
+
+                if (!bestMatch) {
+                  logger.info(`No supporting evidence found for ${lead.title}, keeping as abstract lead`);
+                  return;
+                }
+
+                // Update the quote in the claim
+                const quoteIndex = claim.supportingQuotes.findIndex(q => 
+                  q.text === lead.quoteText && q.source.includes('[Web Lead]')
+                );
+
+                if (quoteIndex >= 0) {
+                  // Upgrade the quote
+                  claim.supportingQuotes[quoteIndex] = {
+                    text: bestMatch.snippet.text,
+                    source: lead.title,
+                    verified: true,
+                    confidence: bestMatch.verification.confidence,
+                    metadata: {
+                      sourceFile: bestMatch.snippet.fileName,
+                      startLine: bestMatch.snippet.startLine,
+                      endLine: bestMatch.snippet.endLine
+                    }
+                  };
+
+                  await extensionState.claimsManager.updateClaim(lead.claimId, claim);
+
+                  logger.info(`Upgraded lead to verified quote: ${lead.title} (confidence: ${bestMatch.verification.confidence.toFixed(2)})`);
+
+                  vscode.window.showInformationMessage(
+                    `✓ Upgraded "${lead.title}" from abstract to verified evidence (${Math.round(bestMatch.verification.confidence * 100)}% confidence)`,
+                    'View Claim'
+                  ).then(action => {
+                    if (action === 'View Claim') {
+                      vscode.commands.executeCommand('researchAssistant.reviewClaim', lead.claimId);
+                    }
+                  });
+
+                  // Remove from lead queue
+                  await extensionState.zoteroLeadQueue.removeLead(leadId);
+                }
+              } catch (error) {
+                logger.error(`Error in backfill verification:`, error);
+              }
+            }
+          );
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : String(error);
+          logger.error(`Failed to backfill lead verification: ${errorMessage}`);
+        }
+      }
+    )
+  );
+
   logger.info('Zotero commands registered successfully');
 }
 
