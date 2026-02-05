@@ -410,29 +410,16 @@ export class WritingModeProvider {
 
   /**
    * Extract author-year from source reference
-   * Maps source IDs to author-year format from sources.md
+   * The source field already contains the author-year format (e.g., "Johnson2007")
    */
   private extractAuthorYear(source: string): string | null {
-    // Check cache first
-    if (this.sourceMetadataCache.has(source)) {
-      return this.sourceMetadataCache.get(source) ?? null;
+    if (!source || source === 'Unknown') {
+      return null;
     }
-
-    // Try to extract from claim's source metadata
-    try {
-      const claim = this.extensionState.claimsManager.getClaim(source);
-      if (claim && (claim as any).authorYear) {
-        const authorYear = (claim as any).authorYear;
-        this.sourceMetadataCache.set(source, authorYear);
-        return authorYear;
-      }
-    } catch (error) {
-      // Silently fail - source might not be a claim ID
-    }
-
-    // If not found, cache null to avoid repeated lookups
-    this.sourceMetadataCache.set(source, null);
-    return null;
+    
+    // The source field is already in author-year format (e.g., "Johnson2007")
+    // Just return it directly
+    return source;
   }
 
   /**

@@ -1,5 +1,5 @@
 import type { SentenceParser, Sentence } from '@research-assistant/core';
-import type { DocumentModel, DocumentSection, DocumentParagraph, DocumentRun, DocumentFootnote, DocumentImage, DocumentTable, DocumentCitation } from '../documentModel';
+import type { DocumentModel, DocumentSection, DocumentParagraph, DocumentRun, DocumentFootnote, DocumentImage, DocumentTable, DocumentCitation, CslItemData, CslAuthor } from '../documentModel';
 import type { ManuscriptExportOptions, CitedQuote } from '../exportService';
 import { TableImageRenderer } from './TableImageRenderer';
 import { ManuscriptParser } from './ManuscriptParser';
@@ -345,14 +345,17 @@ export class DocumentBuilder {
 
   /**
    * Parse BibTeX citations from text
-   * Converts \cite{KEY} and [source:: C_XX(AuthorYear)] to citation runs
+   * Converts \cite{KEY}, [source:: C_XX(AuthorYear)], and plain text (Author Year) to citation runs
    * 
    * @param text The text to parse
    * @returns Array of runs (text and citation)
    */
   private parseCitationsFromText(text: string): DocumentRun[] {
-    // First, convert [source:: ...] tags to \cite{} format for unified processing
-    const convertedText = this.convertSourceTagsToCite(text);
+    // Convert [source:: ...] tags to \cite{} format for unified processing
+    let convertedText = this.convertSourceTagsToCite(text);
+    
+    // Also convert plain text citations like (Author Year), (AuthorYear), (Author et al. Year)
+    convertedText = this.convertPlainTextCitationsToCite(convertedText);
     
     const runs: DocumentRun[] = [];
     const citationRegex = /\\cite\{([^}]+)\}/g;
@@ -412,6 +415,31 @@ export class DocumentBuilder {
   }
 
   /**
+   * Convert plain text citations to \cite{} format
+   * Matches patterns like:
+   * - (Author Year) e.g., (Guyon 2002)
+   * - (AuthorYear) e.g., (Johnson2007)
+   * - (Author et al. Year) e.g., (Stuart et al. 2019)
+   * - (Author and Author Year) e.g., (Zou and Hastie 2005)
+   */
+  private convertPlainTextCitationsToCite(text: string): string {
+    // Pattern explanation:
+    // \( - opening parenthesis
+    // ([A-Z][a-zäöüéèàáíóúñ]*) - Author name starting with capital, may include diacritics
+    // (?:\s+(?:et\s+al\.?|and\s+[A-Z][a-zäöüéèàáíóúñ]*))? - optional "et al." or "and Author"
+    // [,\s]* - optional comma and/or space
+    // (\d{4}) - 4-digit year
+    // \) - closing parenthesis
+    const plainCiteRegex = /\(([A-Z][a-zäöüéèàáíóúñ]*)(?:\s+(?:et\s+al\.?|and\s+[A-Z][a-zäöüéèàáíóúñ]*))?[,\s]*(\d{4})\)/g;
+    
+    return text.replace(plainCiteRegex, (match, author, year) => {
+      // Normalize to AuthorYear format (no spaces)
+      const citeKey = `${author}${year}`;
+      return `\\cite{${citeKey}}`;
+    });
+  }
+
+  /**
    * Convert [source:: C_XX(AuthorYear)] tags to \cite{AuthorYear} format
    * Only claims with (AuthorYear) are converted; others are removed
    */
@@ -440,6 +468,8 @@ export class DocumentBuilder {
   private enrichCitationFromZoteroItem(citation: DocumentCitation, item: ZoteroItem): void {
     citation.title = item.title;
     citation.year = item.date ? this.extractYearFromDate(item.date) : undefined;
+    citation.zoteroKey = item.key;
+    citation.zoteroUserId = this.getZoteroUserId();
     
     if (item.creators && item.creators.length > 0) {
       const authorNames = item.creators.map(c => {
@@ -456,6 +486,104 @@ export class DocumentBuilder {
       const etAl = item.creators.length > 1 ? ' et al.' : '';
       const yearDisplay = citation.year || '';
       citation.displayText = `(${authorDisplay}${etAl}, ${yearDisplay})`;
+    }
+    
+    // Build full CSL-JSON item data for Zotero Word integration
+    citation.itemData = this.buildCslItemData(item);
+  }
+
+  /**
+   * Build CSL-JSON item data from Zotero item
+   * This is the format Zotero Word plugin expects in citation fields
+   */
+  private buildCslItemData(item: ZoteroItem): CslItemData {
+    const cslItem: CslItemData = {
+      id: this.generateNumericId(item.key),
+      type: this.mapZoteroTypeToCsl(item.itemType),
+      title: item.title
+    };
+    
+    // Map creators to CSL author format
+    if (item.creators && item.creators.length > 0) {
+      cslItem.author = item.creators.map(c => {
+        if (c.name) {
+          return { literal: c.name };
+        }
+        return {
+          family: c.lastName || '',
+          given: c.firstName || ''
+        };
+      });
+    }
+    
+    // Map date to CSL issued format
+    if (item.date) {
+      const year = this.extractYearFromDate(item.date);
+      if (year) {
+        cslItem.issued = { 'date-parts': [[parseInt(year)]] };
+      }
+    }
+    
+    // Map other fields
+    if (item.doi) {
+      cslItem.DOI = item.doi;
+    }
+    if (item.url) {
+      cslItem.URL = item.url;
+    }
+    if (item.abstractNote) {
+      cslItem.abstract = item.abstractNote;
+    }
+    
+    return cslItem;
+  }
+
+  /**
+   * Map Zotero item type to CSL type
+   */
+  private mapZoteroTypeToCsl(zoteroType: string): string {
+    const typeMap: Record<string, string> = {
+      'journalArticle': 'article-journal',
+      'book': 'book',
+      'bookSection': 'chapter',
+      'conferencePaper': 'paper-conference',
+      'thesis': 'thesis',
+      'report': 'report',
+      'webpage': 'webpage',
+      'patent': 'patent',
+      'preprint': 'article',
+      'manuscript': 'manuscript',
+      'document': 'document'
+    };
+    return typeMap[zoteroType] || 'article';
+  }
+
+  /**
+   * Generate a numeric ID from a string key
+   * Zotero expects numeric IDs in the citation field
+   */
+  private generateNumericId(key: string): number {
+    let hash = 0;
+    for (let i = 0; i < key.length; i++) {
+      const char = key.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash; // Convert to 32-bit integer
+    }
+    return Math.abs(hash);
+  }
+
+  /**
+   * Get Zotero user ID from the API service
+   */
+  private getZoteroUserId(): string | undefined {
+    // The ZoteroApiService stores the userID, but we need to access it
+    // For now, we'll try to get it from VS Code settings
+    try {
+      const vscode = require('vscode');
+      const config = vscode.workspace.getConfiguration('researchAssistant');
+      return config.get('zoteroUserId') as string | undefined;
+    } catch {
+      return undefined;
     }
   }
 
@@ -489,6 +617,14 @@ export class DocumentBuilder {
     const authorYears = SourceTagParser.getAllAuthorYears(manuscriptText);
     for (const ay of authorYears) {
       citeKeys.add(this.normalizeAuthorYear(ay));
+    }
+
+    // Also extract plain text citations like (Author Year), (AuthorYear)
+    const plainCiteRegex = /\(([A-Z][a-zäöüéèàáíóúñ]*)(?:\s+(?:et\s+al\.?|and\s+[A-Z][a-zäöüéèàáíóúñ]*))?[,\s]*(\d{4})\)/g;
+    while ((match = plainCiteRegex.exec(manuscriptText)) !== null) {
+      const author = match[1];
+      const year = match[2];
+      citeKeys.add(`${author}${year}`);
     }
 
     if (citeKeys.size === 0) {

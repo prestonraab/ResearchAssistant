@@ -50,6 +50,7 @@ import {
 
 import * as fs from 'fs/promises';
 import * as path from 'path';
+import { ZoteroFieldInjector } from './exporters/ZoteroFieldInjector';
 
 /**
  * Renders a DocumentModel to a Word document buffer
@@ -60,11 +61,13 @@ export class WordRenderer {
   private footnoteMap: Map<number, DocumentFootnote>;
   private tableRenderer: WordTableRenderer;
   private imageRenderer: WordImageRenderer;
+  private fieldInjector: ZoteroFieldInjector;
 
   constructor(model?: DocumentModel) {
     this.footnoteMap = new Map();
     this.tableRenderer = new WordTableRenderer();
     this.imageRenderer = new WordImageRenderer();
+    this.fieldInjector = new ZoteroFieldInjector();
     if (model) {
       for (const footnote of model.metadata.footnotes) {
         this.footnoteMap.set(footnote.id, footnote);
@@ -112,7 +115,10 @@ export class WordRenderer {
     });
 
     // Convert document to buffer
-    return await Packer.toBuffer(doc);
+    const buffer = await Packer.toBuffer(doc);
+    
+    // Post-process to convert SimpleField to complex fields for Zotero
+    return await this.fieldInjector.processDocx(buffer);
   }
 
   /**
@@ -304,23 +310,45 @@ export class WordRenderer {
    */
   private createZoteroCitationField(citation: any): SimpleField {
     const zoteroKey = citation.zoteroKey || citation.citeKey;
+    const zoteroUserId = citation.zoteroUserId || 'local';
     const displayText = citation.displayText || `[${citation.citeKey}]`;
     
-    // Build citation item with available metadata
+    // Build the URI in Zotero's expected format
+    const itemUri = `http://zotero.org/users/${zoteroUserId}/items/${zoteroKey}`;
+    
+    // Build citation item with full CSL-JSON itemData if available
     const citationItem: Record<string, any> = {
-      id: zoteroKey,
-      uris: [`http://zotero.org/users/local/${zoteroKey}`]
+      id: citation.itemData?.id || this.generateNumericId(zoteroKey),
+      uris: [itemUri],
+      uri: [itemUri]  // Zotero uses both uris and uri arrays
     };
     
-    // Add enriched metadata if available
-    if (citation.authors) {
-      citationItem['author'] = citation.authors;
-    }
-    if (citation.year) {
-      citationItem['issued'] = { 'date-parts': [[parseInt(citation.year)]] };
-    }
-    if (citation.title) {
-      citationItem['title'] = citation.title;
+    // Include full itemData if available (required for Zotero to recognize the citation)
+    if (citation.itemData) {
+      citationItem['itemData'] = citation.itemData;
+    } else {
+      // Fallback: build minimal itemData from available fields
+      citationItem['itemData'] = {
+        id: citationItem.id,
+        type: 'article-journal',
+        title: citation.title || citation.citeKey
+      };
+      
+      if (citation.authors) {
+        // Parse simple author string into CSL format
+        const authorParts = citation.authors.split(';').map((a: string) => a.trim());
+        citationItem['itemData']['author'] = authorParts.map((name: string) => {
+          const parts = name.split(',').map((p: string) => p.trim());
+          if (parts.length >= 2) {
+            return { family: parts[0], given: parts[1] };
+          }
+          return { literal: name };
+        });
+      }
+      
+      if (citation.year) {
+        citationItem['itemData']['issued'] = { 'date-parts': [[parseInt(citation.year)]] };
+      }
     }
     
     // Create Zotero ADDIN field code with full CSL citation structure
@@ -339,6 +367,20 @@ export class WordRenderer {
     const fieldCode = `ADDIN ZOTERO_ITEM CSL_CITATION ${JSON.stringify(cslCitation)}`;
     
     return new SimpleField(fieldCode);
+  }
+
+  /**
+   * Generate a numeric ID from a string key
+   * Zotero expects numeric IDs in the citation field
+   */
+  private generateNumericId(key: string): number {
+    let hash = 0;
+    for (let i = 0; i < key.length; i++) {
+      const char = key.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash; // Convert to 32-bit integer
+    }
+    return Math.abs(hash);
   }
 
   /**

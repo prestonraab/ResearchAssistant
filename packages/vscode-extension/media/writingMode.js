@@ -637,7 +637,7 @@ function attachDragAndDropListeners() {
 
       renderPairs();
       state.isDirty = true;
-      scheduleAutoSave();
+      saveManuscript(); // Save immediately for button interactions
 
       showTemporaryNotification('Reordered. Press Ctrl+Z to undo', 'info');
     });
@@ -793,9 +793,9 @@ function attachPairListeners() {
       // Update local state
       const pair = state.pairs.find(p => p.id === pairId);
       if (pair && pair.linkedSources && pair.linkedSources[sourceIndex]) {
-        pair.linkedSources[sourceIndex].cited = isChecked;
+        const source = pair.linkedSources[sourceIndex];
+        source.cited = isChecked;
         state.isDirty = true;
-        scheduleAutoSave();
         
         // Update the citation badge count
         const citedCount = (pair.linkedSources || []).filter(s => s.cited).length;
@@ -807,6 +807,10 @@ function attachPairListeners() {
             badge.style.display = citedCount > 0 ? 'inline' : 'none';
           }
         }
+        
+        // Save immediately for citation changes
+        // The backend will update the [source:: ...] tag with the correct AuthorYear citations
+        saveManuscript();
       }
 
       // Notify extension
@@ -921,7 +925,7 @@ function updatePairStatus(pairId, status) {
     pair.status = status;
     state.isDirty = true;
     updateSaveStatus('Unsaved');
-    scheduleAutoSave();
+    saveManuscript(); // Save immediately for button/dropdown interactions
   }
 }
 
@@ -944,7 +948,7 @@ function addNewPair(section) {
   state.pairs.push(newPair);
   renderPairs();
   state.isDirty = true;
-  scheduleAutoSave();
+  saveManuscript(); // Save immediately for button interactions
 }
 
 /**
@@ -982,7 +986,7 @@ function insertPairAfter(afterIndex) {
   
   renderPairs();
   state.isDirty = true;
-  scheduleAutoSave();
+  saveManuscript(); // Save immediately for button interactions
   
   // Focus on the new question
   requestAnimationFrame(() => {
@@ -1028,7 +1032,7 @@ function insertSectionAfter(afterIndex) {
   
   renderPairs();
   state.isDirty = true;
-  scheduleAutoSave();
+  saveManuscript(); // Save immediately for button interactions
   
   // Focus on the new section title
   requestAnimationFrame(() => {
@@ -1065,7 +1069,7 @@ function updateSectionName(oldName, newName) {
   
   if (updated) {
     state.isDirty = true;
-    scheduleAutoSave();
+    saveManuscript(); // Save immediately for button interactions
     // Re-render to update section headers
     renderPairs();
   }
@@ -1104,7 +1108,7 @@ function removeSectionHeader(sectionHeader) {
   });
   
   state.isDirty = true;
-  scheduleAutoSave();
+  saveManuscript(); // Save immediately for button interactions
   renderPairs();
 }
 
@@ -1142,7 +1146,7 @@ function undo() {
   
   renderPairs();
   state.isDirty = true;
-  scheduleAutoSave();
+  saveManuscript(); // Save immediately for button interactions
   
   showTemporaryNotification('Undo successful', 'success');
 }
@@ -1188,7 +1192,7 @@ function deletePair(pairId) {
   
   renderPairs();
   state.isDirty = true;
-  scheduleAutoSave();
+  saveManuscript(); // Save immediately for button interactions
   
   showTemporaryNotification('Deleted. Press Ctrl+Z to undo', 'info');
 }
@@ -1221,7 +1225,7 @@ function insertParagraphBreakAfter(afterIndex) {
   
   renderPairs();
   state.isDirty = true;
-  scheduleAutoSave();
+  saveManuscript(); // Save immediately for button interactions
   
   showTemporaryNotification('Paragraph break inserted', 'info');
 }
@@ -1256,7 +1260,7 @@ function scheduleAutoSave() {
 
   state.autoSaveTimer = setTimeout(() => {
     saveManuscript();
-  }, 2000); // Auto-save after 2 seconds of inactivity
+  }, 1200); // Auto-save after 1.2 seconds of inactivity
 }
 
 /**
@@ -1354,6 +1358,13 @@ function escapeHtml(text) {
   const div = document.createElement('div');
   div.textContent = text;
   return div.innerHTML;
+}
+
+/**
+ * Escape special regex characters
+ */
+function escapeRegExp(string) {
+  return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
 /**

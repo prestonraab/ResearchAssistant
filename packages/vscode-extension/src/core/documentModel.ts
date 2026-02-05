@@ -77,10 +77,13 @@ export interface DocumentCitation {
   /** Zotero item key if available */
   zoteroKey?: string;
   
+  /** Zotero user ID for URI construction */
+  zoteroUserId?: string;
+  
   /** Display text for the citation (e.g., "(Johnson et al., 2007)") */
   displayText?: string;
   
-  /** Author name(s) */
+  /** Author name(s) - simple string format */
   authors?: string;
   
   /** Publication year */
@@ -88,6 +91,78 @@ export interface DocumentCitation {
   
   /** Item title */
   title?: string;
+  
+  /** Full CSL-JSON item data for Zotero Word integration */
+  itemData?: CslItemData;
+}
+
+/**
+ * CSL-JSON item data structure for Zotero Word integration.
+ * This follows the Citation Style Language JSON schema.
+ * @see https://github.com/citation-style-language/schema
+ */
+export interface CslItemData {
+  /** Numeric ID (can be any unique number) */
+  id: number;
+  
+  /** Item type (article-journal, book, chapter, etc.) */
+  type: string;
+  
+  /** Item title */
+  title?: string;
+  
+  /** Authors in CSL format */
+  author?: CslAuthor[];
+  
+  /** Container title (journal name, book title, etc.) */
+  'container-title'?: string;
+  
+  /** Publication date */
+  issued?: { 'date-parts': (string | number)[][] };
+  
+  /** Volume number */
+  volume?: string;
+  
+  /** Issue number */
+  issue?: string;
+  
+  /** Page range */
+  page?: string;
+  
+  /** DOI */
+  DOI?: string;
+  
+  /** URL */
+  URL?: string;
+  
+  /** Abstract */
+  abstract?: string;
+  
+  /** ISSN */
+  ISSN?: string;
+  
+  /** ISBN */
+  ISBN?: string;
+  
+  /** Publisher */
+  publisher?: string;
+  
+  /** Publisher place */
+  'publisher-place'?: string;
+}
+
+/**
+ * CSL author format
+ */
+export interface CslAuthor {
+  /** Family name (last name) */
+  family?: string;
+  
+  /** Given name (first name) */
+  given?: string;
+  
+  /** Full name (for single-field names) */
+  literal?: string;
 }
 
 /**
