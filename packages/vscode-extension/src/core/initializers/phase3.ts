@@ -30,6 +30,7 @@ export class Phase3Initializer {
     this.initializationPromises = [
       this.initializeEmbeddings(state).catch(error => this.handleError('Embeddings', error)),
       this.initializeZotero(state).catch(error => this.handleError('Zotero', error)),
+      this.initializeLiteratureIndex(state).catch(error => this.handleError('Literature Index', error)),
       this.setupFileWatchers(state).catch(error => this.handleError('File Watchers', error))
     ];
 
@@ -106,6 +107,28 @@ export class Phase3Initializer {
       console.error('[Phase3] Failed to initialize Zotero services:', error);
       // Don't throw - Zotero is optional
       console.log('[Phase3] Continuing without Zotero integration');
+    }
+  }
+
+  /**
+   * Index literature files on startup
+   * This ensures embeddings are cached before first search
+   */
+  private async initializeLiteratureIndex(state: ExtensionState): Promise<void> {
+    console.log('[Phase3] Indexing literature files...');
+
+    try {
+      if (!state.literatureIndexer) {
+        console.log('[Phase3] Literature indexer not available');
+        return;
+      }
+
+      const stats = await state.literatureIndexer.indexChangedFiles();
+      console.log(`[Phase3] Literature indexed: ${stats.indexed} new, ${stats.skipped} unchanged, ${stats.errors} errors`);
+    } catch (error) {
+      console.error('[Phase3] Failed to index literature:', error);
+      // Don't throw - literature indexing is optional
+      console.log('[Phase3] Continuing without literature index');
     }
   }
 

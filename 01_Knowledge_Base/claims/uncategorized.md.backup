@@ -418,7 +418,7 @@ This file contains all **uncategorized** claims with their supporting evidence.
 ## C_1769574973051: Classification is the task of assigning observations to predefined categories based on their features.
 
 **Category**: Uncategorized  
-**Source**: Soneson et al. - 2014  
+**Source**: Soneson2014  
 **Context**: Classification is the task of assigning observations to predefined categories based on their features.
 
 **Primary Quote**:

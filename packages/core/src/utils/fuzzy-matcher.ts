@@ -45,6 +45,51 @@ export class FuzzyMatcher {
   }
 
   /**
+   * Check if text looks like a malformed table or non-quote content
+   * Returns true if the text should be filtered out
+   */
+  private isTableOrNoise(text: string): boolean {
+    // Count pipe characters (table separators)
+    const pipeCount = (text.match(/\|/g) || []).length;
+    
+    // If more than 10 pipes, it's likely a table
+    if (pipeCount > 10) {
+      return true;
+    }
+    
+    // Check ratio of pipes to text length
+    if (pipeCount > 0 && pipeCount / text.length > 0.02) {
+      return true;
+    }
+    
+    // Check for table header patterns
+    if (/\|\s*[-:]+\s*\|/.test(text)) {
+      return true;
+    }
+    
+    return false;
+  }
+
+  /**
+   * Clean extracted text by removing markdown tables and excessive formatting
+   * Keeps the core text readable while removing noise
+   */
+  private cleanExtractedText(text: string): string {
+    // Remove markdown table rows (lines with | separators)
+    let cleaned = text.replace(/^\s*\|[\s\S]*?\|\s*$/gm, '');
+    
+    // Remove excessive whitespace and newlines
+    cleaned = cleaned.replace(/\n\s*\n+/g, '\n');
+    
+    // Trim to reasonable length (max 500 chars for display)
+    if (cleaned.length > 500) {
+      cleaned = cleaned.substring(0, 500).trim() + '...';
+    }
+    
+    return cleaned.trim();
+  }
+
+  /**
    * Normalize text for comparison
    * Delegates to TextNormalizer for consistent handling of OCR artifacts
    * 
@@ -97,6 +142,14 @@ export class FuzzyMatcher {
     documentText: string,
     pageNumber?: number
   ): FuzzyMatchResult {
+    // Filter out table-like input that shouldn't be matched
+    if (this.isTableOrNoise(highlightText)) {
+      return {
+        matched: false,
+        confidence: 0,
+      };
+    }
+
     // Normalize both texts for comparison
     const normalizedHighlight = this.normalizeText(highlightText);
     const normalizedDocument = this.normalizeText(documentText);
@@ -125,7 +178,7 @@ export class FuzzyMatcher {
         startOffset,
         endOffset,
         confidence: 1.0,
-        matchedText,
+        matchedText: this.cleanExtractedText(matchedText),
       };
     }
 
@@ -208,7 +261,7 @@ export class FuzzyMatcher {
                 originalDocument, normalizedDocument, bestMatch.startIndex, 
                 bestMatch.endIndex - bestMatch.startIndex
               );
-              return { matched: true, startOffset, endOffset, confidence: similarity, matchedText };
+              return { matched: true, startOffset, endOffset, confidence: similarity, matchedText: this.cleanExtractedText(matchedText) };
             }
           }
         }
@@ -220,7 +273,7 @@ export class FuzzyMatcher {
         originalDocument, normalizedDocument, bestMatch.startIndex,
         bestMatch.endIndex - bestMatch.startIndex
       );
-      return { matched: true, startOffset, endOffset, confidence: bestMatch.similarity, matchedText };
+      return { matched: true, startOffset, endOffset, confidence: bestMatch.similarity, matchedText: this.cleanExtractedText(matchedText) };
     }
 
     return { matched: false, confidence: bestMatch?.similarity ?? 0 };
@@ -260,7 +313,7 @@ export class FuzzyMatcher {
         originalDocument, normalizedDocument, bestMatch.startIndex,
         bestMatch.endIndex - bestMatch.startIndex
       );
-      return { matched: true, startOffset, endOffset, confidence: bestMatch.similarity, matchedText };
+      return { matched: true, startOffset, endOffset, confidence: bestMatch.similarity, matchedText: this.cleanExtractedText(matchedText) };
     }
 
     return { matched: false, confidence: bestMatch?.similarity ?? 0 };

@@ -107,7 +107,7 @@ This file contains all **Challenge** claims with their supporting evidence.
 ## C_107: Gene expression classifiers must maintain accuracy when applied to samples processed in different hospitals using different equipment
 
 **Category**: Challenge  
-**Source**: Talhouk2016  
+**Source**: Buus2021  
 **Context**: This portability requirement is fundamental for clinical translation.
 
 **Primary Quote**:

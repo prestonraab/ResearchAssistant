@@ -26,3 +26,5 @@ coverage/**
 **/__mocks__/**
 .eslintignore
 media/**/*.backup
+
+research_extension_icon_full_size.png

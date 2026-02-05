@@ -218,12 +218,15 @@ export class ClaimReviewProvider {
         availableCategories
       };
 
+      // Check for cached validation result early
+      const cachedValidation = this.verificationFeedbackLoop.getCachedValidation(claim.text);
+      
       // Send initial claim data immediately (header + basic info)
       this.panel.webview.postMessage({
         type: 'loadClaim',
         claim: claimData,
         verificationResults: [],
-        validationResult: null,
+        validationResult: cachedValidation || null,
         usageLocations: [],
         scrollPosition: this.scrollPosition,
         isInitialLoad: true
@@ -264,22 +267,8 @@ export class ClaimReviewProvider {
         
         console.log('[ClaimReview] Claim has quotes - starting verification workflow');
 
-        // Check for cached validation result
-        const cachedValidation = this.verificationFeedbackLoop.getCachedValidation(claim.text);
-        if (cachedValidation) {
-          console.log('[ClaimReview] Found cached validation result');
-          cachedValidation.claimId = claimId;
-          this.panel.webview.postMessage({
-            type: 'updateValidationResult',
-            validationResult: cachedValidation,
-            isCached: true
-          });
-        } else {
-          // No cached validation - tell webview to show "Validate Support" button
-          this.panel.webview.postMessage({
-            type: 'validationNotCached'
-          });
-        }
+        // Cached validation is already included in initial loadClaim message
+        // No need to send it again here
 
         // Run operations with cancellation support
         const verificationPromise = this.verifyAllQuotes(claim, signal).then(results => {
@@ -421,6 +410,7 @@ export class ClaimReviewProvider {
   /**
    * Verify all quotes for a claim
    * Supports cancellation via AbortSignal
+   * Includes LLM-based confidence scoring for support validation
    */
   private async verifyAllQuotes(claim: any, signal?: AbortSignal): Promise<any[]> {
     const tracker = getOperationTracker();
@@ -458,6 +448,35 @@ export class ClaimReviewProvider {
         }
       };
 
+      // Helper to get LLM confidence score for a quote
+      const getLLMConfidence = async (claimText: string, quoteText: string): Promise<number> => {
+        try {
+          checkCancelled();
+          
+          // Use verification feedback loop to get LLM-based confidence
+          const verificationResult = await this.verificationFeedbackLoop.verifySnippet(
+            claimText,
+            {
+              id: `quote-${Date.now()}`,
+              filePath: '',
+              fileName: '',
+              text: quoteText,
+              embedding: [],
+              startLine: 0,
+              endLine: 0,
+              timestamp: Date.now()
+            } as any,
+            0 // similarity will be calculated by verifySnippet
+          );
+          
+          return verificationResult.confidence;
+        } catch (error: any) {
+          if (error.name === 'AbortError') throw error;
+          console.warn('[ClaimReview] Failed to get LLM confidence:', error);
+          return 0;
+        }
+      };
+
       // Verify primary quote
       if (claim.primaryQuote) {
         checkCancelled();
@@ -478,6 +497,17 @@ export class ClaimReviewProvider {
             verified: primaryResult.verified,
             similarity: primaryResult.similarity
           });
+
+          // Get LLM-based confidence score for support validation
+          let llmConfidence = 0;
+          try {
+            checkCancelled();
+            llmConfidence = await getLLMConfidence(claim.text, quoteText);
+            console.log('[ClaimReview] LLM confidence for primary quote:', llmConfidence.toFixed(2));
+          } catch (error: any) {
+            if (error.name === 'AbortError') throw error;
+            console.warn('[ClaimReview] Failed to get LLM confidence for primary quote:', error);
+          }
 
           // Search to get/update metadata using unified quote search (faster, already optimized)
           let alternativeSources: any[] = [];
@@ -559,7 +589,7 @@ export class ClaimReviewProvider {
             verified: primaryResult.verified,
             similarity: primaryResult.similarity,
             closestMatch: primaryResult.closestMatch,
-            confidence: claim.primaryQuote.confidence,
+            confidence: llmConfidence || claim.primaryQuote.confidence,
             alternativeSources: alternativeSources.length > 0 ? alternativeSources : undefined,
             searchStatus
           });
@@ -588,6 +618,17 @@ export class ClaimReviewProvider {
           );
 
           checkCancelled();
+
+          // Get LLM-based confidence score for support validation
+          let llmConfidence = 0;
+          try {
+            checkCancelled();
+            llmConfidence = await getLLMConfidence(claim.text, quoteText);
+            console.log('[ClaimReview] LLM confidence for supporting quote:', llmConfidence.toFixed(2));
+          } catch (error: any) {
+            if (error.name === 'AbortError') throw error;
+            console.warn('[ClaimReview] Failed to get LLM confidence for supporting quote:', error);
+          }
 
           // Search to get/update metadata using unified quote search (faster, already optimized)
           let alternativeSources: any[] = [];
@@ -664,7 +705,7 @@ export class ClaimReviewProvider {
             verified: result.verified,
             similarity: result.similarity,
             closestMatch: result.closestMatch,
-            confidence: quoteObj.confidence,
+            confidence: llmConfidence || quoteObj.confidence,
             alternativeSources: alternativeSources.length > 0 ? alternativeSources : undefined,
             searchStatus
           });
@@ -801,6 +842,10 @@ export class ClaimReviewProvider {
 
       case 'loadSnippetText':
         await this.handleLoadSnippetText(message.snippetId, message.filePath, message.confidence);
+        break;
+
+      case 'addWebQuote':
+        await this.handleAddWebQuote(message.claimId, message.quote, message.source, message.url, message.confidence);
         break;
 
       case 'addSupportingQuote':
@@ -1166,6 +1211,86 @@ export class ClaimReviewProvider {
     }
   }
 
+  /**
+   * Handle adding a web quote directly (web results aren't in local index)
+   */
+  private async handleAddWebQuote(claimId: string, quote: string, source: string, url: string, confidence: number = 0): Promise<void> {
+    try {
+      const claim = this.extensionState.claimsManager.getClaim(claimId);
+
+      if (!claim) {
+        vscode.window.showErrorMessage(
+          'Could not find this claim. It may have been deleted.',
+          'Refresh Claims'
+        ).then(action => {
+          if (action === 'Refresh Claims') {
+            vscode.commands.executeCommand('researchAssistant.refreshClaims');
+          }
+        });
+        return;
+      }
+
+      // For web quotes, the source is the paper title - mark it as unverified web source
+      const webSource = `[Web] ${source}`;
+
+      // If primary quote is empty, add to primary quote instead of supporting
+      if (!claim.primaryQuote || !claim.primaryQuote.text || claim.primaryQuote.text.trim() === '') {
+        claim.primaryQuote = {
+          text: quote,
+          source: webSource,
+          verified: false,
+          confidence: confidence > 0 ? confidence : undefined
+        };
+      } else {
+        // Initialize supporting quotes array if needed
+        if (!claim.supportingQuotes) {
+          claim.supportingQuotes = [];
+        }
+
+        // Check if quote already exists
+        const quoteExists = claim.supportingQuotes.some((q: any) => q.text === quote);
+        if (quoteExists) {
+          vscode.window.showWarningMessage('This quote is already in supporting quotes');
+          return;
+        }
+
+        // Add quote to supporting quotes
+        claim.supportingQuotes.push({
+          text: quote,
+          source: webSource,
+          verified: false,
+          confidence: confidence > 0 ? confidence : undefined
+        });
+      }
+
+      // Update claim
+      await this.extensionState.claimsManager.updateClaim(claimId, claim);
+
+      // Reload claim display
+      await this.loadAndDisplayClaim(claimId);
+
+      // Offer to open the URL so user can add to Zotero via browser connector
+      if (url) {
+        const action = await vscode.window.showInformationMessage(
+          'Web quote added. Open the paper in your browser to add it to Zotero?',
+          'Open in Browser',
+          'Skip'
+        );
+        
+        if (action === 'Open in Browser') {
+          vscode.env.openExternal(vscode.Uri.parse(url));
+        }
+      } else {
+        vscode.window.showInformationMessage('Web quote added. Consider finding and adding this paper to Zotero for full verification.');
+      }
+    } catch (error) {
+      vscode.window.showErrorMessage(
+        'Unable to add the web quote. Please try again.',
+        'Retry'
+      );
+    }
+  }
+
   private async handleFindNewQuotes(claimId: string, query: string, signal?: AbortSignal): Promise<void> {
     try {
       console.log('[ClaimReview] Find quotes requested:', { claimId, query: query.substring(0, 50) + '...' });
@@ -1215,7 +1340,7 @@ export class ClaimReviewProvider {
             this.panel.webview.postMessage({
               type: 'newQuotesRound',
               round: round.round,
-              quotes: round.supportingSnippets.map((snippet) => {
+              quotes: round.supportingSnippets.map((snippet: any) => {
                 const verification = round.verifications.find(v => v.snippet.id === snippet.id);
                 const confidence = verification?.confidence || 0;
                 
@@ -1225,7 +1350,8 @@ export class ClaimReviewProvider {
                   source: snippet.fileName,
                   lineRange: `${snippet.startLine}-${snippet.endLine}`,
                   filePath: snippet.filePath,
-                  confidence: confidence
+                  confidence: confidence,
+                  searchSource: snippet.searchSource || 'literature'
                 };
               })
             });
@@ -1241,13 +1367,14 @@ export class ClaimReviewProvider {
               this.panel.webview.postMessage({
                 type: 'searchCandidatesFound',
                 round,
-                candidates: candidates.map(snippet => ({
+                candidates: candidates.map((snippet: any) => ({
                   id: snippet.id,
                   text: snippet.text,
                   source: snippet.fileName,
                   lineRange: `${snippet.startLine}-${snippet.endLine}`,
                   filePath: snippet.filePath,
-                  status: 'verifying' // Will be updated as verification completes
+                  status: 'verifying',
+                  searchSource: snippet.searchSource || 'literature'
                 }))
               });
             }

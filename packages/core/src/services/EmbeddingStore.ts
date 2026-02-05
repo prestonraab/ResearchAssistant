@@ -80,10 +80,49 @@ export class EmbeddingStore {
           metadata_config: { indexed: ['filePath', 'fileName'] }
         });
       }
+      // Verify the index is readable by listing items
+      await this.vectraIndex.listItems();
       this.initialized = true;
       console.log('[EmbeddingStore] Vectra index initialized');
     } catch (error) {
+      // Check if this is a JSON corruption error
+      if (error instanceof SyntaxError && error.message.includes('JSON')) {
+        console.warn('[EmbeddingStore] Corrupted index detected, recreating...');
+        await this.recoverFromCorruption();
+        return;
+      }
       console.error('[EmbeddingStore] Failed to initialize vectra index:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Recover from a corrupted index by deleting and recreating it
+   */
+  private async recoverFromCorruption(): Promise<void> {
+    try {
+      // Delete the corrupted index directory
+      if (fs.existsSync(this.indexPath)) {
+        console.log('[EmbeddingStore] Deleting corrupted index at', this.indexPath);
+        fs.rmSync(this.indexPath, { recursive: true, force: true });
+      }
+
+      // Clear file hashes to force re-indexing
+      this.fileHashes.clear();
+      this.saveFileHashes();
+
+      // Create a fresh vectra index
+      this.vectraIndex = new LocalIndex(this.indexPath);
+      console.log('[EmbeddingStore] Creating fresh vectra index after corruption recovery');
+      await this.vectraIndex.createIndex({
+        version: 1,
+        metadata_config: { indexed: ['filePath', 'fileName'] }
+      });
+
+      this.initialized = true;
+      console.log('[EmbeddingStore] Successfully recovered from corruption - index will be rebuilt');
+    } catch (error) {
+      console.error('[EmbeddingStore] Failed to recover from corruption:', error);
       throw error;
     }
   }
@@ -137,7 +176,16 @@ export class EmbeddingStore {
         await this.vectraIndex.deleteItem(item.id);
       }
     } catch (error) {
-      console.log('[EmbeddingStore] No existing items to delete for', path.basename(filePath));
+      if (error instanceof SyntaxError && error.message.includes('JSON')) {
+        console.warn('[EmbeddingStore] Corrupted index detected during addSnippets, recovering...');
+        this.initialized = false;
+        this.initPromise = null;
+        await this.recoverFromCorruption();
+        // Re-initialize and continue with adding snippets
+        await this.ensureInitialized();
+      } else {
+        console.log('[EmbeddingStore] No existing items to delete for', path.basename(filePath));
+      }
     }
 
     for (const snippet of snippets) {
@@ -178,6 +226,13 @@ export class EmbeddingStore {
         timestamp: item.metadata.timestamp as number
       }));
     } catch (error) {
+      if (error instanceof SyntaxError && error.message.includes('JSON')) {
+        console.warn('[EmbeddingStore] Corrupted index detected during getAllSnippets, recovering...');
+        this.initialized = false;
+        this.initPromise = null;
+        await this.recoverFromCorruption();
+        return [];
+      }
       console.error('[EmbeddingStore] Failed to get all snippets:', error);
       return [];
     }
@@ -233,6 +288,13 @@ export class EmbeddingStore {
 
       return snippets;
     } catch (error) {
+      if (error instanceof SyntaxError && error.message.includes('JSON')) {
+        console.warn('[EmbeddingStore] Corrupted index detected during search, recovering...');
+        this.initialized = false;
+        this.initPromise = null;
+        await this.recoverFromCorruption();
+        return [];
+      }
       console.error('[EmbeddingStore] Search failed:', error);
       return [];
     }

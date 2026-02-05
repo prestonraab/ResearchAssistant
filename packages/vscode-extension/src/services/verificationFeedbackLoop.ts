@@ -145,7 +145,12 @@ export class VerificationFeedbackLoop {
 
         // Stream candidates immediately if callback provided
         if (streamCallbacks?.onCandidatesFound) {
-          streamCallbacks.onCandidatesFound(round, snippets);
+          // Add source type to help with debugging
+          const candidatesWithSource = snippets.map(s => ({
+            ...s,
+            searchSource: 'literature' as const
+          }));
+          streamCallbacks.onCandidatesFound(round, candidatesWithSource as EmbeddedSnippet[]);
         }
 
         // Yield to event loop
@@ -225,16 +230,50 @@ export class VerificationFeedbackLoop {
         checkCancelled();
         
         if (webResults.length > 0) {
-          const webRound: SearchRound = {
-            round: this.maxRounds + 1,
-            query: `web search: ${claim}`,
-            snippets: webResults.map(r => this.convertWebResultToSnippet(r)),
-            verifications: [],
-            supportingSnippets: webResults.map(r => this.convertWebResultToSnippet(r))
-          };
-          completedRounds.push(webRound);
-          if (onRoundComplete) {
-            onRoundComplete(webRound);
+          // Filter out results with no useful content
+          const usefulResults = webResults.filter(r => 
+            r.snippet && 
+            r.snippet.length > 50 && 
+            !r.snippet.startsWith('Abstract available')
+          );
+          
+          if (usefulResults.length > 0) {
+            const webSnippets = usefulResults.map(r => ({
+              ...this.convertWebResultToSnippet(r),
+              searchSource: 'web' as const
+            }));
+            
+            // Stream candidates first
+            if (streamCallbacks?.onCandidatesFound) {
+              streamCallbacks.onCandidatesFound(this.maxRounds + 1, webSnippets as EmbeddedSnippet[]);
+            }
+            
+            // Verify web results too (they need confidence scores)
+            console.log('[VerificationFeedbackLoop] Verifying web results...');
+            const webVerifications = await this.verifySnippetsWithStreaming(
+              claim,
+              webSnippets as EmbeddedSnippet[],
+              [], // No claim embedding for web results
+              this.maxRounds + 1,
+              streamCallbacks?.onVerificationUpdate,
+              signal
+            );
+            
+            checkCancelled();
+            
+            const supportingWebSnippets = webSnippets.filter((_, i) => webVerifications[i]?.supports);
+            
+            const webRound: SearchRound = {
+              round: this.maxRounds + 1,
+              query: `web search: ${claim}`,
+              snippets: webSnippets as EmbeddedSnippet[],
+              verifications: webVerifications,
+              supportingSnippets: supportingWebSnippets as EmbeddedSnippet[]
+            };
+            completedRounds.push(webRound);
+            if (onRoundComplete) {
+              onRoundComplete(webRound);
+            }
           }
         }
       }
@@ -290,14 +329,31 @@ export class VerificationFeedbackLoop {
         throw new DOMException('Operation cancelled', 'AbortError');
       }
       
-      // Calculate semantic similarity between claim and snippet
-      const similarity = this.calculateCosineSimilarity(claimEmbedding, snippet.embedding);
-      const result = await this.verifySnippet(claim, snippet, similarity);
-      results.push(result);
-      
-      // Stream verification result if callback provided
-      if (onVerificationUpdate) {
-        onVerificationUpdate(round, snippet.id, result);
+      try {
+        // Calculate semantic similarity between claim and snippet
+        const similarity = claimEmbedding.length > 0 && snippet.embedding?.length > 0
+          ? this.calculateCosineSimilarity(claimEmbedding, snippet.embedding)
+          : 0;
+        const result = await this.verifySnippet(claim, snippet, similarity);
+        results.push(result);
+        
+        // Stream verification result if callback provided
+        if (onVerificationUpdate) {
+          onVerificationUpdate(round, snippet.id, result);
+        }
+      } catch (error) {
+        console.error(`[VerificationFeedbackLoop] Failed to verify snippet ${snippet.id}:`, error);
+        // Push a failed result so we don't leave it spinning
+        const failedResult: VerificationResult = {
+          snippet,
+          supports: false,
+          confidence: 0,
+          reasoning: 'Verification failed'
+        };
+        results.push(failedResult);
+        if (onVerificationUpdate) {
+          onVerificationUpdate(round, snippet.id, failedResult);
+        }
       }
       
       // Yield to event loop after each verification
@@ -310,8 +366,9 @@ export class VerificationFeedbackLoop {
   /**
    * Verify a single snippet against the claim
    * Uses cache if available, otherwise calls LLM
+   * Public method for use in quote verification flows
    */
-  private async verifySnippet(claim: string, snippet: EmbeddedSnippet, similarity: number = 0): Promise<VerificationResult> {
+  async verifySnippet(claim: string, snippet: EmbeddedSnippet, similarity: number = 0): Promise<VerificationResult> {
     // Check cache first
     if (this.confidenceCache) {
       const cached = this.confidenceCache.get(claim, snippet.text);
@@ -429,7 +486,12 @@ Generate a refined search query (2-5 words) that would find more relevant papers
       const { InternetPaperSearcher } = await import('@research-assistant/core');
       const searcher = new InternetPaperSearcher();
       
-      const papers = await searcher.searchExternal(claim);
+      // Extract key terms from claim for better search results
+      // Academic APIs work better with keyword queries, not full sentences
+      const searchQuery = this.extractSearchTerms(claim);
+      console.log(`[VerificationFeedbackLoop] Web search query: "${searchQuery}" (from claim: "${claim.substring(0, 50)}...")`);
+      
+      const papers = await searcher.searchExternal(searchQuery);
       
       return papers.map(paper => ({
         title: paper.title,
@@ -440,6 +502,50 @@ Generate a refined search query (2-5 words) that would find more relevant papers
       console.error('[VerificationFeedbackLoop] Web search failed:', error);
       return [];
     }
+  }
+
+  /**
+   * Extract key search terms from a claim for academic API queries
+   * Removes common words and keeps domain-specific terms
+   */
+  private extractSearchTerms(claim: string): string {
+    // Common words to filter out
+    const stopWords = new Set([
+      'a', 'an', 'the', 'is', 'are', 'was', 'were', 'be', 'been', 'being',
+      'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would', 'could', 'should',
+      'may', 'might', 'must', 'can', 'cannot', 'this', 'that', 'these', 'those',
+      'it', 'its', 'they', 'them', 'their', 'we', 'our', 'you', 'your',
+      'which', 'who', 'whom', 'what', 'when', 'where', 'why', 'how',
+      'and', 'or', 'but', 'if', 'then', 'else', 'so', 'as', 'than',
+      'for', 'of', 'to', 'from', 'by', 'with', 'without', 'in', 'on', 'at',
+      'into', 'onto', 'upon', 'about', 'between', 'through', 'during', 'before', 'after',
+      'above', 'below', 'under', 'over', 'again', 'further', 'once', 'while',
+      'also', 'both', 'each', 'more', 'most', 'other', 'some', 'such', 'only',
+      'same', 'very', 'just', 'even', 'still', 'already', 'often', 'however',
+      'therefore', 'thus', 'hence', 'although', 'though', 'because', 'since',
+      'show', 'shown', 'shows', 'demonstrate', 'demonstrated', 'demonstrates',
+      'suggest', 'suggested', 'suggests', 'indicate', 'indicated', 'indicates',
+      'provide', 'provided', 'provides', 'allow', 'allowed', 'allows',
+      'enable', 'enabled', 'enables', 'require', 'required', 'requires',
+      'use', 'used', 'uses', 'using', 'based', 'approach', 'method', 'methods'
+    ]);
+    
+    // Extract words, filter stop words, keep meaningful terms
+    const words = claim
+      .toLowerCase()
+      .replace(/[^\w\s-]/g, ' ')  // Keep hyphens for compound terms
+      .split(/\s+/)
+      .filter(word => word.length > 2 && !stopWords.has(word));
+    
+    // Take top 5-7 terms to avoid overly specific queries
+    const keyTerms = words.slice(0, 7);
+    
+    // If we filtered too aggressively, fall back to first few words
+    if (keyTerms.length < 3) {
+      return claim.split(/\s+/).slice(0, 5).join(' ');
+    }
+    
+    return keyTerms.join(' ');
   }
 
   /**

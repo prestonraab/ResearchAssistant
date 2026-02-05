@@ -178,10 +178,25 @@ function handleMessage(message) {
 function displayClaim(message) {
   currentClaim = message.claim;
   currentVerificationResults = message.verificationResults || [];
-  currentValidationResult = message.validationResult || {};
+  // Only reset validation result if a new one isn't being provided
+  if (message.validationResult !== undefined) {
+    currentValidationResult = message.validationResult || {};
+  } else {
+    currentValidationResult = {};
+  }
   currentUsageLocations = message.usageLocations || [];
 
   console.log('[ClaimReview] Displaying claim:', currentClaim);
+
+  // Close the quote viewer/search container when switching to a new claim
+  const searchContainer = document.getElementById('newQuotesContainer');
+  if (searchContainer) {
+    searchContainer.style.display = 'none';
+    const list = searchContainer.querySelector('.new-quotes-list');
+    if (list) {
+      list.innerHTML = '';
+    }
+  }
 
   // Display claim header
   const header = document.getElementById('claimHeader');
@@ -205,11 +220,11 @@ function displayClaim(message) {
   );
 
   // Display validation (only if we have data, and only show loading if claim has quotes)
-  if (message.validationResult) {
+  if (message.validationResult && message.validationResult.similarity) {
     displayValidation();
   } else if (message.isInitialLoad && hasQuotes) {
-    // Don't show validation loading - validation is now on-demand
-    // User can trigger it manually via the Validate button
+    // Show "Validate Support" button for on-demand validation
+    showValidateButton();
   }
 
   // Display usage locations (only if we have data)
@@ -913,7 +928,11 @@ function updateVerificationResults(message) {
  */
 function updateValidationResultStreaming(message) {
   currentValidationResult = message.validationResult || {};
-  console.log('[ClaimReview] Validation result updated');
+  console.log('[ClaimReview] Validation result updated:', {
+    similarity: currentValidationResult.similarity,
+    supported: currentValidationResult.supported,
+    isCached: message.isCached
+  });
   
   // Re-render validation section
   displayValidation();
@@ -1388,11 +1407,17 @@ function displayNewQuotesRound(message) {
       ? '<span class="quote-result-zotero-indicator">Zotero</span>'
       : '';
     
+    // Build search source indicator for debugging
+    const searchSource = q.searchSource || 'literature';
+    const sourceIndicator = searchSource === 'web' 
+      ? '<span class="quote-source-indicator web">🌐 Web</span>'
+      : '<span class="quote-source-indicator local">📁 Local</span>';
+    
     item.innerHTML = `
       <div class="quote-number">${quoteNumber}</div>
       <div class="quote-details">
         <div class="quote-summary">"${escapeHtml(q.summary)}"${zoteroIndicator}</div>
-        <div class="quote-source">${escapeHtml(q.source)} (lines ${q.lineRange})</div>
+        <div class="quote-source">${sourceIndicator} ${escapeHtml(q.source)} (lines ${q.lineRange})</div>
         <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid #ccc; display: flex; align-items: center; gap: 12px; font-size: 12px; color: #000;">
           Support: ${starDisplay} ${percentage}%
         </div>
@@ -1492,13 +1517,19 @@ function renderTopCandidates(container) {
     const item = document.createElement('div');
     item.id = `candidate-${candidate.id}`;
     
+    // Build search source indicator for debugging
+    const searchSource = candidate.searchSource || 'literature';
+    const sourceIndicator = searchSource === 'web' 
+      ? '<span class="quote-source-indicator web">🌐 Web</span>'
+      : '<span class="quote-source-indicator local">📁 Local</span>';
+    
     if (!candidate.verified) {
       item.className = 'new-quote-item candidate-verifying';
       item.innerHTML = `
         <div class="quote-number">${i + 1}</div>
         <div class="quote-details">
           <div class="quote-summary">"${escapeHtml(candidate.text)}"</div>
-          <div class="quote-source">${escapeHtml(candidate.source)} (lines ${candidate.lineRange})</div>
+          <div class="quote-source">${sourceIndicator} ${escapeHtml(candidate.source)} (lines ${candidate.lineRange})</div>
           <div class="verification-status verifying">
             <span class="status-spinner">⏳</span> Verifying...
           </div>
@@ -1514,12 +1545,12 @@ function renderTopCandidates(container) {
         <div class="quote-number">${i + 1}</div>
         <div class="quote-details">
           <div class="quote-summary">"${escapeHtml(candidate.text)}"</div>
-          <div class="quote-source">${escapeHtml(candidate.source)} (lines ${candidate.lineRange})</div>
+          <div class="quote-source">${sourceIndicator} ${escapeHtml(candidate.source)} (lines ${candidate.lineRange})</div>
           <div class="verification-status supports">
             <span class="status-icon">✓</span> Supports claim
             <div style="margin-top: 4px;">Support: ${starDisplay} ${percentage}%</div>
           </div>
-          <button class="btn btn-small btn-primary" data-action="addQuote" data-snippet-id="${escapeHtml(candidate.id)}" data-confidence="${candidate.confidence}">Add Quote</button>
+          <button class="btn btn-small btn-primary" data-action="addQuote" data-snippet-id="${escapeHtml(candidate.id)}" data-confidence="${candidate.confidence}" data-search-source="${candidate.searchSource || 'literature'}" data-quote-text="${escapeHtml(candidate.text)}" data-quote-source="${escapeHtml(candidate.source)}" data-quote-url="${escapeHtml(candidate.filePath || '')}">Add Quote</button>
         </div>
       `;
       
@@ -1527,7 +1558,17 @@ function renderTopCandidates(container) {
       const addBtn = item.querySelector('[data-action="addQuote"]');
       if (addBtn) {
         addBtn.addEventListener('click', () => {
-          acceptNewQuote(candidate.id, candidate.filePath || '', candidate.confidence);
+          const searchSource = addBtn.getAttribute('data-search-source');
+          if (searchSource === 'web') {
+            // For web results, pass the text directly since it's not in the local index
+            const quoteText = addBtn.getAttribute('data-quote-text');
+            const quoteSource = addBtn.getAttribute('data-quote-source');
+            const quoteUrl = addBtn.getAttribute('data-quote-url');
+            const confidence = parseFloat(addBtn.getAttribute('data-confidence')) || 0;
+            acceptWebQuote(quoteText, quoteSource, quoteUrl, confidence);
+          } else {
+            acceptNewQuote(candidate.id, candidate.filePath || '', candidate.confidence);
+          }
         });
       }
     }
@@ -1719,12 +1760,14 @@ function showError(message) {
 function handleOperationsCancelled(message) {
   console.log('[ClaimReview] Operations cancelled:', message.reason);
   
-  // Hide the search container if it's showing a loading state
+  // Always hide the search container when operations are cancelled (e.g., switching claims)
   const searchContainer = document.getElementById('newQuotesContainer');
   if (searchContainer) {
-    const statusEl = searchContainer.querySelector('.new-quotes-status');
-    if (statusEl && statusEl.textContent.includes('Searching')) {
-      searchContainer.style.display = 'none';
+    searchContainer.style.display = 'none';
+    // Clear the contents to prevent stale results from showing
+    const list = searchContainer.querySelector('.new-quotes-list');
+    if (list) {
+      list.innerHTML = '';
     }
   }
   
@@ -1793,6 +1836,25 @@ function acceptNewQuote(snippetId, filePath, confidence = 0) {
   
   // Show loading state
   showNotification('Loading quote text...', 'info');
+}
+
+/**
+ * Accept a web quote directly (web results aren't in local index)
+ */
+function acceptWebQuote(quoteText, source, url, confidence = 0) {
+  if (!currentClaim) return;
+  
+  // For web quotes, we have the text already - just add it directly
+  vscode.postMessage({
+    type: 'addWebQuote',
+    claimId: currentClaim.id,
+    quote: quoteText,
+    source: source,
+    url: url,
+    confidence: confidence
+  });
+  
+  showNotification('Adding web quote...', 'info');
 }
 
 /**
