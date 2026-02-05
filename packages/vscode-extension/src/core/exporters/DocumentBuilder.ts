@@ -601,8 +601,11 @@ export class DocumentBuilder {
    */
   public async prefetchZoteroMetadata(manuscriptText: string): Promise<void> {
     if (!this.zoteroApiService || !this.zoteroApiService.isConfigured()) {
+      console.log('[DocumentBuilder] Zotero API not configured, skipping metadata prefetch');
       return;
     }
+
+    console.log('[DocumentBuilder] Starting Zotero metadata prefetch...');
 
     // Extract all citation keys from manuscript (legacy \cite{} format)
     const citationRegex = /\\cite\{([^}]+)\}/g;
@@ -627,18 +630,25 @@ export class DocumentBuilder {
       citeKeys.add(`${author}${year}`);
     }
 
+    console.log(`[DocumentBuilder] Found ${citeKeys.size} unique citation keys:`, Array.from(citeKeys).slice(0, 10));
+
     if (citeKeys.size === 0) {
       return;
     }
 
     // Fetch items from Zotero and cache them
     try {
+      console.log('[DocumentBuilder] Fetching items from Zotero API...');
       const items = await this.zoteroApiService.getItems(100);
+      console.log(`[DocumentBuilder] Retrieved ${items.length} items from Zotero`);
       
+      let matchCount = 0;
       for (const item of items) {
         // Cache by Zotero key
         if (citeKeys.has(item.key)) {
           this.zoteroItemCache.set(item.key, item);
+          matchCount++;
+          console.log(`[DocumentBuilder] Matched by key: ${item.key}`);
         }
         
         // Also cache by AuthorYear format for source tag lookups
@@ -646,11 +656,15 @@ export class DocumentBuilder {
         const normalizedAuthorYear = this.normalizeAuthorYear(itemAuthorYear);
         if (citeKeys.has(normalizedAuthorYear)) {
           this.zoteroItemCache.set(normalizedAuthorYear, item);
+          matchCount++;
+          console.log(`[DocumentBuilder] Matched by AuthorYear: ${normalizedAuthorYear} -> ${item.title?.substring(0, 50)}`);
         }
       }
+      
+      console.log(`[DocumentBuilder] Cached ${matchCount} matching items`);
     } catch (error) {
       // Silently fail - citations will just use fallback display
-      console.warn('Failed to prefetch Zotero metadata:', error);
+      console.warn('[DocumentBuilder] Failed to prefetch Zotero metadata:', error);
     }
   }
 

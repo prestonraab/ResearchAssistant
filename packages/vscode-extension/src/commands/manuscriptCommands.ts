@@ -740,6 +740,38 @@ export function registerManuscriptCommands(
         const manuscriptText = fs.readFileSync(manuscriptPath, 'utf-8');
         const manuscriptUri = vscode.Uri.file(manuscriptPath);
 
+        // Check Zotero API configuration
+        const zoteroApiService = (extensionState as any).zoteroApiService;
+        const isZoteroConfigured = zoteroApiService && zoteroApiService.isConfigured();
+        
+        // Show diagnostic information
+        const diagnosticInfo = [
+          `📊 Export Diagnostics:`,
+          `• Zotero API: ${isZoteroConfigured ? '✅ Configured' : '❌ Not configured'}`,
+          `• Citation enrichment: ${isZoteroConfigured ? 'Enabled' : 'Disabled (citations will use fallback data)'}`,
+          ``,
+          isZoteroConfigured ? 
+            `Citations will be enriched with data from your Zotero library.` :
+            `⚠️ To enable citation enrichment, configure Zotero API in settings:\n` +
+            `  1. Open Settings (Cmd+,)\n` +
+            `  2. Search for "zotero"\n` +
+            `  3. Set "Zotero Api Key" and "Zotero User Id"`
+        ].join('\n');
+        
+        const proceed = await vscode.window.showInformationMessage(
+          diagnosticInfo,
+          { modal: true },
+          'Continue Export',
+          'Open Settings'
+        );
+        
+        if (proceed === 'Open Settings') {
+          vscode.commands.executeCommand('workbench.action.openSettings', 'researchAssistant.zotero');
+          return;
+        } else if (!proceed) {
+          return;
+        }
+
         // Prompt for export location
         const uri = await vscode.window.showSaveDialog({
           defaultUri: vscode.Uri.file('manuscript-export.docx'),

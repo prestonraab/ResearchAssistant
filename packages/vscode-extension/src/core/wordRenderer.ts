@@ -327,28 +327,19 @@ export class WordRenderer {
     if (citation.itemData) {
       citationItem['itemData'] = citation.itemData;
     } else {
-      // Fallback: build minimal itemData from available fields
+      // Fallback: build more complete itemData so Zotero can render it
+      // Parse author and year from the citeKey (e.g., "Guyon2002" -> "Guyon" + "2002")
+      const match = zoteroKey.match(/^([A-Za-z]+)(\d{4})$/);
+      const author = match ? match[1] : 'Unknown';
+      const year = match ? match[2] : new Date().getFullYear().toString();
+      
       citationItem['itemData'] = {
         id: citationItem.id,
         type: 'article-journal',
-        title: citation.title || citation.citeKey
+        title: citation.title || `${author} ${year}`,
+        author: [{ family: author, given: '' }],
+        issued: { 'date-parts': [[parseInt(year)]] }
       };
-      
-      if (citation.authors) {
-        // Parse simple author string into CSL format
-        const authorParts = citation.authors.split(';').map((a: string) => a.trim());
-        citationItem['itemData']['author'] = authorParts.map((name: string) => {
-          const parts = name.split(',').map((p: string) => p.trim());
-          if (parts.length >= 2) {
-            return { family: parts[0], given: parts[1] };
-          }
-          return { literal: name };
-        });
-      }
-      
-      if (citation.year) {
-        citationItem['itemData']['issued'] = { 'date-parts': [[parseInt(citation.year)]] };
-      }
     }
     
     // Create Zotero ADDIN field code with full CSL citation structure

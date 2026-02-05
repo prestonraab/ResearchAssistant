@@ -46,6 +46,7 @@ export class ServiceState {
   public verificationFeedbackLoop: VerificationFeedbackLoop;
   public zoteroAvailabilityManager: ZoteroAvailabilityManager;
   public zoteroClient: ZoteroClient;
+  public zoteroApiService: any; // ZoteroApiService
   public quoteManager: QuoteManager;
   public sentenceClaimQuoteLinkManager: SentenceClaimQuoteLinkManager;
   public sentenceParser: SentenceParser;
@@ -81,6 +82,18 @@ export class ServiceState {
     this.pdfExtractionService = new PDFExtractionService(workspaceRoot);
     this.citationNetworkAnalyzer = new CitationNetworkAnalyzer();
     this.zoteroClient = new ZoteroClient();
+    
+    // Initialize ZoteroApiService with credentials from VS Code settings
+    this.zoteroApiService = new (require('../../services/zoteroApiService').ZoteroApiService)();
+    const zoteroApiKey = cfg.get<string>('zoteroApiKey') || '';
+    const zoteroUserId = cfg.get<string>('zoteroUserId') || '';
+    if (zoteroApiKey && zoteroUserId) {
+      this.zoteroApiService.initialize(zoteroApiKey, zoteroUserId);
+      console.log('[ServiceState] ZoteroApiService initialized with API key and user ID');
+    } else {
+      console.warn('[ServiceState] Zotero API credentials not configured - citation enrichment will be disabled');
+    }
+    
     this.unifiedSearchService = new UnifiedSearchService(this.zoteroClient, this.claimsManager, this.embeddingService, workspaceRoot);
     
     // Initialize shared literature indexer and unified quote search (single instance for all services)
@@ -93,7 +106,7 @@ export class ServiceState {
     this.verificationFeedbackLoop = new VerificationFeedbackLoop(this.literatureIndexer, apiKey, coreState.getAbsolutePath(config.extractedTextPath), workspaceRoot);
     
     this.batchOperationHandler = new BatchOperationHandler(this.claimsManager, this.readingStatusManager, this.quoteVerificationService);
-    this.exportService = new ExportService(this.sentenceClaimQuoteLinkManager, this.claimsManager, this.sentenceParser);
+    this.exportService = new ExportService(this.sentenceClaimQuoteLinkManager, this.claimsManager, this.sentenceParser, this.zoteroApiService);
     this.zoteroAvailabilityManager = new ZoteroAvailabilityManager(this.zoteroClient);
     this.quoteManager = new QuoteManager();
     this.claimsManager.onClaimSaved((claim) => this.autoQuoteVerifier.verifyOnSave(claim));
