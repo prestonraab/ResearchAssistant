@@ -50,7 +50,7 @@ import {
 
 import * as fs from 'fs/promises';
 import * as path from 'path';
-import { ZoteroFieldInjector } from './exporters/ZoteroFieldInjector';
+import { ZoteroFieldInjector, FieldInjectionReport } from './exporters/ZoteroFieldInjector';
 
 /**
  * Renders a DocumentModel to a Word document buffer
@@ -76,12 +76,20 @@ export class WordRenderer {
   }
 
   /**
+   * Get the field injection report from the last render
+   */
+  public getFieldInjectionReport(): FieldInjectionReport {
+    return this.fieldInjector.getReport();
+  }
+
+  /**
    * Render a DocumentModel to a Word document buffer
    * 
    * @param model The document model to render
+   * @param onProgress Optional callback for progress updates
    * @returns Promise resolving to a Buffer containing the .docx file
    */
-  public async render(model: DocumentModel): Promise<Buffer> {
+  public async render(model: DocumentModel, onProgress?: (message: string) => void): Promise<Buffer> {
     // Build footnote map for reference during rendering
     this.footnoteMap.clear();
     for (const footnote of model.metadata.footnotes) {
@@ -115,10 +123,12 @@ export class WordRenderer {
     });
 
     // Convert document to buffer
+    onProgress?.('📝 Generating Word document structure...');
     const buffer = await Packer.toBuffer(doc);
     
     // Post-process to convert SimpleField to complex fields for Zotero
-    return await this.fieldInjector.processDocx(buffer);
+    onProgress?.('🔄 Converting citation fields for Zotero compatibility...');
+    return await this.fieldInjector.processDocx(buffer, onProgress);
   }
 
   /**
@@ -267,7 +277,10 @@ export class WordRenderer {
    */
   private createBodyParagraph(paragraph: DocumentParagraph): Paragraph {
     const runs: (TextRun | FootnoteReferenceRun | SimpleField)[] = [];
-
+    
+    console.log('[WordRenderer] createBodyParagraph called with', paragraph.runs.length, 'runs');
+    
+    let citationCount = 0;
     for (const run of paragraph.runs) {
       if (run.type === 'text') {
         // Regular text run (6.3)
@@ -285,9 +298,15 @@ export class WordRenderer {
         );
       } else if (run.type === 'citation' && run.citation) {
         // Zotero citation field
+        citationCount++;
+        console.log('[WordRenderer] Processing citation run:', run.citation.citeKey);
         const citationField = this.createZoteroCitationField(run.citation);
         runs.push(citationField);
       }
+    }
+    
+    if (citationCount > 0) {
+      console.log('[WordRenderer] Created', citationCount, 'citation fields in this paragraph');
     }
 
     return new Paragraph({
@@ -313,6 +332,8 @@ export class WordRenderer {
     const zoteroUserId = citation.zoteroUserId || 'local';
     const displayText = citation.displayText || `[${citation.citeKey}]`;
     
+    console.log('[WordRenderer] Creating citation field:', { zoteroKey, displayText, hasItemData: !!citation.itemData });
+    
     // Build the URI in Zotero's expected format
     const itemUri = `http://zotero.org/users/${zoteroUserId}/items/${zoteroKey}`;
     
@@ -332,6 +353,8 @@ export class WordRenderer {
       const match = zoteroKey.match(/^([A-Za-z]+)(\d{4})$/);
       const author = match ? match[1] : 'Unknown';
       const year = match ? match[2] : new Date().getFullYear().toString();
+      
+      console.log('[WordRenderer] Using fallback itemData for:', zoteroKey, { author, year });
       
       citationItem['itemData'] = {
         id: citationItem.id,
@@ -356,6 +379,8 @@ export class WordRenderer {
     
     // SimpleField takes the instruction string directly
     const fieldCode = `ADDIN ZOTERO_ITEM CSL_CITATION ${JSON.stringify(cslCitation)}`;
+    
+    console.log('[WordRenderer] Created field code, length:', fieldCode.length);
     
     return new SimpleField(fieldCode);
   }

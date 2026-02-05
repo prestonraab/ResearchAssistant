@@ -83,16 +83,41 @@ export class ExportService {
    */
   public async exportManuscriptWord(
     manuscriptText: string,
-    options: ManuscriptExportOptions
+    options: ManuscriptExportOptions,
+    onProgress?: (message: string) => void
   ): Promise<void> {
     // Prefetch Zotero metadata for enriched citations if enabled
     if (options.enrichCitations !== false) {
+      onProgress?.('🔍 Fetching citation metadata from Zotero...');
       await this.documentBuilder.prefetchZoteroMetadata(manuscriptText);
     }
     
+    onProgress?.('📖 Building document model...');
     const model = await this.documentBuilder.buildDocumentModel(manuscriptText, options);
-    const buffer = await this.wordExporter.exportManuscriptWord(manuscriptText, model, options);
-    await this.wordExporter.writeBufferToFile(options.outputPath, buffer);
+    const buffer = await this.wordExporter.exportManuscriptWord(manuscriptText, model, options, onProgress);
+    
+    // Don't write yet - return the buffer and report for approval
+    // The command handler will show the report and write the file
+    (this as any)._pendingBuffer = buffer;
+  }
+
+  /**
+   * Get the field injection report from the last export
+   */
+  public getLastFieldInjectionReport() {
+    return this.wordExporter.getLastReport();
+  }
+
+  /**
+   * Write the pending buffer to file (called after user approval)
+   */
+  public async writePendingBuffer(outputPath: string): Promise<void> {
+    const buffer = (this as any)._pendingBuffer;
+    if (!buffer) {
+      throw new Error('No pending buffer to write');
+    }
+    await this.wordExporter.writeBufferToFile(outputPath, buffer);
+    delete (this as any)._pendingBuffer;
   }
 
   /**

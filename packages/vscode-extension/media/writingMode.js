@@ -391,7 +391,7 @@ function renderPairs() {
 function renderSectionHeader(sectionName, firstPairIndex) {
   return `
     <div class="section-header" data-section="${escapeHtml(sectionName)}" data-first-pair-index="${firstPairIndex}">
-      <h2 class="section-title" contenteditable="true">${escapeHtml(sectionName)}</h2>
+      <h2 class="section-title" contenteditable="true" spellcheck="true">${escapeHtml(sectionName)}</h2>
     </div>
   `;
 }
@@ -467,7 +467,7 @@ function renderPair(pair) {
       <div class="pair-row" data-pair-id="${pair.id}">
         <!-- Left column: Question -->
         <div class="left-column">
-          <div class="question-text" contenteditable="true" data-pair-id="${pair.id}">
+          <div class="question-text" contenteditable="true" spellcheck="true" data-pair-id="${pair.id}">
             ${escapeHtml(pair.question)}
           </div>
         </div>
@@ -478,6 +478,7 @@ function renderPair(pair) {
             class="answer-editor" 
             data-pair-id="${pair.id}"
             placeholder="Write your answer here..."
+            spellcheck="true"
           >${escapeHtml(displayText || '')}</textarea>
         </div>
         

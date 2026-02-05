@@ -41,6 +41,7 @@ export class ExtensionState {
   public get verificationFeedbackLoop() { return this.serviceState.verificationFeedbackLoop; }
   public get zoteroAvailabilityManager() { return this.serviceState.zoteroAvailabilityManager; }
   public get zoteroClient() { return this.serviceState.zoteroClient; }
+  public get zoteroApiService() { return this.serviceState.zoteroApiService; }
   public get quoteManager() { return this.serviceState.quoteManager; }
   public get sentenceClaimQuoteLinkManager() { return this.serviceState.sentenceClaimQuoteLinkManager; }
   public get sentenceParser() { return this.serviceState.sentenceParser; }

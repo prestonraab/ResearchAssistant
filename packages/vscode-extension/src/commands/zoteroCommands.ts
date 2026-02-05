@@ -553,6 +553,53 @@ export function registerZoteroCommands(
     )
   );
 
+  // Test Zotero API Configuration
+  context.subscriptions.push(
+    vscode.commands.registerCommand('researchAssistant.testZoteroApi', async () => {
+      const cfg = vscode.workspace.getConfiguration('researchAssistant');
+      const apiKey = cfg.get<string>('zoteroApiKey') || '';
+      const userId = cfg.get<string>('zoteroUserId') || '';
+      
+      const zoteroApiService = (extensionState as any).zoteroApiService;
+      const isConfigured = zoteroApiService && zoteroApiService.isConfigured();
+      
+      const diagnostics = [
+        `🔍 Zotero API Configuration Test`,
+        ``,
+        `Settings:`,
+        `• API Key: ${apiKey ? `✅ Set (${apiKey.length} chars)` : '❌ Not set'}`,
+        `• User ID: ${userId ? `✅ Set (${userId})` : '❌ Not set'}`,
+        ``,
+        `Service State:`,
+        `• ZoteroApiService exists: ${zoteroApiService ? '✅ Yes' : '❌ No'}`,
+        `• isConfigured(): ${isConfigured ? '✅ Yes' : '❌ No'}`,
+        ``
+      ].join('\n');
+      
+      if (isConfigured && zoteroApiService) {
+        try {
+          await vscode.window.showInformationMessage(diagnostics + '\n\nTesting connection...', { modal: true });
+          const testResult = await zoteroApiService.testConnection();
+          vscode.window.showInformationMessage(
+            diagnostics + `\n\nConnection Test: ${testResult ? '✅ Success' : '❌ Failed'}`,
+            { modal: true }
+          );
+        } catch (error) {
+          vscode.window.showErrorMessage(
+            diagnostics + `\n\n❌ Connection Test Failed:\n${error}`,
+            { modal: true }
+          );
+        }
+      } else {
+        vscode.window.showWarningMessage(diagnostics, { modal: true }, 'Open Settings').then(action => {
+          if (action === 'Open Settings') {
+            vscode.commands.executeCommand('workbench.action.openSettings', 'researchAssistant.zotero');
+          }
+        });
+      }
+    })
+  );
+
   logger.info('Zotero commands registered successfully');
 }
 

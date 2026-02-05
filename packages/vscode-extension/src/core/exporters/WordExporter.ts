@@ -3,12 +3,22 @@ import * as fs from 'fs';
 import type { DocumentModel } from '../documentModel';
 import type { ManuscriptExportOptions } from '../exportService';
 import { WordRenderer } from '../wordRenderer';
+import type { FieldInjectionReport } from './ZoteroFieldInjector';
 
 /**
  * Handles Word (.docx) export functionality
  * Generates Word documents with native footnotes and formatting
  */
 export class WordExporter {
+  private lastReport?: FieldInjectionReport;
+
+  /**
+   * Get the field injection report from the last export
+   */
+  public getLastReport(): FieldInjectionReport | undefined {
+    return this.lastReport;
+  }
+
   /**
    * Export manuscript with marked citations as Word (.docx) with native footnotes
    * 
@@ -19,14 +29,18 @@ export class WordExporter {
   public async exportManuscriptWord(
     manuscriptText: string,
     documentModel: DocumentModel,
-    options: ManuscriptExportOptions
+    options: ManuscriptExportOptions,
+    onProgress?: (message: string) => void
   ): Promise<Buffer> {
     // Validate output path
     this.validateOutputPath(options.outputPath);
 
     // Create WordRenderer instance and render
     const renderer = new WordRenderer(documentModel);
-    const buffer = await renderer.render(documentModel);
+    const buffer = await renderer.render(documentModel, onProgress);
+    
+    // Store the report
+    this.lastReport = renderer.getFieldInjectionReport();
 
     return buffer;
   }

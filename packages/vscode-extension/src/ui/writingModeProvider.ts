@@ -100,7 +100,8 @@ export class WritingModeProvider {
       {
         enableScripts: true,
         localResourceRoots: [this.context.extensionUri],
-        retainContextWhenHidden: true
+        retainContextWhenHidden: true,
+        enableFindWidget: true
       }
     );
 

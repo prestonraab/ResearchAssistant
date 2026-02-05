@@ -11,35 +11,106 @@
 
 import JSZip from 'jszip';
 
+export interface FieldInjectionProgress {
+  (message: string): void;
+}
+
+export interface FieldInjectionReport {
+  totalFields: number;
+  convertedFields: number;
+  samples: Array<{
+    before: string;
+    after: string;
+    displayText: string;
+  }>;
+  errors: string[];
+}
+
 export class ZoteroFieldInjector {
+  private report: FieldInjectionReport = {
+    totalFields: 0,
+    convertedFields: 0,
+    samples: [],
+    errors: []
+  };
+
+  /**
+   * Get the last injection report
+   */
+  public getReport(): FieldInjectionReport {
+    return this.report;
+  }
+
   /**
    * Process a DOCX buffer to convert SimpleField citations to complex fields
    * 
    * @param docxBuffer The DOCX file buffer from the docx library
+   * @param onProgress Optional callback for progress updates
    * @returns Modified DOCX buffer with Zotero-compatible fields
    */
-  public async processDocx(docxBuffer: Buffer): Promise<Buffer> {
-    // Load the DOCX as a ZIP file
-    const zip = await JSZip.loadAsync(docxBuffer);
-    
-    // Get the document.xml file
-    const documentXml = await zip.file('word/document.xml')?.async('string');
-    if (!documentXml) {
-      throw new Error('word/document.xml not found in DOCX file');
+  public async processDocx(docxBuffer: Buffer, onProgress?: FieldInjectionProgress): Promise<Buffer> {
+    // Reset report
+    this.report = {
+      totalFields: 0,
+      convertedFields: 0,
+      samples: [],
+      errors: []
+    };
+
+    try {
+      onProgress?.('📦 Loading DOCX file...');
+      
+      // Load the DOCX as a ZIP file
+      const zip = await JSZip.loadAsync(docxBuffer);
+      
+      onProgress?.('📄 Extracting document.xml...');
+      
+      // Get the document.xml file
+      const documentXml = await zip.file('word/document.xml')?.async('string');
+      if (!documentXml) {
+        const error = 'word/document.xml not found in DOCX file';
+        this.report.errors.push(error);
+        throw new Error(error);
+      }
+
+      onProgress?.('🔍 Scanning for citation fields...');
+      
+      // Count how many fields we'll convert
+      const fieldMatches = documentXml.match(/<w:fldSimple\s+w:instr="[^"]*ADDIN\s+ZOTERO_ITEM[^"]*">[^]*?<\/w:fldSimple>/g) || [];
+      this.report.totalFields = fieldMatches.length;
+      
+      if (this.report.totalFields === 0) {
+        onProgress?.('⚠️ No Zotero citation fields found');
+      } else {
+        onProgress?.(`🔧 Converting ${this.report.totalFields} citation field${this.report.totalFields === 1 ? '' : 's'} to Zotero format...`);
+      }
+
+      // Replace SimpleField elements with complex fields and collect samples
+      const modifiedXml = this.convertSimpleFieldsToComplex(documentXml);
+
+      onProgress?.('💾 Updating document.xml...');
+      
+      // Update the document.xml in the ZIP
+      zip.file('word/document.xml', modifiedXml);
+
+      onProgress?.('📦 Generating final DOCX file...');
+      
+      // Generate the modified DOCX buffer
+      const result = await zip.generateAsync({
+        type: 'nodebuffer',
+        compression: 'DEFLATE',
+        compressionOptions: { level: 9 }
+      });
+      
+      onProgress?.(`✅ Successfully processed ${this.report.convertedFields} citation${this.report.convertedFields === 1 ? '' : 's'}`);
+      
+      return result;
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      this.report.errors.push(errorMsg);
+      onProgress?.(`❌ Error: ${errorMsg}`);
+      throw error;
     }
-
-    // Replace SimpleField elements with complex fields
-    const modifiedXml = this.convertSimpleFieldsToComplex(documentXml);
-
-    // Update the document.xml in the ZIP
-    zip.file('word/document.xml', modifiedXml);
-
-    // Generate the modified DOCX buffer
-    return await zip.generateAsync({
-      type: 'nodebuffer',
-      compression: 'DEFLATE',
-      compressionOptions: { level: 9 }
-    });
   }
 
   /**
@@ -61,31 +132,52 @@ export class ZoteroFieldInjector {
     // Match SimpleField elements that contain ADDIN ZOTERO_ITEM
     const simpleFieldRegex = /<w:fldSimple\s+w:instr="([^"]*ADDIN\s+ZOTERO_ITEM[^"]*)">([^]*?)<\/w:fldSimple>/g;
 
+    let sampleCount = 0;
+    const maxSamples = 3;
+
     return xml.replace(simpleFieldRegex, (match, instruction, content) => {
-      // The instruction is already XML-escaped by the docx library (&quot; etc.)
-      // We need to unescape it for the instrText element
-      const unescapedInstruction = this.unescapeXml(instruction);
-      
-      // Extract the text content from inside the SimpleField
-      // The content typically contains <w:r><w:t>text</w:t></w:r>
-      const textMatch = content.match(/<w:t[^>]*>([^<]*)<\/w:t>/);
-      const displayText = textMatch ? textMatch[1] : '';
+      try {
+        // The instruction is already XML-escaped by the docx library (&quot; etc.)
+        // We need to unescape it for the instrText element
+        const unescapedInstruction = this.unescapeXml(instruction);
+        
+        // Extract the text content from inside the SimpleField
+        // The content typically contains <w:r><w:t>text</w:t></w:r>
+        const textMatch = content.match(/<w:t[^>]*>([^<]*)<\/w:t>/);
+        const displayText = textMatch ? textMatch[1] : '';
 
-      // Build the complex field structure
-      const complexField = [
-        // Begin field character
-        '<w:r><w:fldChar w:fldCharType="begin"/></w:r>',
-        // Field instruction - note: instrText content should NOT be XML-escaped
-        `<w:r><w:instrText xml:space="preserve"> ${unescapedInstruction} </w:instrText></w:r>`,
-        // Separator
-        '<w:r><w:fldChar w:fldCharType="separate"/></w:r>',
-        // Display text (field result) - this should remain escaped
-        `<w:r><w:t>${displayText}</w:t></w:r>`,
-        // End field character
-        '<w:r><w:fldChar w:fldCharType="end"/></w:r>'
-      ].join('');
+        // Build the complex field structure
+        const complexField = [
+          // Begin field character
+          '<w:r><w:fldChar w:fldCharType="begin"/></w:r>',
+          // Field instruction - note: instrText content should NOT be XML-escaped
+          `<w:r><w:instrText xml:space="preserve"> ${unescapedInstruction} </w:instrText></w:r>`,
+          // Separator
+          '<w:r><w:fldChar w:fldCharType="separate"/></w:r>',
+          // Display text (field result) - this should remain escaped
+          `<w:r><w:t>${displayText}</w:t></w:r>`,
+          // End field character
+          '<w:r><w:fldChar w:fldCharType="end"/></w:r>'
+        ].join('');
 
-      return complexField;
+        // Collect samples for the report (first few conversions)
+        if (sampleCount < maxSamples) {
+          this.report.samples.push({
+            before: match.substring(0, 200) + (match.length > 200 ? '...' : ''),
+            after: complexField.substring(0, 200) + (complexField.length > 200 ? '...' : ''),
+            displayText
+          });
+          sampleCount++;
+        }
+
+        this.report.convertedFields++;
+        return complexField;
+      } catch (error) {
+        const errorMsg = `Failed to convert field: ${error instanceof Error ? error.message : String(error)}`;
+        this.report.errors.push(errorMsg);
+        // Return original on error
+        return match;
+      }
     });
   }
 

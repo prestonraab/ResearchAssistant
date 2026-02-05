@@ -68,9 +68,9 @@ export class ManuscriptParser {
         // Remove the > prefix
         cleanedLine = cleanedLine.replace(/^>\s*/, '');
         
-        // Remove inline fields: (status:: X) and [source:: X]
+        // Remove inline fields: (status:: X) but KEEP [source:: X] for citation processing
         cleanedLine = cleanedLine.replace(/\(status::\s*[^)]+\)/g, '');
-        cleanedLine = cleanedLine.replace(/\[source::\s*[^\]]+\]/g, '');
+        // DO NOT remove [source:: ...] - it will be converted to citations later
         cleanedLine = cleanedLine.trim();
         
         if (cleanedLine.length > 0) {
@@ -91,7 +91,7 @@ export class ManuscriptParser {
       
       // Remove inline fields from non-callout lines too
       cleanedLine = cleanedLine.replace(/\(status::\s*[^)]+\)/g, '');
-      cleanedLine = cleanedLine.replace(/\[source::\s*[^\]]+\]/g, '');
+      // DO NOT remove [source:: ...] - it will be converted to citations later
       cleanedLine = cleanedLine.trim();
       
       if (cleanedLine.startsWith('#')) {
@@ -140,6 +140,7 @@ export class ManuscriptParser {
    * Simple sentence parsing fallback
    * Removes HTML comment markers and inline fields that appear in the manuscript
    * Removes question markers (legacy and Obsidian callout format) and keeps only the answers
+   * PRESERVES [source:: ...] tags for citation processing
    */
   public static parseSentencesSimple(paragraph: string): Sentence[] {
     // Remove HTML comment markers (legacy format)
@@ -154,9 +155,9 @@ export class ManuscriptParser {
     cleanedParagraph = cleanedParagraph.replace(/^>\s*\[!question\][^\n]*\n?/gm, '');
     cleanedParagraph = cleanedParagraph.replace(/^>\s*/gm, ''); // Remove > prefix from callout lines
     
-    // Remove inline fields: (status:: X) and [source:: X]
+    // Remove inline fields: (status:: X) but KEEP [source:: X] for citation processing
     cleanedParagraph = cleanedParagraph.replace(/\(status::\s*[^)]+\)/g, '');
-    cleanedParagraph = cleanedParagraph.replace(/\[source::\s*[^\]]+\]/g, '');
+    // DO NOT remove [source:: ...] - it will be converted to citations later
     
     cleanedParagraph = cleanedParagraph.trim();
     

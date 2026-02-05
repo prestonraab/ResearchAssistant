@@ -741,7 +741,7 @@ export function registerManuscriptCommands(
         const manuscriptUri = vscode.Uri.file(manuscriptPath);
 
         // Check Zotero API configuration
-        const zoteroApiService = (extensionState as any).zoteroApiService;
+        const zoteroApiService = extensionState.zoteroApiService;
         const isZoteroConfigured = zoteroApiService && zoteroApiService.isConfigured();
         
         // Show diagnostic information
@@ -790,7 +790,7 @@ export function registerManuscriptCommands(
             title: 'Exporting manuscript to Word',
             cancellable: false
           },
-          async () => {
+          async (progress) => {
             const options: ManuscriptExportOptions = {
               outputPath: uri.fsPath,
               includeFootnotes: true,
@@ -800,8 +800,55 @@ export function registerManuscriptCommands(
               manuscriptId: manuscriptUri.toString()
             };
 
-            await extensionState!.exportService.exportManuscriptWord(manuscriptText, options);
+            // Progress callback to update the notification
+            const onProgress = (message: string) => {
+              progress.report({ message });
+            };
 
+            await extensionState!.exportService.exportManuscriptWord(manuscriptText, options, onProgress);
+          }
+        );
+
+        // Get the field injection report
+        const report = extensionState!.exportService.getLastFieldInjectionReport();
+        
+        if (report) {
+          // Build report message
+          const reportLines = [
+            `📊 Citation Field Conversion Report`,
+            ``,
+            `✅ Converted: ${report.convertedFields} of ${report.totalFields} fields`,
+            ``
+          ];
+
+          if (report.errors.length > 0) {
+            reportLines.push(`❌ Errors: ${report.errors.length}`);
+            report.errors.forEach(err => reportLines.push(`  • ${err}`));
+            reportLines.push(``);
+          }
+
+          if (report.samples.length > 0) {
+            reportLines.push(`📝 Sample Conversions (first ${report.samples.length}):`);
+            report.samples.forEach((sample, i) => {
+              reportLines.push(``);
+              reportLines.push(`Citation ${i + 1}: "${sample.displayText}"`);
+              reportLines.push(`Before: ${sample.before.substring(0, 100)}...`);
+              reportLines.push(`After:  ${sample.after.substring(0, 100)}...`);
+            });
+          }
+
+          const reportMessage = reportLines.join('\n');
+          
+          const action = await vscode.window.showInformationMessage(
+            reportMessage,
+            { modal: true },
+            'Save File',
+            'Cancel'
+          );
+
+          if (action === 'Save File') {
+            await extensionState!.exportService.writePendingBuffer(uri.fsPath);
+            
             vscode.window.showInformationMessage(
               `Manuscript exported successfully to ${uri.fsPath}`,
               'Open File'
@@ -810,8 +857,21 @@ export function registerManuscriptCommands(
                 vscode.commands.executeCommand('vscode.open', uri);
               }
             });
+          } else {
+            vscode.window.showInformationMessage('Export cancelled');
           }
-        );
+        } else {
+          // No report available, just write the file
+          await extensionState!.exportService.writePendingBuffer(uri.fsPath);
+          vscode.window.showInformationMessage(
+            `Manuscript exported successfully to ${uri.fsPath}`,
+            'Open File'
+          ).then(action => {
+            if (action === 'Open File') {
+              vscode.commands.executeCommand('vscode.open', uri);
+            }
+          });
+        }
       } catch (error) {
         vscode.window.showErrorMessage(`Export failed: ${error}`);
         logger?.error('Word export error:', error);

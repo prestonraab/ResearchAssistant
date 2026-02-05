@@ -351,18 +351,27 @@ export class DocumentBuilder {
    * @returns Array of runs (text and citation)
    */
   private parseCitationsFromText(text: string): DocumentRun[] {
+    console.log('[DocumentBuilder] parseCitationsFromText called with text length:', text.length);
+    console.log('[DocumentBuilder] First 200 chars:', text.substring(0, 200));
+    
     // Convert [source:: ...] tags to \cite{} format for unified processing
     let convertedText = this.convertSourceTagsToCite(text);
     
     // Also convert plain text citations like (Author Year), (AuthorYear), (Author et al. Year)
     convertedText = this.convertPlainTextCitationsToCite(convertedText);
     
+    console.log('[DocumentBuilder] Text after conversion (first 200 chars):', convertedText.substring(0, 200));
+    
     const runs: DocumentRun[] = [];
     const citationRegex = /\\cite\{([^}]+)\}/g;
     let lastIndex = 0;
     let match;
+    let citationCount = 0;
 
     while ((match = citationRegex.exec(convertedText)) !== null) {
+      citationCount++;
+      console.log(`[DocumentBuilder] Found \\cite{${match[1]}} at position ${match.index}`);
+      
       // Add text before citation
       if (match.index > lastIndex) {
         const textBefore = convertedText.substring(lastIndex, match.index);
@@ -384,8 +393,12 @@ export class DocumentBuilder {
       const cachedItem = this.zoteroItemCache.get(citeKey);
       if (cachedItem) {
         this.enrichCitationFromZoteroItem(citation, cachedItem);
+        console.log('[DocumentBuilder] Enriched citation:', citeKey, 'with Zotero data');
+      } else {
+        console.log('[DocumentBuilder] No Zotero data for:', citeKey, '(using fallback)');
       }
       
+      console.log('[DocumentBuilder] Creating citation run for:', citeKey);
       runs.push({
         type: 'citation',
         content: '',
@@ -394,6 +407,9 @@ export class DocumentBuilder {
 
       lastIndex = match.index + match[0].length;
     }
+
+    console.log('[DocumentBuilder] Total citations found in this text:', citationCount);
+    console.log('[DocumentBuilder] Total runs created:', runs.length);
 
     // Add remaining text
     if (lastIndex < convertedText.length) {
@@ -432,11 +448,20 @@ export class DocumentBuilder {
     // \) - closing parenthesis
     const plainCiteRegex = /\(([A-Z][a-zäöüéèàáíóúñ]*)(?:\s+(?:et\s+al\.?|and\s+[A-Z][a-zäöüéèàáíóúñ]*))?[,\s]*(\d{4})\)/g;
     
-    return text.replace(plainCiteRegex, (match, author, year) => {
+    let conversionCount = 0;
+    const result = text.replace(plainCiteRegex, (match, author, year) => {
       // Normalize to AuthorYear format (no spaces)
       const citeKey = `${author}${year}`;
+      conversionCount++;
+      console.log(`[DocumentBuilder] Converting plain citation: "${match}" -> "\\cite{${citeKey}}"`);
       return `\\cite{${citeKey}}`;
     });
+    
+    if (conversionCount > 0) {
+      console.log(`[DocumentBuilder] Converted ${conversionCount} plain text citations in this text segment`);
+    }
+    
+    return result;
   }
 
   /**

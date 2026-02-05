@@ -87,11 +87,17 @@ export class ServiceState {
     this.zoteroApiService = new (require('../../services/zoteroApiService').ZoteroApiService)();
     const zoteroApiKey = cfg.get<string>('zoteroApiKey') || '';
     const zoteroUserId = cfg.get<string>('zoteroUserId') || '';
+    
+    console.log('[ServiceState] Zotero API Key configured:', !!zoteroApiKey, 'length:', zoteroApiKey.length);
+    console.log('[ServiceState] Zotero User ID configured:', !!zoteroUserId, 'value:', zoteroUserId);
+    
     if (zoteroApiKey && zoteroUserId) {
       this.zoteroApiService.initialize(zoteroApiKey, zoteroUserId);
       console.log('[ServiceState] ZoteroApiService initialized with API key and user ID');
+      console.log('[ServiceState] isConfigured():', this.zoteroApiService.isConfigured());
     } else {
       console.warn('[ServiceState] Zotero API credentials not configured - citation enrichment will be disabled');
+      console.warn('[ServiceState] Missing:', !zoteroApiKey ? 'API Key' : '', !zoteroUserId ? 'User ID' : '');
     }
     
     this.unifiedSearchService = new UnifiedSearchService(this.zoteroClient, this.claimsManager, this.embeddingService, workspaceRoot);
