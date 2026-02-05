@@ -306,7 +306,7 @@ body[data-vscode-theme-kind="vscode-high-contrast-light"] {
   height: 0;
   margin: 0;
   overflow: visible;
-  transition: height 0.2s ease 0.15s;
+  transition: height 0.2s ease 0.5s;
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
   gap: 0 8px;
@@ -330,7 +330,7 @@ body[data-vscode-theme-kind="vscode-high-contrast-light"] {
   justify-content: center;
   padding-left: 8px;
   opacity: 0;
-  transition: opacity 0.2s ease 0.15s;
+  transition: opacity 0.2s ease 0.5s;
 }
 
 .insert-zone-center {
@@ -338,7 +338,7 @@ body[data-vscode-theme-kind="vscode-high-contrast-light"] {
   justify-content: center;
   gap: 8px;
   opacity: 0;
-  transition: opacity 0.2s ease 0.15s;
+  transition: opacity 0.2s ease 0.5s;
 }
 
 .insert-zone-right {

@@ -29,6 +29,7 @@ export class ExtensionState {
   public get readingStatusManager() { return this.serviceState.readingStatusManager; }
   public get claimExtractor() { return this.serviceState.claimExtractor; }
   public get literatureIndexer() { return this.serviceState.literatureIndexer; }
+  public get unifiedQuoteSearch() { return this.serviceState.unifiedQuoteSearch; }
   public get pdfExtractionService() { return this.serviceState.pdfExtractionService; }
   public get citationNetworkAnalyzer() { return this.serviceState.citationNetworkAnalyzer; }
   public get batchOperationHandler() { return this.serviceState.batchOperationHandler; }

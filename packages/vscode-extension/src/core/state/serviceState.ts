@@ -17,6 +17,7 @@ import { QuoteVerificationService } from '../quoteVerificationService';
 import { AutoQuoteVerifier } from '../autoQuoteVerifier';
 import { VerificationFeedbackLoop } from '../../services/verificationFeedbackLoop';
 import { LiteratureIndexer } from '../../services/literatureIndexer';
+import { UnifiedQuoteSearch } from '../../services/unifiedQuoteSearch';
 import { ZoteroAvailabilityManager } from '../../services/zoteroAvailabilityManager';
 import { SentenceClaimQuoteLinkManager } from '../sentenceClaimQuoteLinkManager';
 import { OrphanCitationValidator, CitationSourceMapper } from '@research-assistant/core';
@@ -32,6 +33,7 @@ export class ServiceState {
   public readingStatusManager: ReadingStatusManager;
   public claimExtractor: ClaimExtractor;
   public literatureIndexer: LiteratureIndexer;
+  public unifiedQuoteSearch: UnifiedQuoteSearch;
   public pdfExtractionService: PDFExtractionService;
   public citationNetworkAnalyzer: CitationNetworkAnalyzer;
   public batchOperationHandler: BatchOperationHandler;
@@ -72,18 +74,24 @@ export class ServiceState {
     this.readingStatusManager = new ReadingStatusManager(context);
     this.claimExtractor = new ClaimExtractor(this.embeddingService);
     this.configurationManager = new ConfigurationManager(context);
-    this.quoteVerificationService = new QuoteVerificationService(this.claimsManager, workspaceRoot, this.embeddingService);
     this.sentenceParser = new SentenceParser();
     this.sentenceClaimQuoteLinkManager = new SentenceClaimQuoteLinkManager(this.claimsManager, workspaceRoot);
-    this.autoQuoteVerifier = new AutoQuoteVerifier(this.claimsManager, this.embeddingService);
     this.pdfExtractionService = new PDFExtractionService(workspaceRoot);
     this.citationNetworkAnalyzer = new CitationNetworkAnalyzer();
-    this.batchOperationHandler = new BatchOperationHandler(this.claimsManager, this.readingStatusManager, this.quoteVerificationService);
-    this.exportService = new ExportService(this.sentenceClaimQuoteLinkManager, this.claimsManager, this.sentenceParser);
     this.zoteroClient = new ZoteroClient();
     this.unifiedSearchService = new UnifiedSearchService(this.zoteroClient, this.claimsManager, this.embeddingService, workspaceRoot);
+    
+    // Initialize shared literature indexer and unified quote search (single instance for all services)
     this.literatureIndexer = new LiteratureIndexer(workspaceRoot, this.embeddingService, config.extractedTextPath);
+    this.unifiedQuoteSearch = new UnifiedQuoteSearch(this.literatureIndexer, workspaceRoot);
+    
+    // Services that depend on unifiedQuoteSearch
+    this.quoteVerificationService = new QuoteVerificationService(this.claimsManager, workspaceRoot, this.embeddingService, this.unifiedQuoteSearch);
+    this.autoQuoteVerifier = new AutoQuoteVerifier(this.claimsManager, this.embeddingService, this.unifiedQuoteSearch);
     this.verificationFeedbackLoop = new VerificationFeedbackLoop(this.literatureIndexer, apiKey, coreState.getAbsolutePath(config.extractedTextPath), workspaceRoot);
+    
+    this.batchOperationHandler = new BatchOperationHandler(this.claimsManager, this.readingStatusManager, this.quoteVerificationService);
+    this.exportService = new ExportService(this.sentenceClaimQuoteLinkManager, this.claimsManager, this.sentenceParser);
     this.zoteroAvailabilityManager = new ZoteroAvailabilityManager(this.zoteroClient);
     this.quoteManager = new QuoteManager();
     this.claimsManager.onClaimSaved((claim) => this.autoQuoteVerifier.verifyOnSave(claim));

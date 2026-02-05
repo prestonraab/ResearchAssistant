@@ -35,14 +35,19 @@ export class AutoQuoteVerifier {
 
   constructor(
     private claimsManager: ClaimsManager,
-    private embeddingService?: EmbeddingService
+    private embeddingService?: EmbeddingService,
+    unifiedQuoteSearch?: UnifiedQuoteSearch
   ) {
     this.logger.info('AutoQuoteVerifier initialized');
     
-    // Initialize unified quote search service with embedding service
-    const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || '';
-    const literatureIndexer = new LiteratureIndexer(workspaceRoot, this.embeddingService || undefined);
-    this.unifiedQuoteSearch = new UnifiedQuoteSearch(literatureIndexer, workspaceRoot);
+    // Use shared UnifiedQuoteSearch if provided, otherwise create one
+    if (unifiedQuoteSearch) {
+      this.unifiedQuoteSearch = unifiedQuoteSearch;
+    } else {
+      const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || '';
+      const literatureIndexer = new LiteratureIndexer(workspaceRoot, this.embeddingService || undefined);
+      this.unifiedQuoteSearch = new UnifiedQuoteSearch(literatureIndexer, workspaceRoot);
+    }
   }
 
   /**

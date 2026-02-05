@@ -144,8 +144,8 @@ export class UnifiedQuoteSearch {
    * Search using fuzzy matching with trigram pre-filtering
    * 
    * Uses trigram index to find candidate documents first (O(1) lookup),
-   * then runs expensive fuzzy matching only on candidate regions.
-   * This is inspired by BLAST's seed-and-extend approach in bioinformatics.
+   * then runs fuzzy matching directly on full documents.
+   * FuzzyMatcher.findMatchFast() has its own n-gram optimization.
    * 
    * Speedup: 10-100x compared to scanning all files
    */
@@ -162,17 +162,22 @@ export class UnifiedQuoteSearch {
       throw new DOMException('Operation cancelled', 'AbortError');
     }
     
-    // Use trigram index to find candidate documents
-    // Require 30% of query's rare trigrams to be present
-    const candidates = await this.trigramIndex.findCandidates(quote, 0.3);
+    // Use fast candidate finding (skips expensive region detection)
+    // FuzzyMatcher.findMatchFast() already has n-gram pre-filtering
+    let candidates = await this.trigramIndex.findCandidatesFast(quote, 0.3);
+    
+    // If we get very few candidates, relax the threshold
+    if (candidates.length < 3) {
+      console.log(`[UnifiedQuoteSearch] Only ${candidates.length} candidates at 30% threshold, relaxing to 15%...`);
+      candidates = await this.trigramIndex.findCandidatesFast(quote, 0.15);
+    }
     
     if (candidates.length === 0) {
-      console.log('[UnifiedQuoteSearch] No trigram candidates found, falling back to top files');
-      // Fall back to checking a few files if no trigram matches
+      console.log('[UnifiedQuoteSearch] No trigram candidates found even at 15%, falling back to top files');
       return this.searchByFuzzyMatchingFallback(quote, topK, 5, signal);
     }
 
-    console.log(`[UnifiedQuoteSearch] Trigram pre-filter: ${candidates.length} candidate docs (vs scanning all files)`);
+    console.log(`[UnifiedQuoteSearch] Trigram pre-filter: ${candidates.length} candidate docs`);
 
     const results: QuoteSearchResult[] = [];
     let candidatesProcessed = 0;
@@ -193,66 +198,29 @@ export class UnifiedQuoteSearch {
         
         const lines = content.split('\n');
 
-        // If we have candidate regions, search within them first
-        if (candidate.candidateRegions.length > 0) {
-          for (const region of candidate.candidateRegions) {
-            const regionText = region.text;
-            // Use async version to yield to event loop for large regions
-            const matchResult = await this.fuzzyMatcher.findMatchAsync(quote, regionText);
+        // Run fuzzy matching directly on full document
+        // FuzzyMatcher.findMatchFast() has its own n-gram optimization for large docs
+        const matchResult = await this.fuzzyMatcher.findMatchAsync(quote, content);
 
-            if (matchResult.matched && matchResult.confidence !== undefined) {
-              // Adjust line numbers to absolute positions
-              const relativeLines = regionText.split('\n');
-              const { startLine: relStart, endLine: relEnd } = this.findLineNumbers(
-                matchResult.startOffset || 0,
-                matchResult.endOffset || 0,
-                relativeLines
-              );
+        if (matchResult.matched && matchResult.confidence !== undefined) {
+          const { startLine, endLine } = this.findLineNumbers(
+            matchResult.startOffset || 0,
+            matchResult.endOffset || 0,
+            lines
+          );
 
-              results.push({
-                sourceFile: candidate.fileName,
-                similarity: matchResult.confidence,
-                matchedText: matchResult.matchedText || quote,
-                startLine: region.startLine + relStart - 1,
-                endLine: region.startLine + relEnd - 1,
-                method: matchResult.confidence === 1.0 ? 'exact' : 'trigram'
-              });
+          results.push({
+            sourceFile: candidate.fileName,
+            similarity: matchResult.confidence,
+            matchedText: matchResult.matchedText || quote,
+            startLine,
+            endLine,
+            method: matchResult.confidence === 1.0 ? 'exact' : 'fuzzy'
+          });
 
-              // Early exit if we found an exact match
-              if (matchResult.confidence === 1.0) {
-                console.log('[UnifiedQuoteSearch] Found exact match via trigram, stopping early');
-                results.sort((a, b) => b.similarity - a.similarity);
-                return results.slice(0, topK);
-              }
-            }
-          }
-        }
-
-        // If no region matches, try full document (but this should be rare)
-        if (results.filter(r => r.sourceFile === candidate.fileName).length === 0) {
-          // Use async version to yield to event loop for large documents
-          const matchResult = await this.fuzzyMatcher.findMatchAsync(quote, content);
-
-          if (matchResult.matched && matchResult.confidence !== undefined) {
-            const { startLine, endLine } = this.findLineNumbers(
-              matchResult.startOffset || 0,
-              matchResult.endOffset || 0,
-              lines
-            );
-
-            results.push({
-              sourceFile: candidate.fileName,
-              similarity: matchResult.confidence,
-              matchedText: matchResult.matchedText || quote,
-              startLine,
-              endLine,
-              method: matchResult.confidence === 1.0 ? 'exact' : 'fuzzy'
-            });
-
-            if (matchResult.confidence === 1.0) {
-              console.log('[UnifiedQuoteSearch] Found exact match, stopping early');
-              break;
-            }
+          if (matchResult.confidence === 1.0) {
+            console.log('[UnifiedQuoteSearch] Found exact match, stopping early');
+            break;
           }
         }
       } catch (error: any) {

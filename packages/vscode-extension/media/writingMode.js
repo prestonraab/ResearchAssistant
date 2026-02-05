@@ -1527,7 +1527,7 @@ function highlightMatch(matchIndex) {
     return;
   }
   
-  // For contenteditable elements, create a selection but don't focus
+  // For contenteditable elements, create a selection but keep focus on find input
   // This prevents the user's typing in the search box from replacing the selected text
   const range = document.createRange();
   const sel = window.getSelection();
@@ -1572,6 +1572,11 @@ function highlightMatch(matchIndex) {
       
       // Scroll the element into view
       element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      
+      // Keep focus on the find input to prevent text replacement
+      if (findInput) {
+        findInput.focus();
+      }
     }
   } catch (e) {
     // Silently fail if we can't set selection

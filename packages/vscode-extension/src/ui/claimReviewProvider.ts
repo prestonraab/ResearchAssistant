@@ -53,12 +53,10 @@ export class ClaimReviewProvider {
     this.claimDetailsCache = new CachingService(500, 1800000); // 500 items, 30 min TTL
     this.zoteroService = new ZoteroDirectService();
     
-    // Initialize literature indexer with workspace root and embedding service
+    // Use shared literature indexer and unified quote search from extension state
     const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || '';
-    this.literatureIndexer = new LiteratureIndexer(workspaceRoot, this.extensionState.embeddingService);
-    
-    // Initialize unified quote search for quote verification
-    this.unifiedQuoteSearch = new UnifiedQuoteSearch(this.literatureIndexer, workspaceRoot);
+    this.literatureIndexer = this.extensionState.literatureIndexer;
+    this.unifiedQuoteSearch = this.extensionState.unifiedQuoteSearch;
     
     // Initialize verification feedback loop with workspace root for cache
     this.verificationFeedbackLoop = new VerificationFeedbackLoop(

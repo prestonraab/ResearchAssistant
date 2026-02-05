@@ -45,7 +45,8 @@ export class QuoteVerificationService {
   constructor(
     private claimsManager: ClaimsManager,
     private workspaceRoot?: string,
-    private embeddingService?: EmbeddingService
+    private embeddingService?: EmbeddingService,
+    unifiedQuoteSearch?: UnifiedQuoteSearch
   ) {
     // Initialize cache if workspace root is provided
     if (workspaceRoot) {
@@ -57,10 +58,14 @@ export class QuoteVerificationService {
       this.cacheReady = Promise.resolve();
     }
     
-    // Initialize unified quote search service with embedding service
-    const root = workspaceRoot || '';
-    const literatureIndexer = new LiteratureIndexer(root, this.embeddingService || undefined);
-    this.unifiedQuoteSearch = new UnifiedQuoteSearch(literatureIndexer, root);
+    // Use shared UnifiedQuoteSearch if provided, otherwise create one
+    if (unifiedQuoteSearch) {
+      this.unifiedQuoteSearch = unifiedQuoteSearch;
+    } else {
+      const root = workspaceRoot || '';
+      const literatureIndexer = new LiteratureIndexer(root, this.embeddingService || undefined);
+      this.unifiedQuoteSearch = new UnifiedQuoteSearch(literatureIndexer, root);
+    }
   }
 
   /**

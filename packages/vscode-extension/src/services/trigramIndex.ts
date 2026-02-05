@@ -31,8 +31,8 @@ export interface IndexedDocument {
   fileName: string;
   filePath: string;
   ngrams: Set<string>;
-  lineOffsets: number[];  // Character offset of each line start
-  content: string;
+  lineOffsets: number[];
+  // Content is loaded on-demand to save memory
 }
 
 // Default to 6-grams based on empirical testing
@@ -113,13 +113,12 @@ export class TrigramIndex {
           lineOffsets.push(offset);
         }
         
-        // Store document
+        // Store document (without content to save memory)
         const doc: IndexedDocument = {
           fileName,
           filePath,
           ngrams,
-          lineOffsets,
-          content
+          lineOffsets
         };
         this.documents.set(fileName, doc);
         
@@ -248,6 +247,84 @@ export class TrigramIndex {
   }
 
   /**
+   * Fast candidate finding - skips expensive region detection
+   * Returns documents sorted by n-gram containment without computing regions
+   * Use this when you'll run fuzzy matching on the full document anyway
+   */
+  async findCandidatesFast(query: string, minContainment: number = 0.3): Promise<NgramMatch[]> {
+    if (!this.isBuilt) {
+      await this.buildIndex();
+    }
+
+    const queryNgrams = this.extractNgrams(query);
+    
+    if (queryNgrams.size === 0) {
+      return [];
+    }
+
+    // Filter out common n-grams (appear in >50% of documents)
+    const docCount = this.documents.size;
+    const commonThreshold = docCount * 0.5;
+    
+    const rareQueryNgrams = new Set<string>();
+    for (const ngram of queryNgrams) {
+      const docsWithNgram = this.invertedIndex.get(ngram);
+      if (!docsWithNgram || docsWithNgram.size < commonThreshold) {
+        rareQueryNgrams.add(ngram);
+      }
+    }
+
+    // If too few rare n-grams, use the least common ones
+    let effectiveNgrams = rareQueryNgrams;
+    if (rareQueryNgrams.size < 10 && queryNgrams.size > 10) {
+      const ngramFreqs: Array<[string, number]> = [];
+      for (const ngram of queryNgrams) {
+        const freq = this.invertedIndex.get(ngram)?.size || 0;
+        ngramFreqs.push([ngram, freq]);
+      }
+      ngramFreqs.sort((a, b) => a[1] - b[1]);
+      effectiveNgrams = new Set(ngramFreqs.slice(0, 30).map(t => t[0]));
+    }
+
+    // Find documents that share n-grams with query
+    const docNgramCounts = new Map<string, number>();
+    
+    for (const ngram of effectiveNgrams) {
+      const docs = this.invertedIndex.get(ngram);
+      if (docs) {
+        for (const docId of docs) {
+          docNgramCounts.set(docId, (docNgramCounts.get(docId) || 0) + 1);
+        }
+      }
+    }
+
+    // Calculate containment score
+    const minMatches = Math.max(5, Math.floor(effectiveNgrams.size * minContainment));
+    const matches: NgramMatch[] = [];
+    
+    for (const [docId, matchCount] of docNgramCounts) {
+      if (matchCount < minMatches) continue;
+      
+      const containment = matchCount / effectiveNgrams.size;
+      if (containment < minContainment) continue;
+      
+      const doc = this.documents.get(docId);
+      if (!doc) continue;
+      
+      // Skip region detection - just return the document
+      matches.push({
+        fileName: doc.fileName,
+        filePath: doc.filePath,
+        containment,
+        candidateRegions: []  // Empty - caller will use full document
+      });
+    }
+
+    matches.sort((a, b) => b.containment - a.containment);
+    return matches;
+  }
+
+  /**
    * Find regions within a document that likely contain the query
    * Uses sliding window with n-gram density
    */
@@ -361,10 +438,17 @@ export class TrigramIndex {
   }
 
   /**
-   * Get document content by filename
+   * Get document content by filename (loads from disk on demand)
    */
   getDocumentContent(fileName: string): string | null {
     const doc = this.documents.get(fileName);
-    return doc?.content || null;
+    if (!doc) return null;
+    
+    try {
+      return fs.readFileSync(doc.filePath, 'utf-8');
+    } catch (error) {
+      console.warn(`[NgramIndex] Failed to read ${fileName}:`, error);
+      return null;
+    }
   }
 }
