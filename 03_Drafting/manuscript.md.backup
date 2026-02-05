@@ -9,6 +9,8 @@
 > [!question]- What is the central challenge to combining datasets? (status:: undefined)
 > This potential is frequently undermined by "batch effects"—systematic technical variations that can lead a learner to distinguish between experimental batches rather than meaningful biological conditions. Batch effects can substantially degrade predictor performance when applied to new individuals.
 
+---
+
 > [!question]- What is the chapter's scope in addressing these challenges? (status:: undefined)
 > This chapter examines how batch effects impact predictor performance and explores statistical adjustment methods designed to mitigate these artifacts while preserving biological signal.
 

@@ -335,16 +335,19 @@ function renderPairs() {
   let currentSection = null;
   
   state.pairs.forEach((pair, index) => {
-    // Add section header if this is a new section
-    if (pair.section !== currentSection) {
-      currentSection = pair.section;
-      // Add insert zone before first item of new section
-      if (index === 0) {
-        html += renderInsertZone(-1);
+    // Skip section header for break markers
+    if (!pair.isBreakMarker) {
+      // Add section header if this is a new section
+      if (pair.section !== currentSection) {
+        currentSection = pair.section;
+        // Add insert zone before first item of new section
+        if (index === 0) {
+          html += renderInsertZone(-1);
+        }
+        html += renderSectionHeader(pair.section, index);
+        // Add insert zone after section header (before first question in section)
+        html += renderInsertZone(index - 1);
       }
-      html += renderSectionHeader(pair.section, index);
-      // Add insert zone after section header (before first question in section)
-      html += renderInsertZone(index - 1);
     }
     
     html += renderPair(pair);
@@ -824,6 +827,27 @@ function attachPairListeners() {
     btn.addEventListener('click', (e) => {
       const afterIndex = parseInt(e.target.dataset.afterIndex);
       insertParagraphBreakAfter(afterIndex);
+    });
+  });
+
+  // Insert zone hover delay (300ms before expanding)
+  const insertZoneHoverTimers = new Map();
+  
+  document.querySelectorAll('.insert-zone').forEach(zone => {
+    zone.addEventListener('mouseenter', (e) => {
+      const timer = setTimeout(() => {
+        e.target.classList.add('active');
+      }, 300);
+      insertZoneHoverTimers.set(zone, timer);
+    });
+
+    zone.addEventListener('mouseleave', (e) => {
+      const timer = insertZoneHoverTimers.get(zone);
+      if (timer) {
+        clearTimeout(timer);
+        insertZoneHoverTimers.delete(zone);
+      }
+      e.target.classList.remove('active');
     });
   });
 

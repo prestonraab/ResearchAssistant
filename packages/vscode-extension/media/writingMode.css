@@ -243,8 +243,8 @@ body[data-vscode-theme-kind="vscode-high-contrast-light"] {
 .pair-wrapper.break-marker {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 12px 8px;
+  gap: 8px;
+  padding: 2px 8px;
   border: none;
   border-radius: 0;
   background-color: transparent;
@@ -306,7 +306,7 @@ body[data-vscode-theme-kind="vscode-high-contrast-light"] {
   height: 0;
   margin: 0;
   overflow: visible;
-  transition: height 0.2s ease 0.5s;
+  transition: height 0.2s ease;
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
   gap: 0 8px;
@@ -315,7 +315,8 @@ body[data-vscode-theme-kind="vscode-high-contrast-light"] {
   padding: 0;
 }
 
-.insert-zone:hover {
+/* Active state - applied after 500ms delay via JavaScript */
+.insert-zone.active {
   height: 40px;
   background-color: var(--vscode-editor-background);
   border: 1px dashed var(--vscode-focusBorder);
@@ -330,7 +331,7 @@ body[data-vscode-theme-kind="vscode-high-contrast-light"] {
   justify-content: center;
   padding-left: 8px;
   opacity: 0;
-  transition: opacity 0.2s ease 0.5s;
+  transition: opacity 0.2s ease;
 }
 
 .insert-zone-center {
@@ -338,15 +339,15 @@ body[data-vscode-theme-kind="vscode-high-contrast-light"] {
   justify-content: center;
   gap: 8px;
   opacity: 0;
-  transition: opacity 0.2s ease 0.5s;
+  transition: opacity 0.2s ease;
 }
 
 .insert-zone-right {
   /* Empty, for alignment */
 }
 
-.insert-zone:hover .insert-zone-left,
-.insert-zone:hover .insert-zone-center {
+.insert-zone.active .insert-zone-left,
+.insert-zone.active .insert-zone-center {
   opacity: 1;
 }
 

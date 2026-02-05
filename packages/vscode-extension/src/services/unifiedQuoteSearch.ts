@@ -3,7 +3,7 @@ import * as path from 'path';
 import { LiteratureIndexer } from './literatureIndexer';
 import { TextNormalizer } from '@research-assistant/core';
 import { FuzzyMatcher } from '../core/fuzzyMatcher';
-import { TrigramIndex, NgramMatch } from './trigramIndex';
+import { NgramIndex, NgramMatch } from './ngramIndex';
 import { getOperationTracker } from './operationTracker';
 
 export interface QuoteSearchResult {
@@ -12,26 +12,26 @@ export interface QuoteSearchResult {
   sourceFile: string;
   startLine?: number;
   endLine?: number;
-  method: 'embedding' | 'fuzzy' | 'exact' | 'trigram';
+  method: 'embedding' | 'fuzzy' | 'exact' | 'ngram';
 }
 
 /**
  * Unified Quote Search Service
  * 
  * Consolidates embedding-based and fuzzy matching approaches into a single service.
- * Uses trigram index for fast pre-filtering before expensive fuzzy matching.
+ * Uses n-gram index for fast pre-filtering before expensive fuzzy matching.
  * 
  * Strategy (inspired by bioinformatics BLAST and RAG hybrid search):
  * 1. Normalize query text to handle OCR artifacts
  * 2. Run embedding search (semantic matching) - fast, uses pre-computed embeddings
- * 3. Use trigram index to find candidate documents (O(1) lookup vs O(n) scan)
+ * 3. Use n-gram index to find candidate documents (O(1) lookup vs O(n) scan)
  * 4. Run fuzzy matching only on candidate regions (10-100x faster)
  * 5. Combine and deduplicate results, preferring exact matches
  */
 export class UnifiedQuoteSearch {
   private extractedTextPath: string;
   private fuzzyMatcher: FuzzyMatcher;
-  private trigramIndex: TrigramIndex;
+  private ngramIndex: NgramIndex;
   private indexInitialized: boolean = false;
 
   constructor(
@@ -41,18 +41,18 @@ export class UnifiedQuoteSearch {
   ) {
     this.extractedTextPath = path.join(workspaceRoot, extractedTextPath);
     this.fuzzyMatcher = new FuzzyMatcher(0.7); // Use 0.7 threshold for search results
-    this.trigramIndex = new TrigramIndex(this.extractedTextPath);
+    this.ngramIndex = new NgramIndex(this.extractedTextPath);
   }
 
   /**
-   * Initialize the trigram index (call once at startup or lazily)
+   * Initialize the n-gram index (call once at startup or lazily)
    */
   async initializeIndex(): Promise<void> {
     if (this.indexInitialized) return;
     
-    console.log('[UnifiedQuoteSearch] Initializing trigram index...');
-    const stats = await this.trigramIndex.buildIndex();
-    console.log(`[UnifiedQuoteSearch] Ngram index ready: ${stats.indexed} docs, ${stats.ngrams} ngrams`);
+    console.log('[UnifiedQuoteSearch] Initializing n-gram index...');
+    const stats = await this.ngramIndex.buildIndex();
+    console.log(`[UnifiedQuoteSearch] N-gram index ready: ${stats.indexed} docs, ${stats.ngrams} ngrams`);
     this.indexInitialized = true;
   }
 
@@ -141,9 +141,9 @@ export class UnifiedQuoteSearch {
   }
 
   /**
-   * Search using fuzzy matching with trigram pre-filtering
+   * Search using fuzzy matching with n-gram pre-filtering
    * 
-   * Uses trigram index to find candidate documents first (O(1) lookup),
+   * Uses n-gram index to find candidate documents first (O(1) lookup),
    * then runs fuzzy matching directly on full documents.
    * FuzzyMatcher.findMatchFast() has its own n-gram optimization.
    * 
@@ -155,7 +155,7 @@ export class UnifiedQuoteSearch {
       throw new DOMException('Operation cancelled', 'AbortError');
     }
     
-    // Ensure trigram index is built
+    // Ensure n-gram index is built
     await this.initializeIndex();
     
     if (signal?.aborted) {
@@ -164,25 +164,25 @@ export class UnifiedQuoteSearch {
     
     // Use fast candidate finding (skips expensive region detection)
     // FuzzyMatcher.findMatchFast() already has n-gram pre-filtering
-    let candidates = await this.trigramIndex.findCandidatesFast(quote, 0.3);
+    let candidates = await this.ngramIndex.findCandidatesFast(quote, 0.3);
     
     // If we get very few candidates, relax the threshold
     if (candidates.length < 3) {
       console.log(`[UnifiedQuoteSearch] Only ${candidates.length} candidates at 30% threshold, relaxing to 15%...`);
-      candidates = await this.trigramIndex.findCandidatesFast(quote, 0.15);
+      candidates = await this.ngramIndex.findCandidatesFast(quote, 0.15);
     }
     
     if (candidates.length === 0) {
-      console.log('[UnifiedQuoteSearch] No trigram candidates found even at 15%, falling back to top files');
+      console.log('[UnifiedQuoteSearch] No n-gram candidates found even at 15%, falling back to top files');
       return this.searchByFuzzyMatchingFallback(quote, topK, 5, signal);
     }
 
-    console.log(`[UnifiedQuoteSearch] Trigram pre-filter: ${candidates.length} candidate docs`);
+    console.log(`[UnifiedQuoteSearch] N-gram pre-filter: ${candidates.length} candidate docs`);
 
     const results: QuoteSearchResult[] = [];
     let candidatesProcessed = 0;
 
-    // Only process top candidates (sorted by trigram overlap)
+    // Only process top candidates (sorted by n-gram overlap)
     const maxCandidates = Math.min(candidates.length, 10);
     
     for (const candidate of candidates.slice(0, maxCandidates)) {
@@ -192,8 +192,8 @@ export class UnifiedQuoteSearch {
       }
       
       try {
-        // Get document content from trigram index cache
-        const content = this.trigramIndex.getDocumentContent(candidate.fileName);
+        // Get document content from n-gram index cache
+        const content = this.ngramIndex.getDocumentContent(candidate.fileName);
         if (!content) continue;
         
         const lines = content.split('\n');
@@ -243,60 +243,66 @@ export class UnifiedQuoteSearch {
   }
 
   /**
-   * Fallback fuzzy search when trigram index has no matches
-   * Only checks a limited number of files
+   * Fallback fuzzy search when n-gram index has no candidates
    */
-  private async searchByFuzzyMatchingFallback(quote: string, topK: number, maxFiles: number, signal?: AbortSignal): Promise<QuoteSearchResult[]> {
-    if (!fs.existsSync(this.extractedTextPath)) {
+  private async searchByFuzzyMatchingFallback(
+    quote: string,
+    topK: number,
+    maxFiles: number,
+    signal?: AbortSignal
+  ): Promise<QuoteSearchResult[]> {
+    const results: QuoteSearchResult[] = [];
+    
+    try {
+      // Get list of files from extracted text directory
+      if (!fs.existsSync(this.extractedTextPath)) {
+        return [];
+      }
+
+      const files = fs.readdirSync(this.extractedTextPath)
+        .filter(f => f.endsWith('.txt'))
+        .slice(0, maxFiles);
+      
+      for (const fileName of files) {
+        if (signal?.aborted) {
+          throw new DOMException('Operation cancelled', 'AbortError');
+        }
+        
+        try {
+          const filePath = path.join(this.extractedTextPath, fileName);
+          const content = fs.readFileSync(filePath, 'utf-8');
+          const lines = content.split('\n');
+          
+          const matchResult = await this.fuzzyMatcher.findMatchAsync(quote, content);
+          
+          if (matchResult.matched && matchResult.confidence !== undefined) {
+            const { startLine, endLine } = this.findLineNumbers(
+              matchResult.startOffset || 0,
+              matchResult.endOffset || 0,
+              lines
+            );
+            
+            results.push({
+              sourceFile: fileName,
+              similarity: matchResult.confidence,
+              matchedText: matchResult.matchedText || quote,
+              startLine,
+              endLine,
+              method: 'fuzzy'
+            });
+          }
+        } catch (error: any) {
+          if (error.name === 'AbortError') throw error;
+          console.warn(`[UnifiedQuoteSearch] Error in fallback search for ${fileName}:`, error);
+        }
+      }
+      
+      results.sort((a, b) => b.similarity - a.similarity);
+      return results.slice(0, topK);
+    } catch (error) {
+      console.warn('[UnifiedQuoteSearch] Fallback search error:', error);
       return [];
     }
-
-    const files = fs.readdirSync(this.extractedTextPath)
-      .filter(f => f.endsWith('.txt'))
-      .slice(0, maxFiles);
-
-    const results: QuoteSearchResult[] = [];
-
-    for (const fileName of files) {
-      // Check cancellation before each file
-      if (signal?.aborted) {
-        throw new DOMException('Operation cancelled', 'AbortError');
-      }
-      
-      const filePath = path.join(this.extractedTextPath, fileName);
-      
-      try {
-        const content = fs.readFileSync(filePath, 'utf-8');
-        const lines = content.split('\n');
-        // Use async version to yield to event loop
-        const matchResult = await this.fuzzyMatcher.findMatchAsync(quote, content);
-
-        if (matchResult.matched && matchResult.confidence !== undefined) {
-          const { startLine, endLine } = this.findLineNumbers(
-            matchResult.startOffset || 0,
-            matchResult.endOffset || 0,
-            lines
-          );
-
-          results.push({
-            sourceFile: fileName,
-            similarity: matchResult.confidence,
-            matchedText: matchResult.matchedText || quote,
-            startLine,
-            endLine,
-            method: matchResult.confidence === 1.0 ? 'exact' : 'fuzzy'
-          });
-        }
-      } catch (error: any) {
-        if (error.name === 'AbortError') throw error;
-        console.warn(`[UnifiedQuoteSearch] Fallback error for ${fileName}:`, error);
-      }
-      
-      await new Promise(resolve => setImmediate(resolve));
-    }
-
-    results.sort((a, b) => b.similarity - a.similarity);
-    return results.slice(0, topK);
   }
 
   /**
@@ -339,12 +345,12 @@ export class UnifiedQuoteSearch {
     // Create a map to track best result per source file
     const resultMap = new Map<string, QuoteSearchResult>();
 
-    // Add fuzzy/trigram results first (prefer exact matches)
+    // Add fuzzy/ngram results first (prefer exact matches)
     for (const result of fuzzyResults) {
       const key = result.sourceFile;
       const existing = resultMap.get(key);
 
-      // Prefer exact/fuzzy/trigram matches over embeddings
+      // Prefer exact/fuzzy/ngram matches over embeddings
       if (!existing || result.method !== 'embedding') {
         resultMap.set(key, result);
       }
