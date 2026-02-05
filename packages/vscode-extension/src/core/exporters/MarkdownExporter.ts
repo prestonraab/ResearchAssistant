@@ -22,6 +22,7 @@ export class MarkdownExporter {
   /**
    * Export manuscript with Pandoc-citeproc style citations
    * Converts [source:: C_XX(AuthorYear)] to [@AuthorYear] and generates accompanying .bib file
+   * Also converts plain text citations like (Author Year) to [@AuthorYear]
    */
   public async exportManuscriptMarkdown(
     manuscriptText: string,
@@ -29,6 +30,9 @@ export class MarkdownExporter {
   ): Promise<string> {
     // Convert [source:: ...] tags to Pandoc [@AuthorYear] format
     let processedText = this.convertSourceTagsToPandoc(manuscriptText);
+    
+    // Convert plain text citations like (Author Year), (AuthorYear) to [@AuthorYear]
+    processedText = this.convertPlainTextCitationsToPandoc(processedText);
     
     // Also handle legacy \cite{} format for backwards compatibility
     processedText = this.convertLegacyCitationsToPandoc(processedText);
@@ -41,10 +45,11 @@ export class MarkdownExporter {
     
     // Extract citation keys and generate .bib file
     const authorYears = SourceTagParser.getAllAuthorYears(manuscriptText);
+    const plainTextCitations = this.extractPlainTextCitations(manuscriptText);
     const legacyCiteKeys = this.extractLegacyCitationKeys(manuscriptText);
     
-    if ((authorYears.size > 0 || legacyCiteKeys.size > 0) && options.outputPath) {
-      await this.generateBibFile(authorYears, legacyCiteKeys, options.outputPath);
+    if ((authorYears.size > 0 || plainTextCitations.size > 0 || legacyCiteKeys.size > 0) && options.outputPath) {
+      await this.generateBibFile(authorYears, plainTextCitations, legacyCiteKeys, options.outputPath);
     }
     
     // Add YAML front matter for Pandoc
@@ -78,6 +83,41 @@ export class MarkdownExporter {
       .replace(/\s+/g, '')  // Remove spaces
       .normalize('NFD').replace(/[\u0300-\u036f]/g, '')  // Remove diacritics
       .replace(/[^a-zA-Z0-9]/g, '');  // Remove special chars
+  }
+
+  /**
+   * Convert plain text citations to Pandoc [@AuthorYear] format
+   * Matches patterns like:
+   * - (Author Year) e.g., (Guyon 2002) → [@Guyon2002]
+   * - (AuthorYear) e.g., (Johnson2007) → [@Johnson2007]
+   * - (Author et al. Year) e.g., (Stuart et al. 2019) → [@Stuart2019]
+   * - (Author and Author Year) e.g., (Zou and Hastie 2005) → [@ZouHastie2005]
+   */
+  private convertPlainTextCitationsToPandoc(text: string): string {
+    const plainCiteRegex = /\(([A-Z][a-zäöüéèàáíóúñ]*)(?:\s+(?:et\s+al\.?|and\s+[A-Z][a-zäöüéèàáíóúñ]*))?[,\s]*(\d{4})\)/g;
+    
+    return text.replace(plainCiteRegex, (match, author, year) => {
+      const citeKey = `${author}${year}`;
+      return `[@${citeKey}]`;
+    });
+  }
+
+  /**
+   * Extract plain text citations from manuscript
+   * Returns Set of "AuthorYear" strings
+   */
+  private extractPlainTextCitations(text: string): Set<string> {
+    const citations = new Set<string>();
+    const plainCiteRegex = /\(([A-Z][a-zäöüéèàáíóúñ]*)(?:\s+(?:et\s+al\.?|and\s+[A-Z][a-zäöüéèàáíóúñ]*))?[,\s]*(\d{4})\)/g;
+    let match;
+    
+    while ((match = plainCiteRegex.exec(text)) !== null) {
+      const author = match[1];
+      const year = match[2];
+      citations.add(`${author} ${year}`); // Keep space for display
+    }
+    
+    return citations;
   }
 
   /**
@@ -225,17 +265,18 @@ link-citations: true
   }
 
   /**
-   * Generate .bib file from AuthorYear citations and legacy keys
+   * Generate .bib file from AuthorYear citations, plain text citations, and legacy keys
    */
   private async generateBibFile(
     authorYears: Set<string>,
+    plainTextCitations: Set<string>,
     legacyCiteKeys: Set<string>,
     outputPath: string
   ): Promise<void> {
     const bibPath = outputPath.replace(/\.md$/, '.bib');
     
     if (!this.zoteroApiService || !this.zoteroApiService.isConfigured()) {
-      await this.generateBasicBibFile(authorYears, legacyCiteKeys, bibPath);
+      await this.generateBasicBibFile(authorYears, plainTextCitations, legacyCiteKeys, bibPath);
       return;
     }
 
@@ -243,7 +284,7 @@ link-citations: true
       const items = await this.zoteroApiService.getItems(100);
       const entries: string[] = [];
       
-      // Generate entries for AuthorYear citations
+      // Generate entries for AuthorYear citations from [source:: ...] tags
       for (const authorYear of authorYears) {
         const normalizedKey = this.normalizeAuthorYear(authorYear);
         // Try to find matching Zotero item
@@ -257,6 +298,21 @@ link-citations: true
         } else {
           // Fallback entry
           entries.push(this.generateFallbackEntry(normalizedKey, authorYear));
+        }
+      }
+      
+      // Generate entries for plain text citations like (Author Year)
+      for (const citation of plainTextCitations) {
+        const normalizedKey = this.normalizeAuthorYear(citation);
+        const matchingItem = items.find(item => {
+          const itemAuthorYear = this.getItemAuthorYear(item);
+          return this.normalizeAuthorYear(itemAuthorYear) === normalizedKey;
+        });
+        
+        if (matchingItem) {
+          entries.push(BibTeXGenerator.generateEntry(matchingItem, normalizedKey));
+        } else {
+          entries.push(this.generateFallbackEntry(normalizedKey, citation));
         }
       }
       
@@ -274,7 +330,7 @@ link-citations: true
       this.writeBibFile(bibPath, bibContent);
     } catch (error) {
       console.warn('Failed to generate .bib file from Zotero:', error);
-      await this.generateBasicBibFile(authorYears, legacyCiteKeys, bibPath);
+      await this.generateBasicBibFile(authorYears, plainTextCitations, legacyCiteKeys, bibPath);
     }
   }
 
@@ -309,6 +365,7 @@ link-citations: true
    */
   private async generateBasicBibFile(
     authorYears: Set<string>,
+    plainTextCitations: Set<string>,
     legacyCiteKeys: Set<string>,
     bibPath: string
   ): Promise<void> {
@@ -317,6 +374,11 @@ link-citations: true
     for (const authorYear of authorYears) {
       const key = this.normalizeAuthorYear(authorYear);
       entries.push(this.generateFallbackEntry(key, authorYear));
+    }
+
+    for (const citation of plainTextCitations) {
+      const key = this.normalizeAuthorYear(citation);
+      entries.push(this.generateFallbackEntry(key, citation));
     }
 
     for (const key of legacyCiteKeys) {
