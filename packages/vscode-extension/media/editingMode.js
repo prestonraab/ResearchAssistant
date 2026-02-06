@@ -918,6 +918,10 @@ document.addEventListener('DOMContentLoaded', () => {
       const currentCenterItem = getCenterItem();
       console.log('[EditingMode] Switching to writing mode, current center item:', currentCenterItem);
       if (currentCenterItem) {
+        console.log('[EditingMode] Sending saveCenterItem:', {
+          itemId: currentCenterItem.id,
+          position: currentCenterItem.position
+        });
         vscode.postMessage({ 
           type: 'saveCenterItem', 
           itemId: currentCenterItem.id,

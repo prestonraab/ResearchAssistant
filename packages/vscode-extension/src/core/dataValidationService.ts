@@ -261,7 +261,8 @@ export class DataValidationService {
       answer: pairObj.answer || '',
       section: pairObj.section || '',
       linkedSources: Array.isArray(linkedSources) ? linkedSources : [],
-      claims: Array.isArray(pairClaims) ? pairClaims : []
+      claims: Array.isArray(pairClaims) ? pairClaims : [],
+      position: typeof pairObj.position === 'number' ? pairObj.position : undefined
     };
   }
 

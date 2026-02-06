@@ -107,6 +107,12 @@ function setupEventListeners() {
   if (findInput) {
     findInput.addEventListener('input', (e) => {
       performSearch(e.target.value);
+      // Ensure focus stays on input after search
+      setTimeout(() => {
+        if (document.activeElement !== findInput) {
+          findInput.focus();
+        }
+      }, 0);
     });
 
     findInput.addEventListener('keydown', (e) => {
@@ -193,6 +199,11 @@ function setupEventListeners() {
         const currentCenterItem = getCenterItem();
         if (currentCenterItem && currentCenterItem.id !== state.centerItemId) {
           state.centerItemId = currentCenterItem.id;
+          console.log('[WritingMode] Scroll: saving center item:', {
+            itemId: state.centerItemId,
+            position: currentCenterItem.position,
+            hasPosition: currentCenterItem.position !== undefined
+          });
           vscode.postMessage({ 
             type: 'saveCenterItem', 
             itemId: state.centerItemId,
@@ -474,7 +485,7 @@ function renderPair(pair) {
               </select>
               <button class="go-to-editing-btn" data-pair-id="${pair.id}" data-position="${pair.position}" title="Go to Editing Mode">🖊️</button>
               <button class="delete-btn" data-pair-id="${pair.id}" title="Delete">🗑️</button>
-              <button class="citations-toggle-btn" data-pair-id="${pair.id}" title="Toggle citations">📌${citationBadge}</button>
+              <button class="citations-toggle-btn" data-pair-id="${pair.id}" title="Toggle citations">📌</button>
             </div>
           </div>
         </div>
@@ -867,8 +878,12 @@ function attachPairListeners() {
       const pairId = e.target.dataset.pairId;
       const position = parseInt(e.target.dataset.position);
       
+      console.log('[WritingMode] Go to editing clicked:', { pairId, position });
+      
       // Save current position and switch to editing mode
       const currentCenterItem = getCenterItem();
+      console.log('[WritingMode] Current center item:', currentCenterItem);
+      
       if (currentCenterItem) {
         vscode.postMessage({ 
           type: 'saveCenterItem', 
@@ -1638,8 +1653,11 @@ function highlightMatch(matchIndex) {
       element.scrollIntoView({ behavior: 'smooth', block: 'center' });
       
       // Keep focus on the find input to prevent text replacement
+      // Use setTimeout to ensure focus is set after scrollIntoView completes
       if (findInput) {
-        findInput.focus();
+        setTimeout(() => {
+          findInput.focus();
+        }, 0);
       }
     }
   } catch (e) {

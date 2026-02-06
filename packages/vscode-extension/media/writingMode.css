@@ -596,7 +596,7 @@ body[data-vscode-theme-kind="vscode-high-contrast-light"] {
   border: none;
   cursor: pointer;
   font-size: 14px;
-  opacity: 0.6;
+  opacity: 0.3;
   transition: opacity 0.2s;
   margin-left: auto;
   height: 20px;
@@ -614,7 +614,7 @@ body[data-vscode-theme-kind="vscode-high-contrast-light"] {
   border: none;
   cursor: pointer;
   font-size: 14px;
-  opacity: 0.6;
+  opacity: 0.3;
   transition: opacity 0.2s;
   padding: 0;
   position: relative;
@@ -624,6 +624,23 @@ body[data-vscode-theme-kind="vscode-high-contrast-light"] {
 }
 
 .citations-toggle-btn:hover {
+  opacity: 1;
+}
+
+.go-to-editing-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+  opacity: 0.3;
+  transition: opacity 0.2s;
+  padding: 0 4px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+}
+
+.go-to-editing-btn:hover {
   opacity: 1;
 }
 

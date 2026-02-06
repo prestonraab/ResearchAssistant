@@ -550,12 +550,14 @@ export class EditingModeProvider {
         break;
 
       case 'saveCenterItem':
+        console.log('[EditingMode] Received saveCenterItem:', { itemId: message.itemId, position: message.position });
         this.editingModeManager.saveCenterItemId(message.itemId, message.position);
         // Also update global context for cross-mode navigation
         getModeContextManager().setEditingModeContext({
           centerItemId: message.itemId,
           centerItemPosition: message.position
         });
+        console.log('[EditingMode] Set editing mode context:', { centerItemId: message.itemId, centerItemPosition: message.position });
         break;
 
       case 'showHelp':

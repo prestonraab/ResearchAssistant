@@ -206,6 +206,11 @@ export class WritingModeProvider {
       let centerItemId = this.writingModeManager.getCenterItemId();
       const editingContext = getModeContextManager().getEditingModeContext();
       
+      console.log('[WritingMode] Context check:', {
+        savedCenterItemId: centerItemId,
+        editingContext: editingContext
+      });
+      
       // If no saved position in writing mode but editing mode has one, find matching pair by position
       if (!centerItemId && editingContext?.centerItemPosition !== undefined) {
         const targetPosition = editingContext.centerItemPosition as number;
@@ -518,16 +523,14 @@ export class WritingModeProvider {
         break;
 
       case 'saveCenterItem':
+        console.log('[WritingMode] Received saveCenterItem:', { itemId: message.itemId, position: message.position });
         this.writingModeManager.saveCenterItemId(message.itemId, message.position);
         // Also update global context for cross-mode navigation
         getModeContextManager().setWritingModeContext({
           centerItemId: message.itemId,
           centerItemPosition: message.position
         });
-        break;
-
-      case 'switchToEditingMode':
-        await vscode.commands.executeCommand('researchAssistant.openEditingMode');
+        console.log('[WritingMode] Set writing mode context:', { centerItemId: message.itemId, centerItemPosition: message.position });
         break;
 
       case 'switchToClaimReview':
@@ -544,9 +547,9 @@ export class WritingModeProvider {
         break;
       
       case 'switchToEditingMode':
-        // Save writing mode context with target position
-        getModeContextManager().setWritingModeContext({
-          centerItemId: this.writingModeManager.getCenterItemId(),
+        // Save writing mode context first (already saved via saveCenterItem)
+        // Then set editing mode context with the target position
+        getModeContextManager().setEditingModeContext({
           centerItemPosition: message.targetPosition
         });
         await vscode.commands.executeCommand('researchAssistant.openEditingMode');
