@@ -13,7 +13,7 @@
 > This chapter examines how batch effects impact predictor performance and explores statistical adjustment methods designed to mitigate these artifacts while preserving biological signal.
 
 > [!question]- Leftover sentences: (status:: undefined)
-> Also helpful when validation across independent cohorts is needed.
+> Using external data is also helpful when validation across independent cohorts is needed.
 
 
 
@@ -23,10 +23,10 @@
 > Classification—the task of assigning observations to predefined categories based on their features—is vital to biomedical research and the implementation of precision medicine.
 
 > [!question]- Why is classification useful for biomedical tasks? (status:: undefined)
-> For instance, machine learning classifiers have demonstrated strong performance for cancer classification tasks using gene expression data. [source:: C_05]
+> For instance, machine learning classifiers have demonstrated strong performance for cancer classification tasks using gene expression data, even being approved and implemented clinically to predict personalized recurrence risk for breast cancer and guide chemotherapy decisions. [source:: C_05, C_1770403547313(Buus2021)]
 
 > [!question]- What are some specific examples of clinically used classifiers? (status:: undefined)
-> This includes several multi-gene prognostic signatures approved and implemented clinically used to predict personalized recurrence risk in ER+ breast cancer and guide chemotherapy decisions. [source:: C_1770403547313(Buus2021)]
+> This includes several multi-gene prognostic signatures  [source:: C_1770403547313(Buus2021)]
 
 
 
@@ -36,7 +36,7 @@
 > Biomedical classification tasks are not limited to gene expression, but can utilize diverse data types, including protein abundance measurements, genomic sequences, clinical variables, and imaging data. Each of these data modalities provides complementary information about biological systems and disease mechanisms. [source:: C_05]
 
 > [!question]- How do batch effects sources vary by data type? (status:: undefined)
-> No modality is immune to batch effects, though many clinical variables are resilient. Batch effects arise from differences in experimental protocols, equipment type and condition, reagent lots, environmental conditions, and other technical factors that vary between studies or even within studies over time. TASK: detail specific types of data, explain similarities and differences. [source:: C_01, C_02]
+> No modality is immune to batch effects, though many clinical variables (height, etc.) are resilient. Batch effects arise from differences in experimental protocols, equipment type and condition, reagent lots, environmental conditions, and other technical factors that vary between studies or even within studies over time. [source:: C_01, C_02]
 
 > [!question]- What type of data will this chapter focus on? (status:: undefined)
 > For our purposes, and without loss of generality, we will focus on RNA sequencing (RNA-seq) data, which has become the dominant technology for measuring gene expression. [source:: C_31]
@@ -49,19 +49,16 @@
 ## Focus on Gene Expression Data
 
 > [!question]- How are gene expression data generated and used within biological/biomedical research? (status:: undefined)
-> Gene expression data are generated through high-throughput sequencing technologies that quantify the abundance of RNA transcripts in biological samples. These measurements provide a snapshot of cellular activity, reflecting which genes are actively transcribed under specific conditions, disease states, or in response to treatments. Within biological and biomedical research, gene expression data enable the identification of disease-associated pathways, the discovery of therapeutic targets, and the development of diagnostic and prognostic biomarkers. [source:: C_02]
+> Gene expression data are generated through high-throughput sequencing technologies that quantify the abundance of RNA transcripts in biological samples. These measurements provide a snapshot of cellular activity, reflecting which genes are actively transcribed under specific conditions, disease states, or in response to treatments. Gene expression data enable the identification of disease-associated pathways, the discovery of therapeutic targets, and the development of diagnostic and prognostic biomarkers. [source:: C_02]
 
 > [!question]- How can researchers access gene expression data? (status:: undefined)
-> The Gene Expression Omnibus (GEO) serves as a critical international public repository for such data, with over 200,000 studies and 6.5 million samples. GEO enables broad access to vast collections of gene expression and epigenomics data  in addition to relevant clinical variables. [source:: C_31]
-
-> [!question]- What are microarrays? (status:: undefined)
-> GEO stores data collected using both RNA-seq microarrays, an older technology which ...
+> The Gene Expression Omnibus (GEO) serves as a critical international public repository for such data, with over 200,000 studies and 6.5 million samples. For each molecular sample, data submitters also provide relevant clinical variables, enabling association between the variables [source:: C_31]
 
 > [!question]- How is public gene expression data used? (status:: undefined)
-> This wealth of data is widely reused for diverse applications, including identifying novel gene expression patterns, finding disease predictors, and developing computational methods. [source:: C_35]
+> Due to the ease of access, GEO data is widely reused for diverse applications, including identifying novel gene expression patterns, finding disease predictors, and developing computational methods. [source:: C_35]
 
 > [!question]- Why integrate gene expression datasets? (status:: undefined)
-> Integrating gene expression data across multiple studies offers substantial benefits: increased sample sizes improve the robustness of classifiers, independent validation cohorts provide evidence of generalizability, and meta-analyses can reveal consistent patterns across diverse populations.
+> Integrating gene expression data across multiple studies offers substantial benefits over single-study analysis: increased sample sizes improve the robustness of classifiers, independent validation cohorts provide evidence of generalizability, and meta-analyses can reveal consistent patterns across diverse populations.
 
 > [!question]- How sensitive is gene expression to batch effects? (status:: undefined)
 > However, batch effects pose particular challenges for gene expression data due to the sensitivity of sequencing technologies to technical variation. These technical artifacts can be substantial—often comparable to or larger than the biological signals of interest—making them a primary concern when combining datasets. [source:: C_07]
@@ -69,15 +66,24 @@
 > [!question]- What specific effects do batches have on gene expression? (status:: undefined)
 > Batch effects manifest in gene expression data as systematic shifts in expression levels between batches, differences in variance structure, and alterations in the relationships between genes. [source:: C_07]
 
+> [!question]- What about changes to distributional shape? When might this arise? (status:: undefined)
+> Batch effects can also manifest as changes in distributional shape for features shared between datasets. For gene expression data, this difficulty arises if a researcher wants to combine RNA-seq data and gene expression measured using microarrays, an older technology. Microarray measurements of  expression for a gene tend to be bell shaped, or normally distributed, taking on continuous values. RNA-seq measurements are discrete counts, with a  heavily right-skewed distribution.
+
 
 
 ## Adjusters for Gene Expression
 
 > [!question]- How do adjusters work? (status:: undefined)
-> Adjusters work by modeling and removing systematic technical variation introduced by batch effects, thereby improving the ability of downstream classifiers to distinguish true biological differences from artifacts. These methods operate under the assumption that the underlying biological signal is consistent across batches, and that technical variation can be separated from biological variation.
+> Adjusters work by modeling and removing systematic technical variation introduced by batch effects, thereby improving the ability of downstream classifiers to distinguish true biological differences without influence from technical artifacts. These methods operate under the assumption that the underlying biological signal is consistent across batches, and that technical variation can be separated from biological variation.
 
-> [!question]- What are some common approaches? (status:: undefined)
-> Common approaches include ComBat, which uses empirical Bayes methods to adjust for batch effects by modeling batch-specific shifts and scaling factors. [source:: C_01]
+> [!question]- How can gene expression measurements be categorized? (status:: DRAFT)
+> The effectiveness of adjusters depends on the data type. For instance, gene expression measurements can be categorized into those which measure the bulk gene expression in a large sample, and those which measure the gene expression for thousands of individual cells.
+
+> [!question]- How does Combat adjust bulk data? (status:: undefined)
+> For bulk data, a common adjusting approach is ComBat, developed in 2007. Combat adjusts for batch effects by modeling batch-specific shifts and scaling factors for each gene.  The transformation that Combat applies is linear : each expression value for a particular gene is shifted and scaled the same as each other expression value for that gene. While the transformation acts on each gene seperately, the calculation of the correct transformation uses statistics across all genes to mitigate the effects of outliers. [source:: C_01]
+
+> [!question]- What is used to adjust single cell data? (status:: DRAFT)
+> 
 
 
 
