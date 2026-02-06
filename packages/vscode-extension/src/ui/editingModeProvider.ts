@@ -318,7 +318,26 @@ export class EditingModeProvider {
       }
       // If no saved position in editing mode but writing mode has one, find matching item by position
       else if (!centerItemId && writingContext.centerItemPosition !== undefined) {
-        const matchingItem = itemsWithClaims.find(s => s.position === writingContext.centerItemPosition);
+        const targetPosition = writingContext.centerItemPosition;
+        
+        // First try exact match
+        let matchingItem = itemsWithClaims.find(s => s.position === targetPosition);
+        
+        // If no exact match, find the closest sentence
+        if (!matchingItem && itemsWithClaims.length > 0) {
+          matchingItem = itemsWithClaims[0];
+          let minDistance = Math.abs(itemsWithClaims[0].position - targetPosition);
+          
+          for (const item of itemsWithClaims) {
+            const distance = Math.abs(item.position - targetPosition);
+            if (distance < minDistance) {
+              minDistance = distance;
+              matchingItem = item;
+            }
+          }
+          console.log(`[EditingMode] Using closest item at position ${matchingItem.position} for target ${targetPosition}`);
+        }
+        
         if (matchingItem) {
           centerItemId = matchingItem.id;
           console.log(`[EditingMode] Found matching item at position ${writingContext.centerItemPosition}: ${centerItemId}`);
@@ -871,10 +890,11 @@ export class EditingModeProvider {
       // Remove claim from the pair's claims array
       pair.claims = pair.claims.filter(c => c !== claimId);
       
-      // Update the Source comment in the answer text
-      const sourceMatch = pair.answer.match(/<!--\s*Source:\s*([^-]+?)-->/);
-      if (sourceMatch) {
-        const existingClaims = sourceMatch[1].trim();
+      // Update the Source comment in the answer text (handle both formats)
+      // Legacy format: <!-- Source: C_01, C_02 -->
+      const legacySourceMatch = pair.answer.match(/<!--\s*Source:\s*([^-]+?)-->/);
+      if (legacySourceMatch) {
+        const existingClaims = legacySourceMatch[1].trim();
         // Remove the claim ID from the list
         const claimList = existingClaims.split(/,\s*/).filter(c => c.trim() !== claimId);
         
@@ -885,6 +905,27 @@ export class EditingModeProvider {
         } else {
           // Remove the Source comment entirely
           pair.answer = pair.answer.replace(/\s*<!--\s*Source:[^>]+?-->/, '').trim();
+        }
+      }
+      
+      // New format: [source:: C_01(Author Year), C_02]
+      const inlineSourceMatch = pair.answer.match(/\[source::\s*([^\]]+)\]/);
+      if (inlineSourceMatch) {
+        const sourceSpec = inlineSourceMatch[1];
+        // Parse claim specs and remove the one matching claimId
+        const claimSpecs = sourceSpec.split(',').map(s => s.trim());
+        const filteredSpecs = claimSpecs.filter(spec => {
+          const claimMatch = spec.match(/^(C_\d+)/);
+          return claimMatch && claimMatch[1] !== claimId;
+        });
+        
+        if (filteredSpecs.length > 0) {
+          // Update with remaining claims
+          const newSourceSpec = `[source:: ${filteredSpecs.join(', ')}]`;
+          pair.answer = pair.answer.replace(/\[source::\s*[^\]]+\]/, newSourceSpec);
+        } else {
+          // Remove the source spec entirely
+          pair.answer = pair.answer.replace(/\s*\[source::\s*[^\]]+\]/, '').trim();
         }
       }
       

@@ -247,7 +247,7 @@ export class QuestionAnswerParser {
   private extractClaimIds(sourceText: string): string[] {
     const claims: string[] = [];
     
-    // Match patterns like C_99, C_100, etc.
+    // Match patterns like C_99, C_100, etc. (even with citations like C_99(Author Year))
     const matches = sourceText.matchAll(/C_(\d+)/g);
     for (const match of matches) {
       claims.push(`C_${match[1]}`);

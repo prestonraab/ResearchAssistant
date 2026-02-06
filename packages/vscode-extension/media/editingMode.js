@@ -307,6 +307,7 @@ function renderSentenceBox(sentence) {
         <div class="sentence-actions">
           <button class="action-btn" data-action="match" data-sentence-id="${sentence.id}" title="Match Claims">Match</button>
           <button class="action-btn primary" data-action="create" data-sentence-id="${sentence.id}" title="Create Claim (c)">+Claim</button>
+          <button class="action-btn" data-action="goToWriting" data-sentence-id="${sentence.id}" title="Go to Writing Mode">➡</button>
         </div>
       </div>
       ${claimsHtml}
@@ -453,6 +454,20 @@ function attachSentenceListeners() {
           break;
         case 'create':
           vscode.postMessage({ type: 'createClaim', sentenceId });
+          break;
+        case 'goToWriting':
+          // Save current position and switch to writing mode
+          const sentence = sentences.find(s => s.id === sentenceId);
+          if (sentence) {
+            vscode.postMessage({ 
+              type: 'saveCenterItem', 
+              itemId: sentence.id,
+              position: sentence.position
+            });
+            setTimeout(() => {
+              vscode.postMessage({ type: 'switchToWritingMode' });
+            }, 50);
+          }
           break;
       }
     });
@@ -901,6 +916,7 @@ document.addEventListener('DOMContentLoaded', () => {
     writeBtn.addEventListener('click', () => {
       // Save current position before switching
       const currentCenterItem = getCenterItem();
+      console.log('[EditingMode] Switching to writing mode, current center item:', currentCenterItem);
       if (currentCenterItem) {
         vscode.postMessage({ 
           type: 'saveCenterItem', 

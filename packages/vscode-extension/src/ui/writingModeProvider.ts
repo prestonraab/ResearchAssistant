@@ -346,8 +346,10 @@ export class WritingModeProvider {
             }
           }
         }
-        
-        console.log(`[WritingMode] Pair ${pair.id}: Parsed cited author-years:`, Array.from(citedAuthorYears.entries()).map(([k, v]) => [k, Array.from(v)]));
+        // Log if citations found
+        if (citedAuthorYears.size > 0) {
+          console.log(`[WritingMode] Pair ${pair.id}: Parsed cited author-years:`, Array.from(citedAuthorYears.entries()).map(([k, v]) => [k, Array.from(v)]));
+        }
         
         // Create display version without Source comments (don't modify pair.answer)
         pair.displayAnswer = pair.answer.replace(/<!--\s*Source:[^>]+?-->/g, '').trim();
@@ -365,8 +367,10 @@ export class WritingModeProvider {
               const authorYear = this.extractAuthorYear(claim.primaryQuote.source);
               const isCited = authorYear ? citedSet.has(authorYear) : false;
               
-              console.log(`[WritingMode] Primary quote: authorYear=${authorYear}, isCited=${isCited}, citedSet=`, Array.from(citedSet));
-              
+              if (isCited) {
+                console.log(`[WritingMode] Primary quote: authorYear=${authorYear}, citedSet=`, Array.from(citedSet));
+              }
+
               linkedSources.push({
                 claimId: claimId,  // Track which claim this source belongs to
                 title: claim.text.substring(0, 50) + (claim.text.length > 50 ? '...' : ''),
@@ -384,8 +388,10 @@ export class WritingModeProvider {
                 const authorYear = this.extractAuthorYear(supportingQuote.source);
                 const isCited = authorYear ? citedSet.has(authorYear) : false;
                 
-                console.log(`[WritingMode] Supporting quote: authorYear=${authorYear}, isCited=${isCited}, citedSet=`, Array.from(citedSet));
-                
+                if (isCited) {
+                  console.log(`[WritingMode] Supporting quote: authorYear=${authorYear}, isCited=${isCited}, citedSet=`, Array.from(citedSet));
+                }
+
                 linkedSources.push({
                   claimId: claimId,  // Track which claim this source belongs to
                   title: claim.text.substring(0, 50) + (claim.text.length > 50 ? '...' : ''),
@@ -535,6 +541,15 @@ export class WritingModeProvider {
           centerItemPosition: this.writingModeManager.getCenterItemPosition?.()
         });
         await vscode.commands.executeCommand('researchAssistant.openClaimReview', message.claimId);
+        break;
+      
+      case 'switchToEditingMode':
+        // Save writing mode context with target position
+        getModeContextManager().setWritingModeContext({
+          centerItemId: this.writingModeManager.getCenterItemId(),
+          centerItemPosition: message.targetPosition
+        });
+        await vscode.commands.executeCommand('researchAssistant.openEditingMode');
         break;
 
       case 'exportMarkdown':

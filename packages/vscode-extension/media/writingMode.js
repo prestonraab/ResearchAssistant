@@ -472,8 +472,9 @@ function renderPair(pair) {
                 <option value="PARTIAL" ${status === 'PARTIAL' ? 'selected' : ''}>Partial</option>
                 <option value="ANSWERED" ${status === 'ANSWERED' ? 'selected' : ''}>Answered</option>
               </select>
-              <button class="citations-toggle-btn" data-pair-id="${pair.id}" title="Toggle citations">📌${citationBadge}</button>
+              <button class="go-to-editing-btn" data-pair-id="${pair.id}" data-position="${pair.position}" title="Go to Editing Mode">🖊️</button>
               <button class="delete-btn" data-pair-id="${pair.id}" title="Delete">🗑️</button>
+              <button class="citations-toggle-btn" data-pair-id="${pair.id}" title="Toggle citations">📌${citationBadge}</button>
             </div>
           </div>
         </div>
@@ -506,8 +507,10 @@ function renderCitationSidebar(pair) {
     const isChecked = source.cited ? 'checked' : '';
     const quoteText = escapeHtml(source.quote || '');
     
-    console.log(`[WritingMode] Rendering citation ${index}: cited=${source.cited}, authorYear=${source.authorYear}, source=${source.source}`);
-    
+    if (source.cited) {
+      console.log(`[WritingMode] Rendering citation ${index}: authorYear=${source.authorYear}, source=${source.source}`);
+    }
+
     return `
       <div class="citation-item" data-pair-id="${pair.id}" data-source-index="${index}">
         <input 
@@ -854,6 +857,32 @@ function attachPairListeners() {
       const pairId = e.target.dataset.pairId;
       const newStatus = e.target.value;
       updatePairStatus(pairId, newStatus);
+    });
+  });
+  
+  // Go to editing mode buttons
+  document.querySelectorAll('.go-to-editing-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      const pairId = e.target.dataset.pairId;
+      const position = parseInt(e.target.dataset.position);
+      
+      // Save current position and switch to editing mode
+      const currentCenterItem = getCenterItem();
+      if (currentCenterItem) {
+        vscode.postMessage({ 
+          type: 'saveCenterItem', 
+          itemId: currentCenterItem.id,
+          position: currentCenterItem.position
+        });
+      }
+      
+      setTimeout(() => {
+        vscode.postMessage({ 
+          type: 'switchToEditingMode',
+          targetPosition: position
+        });
+      }, 50);
     });
   });
 }

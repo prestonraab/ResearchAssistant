@@ -61,10 +61,6 @@ This file contains all **Impact** claims with their supporting evidence.
 **Category**: Impact  
 **Context**: Data integration is fundamental to realizing the promise of precision medicine.
 
-**Supporting Quotes**:
-- "Data Sharing And Integration Precision medicine will require access to large-scale, detailed, and highly integrated patient data. Many initiatives are focused on increasing the interoperability of systems that generate and manage patient data and enhancing those systems for use at the point of care. 38 Although great strides have made in recent years toward achieving a paperless health care system based on EMRs, much more needs to be done to integrate data across systems and to mine data that already exist but remain in silos. The National Institutes of Health (NIH) needs to facilitate cross-site data integration for research, while health systems must do the same for the optimization of patient care. Many different sectors and activities have to coalesce to promote the implementation and adoption of precision medicine, including the appropriate education, data systems, coverage andreimbursementpolicies, healthsystemprocesses, and health policies."
-- "This will bring systematic approach to healing, allowing for rapid disease detection at an early stage, accurate characterization of disease, and assign preventive measures needed before the disease even appears. Also, timely discovery and association of genetic variants with diseases will help develop a more effective therapy tailored to an individual's precise genetic makeup, reducing adverse drug reactions. As biological data accumulates at larger scales and at exponential rates, because of higher-throughput and lower-cost DNA sequencing technologies, it has become essential to develop innovative, smart, and modern bioinformatics applications to help improve research quality and data sharing. New tools will provide a progressive understanding of heterogeneous genomics and clinical findings and facilitate increases in clinical utilization of information in these databases and translation to healthcare."
-
 
 ---
 
