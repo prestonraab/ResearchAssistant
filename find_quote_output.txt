@@ -1,0 +1,376 @@
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Find quotes requested: {claimId: 'C_100', query: 'Precision medicine requires integration of large-s...'}
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Starting verification feedback loop
+workbench.desktop.main.js:523 [Extension Host] [VerificationFeedbackLoop] Starting verification loop for claim: Precision medicine requires integration of large-s
+workbench.desktop.main.js:523 [Extension Host] [VerificationFeedbackLoop] Ensuring literature is indexed...
+workbench.desktop.main.js:523 [Extension Host] [LiteratureIndexer] Indexing already in progress
+workbench.desktop.main.js:523 [Extension Host] [VerificationFeedbackLoop] Index stats: {indexed: 0, skipped: 0, errors: 0}
+workbench.desktop.main.js:523 [Extension Host] [VerificationFeedbackLoop] Analyzing claim requirements...
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Debug log: claim-analysis
+workbench.desktop.main.js:523 [Extension Host] [VerificationFeedbackLoop] Claim analysis complete
+workbench.desktop.main.js:523 [Extension Host] [VerificationFeedbackLoop] Round 1/3, queries: 1
+workbench.desktop.main.js:523 [Extension Host] [LiteratureIndexer] searchSnippets called with query: Precision medicine requires integration of large-s
+workbench.desktop.main.js:523 [Extension Host] [LiteratureIndexer] Query embedding generated, searching store
+workbench.desktop.main.js:523 [Extension Host] [VerificationFeedbackLoop] Round 1: Firing Semantic Scholar search: "precision medicine integration large-scale genomic data clinical"
+workbench.desktop.main.js:523 [Extension Host] [EmbeddingStore] Vectra search completed in 27.09ms, returning 10 results
+workbench.desktop.main.js:523 [Extension Host] [LiteratureIndexer] Search returned 10 results
+workbench.desktop.main.js:523 [Extension Host] [VerificationFeedbackLoop] Found 10 unique snippets (from 1 queries)
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Round 1: Found 10 candidates
+workbench.desktop.main.js:523 [Extension Host] [VerificationFeedbackLoop] Cache hit for claim-quote pair (confidence: 0.20)
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Round 1: Verified snippet Taminau et al. - 2014 - Comparison of Merging and Meta-Analysis as Alternative Approaches for Integrative Gene Expression Analysis.txt_1 - supports: false
+claimReview.js:1786 [ClaimReview] Verification update received: Taminau et al. - 2014 - Comparison of Merging and Meta-Analysis as Alternative Approaches for Integrative Gene Expression Analysis.txt_1 supports: false
+claimReview.js:1796 [ClaimReview] Updating candidate: Taminau et al. - 2014 - Comparison of Merging and Meta-Analysis as Alternative Approaches for Integrative Gene Expression Analysis.txt_1 verified: true supports: false
+workbench.desktop.main.js:523 [Extension Host] [VerificationFeedbackLoop] Round 1: Semantic Scholar returned 5 papers
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Round 1: Found 5 candidates
+workbench.desktop.main.js:523 [Extension Host] [VerificationFeedbackLoop] Cache hit for claim-quote pair (confidence: 0.40)
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Round 1: Verified snippet ss-1-Metabolicnetworkba - supports: false
+workbench.desktop.main.js:523 [Extension Host] [VerificationFeedbackLoop] Cache hit for claim-quote pair (confidence: 0.40)
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Round 1: Verified snippet ss-1-Integrationofmachi - supports: false
+workbench.desktop.main.js:523 [Extension Host] [VerificationFeedbackLoop] Cache hit for claim-quote pair (confidence: 0.30)
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Round 1: Verified snippet ss-1-Beyondgenomicsund - supports: false
+workbench.desktop.main.js:523 [Extension Host] [VerificationFeedbackLoop] Cache hit for claim-quote pair (confidence: 0.90)
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Round 1: Verified snippet ss-1-Theapplicationofb - supports: true
+claimReview.js:1786 [ClaimReview] Verification update received: ss-1-Metabolicnetworkba supports: false
+claimReview.js:1796 [ClaimReview] Updating candidate: ss-1-Metabolicnetworkba verified: true supports: false
+workbench.desktop.main.js:523 [Extension Host] [VerificationFeedbackLoop] Cache hit for claim-quote pair (confidence: 0.80)
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Round 1: Verified snippet ss-1-TheevolutionofdbS - supports: true
+claimReview.js:1786 [ClaimReview] Verification update received: ss-1-Integrationofmachi supports: false
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Debug log: verification-with-analysis
+claimReview.js:1796 [ClaimReview] Updating candidate: ss-1-Integrationofmachi verified: true supports: false
+workbench.desktop.main.js:523 [Extension Host] [VerificationFeedbackLoop] Cached confidence score: 0.30
+claimReview.js:1786 [ClaimReview] Verification update received: ss-1-Beyondgenomicsund supports: false
+claimReview.js:1796 [ClaimReview] Updating candidate: ss-1-Beyondgenomicsund verified: true supports: false
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Round 1: Verified snippet Yu et al. - 2024 - Assessing and mitigating batch effects in large-scale omics studies.txt_112 - supports: false
+claimReview.js:1786 [ClaimReview] Verification update received: ss-1-Theapplicationofb supports: true
+claimReview.js:1796 [ClaimReview] Updating candidate: ss-1-Theapplicationofb verified: true supports: true
+claimReview.js:1786 [ClaimReview] Verification update received: ss-1-TheevolutionofdbS supports: true
+claimReview.js:1796 [ClaimReview] Updating candidate: ss-1-TheevolutionofdbS verified: true supports: true
+claimReview.js:1786 [ClaimReview] Verification update received: Yu et al. - 2024 - Assessing and mitigating batch effects in large-scale omics studies.txt_112 supports: false
+claimReview.js:1796 [ClaimReview] Updating candidate: Yu et al. - 2024 - Assessing and mitigating batch effects in large-scale omics studies.txt_112 verified: true supports: false
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Debug log: verification-with-analysis
+workbench.desktop.main.js:523 [Extension Host] [VerificationFeedbackLoop] Cached confidence score: 0.40
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Round 1: Verified snippet Yousefi et al. - 2017 - Predicting clinical outcomes from large scale cancer genomic profiles with deep survival models.md_1 - supports: false
+claimReview.js:1786 [ClaimReview] Verification update received: Yousefi et al. - 2017 - Predicting clinical outcomes from large scale cancer genomic profiles with deep survival models.md_1 supports: false
+claimReview.js:1796 [ClaimReview] Updating candidate: Yousefi et al. - 2017 - Predicting clinical outcomes from large scale cancer genomic profiles with deep survival models.md_1 verified: true supports: false
+workbench.desktop.main.js:523 [Extension Host] [VerificationFeedbackLoop] Cache hit for claim-quote pair (confidence: 0.10)
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Round 1: Verified snippet Taminau et al. - 2014 - Comparison of Merging and Meta-Analysis as Alternative Approaches for Integrative Gene Expression Analysis.txt_5 - supports: false
+claimReview.js:1786 [ClaimReview] Verification update received: Taminau et al. - 2014 - Comparison of Merging and Meta-Analysis as Alternative Approaches for Integrative Gene Expression Analysis.txt_5 supports: false
+claimReview.js:1796 [ClaimReview] Updating candidate: Taminau et al. - 2014 - Comparison of Merging and Meta-Analysis as Alternative Approaches for Integrative Gene Expression Analysis.txt_5 verified: true supports: false
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Debug log: verification-with-analysis
+workbench.desktop.main.js:523 [Extension Host] [VerificationFeedbackLoop] Cached confidence score: 0.50
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Round 1: Verified snippet Yousefi et al. - 2017 - Predicting clinical outcomes from large scale cancer genomic profiles with deep survival models.md_3 - supports: false
+claimReview.js:1786 [ClaimReview] Verification update received: Yousefi et al. - 2017 - Predicting clinical outcomes from large scale cancer genomic profiles with deep survival models.md_3 supports: false
+claimReview.js:1796 [ClaimReview] Updating candidate: Yousefi et al. - 2017 - Predicting clinical outcomes from large scale cancer genomic profiles with deep survival models.md_3 verified: true supports: false
+workbench.desktop.main.js:523 [Extension Host] [VerificationFeedbackLoop] Cache hit for claim-quote pair (confidence: 0.20)
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Round 1: Verified snippet Taminau et al. - 2014 - Comparison of Merging and Meta-Analysis as Alternative Approaches for Integrative Gene Expression An.txt_2 - supports: false
+claimReview.js:1786 [ClaimReview] Verification update received: Taminau et al. - 2014 - Comparison of Merging and Meta-Analysis as Alternative Approaches for Integrative Gene Expression An.txt_2 supports: false
+claimReview.js:1796 [ClaimReview] Updating candidate: Taminau et al. - 2014 - Comparison of Merging and Meta-Analysis as Alternative Approaches for Integrative Gene Expression An.txt_2 verified: true supports: false
+workbench.desktop.main.js:523 [Extension Host] [VerificationFeedbackLoop] Cache hit for claim-quote pair (confidence: 0.20)
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Round 1: Verified snippet Taminau et al. - 2014 - Comparison of Merging and Meta-Analysis as Alternative Approaches for Integrative Gene Expression An.txt_4 - supports: false
+claimReview.js:1786 [ClaimReview] Verification update received: Taminau et al. - 2014 - Comparison of Merging and Meta-Analysis as Alternative Approaches for Integrative Gene Expression An.txt_4 supports: false
+claimReview.js:1796 [ClaimReview] Updating candidate: Taminau et al. - 2014 - Comparison of Merging and Meta-Analysis as Alternative Approaches for Integrative Gene Expression An.txt_4 verified: true supports: false
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Debug log: verification-with-analysis
+workbench.desktop.main.js:523 [Extension Host] [VerificationFeedbackLoop] Cached confidence score: 0.40
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Round 1: Verified snippet Yousefi et al. - 2017 - Predicting clinical outcomes from large scale cancer genomic profiles with deep survival models.md_4 - supports: false
+claimReview.js:1786 [ClaimReview] Verification update received: Yousefi et al. - 2017 - Predicting clinical outcomes from large scale cancer genomic profiles with deep survival models.md_4 supports: false
+claimReview.js:1796 [ClaimReview] Updating candidate: Yousefi et al. - 2017 - Predicting clinical outcomes from large scale cancer genomic profiles with deep survival models.md_4 verified: true supports: false
+workbench.desktop.main.js:523 [Extension Host] [VerificationFeedbackLoop] Cache hit for claim-quote pair (confidence: 0.10)
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Round 1: Verified snippet Taminau et al. - 2014 - Comparison of Merging and Meta-Analysis as Alternative Approaches for Integrative Gene Expression Analysis.txt_7 - supports: false
+claimReview.js:1786 [ClaimReview] Verification update received: Taminau et al. - 2014 - Comparison of Merging and Meta-Analysis as Alternative Approaches for Integrative Gene Expression Analysis.txt_7 supports: false
+claimReview.js:1796 [ClaimReview] Updating candidate: Taminau et al. - 2014 - Comparison of Merging and Meta-Analysis as Alternative Approaches for Integrative Gene Expression Analysis.txt_7 verified: true supports: false
+workbench.desktop.main.js:523 [Extension Host] [VerificationFeedbackLoop] Cache hit for claim-quote pair (confidence: 0.20)
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Round 1: Verified snippet Stuart et al. - 2019 - Comprehensive Integration of Single-Cell Data.txt_91 - supports: false
+claimReview.js:1786 [ClaimReview] Verification update received: Stuart et al. - 2019 - Comprehensive Integration of Single-Cell Data.txt_91 supports: false
+claimReview.js:1796 [ClaimReview] Updating candidate: Stuart et al. - 2019 - Comprehensive Integration of Single-Cell Data.txt_91 verified: true supports: false
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Round 1 complete: {snippetsSearched: 10, supportingFound: 0}
+workbench.desktop.main.js:523 [Extension Host] [VerificationFeedbackLoop] Round 1: 0/10 snippets support claim (total: 0)
+workbench.desktop.main.js:523 [Extension Host] [VerificationFeedbackLoop] Refined queries: (4) ['Integration of genomic data and clinical', 'Impact of big data on personalized healt', 'Role of health informatics in integratin', 'Empirical evidence of patient outcomes f']
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Debug log: query-refinement
+workbench.desktop.main.js:523 [Extension Host] [VerificationFeedbackLoop] Round 2/3, queries: 4
+workbench.desktop.main.js:523 [Extension Host] [LiteratureIndexer] searchSnippets called with query: Integration of genomic data and clinical informati
+workbench.desktop.main.js:523 [Extension Host] [LiteratureIndexer] Query embedding generated, searching store
+workbench.desktop.main.js:523 [Extension Host] [VerificationFeedbackLoop] Round 2: Firing Semantic Scholar search: "integration genomic data clinical information precision medicine"
+workbench.desktop.main.js:523 [Extension Host] [EmbeddingStore] Vectra search completed in 26.69ms, returning 10 results
+workbench.desktop.main.js:523 [Extension Host] [LiteratureIndexer] Search returned 10 results
+workbench.desktop.main.js:523 [Extension Host] [LiteratureIndexer] searchSnippets called with query: Impact of big data on personalized healthcare outc
+workbench.desktop.main.js:523 [Extension Host] [LiteratureIndexer] Query embedding generated, searching store
+workbench.desktop.main.js:523 [Extension Host] [EmbeddingStore] Vectra search completed in 18.74ms, returning 10 results
+workbench.desktop.main.js:523 [Extension Host] [LiteratureIndexer] Search returned 10 results
+workbench.desktop.main.js:523 [Extension Host] [LiteratureIndexer] searchSnippets called with query: Role of health informatics in integrating genomic 
+workbench.desktop.main.js:523 [Extension Host] [VerificationFeedbackLoop] Round 2: Semantic Scholar returned 5 papers
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Round 2: Found 5 candidates
+workbench.desktop.main.js:523 [Extension Host] [VerificationFeedbackLoop] Cache hit for claim-quote pair (confidence: 0.90)
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Round 2: Verified snippet ss-2-Predictingcancerou - supports: true
+workbench.desktop.main.js:523 [Extension Host] [VerificationFeedbackLoop] Cache hit for claim-quote pair (confidence: 0.90)
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Round 2: Verified snippet ss-2-Deepphenotypingfor - supports: true
+workbench.desktop.main.js:523 [Extension Host] [VerificationFeedbackLoop] Cache hit for claim-quote pair (confidence: 0.90)
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Round 2: Verified snippet ss-2-PrecisionMedicinea - supports: true
+workbench.desktop.main.js:523 [Extension Host] [VerificationFeedbackLoop] Cache hit for claim-quote pair (confidence: 0.85)
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Round 2: Verified snippet ss-2-Translatingcancerg - supports: true
+workbench.desktop.main.js:523 [Extension Host] [VerificationFeedbackLoop] Cache hit for claim-quote pair (confidence: 0.90)
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Round 2: Verified snippet ss-2-Humangeneanddisea - supports: true
+claimReview.js:1786 [ClaimReview] Verification update received: ss-2-Predictingcancerou supports: true
+claimReview.js:1796 [ClaimReview] Updating candidate: ss-2-Predictingcancerou verified: true supports: true
+claimReview.js:1786 [ClaimReview] Verification update received: ss-2-Deepphenotypingfor supports: true
+claimReview.js:1796 [ClaimReview] Updating candidate: ss-2-Deepphenotypingfor verified: true supports: true
+claimReview.js:1786 [ClaimReview] Verification update received: ss-2-PrecisionMedicinea supports: true
+claimReview.js:1796 [ClaimReview] Updating candidate: ss-2-PrecisionMedicinea verified: true supports: true
+claimReview.js:1786 [ClaimReview] Verification update received: ss-2-Translatingcancerg supports: true
+claimReview.js:1796 [ClaimReview] Updating candidate: ss-2-Translatingcancerg verified: true supports: true
+claimReview.js:1786 [ClaimReview] Verification update received: ss-2-Humangeneanddisea supports: true
+claimReview.js:1796 [ClaimReview] Updating candidate: ss-2-Humangeneanddisea verified: true supports: true
+workbench.desktop.main.js:523 [Extension Host] [LiteratureIndexer] Query embedding generated, searching store
+workbench.desktop.main.js:523 [Extension Host] [EmbeddingStore] Vectra search completed in 22.27ms, returning 10 results
+workbench.desktop.main.js:523 [Extension Host] [LiteratureIndexer] Search returned 10 results
+workbench.desktop.main.js:523 [Extension Host] [LiteratureIndexer] searchSnippets called with query: Empirical evidence of patient outcomes from genomi
+workbench.desktop.main.js:523 [Extension Host] [LiteratureIndexer] Query embedding generated, searching store
+workbench.desktop.main.js:523 [Extension Host] [EmbeddingStore] Vectra search completed in 16.63ms, returning 10 results
+workbench.desktop.main.js:523 [Extension Host] [LiteratureIndexer] Search returned 10 results
+workbench.desktop.main.js:523 [Extension Host] [VerificationFeedbackLoop] Found 15 unique snippets (from 4 queries)
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Round 2: Found 15 candidates
+workbench.desktop.main.js:523 [Extension Host] [VerificationFeedbackLoop] Cache hit for claim-quote pair (confidence: 0.10)
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Round 2: Verified snippet Talhouk et al. - 2016 - Single-Patient Molecular Testing with NanoString nCounter Data Using a Reference-Based Strategy for.txt_75 - supports: false
+claimReview.js:1786 [ClaimReview] Verification update received: Talhouk et al. - 2016 - Single-Patient Molecular Testing with NanoString nCounter Data Using a Reference-Based Strategy for.txt_75 supports: false
+claimReview.js:1796 [ClaimReview] Updating candidate: Talhouk et al. - 2016 - Single-Patient Molecular Testing with NanoString nCounter Data Using a Reference-Based Strategy for.txt_75 verified: true supports: false
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Debug log: verification-with-analysis
+workbench.desktop.main.js:523 [Extension Host] [VerificationFeedbackLoop] Cached confidence score: 0.00
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Round 2: Verified snippet Yu et al. - 2024 - Assessing and mitigating batch effects in large-scale omics studies.txt_5 - supports: false
+workbench.desktop.main.js:523 [Extension Host] [VerificationFeedbackLoop] Cache hit for claim-quote pair (confidence: 0.00)
+claimReview.js:1786 [ClaimReview] Verification update received: Yu et al. - 2024 - Assessing and mitigating batch effects in large-scale omics studies.txt_5 supports: false
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Round 2: Verified snippet Taminau et al. - 2014 - Comparison of Merging and Meta-Analysis as Alternative Approaches for Integrative Gene Expression An.txt_41 - supports: false
+claimReview.js:1796 [ClaimReview] Updating candidate: Yu et al. - 2024 - Assessing and mitigating batch effects in large-scale omics studies.txt_5 verified: true supports: false
+claimReview.js:1786 [ClaimReview] Verification update received: Taminau et al. - 2014 - Comparison of Merging and Meta-Analysis as Alternative Approaches for Integrative Gene Expression An.txt_41 supports: false
+claimReview.js:1796 [ClaimReview] Updating candidate: Taminau et al. - 2014 - Comparison of Merging and Meta-Analysis as Alternative Approaches for Integrative Gene Expression An.txt_41 verified: true supports: false
+workbench.desktop.main.js:523 [Extension Host] [VerificationFeedbackLoop] Cache hit for claim-quote pair (confidence: 0.20)
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Round 2: Verified snippet Talhouk et al. - 2016 - Single-Patient Molecular Testing with NanoString nCounter Data Using a Reference-Based Strategy for.txt_4 - supports: false
+claimReview.js:1786 [ClaimReview] Verification update received: Talhouk et al. - 2016 - Single-Patient Molecular Testing with NanoString nCounter Data Using a Reference-Based Strategy for.txt_4 supports: false
+claimReview.js:1796 [ClaimReview] Updating candidate: Talhouk et al. - 2016 - Single-Patient Molecular Testing with NanoString nCounter Data Using a Reference-Based Strategy for.txt_4 verified: true supports: false
+workbench.desktop.main.js:523 [Extension Host] [VerificationFeedbackLoop] Cache hit for claim-quote pair (confidence: 0.20)
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Round 2: Verified snippet Talhouk et al. - 2016 - Single-Patient Molecular Testing with NanoString nCounter Data Using a Reference-Based Strategy for.txt_3 - supports: false
+claimReview.js:1786 [ClaimReview] Verification update received: Talhouk et al. - 2016 - Single-Patient Molecular Testing with NanoString nCounter Data Using a Reference-Based Strategy for.txt_3 supports: false
+claimReview.js:1796 [ClaimReview] Updating candidate: Talhouk et al. - 2016 - Single-Patient Molecular Testing with NanoString nCounter Data Using a Reference-Based Strategy for.txt_3 verified: true supports: false
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Debug log: verification-with-analysis
+workbench.desktop.main.js:523 [Extension Host] [VerificationFeedbackLoop] Cached confidence score: 0.10
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Round 2: Verified snippet Zhang et al. - 2018 - Alternative empirical Bayes models for adjusting for batch effects in genomic studies.txt_2 - supports: false
+claimReview.js:1786 [ClaimReview] Verification update received: Zhang et al. - 2018 - Alternative empirical Bayes models for adjusting for batch effects in genomic studies.txt_2 supports: false
+claimReview.js:1796 [ClaimReview] Updating candidate: Zhang et al. - 2018 - Alternative empirical Bayes models for adjusting for batch effects in genomic studies.txt_2 verified: true supports: false
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Debug log: verification-with-analysis
+workbench.desktop.main.js:523 [Extension Host] [VerificationFeedbackLoop] Cached confidence score: 0.00
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Round 2: Verified snippet Yu et al. - 2024 - Assessing and mitigating batch effects in large-scale omics studies.txt_113 - supports: false
+claimReview.js:1786 [ClaimReview] Verification update received: Yu et al. - 2024 - Assessing and mitigating batch effects in large-scale omics studies.txt_113 supports: false
+claimReview.js:1796 [ClaimReview] Updating candidate: Yu et al. - 2024 - Assessing and mitigating batch effects in large-scale omics studies.txt_113 verified: true supports: false
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Debug log: verification-with-analysis
+workbench.desktop.main.js:523 [Extension Host] [VerificationFeedbackLoop] Cached confidence score: 0.00
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Round 2: Verified snippet Zhu et al. - 2021 - Converting tabular data into images for deep learning with convolutional neural networks.md_77 - supports: false
+claimReview.js:1786 [ClaimReview] Verification update received: Zhu et al. - 2021 - Converting tabular data into images for deep learning with convolutional neural networks.md_77 supports: false
+claimReview.js:1796 [ClaimReview] Updating candidate: Zhu et al. - 2021 - Converting tabular data into images for deep learning with convolutional neural networks.md_77 verified: true supports: false
+workbench.desktop.main.js:523 [Extension Host] [VerificationFeedbackLoop] Cache hit for claim-quote pair (confidence: 0.10)
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Round 2: Verified snippet Soneson et al. - 2014 - Batch Effect Confounding Leads to Strong Bias in Performance Estimates Obtained by Cross-Validation.txt_5 - supports: false
+claimReview.js:1786 [ClaimReview] Verification update received: Soneson et al. - 2014 - Batch Effect Confounding Leads to Strong Bias in Performance Estimates Obtained by Cross-Validation.txt_5 supports: false
+claimReview.js:1796 [ClaimReview] Updating candidate: Soneson et al. - 2014 - Batch Effect Confounding Leads to Strong Bias in Performance Estimates Obtained by Cross-Validation.txt_5 verified: true supports: false
+workbench.desktop.main.js:523 [Extension Host] High memory usage in claim review mode: 606MB / 663MB
+ubs @ workbench.desktop.main.js:523
+$logExtensionHostMessage @ workbench.desktop.main.js:523
+S @ workbench.desktop.main.js:11502
+Q @ workbench.desktop.main.js:11502
+M @ workbench.desktop.main.js:11502
+L @ workbench.desktop.main.js:11502
+(anonymous) @ workbench.desktop.main.js:11502
+C @ workbench.desktop.main.js:29
+fire @ workbench.desktop.main.js:29
+fire @ workbench.desktop.main.js:550
+l.onmessage @ workbench.desktop.main.js:11513
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Debug log: verification-with-analysis
+workbench.desktop.main.js:523 [Extension Host] [VerificationFeedbackLoop] Cached confidence score: 0.00
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Round 2: Verified snippet Wilks et al. - 2021 - recount3 summaries and queries for large-scale RNA-seq expression and splicing.txt_163 - supports: false
+claimReview.js:1786 [ClaimReview] Verification update received: Wilks et al. - 2021 - recount3 summaries and queries for large-scale RNA-seq expression and splicing.txt_163 supports: false
+claimReview.js:1796 [ClaimReview] Updating candidate: Wilks et al. - 2021 - recount3 summaries and queries for large-scale RNA-seq expression and splicing.txt_163 verified: true supports: false
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Debug log: verification-with-analysis
+workbench.desktop.main.js:523 [Extension Host] [VerificationFeedbackLoop] Cached confidence score: 0.00
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Round 2: Verified snippet Wilks et al. - 2021 - recount3 summaries and queries for large-scale RNA-seq expression and splicing.txt_164 - supports: false
+claimReview.js:1786 [ClaimReview] Verification update received: Wilks et al. - 2021 - recount3 summaries and queries for large-scale RNA-seq expression and splicing.txt_164 supports: false
+claimReview.js:1796 [ClaimReview] Updating candidate: Wilks et al. - 2021 - recount3 summaries and queries for large-scale RNA-seq expression and splicing.txt_164 verified: true supports: false
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Debug log: verification-with-analysis
+workbench.desktop.main.js:523 [Extension Host] [VerificationFeedbackLoop] Cached confidence score: 0.00
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Round 2: Verified snippet Yu et al. - 2024 - Assessing and mitigating batch effects in large-scale omics studies.txt_38 - supports: false
+claimReview.js:1786 [ClaimReview] Verification update received: Yu et al. - 2024 - Assessing and mitigating batch effects in large-scale omics studies.txt_38 supports: false
+claimReview.js:1796 [ClaimReview] Updating candidate: Yu et al. - 2024 - Assessing and mitigating batch effects in large-scale omics studies.txt_38 verified: true supports: false
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Debug log: verification-with-analysis
+workbench.desktop.main.js:523 [Extension Host] [VerificationFeedbackLoop] Cached confidence score: 0.10
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Round 2: Verified snippet Zhang et al. - 2018 - Alternative empirical Bayes models for adjusting for batch effects in genomic studies.txt_3 - supports: false
+workbench.desktop.main.js:523 [Extension Host] [VerificationFeedbackLoop] Cache hit for claim-quote pair (confidence: 0.00)
+claimReview.js:1786 [ClaimReview] Verification update received: Zhang et al. - 2018 - Alternative empirical Bayes models for adjusting for batch effects in genomic studies.txt_3 supports: false
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Round 2: Verified snippet Taminau et al. - 2014 - Comparison of Merging and Meta-Analysis as Alternative Approaches for Integrative Gene Expression An.txt_40 - supports: false
+claimReview.js:1796 [ClaimReview] Updating candidate: Zhang et al. - 2018 - Alternative empirical Bayes models for adjusting for batch effects in genomic studies.txt_3 verified: true supports: false
+claimReview.js:1786 [ClaimReview] Verification update received: Taminau et al. - 2014 - Comparison of Merging and Meta-Analysis as Alternative Approaches for Integrative Gene Expression An.txt_40 supports: false
+claimReview.js:1796 [ClaimReview] Updating candidate: Taminau et al. - 2014 - Comparison of Merging and Meta-Analysis as Alternative Approaches for Integrative Gene Expression An.txt_40 verified: true supports: false
+workbench.desktop.main.js:523 [Extension Host] [EmbeddingStore] Saved 70 file hashes
+workbench.desktop.main.js:523 [Extension Host] [EmbeddingStore] Added 85 snippets from Zou and Hastie - 2005 - Regularization and Variable Selection Via the Elastic Net.txt
+workbench.desktop.main.js:523 [Extension Host] [LiteratureIndexer] Finished embedding Zou and Hastie - 2005 - Regularization and Variable Selection Via the Elastic Net.txt
+workbench.desktop.main.js:523 [Extension Host] [LiteratureIndexer] Embedding van Vliet et al. - 2012 - Integration of clinical and gene expression data has a synergetic effect on predicting breast cancer.txt
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Debug log: verification-with-analysis
+workbench.desktop.main.js:523 [Extension Host] [VerificationFeedbackLoop] Cached confidence score: 0.00
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Round 2: Verified snippet Yu et al. - 2024 - Assessing and mitigating batch effects in large-scale omics studies.txt_117 - supports: false
+claimReview.js:1786 [ClaimReview] Verification update received: Yu et al. - 2024 - Assessing and mitigating batch effects in large-scale omics studies.txt_117 supports: false
+claimReview.js:1796 [ClaimReview] Updating candidate: Yu et al. - 2024 - Assessing and mitigating batch effects in large-scale omics studies.txt_117 verified: true supports: false
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Round 2 complete: {snippetsSearched: 15, supportingFound: 0}
+workbench.desktop.main.js:523 [Extension Host] [VerificationFeedbackLoop] Round 2: 0/15 snippets support claim (total: 0)
+workbench.desktop.main.js:523 [Extension Host] [VerificationFeedbackLoop] Refined queries: (4) ['Integration of genomic data and clinical', 'Big data analytics in precision medicine', 'Personalized healthcare through the inte', 'Health informatics strategies for genomi']
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Debug log: query-refinement
+workbench.desktop.main.js:523 [Extension Host] [VerificationFeedbackLoop] Round 3/3, queries: 4
+workbench.desktop.main.js:523 [Extension Host] [LiteratureIndexer] searchSnippets called with query: Integration of genomic data and clinical informati
+workbench.desktop.main.js:523 [Extension Host] [VerificationFeedbackLoop] Round 3: Firing Semantic Scholar search: "integration genomic data clinical information improved patient"
+workbench.desktop.main.js:523 [Extension Host] [LiteratureIndexer] Query embedding generated, searching store
+workbench.desktop.main.js:523 [Extension Host] [EmbeddingStore] Vectra search completed in 28.12ms, returning 10 results
+workbench.desktop.main.js:523 [Extension Host] [LiteratureIndexer] Search returned 10 results
+workbench.desktop.main.js:523 [Extension Host] [LiteratureIndexer] searchSnippets called with query: Big data analytics in precision medicine and its i
+workbench.desktop.main.js:523 [Extension Host] [LiteratureIndexer] Query embedding generated, searching store
+workbench.desktop.main.js:523 [Extension Host] [EmbeddingStore] Vectra search completed in 21.96ms, returning 10 results
+workbench.desktop.main.js:523 [Extension Host] [LiteratureIndexer] Search returned 10 results
+workbench.desktop.main.js:523 [Extension Host] [LiteratureIndexer] searchSnippets called with query: Personalized healthcare through the integration of
+workbench.desktop.main.js:523 [Extension Host] [VerificationFeedbackLoop] Round 3: Semantic Scholar returned 5 papers
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Round 3: Found 5 candidates
+workbench.desktop.main.js:523 [Extension Host] [LiteratureIndexer] Query embedding generated, searching store
+workbench.desktop.main.js:523 [Extension Host] [EmbeddingStore] Vectra search completed in 33.69ms, returning 10 results
+workbench.desktop.main.js:523 [Extension Host] [LiteratureIndexer] Search returned 10 results
+workbench.desktop.main.js:523 [Extension Host] [LiteratureIndexer] searchSnippets called with query: Health informatics strategies for genomic and clin
+workbench.desktop.main.js:523 [Extension Host] [LiteratureIndexer] Query embedding generated, searching store
+workbench.desktop.main.js:523 [Extension Host] [EmbeddingStore] Vectra search completed in 28.30ms, returning 10 results
+workbench.desktop.main.js:523 [Extension Host] [LiteratureIndexer] Search returned 10 results
+workbench.desktop.main.js:523 [Extension Host] [VerificationFeedbackLoop] Found 6 unique snippets (from 4 queries)
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Round 3: Found 6 candidates
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Debug log: verification-with-analysis
+workbench.desktop.main.js:523 [Extension Host] [VerificationFeedbackLoop] Cached confidence score: 0.60
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Round 3: Verified snippet ss-3-Artificialintellige - supports: false
+claimReview.js:1786 [ClaimReview] Verification update received: ss-3-Artificialintellige supports: false
+claimReview.js:1796 [ClaimReview] Updating candidate: ss-3-Artificialintellige verified: true supports: false
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Debug log: verification-with-analysis
+workbench.desktop.main.js:523 [Extension Host] [VerificationFeedbackLoop] Cached confidence score: 0.40
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Round 3: Verified snippet van Vliet et al. - 2012 - Integration of clinical and gene expression data has a synergetic effect on predicting breast cancer.txt_3 - supports: false
+claimReview.js:1786 [ClaimReview] Verification update received: van Vliet et al. - 2012 - Integration of clinical and gene expression data has a synergetic effect on predicting breast cancer.txt_3 supports: false
+claimReview.js:1796 [ClaimReview] Updating candidate: van Vliet et al. - 2012 - Integration of clinical and gene expression data has a synergetic effect on predicting breast cancer.txt_3 verified: true supports: false
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Debug log: verification-with-analysis
+workbench.desktop.main.js:523 [Extension Host] [VerificationFeedbackLoop] Cached confidence score: 0.60
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Round 3: Verified snippet ss-3-Dynamicsofbreastc - supports: false
+claimReview.js:1786 [ClaimReview] Verification update received: ss-3-Dynamicsofbreastc supports: false
+claimReview.js:1796 [ClaimReview] Updating candidate: ss-3-Dynamicsofbreastc verified: true supports: false
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Debug log: verification-with-analysis
+workbench.desktop.main.js:523 [Extension Host] [VerificationFeedbackLoop] Cached confidence score: 0.40
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Round 3: Verified snippet van Vliet et al. - 2012 - Integration of clinical and gene expression data has a synergetic effect on predicting breast cancer.txt_0 - supports: false
+claimReview.js:1786 [ClaimReview] Verification update received: van Vliet et al. - 2012 - Integration of clinical and gene expression data has a synergetic effect on predicting breast cancer.txt_0 supports: false
+claimReview.js:1796 [ClaimReview] Updating candidate: van Vliet et al. - 2012 - Integration of clinical and gene expression data has a synergetic effect on predicting breast cancer.txt_0 verified: true supports: false
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Debug log: verification-with-analysis
+workbench.desktop.main.js:523 [Extension Host] [VerificationFeedbackLoop] Cached confidence score: 0.10
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Round 3: Verified snippet Yousefi et al. - 2017 - Predicting clinical outcomes from large scale cancer genomic profiles with deep survival models.md_75 - supports: false
+claimReview.js:1786 [ClaimReview] Verification update received: Yousefi et al. - 2017 - Predicting clinical outcomes from large scale cancer genomic profiles with deep survival models.md_75 supports: false
+claimReview.js:1796 [ClaimReview] Updating candidate: Yousefi et al. - 2017 - Predicting clinical outcomes from large scale cancer genomic profiles with deep survival models.md_75 verified: true supports: false
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Debug log: verification-with-analysis
+workbench.desktop.main.js:523 [Extension Host] [VerificationFeedbackLoop] Cached confidence score: 0.70
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Round 3: Verified snippet ss-3-Multimodaldatainte - supports: true
+claimReview.js:1786 [ClaimReview] Verification update received: ss-3-Multimodaldatainte supports: true
+claimReview.js:1796 [ClaimReview] Updating candidate: ss-3-Multimodaldatainte verified: true supports: true
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Debug log: verification-with-analysis
+workbench.desktop.main.js:523 [Extension Host] [VerificationFeedbackLoop] Cached confidence score: 0.40
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Round 3: Verified snippet van Vliet et al. - 2012 - Integration of clinical and gene expression data has a synergetic effect on predicting breast cancer.txt_1 - supports: false
+claimReview.js:1786 [ClaimReview] Verification update received: van Vliet et al. - 2012 - Integration of clinical and gene expression data has a synergetic effect on predicting breast cancer.txt_1 supports: false
+claimReview.js:1796 [ClaimReview] Updating candidate: van Vliet et al. - 2012 - Integration of clinical and gene expression data has a synergetic effect on predicting breast cancer.txt_1 verified: true supports: false
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Debug log: verification-with-analysis
+workbench.desktop.main.js:523 [Extension Host] [VerificationFeedbackLoop] Cached confidence score: 0.20
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Round 3: Verified snippet ss-3-TheMedSeqProject - supports: false
+claimReview.js:1786 [ClaimReview] Verification update received: ss-3-TheMedSeqProject supports: false
+claimReview.js:1796 [ClaimReview] Updating candidate: ss-3-TheMedSeqProject verified: true supports: false
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Debug log: verification-with-analysis
+workbench.desktop.main.js:523 [Extension Host] [VerificationFeedbackLoop] Cached confidence score: 0.00
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Round 3: Verified snippet Yu et al. - 2024 - Assessing and mitigating batch effects in large-scale omics studies.txt_111 - supports: false
+claimReview.js:1786 [ClaimReview] Verification update received: Yu et al. - 2024 - Assessing and mitigating batch effects in large-scale omics studies.txt_111 supports: false
+claimReview.js:1796 [ClaimReview] Updating candidate: Yu et al. - 2024 - Assessing and mitigating batch effects in large-scale omics studies.txt_111 verified: true supports: false
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Debug log: verification-with-analysis
+workbench.desktop.main.js:523 [Extension Host] [VerificationFeedbackLoop] Cached confidence score: 0.30
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Round 3: Verified snippet ss-3-Integrationofmachi - supports: false
+claimReview.js:1786 [ClaimReview] Verification update received: ss-3-Integrationofmachi supports: false
+claimReview.js:1796 [ClaimReview] Updating candidate: ss-3-Integrationofmachi verified: true supports: false
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Debug log: verification-with-analysis
+workbench.desktop.main.js:523 [Extension Host] [VerificationFeedbackLoop] Cached confidence score: 0.40
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Round 3: Verified snippet van Vliet et al. - 2012 - Integration of clinical and gene expression data has a synergetic effect on predicting breast cancer.txt_4 - supports: false
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Round 3 complete: {snippetsSearched: 6, supportingFound: 0}
+claimReview.js:1786 [ClaimReview] Verification update received: van Vliet et al. - 2012 - Integration of clinical and gene expression data has a synergetic effect on predicting breast cancer.txt_4 supports: false
+claimReview.js:1796 [ClaimReview] Updating candidate: van Vliet et al. - 2012 - Integration of clinical and gene expression data has a synergetic effect on predicting breast cancer.txt_4 verified: true supports: false
+workbench.desktop.main.js:523 [Extension Host] [VerificationFeedbackLoop] Round 3: 0/6 snippets support claim (total: 0)
+workbench.desktop.main.js:523 [Extension Host] [VerificationFeedbackLoop] Round 3 reached - triggering web search in parallel
+workbench.desktop.main.js:523 [Extension Host] [VerificationFeedbackLoop] Web search query: "precision medicine integration large-scale genomic data clinical" (from claim: "Precision medicine requires integration of large-s...")
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Verification loop complete: {rounds: 3, totalSnippets: 31, supportingSnippets: 0}
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Round 4: Found 13 candidates
+workbench.desktop.main.js:523 [Extension Host] [VerificationFeedbackLoop] Verifying web results...
+workbench.desktop.main.js:523 [Extension Host] [VerificationFeedbackLoop] Cache hit for claim-quote pair (confidence: 0.70)
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Round 4: Verified snippet web_1770357025561_0.5521144098141657 - supports: true
+workbench.desktop.main.js:523 [Extension Host] [VerificationFeedbackLoop] Cache hit for claim-quote pair (confidence: 0.80)
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Round 4: Verified snippet web_1770357025561_0.044168343073263006 - supports: true
+workbench.desktop.main.js:523 [Extension Host] [VerificationFeedbackLoop] Cache hit for claim-quote pair (confidence: 0.40)
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Round 4: Verified snippet web_1770357025561_0.941829140767755 - supports: false
+workbench.desktop.main.js:523 [Extension Host] [VerificationFeedbackLoop] Cache hit for claim-quote pair (confidence: 0.80)
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Round 4: Verified snippet web_1770357025561_0.7528695142415838 - supports: true
+claimReview.js:1786 [ClaimReview] Verification update received: web_1770357025561_0.5521144098141657 supports: true
+claimReview.js:1796 [ClaimReview] Updating candidate: web_1770357025561_0.5521144098141657 verified: true supports: true
+claimReview.js:1786 [ClaimReview] Verification update received: web_1770357025561_0.044168343073263006 supports: true
+claimReview.js:1796 [ClaimReview] Updating candidate: web_1770357025561_0.044168343073263006 verified: true supports: true
+claimReview.js:1786 [ClaimReview] Verification update received: web_1770357025561_0.941829140767755 supports: false
+claimReview.js:1796 [ClaimReview] Updating candidate: web_1770357025561_0.941829140767755 verified: true supports: false
+claimReview.js:1786 [ClaimReview] Verification update received: web_1770357025561_0.7528695142415838 supports: true
+claimReview.js:1796 [ClaimReview] Updating candidate: web_1770357025561_0.7528695142415838 verified: true supports: true
+workbench.desktop.main.js:523 [Extension Host] [VerificationFeedbackLoop] Cache hit for claim-quote pair (confidence: 0.80)
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Round 4: Verified snippet web_1770357025561_0.5142031544918461 - supports: true
+workbench.desktop.main.js:523 [Extension Host] [VerificationFeedbackLoop] Cache hit for claim-quote pair (confidence: 0.00)
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Round 4: Verified snippet web_1770357025561_0.38087286176980917 - supports: false
+claimReview.js:1786 [ClaimReview] Verification update received: web_1770357025561_0.5142031544918461 supports: true
+claimReview.js:1796 [ClaimReview] Updating candidate: web_1770357025561_0.5142031544918461 verified: true supports: true
+workbench.desktop.main.js:523 [Extension Host] [VerificationFeedbackLoop] Cache hit for claim-quote pair (confidence: 0.10)
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Round 4: Verified snippet web_1770357025561_0.18403587362032914 - supports: false
+workbench.desktop.main.js:523 [Extension Host] [VerificationFeedbackLoop] Cache hit for claim-quote pair (confidence: 0.00)
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Round 4: Verified snippet web_1770357025561_0.42890753006371696 - supports: false
+workbench.desktop.main.js:523 [Extension Host] [VerificationFeedbackLoop] Cache hit for claim-quote pair (confidence: 0.90)
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Round 4: Verified snippet web_1770357025561_0.4382081269256075 - supports: true
+workbench.desktop.main.js:523 [Extension Host] [VerificationFeedbackLoop] Cache hit for claim-quote pair (confidence: 0.90)
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Round 4: Verified snippet web_1770357025561_0.20728244304145427 - supports: true
+workbench.desktop.main.js:523 [Extension Host] [VerificationFeedbackLoop] Cache hit for claim-quote pair (confidence: 0.80)
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Round 4: Verified snippet web_1770357025561_0.5693318641306678 - supports: true
+workbench.desktop.main.js:523 [Extension Host] [VerificationFeedbackLoop] Cache hit for claim-quote pair (confidence: 0.70)
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Round 4: Verified snippet web_1770357025561_0.48090361044865093 - supports: true
+workbench.desktop.main.js:523 [Extension Host] [VerificationFeedbackLoop] Cache hit for claim-quote pair (confidence: 0.90)
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Round 4: Verified snippet web_1770357025561_0.05943773946818398 - supports: true
+workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Round 4 complete: {snippetsSearched: 13, supportingFound: 9}
+claimReview.js:1786 [ClaimReview] Verification update received: web_1770357025561_0.38087286176980917 supports: false
+claimReview.js:1796 [ClaimReview] Updating candidate: web_1770357025561_0.38087286176980917 verified: true supports: false
+claimReview.js:1786 [ClaimReview] Verification update received: web_1770357025561_0.18403587362032914 supports: false
+claimReview.js:1796 [ClaimReview] Updating candidate: web_1770357025561_0.18403587362032914 verified: true supports: false
+claimReview.js:1786 [ClaimReview] Verification update received: web_1770357025561_0.42890753006371696 supports: false
+claimReview.js:1796 [ClaimReview] Updating candidate: web_1770357025561_0.42890753006371696 verified: true supports: false
+claimReview.js:1786 [ClaimReview] Verification update received: web_1770357025561_0.4382081269256075 supports: true
+claimReview.js:1796 [ClaimReview] Updating candidate: web_1770357025561_0.4382081269256075 verified: true supports: true
+claimReview.js:1786 [ClaimReview] Verification update received: web_1770357025561_0.20728244304145427 supports: true
+claimReview.js:1796 [ClaimReview] Updating candidate: web_1770357025561_0.20728244304145427 verified: true supports: true
+claimReview.js:1786 [ClaimReview] Verification update received: web_1770357025561_0.5693318641306678 supports: true
+claimReview.js:1796 [ClaimReview] Updating candidate: web_1770357025561_0.5693318641306678 verified: true supports: true
+claimReview.js:1786 [ClaimReview] Verification update received: web_1770357025561_0.48090361044865093 supports: true
+claimReview.js:1796 [ClaimReview] Updating candidate: web_1770357025561_0.48090361044865093 verified: true supports: true
+claimReview.js:1786 [ClaimReview] Verification update received: web_1770357025561_0.05943773946818398 supports: true
+claimReview.js:1796 [ClaimReview] Updating candidate: web_1770357025561_0.05943773946818398 verified: true supports: true
+claimReview.js:1439 [ClaimReview] Updated candidate from round complete: web_1770357025561_0.5521144098141657
+claimReview.js:1439 [ClaimReview] Updated candidate from round complete: web_1770357025561_0.044168343073263006
+claimReview.js:1439 [ClaimReview] Updated candidate from round complete: web_1770357025561_0.7528695142415838
+claimReview.js:1439 [ClaimReview] Updated candidate from round complete: web_1770357025561_0.5142031544918461
+claimReview.js:1439 [ClaimReview] Updated candidate from round complete: web_1770357025561_0.4382081269256075
+claimReview.js:1439 [ClaimReview] Updated candidate from round complete: web_1770357025561_0.20728244304145427
+claimReview.js:1439 [ClaimReview] Updated candidate from round complete: web_1770357025561_0.5693318641306678
+claimReview.js:1439 [ClaimReview] Updated candidate from round complete: web_1770357025561_0.48090361044865093
+claimReview.js:1439 [ClaimReview] Updated candidate from round complete: web_1770357025561_0.05943773946818398
+workbench.desktop.main.js:523 [Extension Host] High memory usage in claim review mode: 609MB / 666MB
+ubs @ workbench.desktop.main.js:523
+$logExtensionHostMessage @ workbench.desktop.main.js:523
+S @ workbench.desktop.main.js:11502
+Q @ workbench.desktop.main.js:11502
+M @ workbench.desktop.main.js:11502
+L @ workbench.desktop.main.js:11502
+(anonymous) @ workbench.desktop.main.js:11502
+C @ workbench.desktop.main.js:29
+fire @ workbench.desktop.main.js:29
+fire @ workbench.desktop.main.js:550
+l.onmessage @ workbench.desktop.main.js:11513

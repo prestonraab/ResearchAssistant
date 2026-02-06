@@ -45,7 +45,7 @@ export class LiteratureIndexer {
       }
 
       const files = fs.readdirSync(this.extractedTextPath)
-        .filter(f => f.endsWith('.txt'))
+        .filter(f => f.endsWith('.txt') || f.endsWith('.md'))
         .map(f => path.join(this.extractedTextPath, f));
 
       console.log(`[LiteratureIndexer] Found ${files.length} text files to check`);

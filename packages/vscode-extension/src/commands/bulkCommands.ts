@@ -135,6 +135,17 @@ export function registerBulkCommands(
                 }
 
                 const extracted = await service.extractAllPDFs(uris[0].fsPath);
+
+                // Trigger automatic snippet extraction + embedding for newly extracted fulltexts
+                if (extracted > 0 && extensionState!.literatureIndexer) {
+                  try {
+                    const indexStats = await extensionState!.literatureIndexer.indexChangedFiles();
+                    console.log('[bulkImport:pdfs] Auto-indexed snippets after bulk extraction:', indexStats);
+                  } catch (indexError) {
+                    console.error('[bulkImport:pdfs] Failed to auto-index snippets:', indexError);
+                  }
+                }
+
                 vscode.window.showInformationMessage(`Extracted ${extracted} PDFs`);
                 return;
             }
@@ -265,6 +276,17 @@ export function registerBulkCommands(
             }
 
             vscode.window.showInformationMessage(message, { modal: true });
+
+            // Trigger automatic snippet extraction + embedding for newly extracted fulltexts
+            if (result.successful > 0 && extensionState!.literatureIndexer) {
+              try {
+                const indexStats = await extensionState!.literatureIndexer.indexChangedFiles();
+                console.log('[extractMissingFulltexts] Auto-indexed snippets after batch extraction:', indexStats);
+              } catch (indexError) {
+                console.error('[extractMissingFulltexts] Failed to auto-index snippets:', indexError);
+              }
+            }
+
             papersProvider.refresh();
           }
         );

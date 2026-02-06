@@ -344,6 +344,16 @@ export function registerManuscriptCommands(
             const result = await extensionState!.pdfExtractionService.extractText(pdfPath!);
 
             if (result.success) {
+              // Trigger automatic snippet extraction + embedding for the new fulltext
+              if (extensionState!.literatureIndexer) {
+                try {
+                  const indexStats = await extensionState!.literatureIndexer.indexChangedFiles();
+                  console.log('[extractPdf] Auto-indexed snippets after extraction:', indexStats);
+                } catch (indexError) {
+                  console.error('[extractPdf] Failed to auto-index snippets:', indexError);
+                }
+              }
+
               vscode.window.showInformationMessage(
                 `Extracted ${path.basename(pdfPath!)} successfully!`,
                 'Open Text'

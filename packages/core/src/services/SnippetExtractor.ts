@@ -1,85 +1,132 @@
 /**
- * Extracts meaningful snippets from text for embedding
- * Uses sentence-level chunking with context preservation
+ * Extracts meaningful snippets from text for embedding.
+ * Uses sentence-level chunking with a sliding window overlap so that
+ * ideas spanning chunk boundaries are captured in at least one snippet.
  */
 export class SnippetExtractor {
-  private readonly MIN_SNIPPET_LENGTH = 150; // Minimum characters per snippet (at least one sentence)
-  private readonly MAX_SNIPPET_LENGTH = 500; // Maximum characters per snippet
-  private readonly CONTEXT_SENTENCES = 2; // Sentences of context around key content
+  private readonly MIN_SNIPPET_LENGTH = 100;  // Minimum characters per snippet
+  private readonly MAX_SNIPPET_LENGTH = 1000; // Target maximum characters per snippet
+  private readonly OVERLAP_RATIO = 0.5;       // 50% overlap between consecutive windows
 
   /**
-   * Extract snippets from text
-   * Returns array of text chunks suitable for embedding
+   * Extract overlapping snippets from text using a sliding window over sentences.
+   * Each window advances by ~50% of the target size, so boundary content
+   * appears in two adjacent snippets.
    */
-  extractSnippets(text: string, fileName: string): Array<{ text: string; startLine: number; endLine: number }> {
-    const snippets: Array<{ text: string; startLine: number; endLine: number }> = [];
-
-    // Split into sentences
+  extractSnippets(text: string, _fileName: string): Array<{ text: string; startLine: number; endLine: number }> {
     const sentences = this.splitIntoSentences(text);
     if (sentences.length === 0) {
       return [];
     }
 
-    // Group sentences into meaningful chunks
-    let currentChunk = '';
-    let chunkStartIdx = 0;
+    // Build sentence-level windows
+    const snippets: Array<{ text: string; startLine: number; endLine: number }> = [];
+    const stepChars = Math.round(this.MAX_SNIPPET_LENGTH * (1 - this.OVERLAP_RATIO));
 
-    for (let i = 0; i < sentences.length; i++) {
-      const sentence = sentences[i];
-      const potentialChunk = currentChunk ? currentChunk + ' ' + sentence : sentence;
+    let windowStart = 0;
 
-      // If adding this sentence would exceed max length, save current chunk and start new one
-      if (potentialChunk.length > this.MAX_SNIPPET_LENGTH && currentChunk.length > 0) {
-        if (currentChunk.length >= this.MIN_SNIPPET_LENGTH) {
-          const { startLine, endLine } = this.getLineNumbers(text, currentChunk);
-          snippets.push({
-            text: currentChunk.trim(),
-            startLine,
-            endLine
-          });
-        }
-        currentChunk = sentence;
-        chunkStartIdx = i;
-      } else {
-        currentChunk = potentialChunk;
+    while (windowStart < sentences.length) {
+      // Grow window until we hit MAX_SNIPPET_LENGTH or run out of sentences
+      let windowEnd = windowStart;
+      let windowText = sentences[windowStart];
+
+      // If a single sentence exceeds max length, truncate it
+      if (windowText.length > this.MAX_SNIPPET_LENGTH) {
+        windowText = windowText.substring(0, this.MAX_SNIPPET_LENGTH);
       }
-    }
 
-    // Add final chunk
-    if (currentChunk.length >= this.MIN_SNIPPET_LENGTH) {
-      const { startLine, endLine } = this.getLineNumbers(text, currentChunk);
-      snippets.push({
-        text: currentChunk.trim(),
-        startLine,
-        endLine
-      });
+      while (windowEnd + 1 < sentences.length) {
+        const next = windowText + ' ' + sentences[windowEnd + 1];
+        if (next.length > this.MAX_SNIPPET_LENGTH) {
+          break;
+        }
+        windowEnd++;
+        windowText = next;
+      }
+
+      // Only keep snippets that meet minimum length
+      if (windowText.length >= this.MIN_SNIPPET_LENGTH) {
+        const { startLine, endLine } = this.getLineNumbers(text, windowText);
+        snippets.push({ text: windowText.trim(), startLine, endLine });
+      }
+
+      // Advance the window start by ~stepChars worth of sentences
+      let advancedChars = 0;
+      const prevStart = windowStart;
+      while (windowStart < sentences.length && advancedChars < stepChars) {
+        advancedChars += sentences[windowStart].length;
+        windowStart++;
+      }
+
+      // Safety: always advance at least one sentence to avoid infinite loops
+      if (windowStart === prevStart) {
+        windowStart++;
+      }
     }
 
     return snippets;
   }
 
   /**
-   * Split text into sentences
-   * Handles common abbreviations and edge cases
+   * Split text into sentences.
+   * First splits on paragraph/section boundaries (blank lines, markdown headers),
+   * then splits paragraphs into sentences.
    */
   private splitIntoSentences(text: string): string[] {
-    // Remove extra whitespace
-    text = text.replace(/\s+/g, ' ').trim();
+    // Step 1: Split on structural boundaries (blank lines, markdown headers, list items)
+    const blocks = text.split(/\n\s*\n|(?=^#{1,6}\s)/m)
+      .map(b => b.trim())
+      .filter(b => b.length > 0);
 
-    // Split on sentence boundaries
-    // This regex handles: periods, question marks, exclamation marks
-    // But avoids splitting on abbreviations like "Dr.", "e.g.", "i.e."
-    const sentenceRegex = /(?<=[.!?])\s+(?=[A-Z])|(?<=[.!?])\s+(?=\d)|(?<=[.!?])\s+$/g;
-    
-    let sentences = text.split(sentenceRegex)
-      .map(s => s.trim())
-      .filter(s => s.length > 0);
+    const sentences: string[] = [];
 
-    // If regex split didn't work well, fall back to simple period split
-    if (sentences.length === 1) {
-      sentences = text.split(/[.!?]+/)
+    for (const block of blocks) {
+      // Normalize hard line wraps by intelligently joining lines
+      // This fixes broken words from hard-wrapped text files (e.g., "repositori\nes" -> "repositories")
+      const lines = block.split('\n').map(line => line.trim()).filter(line => line.length > 0);
+      let normalized = '';
+      
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        
+        // If this is not the first line, decide whether to add a space
+        if (i > 0) {
+          const prevLine = lines[i - 1];
+          // Don't add space if previous line ends with incomplete word (no punctuation/space at end)
+          // or if current line starts with lowercase (continuation of word)
+          const prevEndsWithPunctuation = /[.!?,;:\)\]\}]$/.test(prevLine);
+          const currentStartsLowercase = /^[a-z]/.test(line);
+          
+          if (!prevEndsWithPunctuation && currentStartsLowercase) {
+            // Likely a broken word, join without space
+            normalized += line;
+          } else {
+            // Normal line break, add space
+            normalized += ' ' + line;
+          }
+        } else {
+          normalized += line;
+        }
+      }
+      
+      // Final whitespace collapse
+      normalized = normalized.replace(/\s+/g, ' ').trim();
+      if (normalized.length === 0) continue;
+
+      // Step 2: Split block into sentences
+      const sentenceRegex = /(?<=[.!?])\s+(?=[A-Z])|(?<=[.!?])\s+(?=\d)|(?<=[.!?])\s+$/g;
+      let blockSentences = normalized.split(sentenceRegex)
         .map(s => s.trim())
         .filter(s => s.length > 0);
+
+      // Fallback: simple period split if regex didn't split
+      if (blockSentences.length === 1 && normalized.length > this.MAX_SNIPPET_LENGTH) {
+        blockSentences = normalized.split(/[.!?]+/)
+          .map(s => s.trim())
+          .filter(s => s.length > 0);
+      }
+
+      sentences.push(...blockSentences);
     }
 
     return sentences;

@@ -12,6 +12,8 @@ export interface EmbeddedSnippet {
   startLine: number;
   endLine: number;
   timestamp: number;
+  searchSource?: 'literature' | 'semantic-scholar' | 'pubmed' | 'arxiv' | 'crossref' | 'web';
+  metadata?: Record<string, any>;
 }
 
 export interface EmbeddedSnippetWithSimilarity extends EmbeddedSnippet {
@@ -79,7 +81,11 @@ export class EmbeddingStore {
         console.log('[EmbeddingStore] Creating new vectra index');
         await this.vectraIndex.createIndex({
           version: 1,
-          metadata_config: { indexed: ['filePath', 'fileName'] }
+          // Vectra only stores fields listed in metadata_config.indexed
+          // We need to index all fields we want to retrieve later
+          metadata_config: { 
+            indexed: ['filePath', 'fileName', 'text', 'startLine', 'endLine', 'timestamp', 'fileHash'] 
+          }
         });
       }
       // Verify the index is readable by listing items
@@ -103,6 +109,8 @@ export class EmbeddingStore {
    */
   private async recoverFromCorruption(): Promise<void> {
     try {
+      console.warn('[EmbeddingStore] ⚠️  Index corruption detected - initiating automatic recovery');
+      
       // Delete the corrupted index directory
       if (fs.existsSync(this.indexPath)) {
         console.log('[EmbeddingStore] Deleting corrupted index at', this.indexPath);
@@ -118,11 +126,14 @@ export class EmbeddingStore {
       console.log('[EmbeddingStore] Creating fresh vectra index after corruption recovery');
       await this.vectraIndex.createIndex({
         version: 1,
-        metadata_config: { indexed: ['filePath', 'fileName'] }
+        metadata_config: { 
+          indexed: ['filePath', 'fileName', 'text', 'startLine', 'endLine', 'timestamp', 'fileHash'] 
+        }
       });
 
       this.initialized = true;
-      console.log('[EmbeddingStore] Successfully recovered from corruption - index will be rebuilt');
+      console.log('[EmbeddingStore] ✓ Successfully recovered from corruption');
+      console.log('[EmbeddingStore] Please re-run "Index Literature" to rebuild the index');
     } catch (error) {
       console.error('[EmbeddingStore] Failed to recover from corruption:', error);
       throw error;
@@ -283,6 +294,16 @@ export class EmbeddingStore {
     }
 
     for (const snippet of snippets) {
+      // Debug: Log first snippet to see what we're storing
+      if (snippet === snippets[0]) {
+        console.log('[EmbeddingStore] Storing first snippet:', {
+          id: snippet.id,
+          textLength: snippet.text?.length || 0,
+          textPreview: snippet.text?.substring(0, 50) || '(empty)',
+          hasText: !!snippet.text
+        });
+      }
+      
       await this.vectraIndex.insertItem({
         id: snippet.id,
         vector: snippet.embedding,
@@ -309,11 +330,24 @@ export class EmbeddingStore {
 
     try {
       const items = await this.vectraIndex.listItems();
+      
+      // Debug: Log first item to see what metadata is available
+      if (items.length > 0) {
+        const textValue = items[0].metadata.text;
+        console.log('[EmbeddingStore] Sample item metadata:', {
+          id: items[0].id,
+          metadataKeys: Object.keys(items[0].metadata),
+          hasText: 'text' in items[0].metadata,
+          textType: typeof textValue,
+          textLength: typeof textValue === 'string' ? textValue.length : 0
+        });
+      }
+      
       return items.map(item => ({
         id: item.id,
         filePath: item.metadata.filePath as string,
         fileName: item.metadata.fileName as string,
-        text: item.metadata.text as string,
+        text: (item.metadata.text as string) || '',
         embedding: item.vector,
         startLine: item.metadata.startLine as number,
         endLine: item.metadata.endLine as number,
@@ -321,11 +355,29 @@ export class EmbeddingStore {
       }));
     } catch (error) {
       if (error instanceof SyntaxError && error.message.includes('JSON')) {
-        console.warn('[EmbeddingStore] Corrupted index detected during getAllSnippets, recovering...');
+        console.error('[EmbeddingStore] Corrupted index detected during getAllSnippets');
+        console.error('[EmbeddingStore] Attempting automatic recovery...');
         this.initialized = false;
         this.initPromise = null;
         await this.recoverFromCorruption();
-        return [];
+        
+        // Try again after recovery
+        try {
+          const items = await this.vectraIndex.listItems();
+          return items.map(item => ({
+            id: item.id,
+            filePath: item.metadata.filePath as string,
+            fileName: item.metadata.fileName as string,
+            text: (item.metadata.text as string) || '',
+            embedding: item.vector,
+            startLine: item.metadata.startLine as number,
+            endLine: item.metadata.endLine as number,
+            timestamp: item.metadata.timestamp as number
+          }));
+        } catch (retryError) {
+          console.error('[EmbeddingStore] Recovery failed, returning empty array');
+          return [];
+        }
       }
       console.error('[EmbeddingStore] Failed to get all snippets:', error);
       return [];

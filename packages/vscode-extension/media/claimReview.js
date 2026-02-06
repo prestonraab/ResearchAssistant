@@ -1,6 +1,7 @@
 // Claim Review Mode Script
 
 let currentClaim = null;
+let previousClaimId = null;
 let currentVerificationResults = [];
 let currentValidationResult = null;
 let currentUsageLocations = [];
@@ -189,15 +190,35 @@ function displayClaim(message) {
 
   console.log('[ClaimReview] Displaying claim:', currentClaim);
 
-  // Close the quote viewer/search container when switching to a new claim
+  // Only close the search container when switching to a different claim, not on reload
   const searchContainer = document.getElementById('newQuotesContainer');
-  if (searchContainer) {
+  const isSameClaimReload = previousClaimId && previousClaimId === currentClaim.id;
+  
+  console.log('[ClaimReview] Search container state:', {
+    exists: !!searchContainer,
+    visible: searchContainer?.style.display,
+    isSameClaimReload,
+    previousClaimId,
+    currentClaimId: currentClaim.id,
+    candidatesCount: allCandidates.length
+  });
+  
+  if (searchContainer && !isSameClaimReload) {
+    console.log('[ClaimReview] Closing search container - switching to different claim');
+    // Reset search state for a new claim
+    searchInitialized = false;
+    searchComplete = false;
+    allCandidates = [];
+    
     searchContainer.style.display = 'none';
     const list = searchContainer.querySelector('.new-quotes-list');
     if (list) {
       list.innerHTML = '';
     }
+  } else if (searchContainer && isSameClaimReload) {
+    console.log('[ClaimReview] Keeping search container open - same claim reload');
   }
+  previousClaimId = currentClaim.id;
 
   // Display claim header
   const header = document.getElementById('claimHeader');
@@ -311,8 +332,19 @@ function updateVerificationProgress(message) {
 function showAutoFindQuotesState() {
   console.log('[ClaimReview] Auto-find quotes started');
   
-  // Show the new quotes container with searching state
+  // Don't reset if we already have search results displayed
   const container = document.getElementById('newQuotesContainer');
+  const hasExistingResults = container && container.style.display === 'block' && allCandidates.length > 0;
+  
+  if (hasExistingResults) {
+    console.log('[ClaimReview] Search results already displayed, not resetting');
+    return;
+  }
+  
+  // Reset search tracking for the new search
+  searchInitialized = false;
+  
+  // Show the new quotes container with searching state
   if (container) {
     container.style.display = 'block';
     const header = container.querySelector('.new-quotes-header h3');
@@ -699,9 +731,12 @@ function displayQuoteContainer(container, quote, result, type) {
   // Attach event listeners for action buttons
   const deleteBtn = container.querySelector('[data-action="deleteQuote"]');
   if (deleteBtn) {
+    console.log('[ClaimReview] Attaching delete button listener for quote:', quote.substring(0, 50));
     deleteBtn.addEventListener('click', () => {
       deleteQuote(quote);
     });
+  } else {
+    console.warn('[ClaimReview] Delete button not found in container');
   }
   
   const findBtn = container.querySelector('[data-action="findNewQuotes"]');
@@ -1218,7 +1253,9 @@ function deleteCurrentQuote() {
  * Delete quote
  */
 function deleteQuote(quote) {
+  console.log('[ClaimReview] deleteQuote called:', quote);
   showConfirmModal('Delete Quote', 'Are you sure you want to delete this quote?', (confirmed) => {
+    console.log('[ClaimReview] Delete confirmation:', confirmed);
     if (confirmed) {
       vscode.postMessage({
         type: 'deleteQuote',
@@ -1248,6 +1285,11 @@ function recheckQuoteSources() {
  */
 function findNewQuotes() {
   if (!currentClaim) return;
+  
+  // Reset search state for the new search
+  searchInitialized = false;
+  searchComplete = false;
+  allCandidates = [];
   
   // Show/reuse the search container
   const container = document.getElementById('newQuotesContainer');
@@ -1457,6 +1499,8 @@ function displayNewQuotesRound(message) {
  * Display search candidates immediately (before verification)
  */
 let allCandidates = []; // Track all candidates across rounds
+let searchComplete = false; // Track whether all verification rounds have finished
+let searchInitialized = false; // Track whether we've reset for the current search
 const MAX_DISPLAYED_CANDIDATES = 10;
 
 function displaySearchCandidates(message) {
@@ -1471,20 +1515,24 @@ function displaySearchCandidates(message) {
   container.style.display = 'block';
   container.classList.remove('minimized');
 
-  // For round 1, reset candidates
-  if (message.round === 1) {
+  // Only reset once at the start of a new search (first round 1 call)
+  if (message.round === 1 && !searchInitialized) {
     allCandidates = [];
+    searchComplete = false;
+    searchInitialized = true;
   }
 
-  // Add new candidates to tracking array
+  // Add new candidates to tracking array (deduplicate by ID)
   message.candidates.forEach(candidate => {
-    allCandidates.push({
-      ...candidate,
-      round: message.round,
-      verified: false,
-      supports: false,
-      confidence: 0
-    });
+    if (!allCandidates.some(c => c.id === candidate.id)) {
+      allCandidates.push({
+        ...candidate,
+        round: message.round,
+        verified: false,
+        supports: false,
+        confidence: 0
+      });
+    }
   });
 
   // Update header
@@ -1505,46 +1553,81 @@ function renderTopCandidates(container) {
   const list = container.querySelector('.new-quotes-list');
   list.innerHTML = '';
   
-  // Filter out rejected candidates - only show verifying and supporting
-  const visibleCandidates = allCandidates.filter(c => !c.verified || c.supports);
+  const TARGET_DISPLAY = 5;
   
-  // Split into local quotes vs paper leads (web sources)
+  // Separate supporting from non-supporting verified candidates
+  const supportingCandidates = allCandidates.filter(c => c.verified && c.supports);
+  const bestMatchCandidates = searchComplete
+    ? [...allCandidates]
+        .filter(c => c.verified && !c.supports)
+        .sort((a, b) => b.confidence - a.confidence)
+    : [];
+  // Still-verifying candidates (shown during rounds)
+  const verifyingCandidates = allCandidates.filter(c => !c.verified);
+  
+  // Build visible list: supporting first, then fill remaining slots with best matches, then verifying
   const isLocalSource = (c) => c.searchSource === 'literature' || !c.searchSource;
-  const localCandidates = visibleCandidates.filter(isLocalSource);
-  const webCandidates = visibleCandidates.filter(c => !isLocalSource(c));
   
-  // Sort each group: verified supporting (by confidence) > verifying
-  const sortByConfidence = (a, b) => {
-    if (a.verified && a.supports && b.verified && b.supports) {
-      return b.confidence - a.confidence;
+  // Helper to build a merged list for a source group (local or web)
+  function buildDisplayList(filterFn) {
+    const supporting = supportingCandidates.filter(filterFn)
+      .sort((a, b) => b.confidence - a.confidence);
+    const bestMatches = bestMatchCandidates.filter(filterFn);
+    const verifying = verifyingCandidates.filter(filterFn);
+    
+    const result = [];
+    // Add all supporting quotes first
+    result.push(...supporting);
+    // Fill remaining slots with best-match fallbacks (up to TARGET_DISPLAY)
+    const slotsRemaining = Math.max(0, TARGET_DISPLAY - result.length);
+    if (slotsRemaining > 0 && searchComplete) {
+      result.push(...bestMatches.slice(0, slotsRemaining));
     }
-    if (a.verified && a.supports) return -1;
-    if (b.verified && b.supports) return 1;
-    return 0;
-  };
+    // During verification, also show verifying candidates
+    if (!searchComplete) {
+      result.push(...verifying);
+    }
+    return result;
+  }
   
-  const sortedLocal = [...localCandidates].sort(sortByConfidence);
-  const sortedWeb = [...webCandidates].sort(sortByConfidence);
+  const sortedLocal = buildDisplayList(isLocalSource);
+  const sortedWeb = buildDisplayList(c => !isLocalSource(c));
   
   // Render Verified Quotes section (local)
   if (sortedLocal.length > 0) {
     const localSection = document.createElement('div');
     localSection.className = 'candidates-section local-quotes-section';
-    localSection.innerHTML = `
-      <h4 class="candidates-section-header">📁 Verified Quotes <span class="section-count">(${sortedLocal.filter(c => c.verified && c.supports).length} supporting)</span></h4>
-      <p class="section-description">From your indexed literature - ready to cite</p>
-    `;
+    
+    const localSupportingCount = sortedLocal.filter(c => c.verified && c.supports).length;
+    const localBestMatchCount = sortedLocal.filter(c => c.verified && !c.supports).length;
+    
+    if (localBestMatchCount > 0 && localSupportingCount === 0) {
+      localSection.innerHTML = `
+        <h4 class="candidates-section-header">📁 Best Matches <span class="section-count">(top ${localBestMatchCount} by relevance)</span></h4>
+        <p class="section-description">No verified supporting quotes found — showing closest matches from your literature</p>
+      `;
+    } else if (localBestMatchCount > 0) {
+      localSection.innerHTML = `
+        <h4 class="candidates-section-header">📁 Verified Quotes <span class="section-count">(${localSupportingCount} supporting + ${localBestMatchCount} best match${localBestMatchCount !== 1 ? 'es' : ''})</span></h4>
+        <p class="section-description">From your indexed literature</p>
+      `;
+    } else {
+      localSection.innerHTML = `
+        <h4 class="candidates-section-header">📁 Verified Quotes <span class="section-count">(${localSupportingCount} supporting)</span></h4>
+        <p class="section-description">From your indexed literature - ready to cite</p>
+      `;
+    }
     
     const localList = document.createElement('div');
     localList.className = 'candidates-list';
-    sortedLocal.slice(0, 5).forEach((candidate, i) => {
+    sortedLocal.slice(0, TARGET_DISPLAY).forEach((candidate, i) => {
       localList.appendChild(renderCandidate(candidate, i, 'local'));
     });
     
-    if (sortedLocal.length > 5) {
+    if (sortedLocal.length > TARGET_DISPLAY) {
       const moreDiv = document.createElement('div');
       moreDiv.className = 'more-candidates-notice';
-      moreDiv.textContent = `+ ${sortedLocal.length - 5} more local quotes`;
+      moreDiv.textContent = `+ ${sortedLocal.length - TARGET_DISPLAY} more local quotes`;
       localList.appendChild(moreDiv);
     }
     
@@ -1556,21 +1639,37 @@ function renderTopCandidates(container) {
   if (sortedWeb.length > 0) {
     const webSection = document.createElement('div');
     webSection.className = 'candidates-section paper-leads-section';
-    webSection.innerHTML = `
-      <h4 class="candidates-section-header">🔍 Paper Leads <span class="section-count">(${sortedWeb.filter(c => c.verified && c.supports).length} relevant)</span></h4>
-      <p class="section-description">Papers to consider adding to your library</p>
-    `;
+    
+    const webSupportingCount = sortedWeb.filter(c => c.verified && c.supports).length;
+    const webBestMatchCount = sortedWeb.filter(c => c.verified && !c.supports).length;
+    
+    if (webBestMatchCount > 0 && webSupportingCount === 0) {
+      webSection.innerHTML = `
+        <h4 class="candidates-section-header">🔍 Best Paper Leads <span class="section-count">(top ${webBestMatchCount} by relevance)</span></h4>
+        <p class="section-description">Closest matching papers to consider</p>
+      `;
+    } else if (webBestMatchCount > 0) {
+      webSection.innerHTML = `
+        <h4 class="candidates-section-header">🔍 Paper Leads <span class="section-count">(${webSupportingCount} relevant + ${webBestMatchCount} best match${webBestMatchCount !== 1 ? 'es' : ''})</span></h4>
+        <p class="section-description">Papers to consider adding to your library</p>
+      `;
+    } else {
+      webSection.innerHTML = `
+        <h4 class="candidates-section-header">🔍 Paper Leads <span class="section-count">(${webSupportingCount} relevant)</span></h4>
+        <p class="section-description">Papers to consider adding to your library</p>
+      `;
+    }
     
     const webList = document.createElement('div');
     webList.className = 'candidates-list';
-    sortedWeb.slice(0, 5).forEach((candidate, i) => {
+    sortedWeb.slice(0, TARGET_DISPLAY).forEach((candidate, i) => {
       webList.appendChild(renderCandidate(candidate, i, 'web'));
     });
     
-    if (sortedWeb.length > 5) {
+    if (sortedWeb.length > TARGET_DISPLAY) {
       const moreDiv = document.createElement('div');
       moreDiv.className = 'more-candidates-notice';
-      moreDiv.textContent = `+ ${sortedWeb.length - 5} more paper leads`;
+      moreDiv.textContent = `+ ${sortedWeb.length - TARGET_DISPLAY} more paper leads`;
       webList.appendChild(moreDiv);
     }
     
@@ -1663,6 +1762,44 @@ function renderCandidate(candidate, index, type) {
         }
       });
     }
+  } else if (searchComplete) {
+    // Fallback: verified but not supporting — shown as "best match" when no quotes passed verification
+    const percentage = Math.round(candidate.confidence * 100);
+    const stars = Math.round(candidate.confidence * 5);
+    const starDisplay = '★'.repeat(stars) + '☆'.repeat(5 - stars);
+    
+    const buttonLabel = type === 'local' ? 'Add Quote Anyway' : 'Add as Lead';
+    
+    item.className = 'new-quote-item candidate-best-match';
+    item.innerHTML = `
+      <div class="quote-number">${index + 1}</div>
+      <div class="quote-details">
+        <div class="quote-summary">"${escapeHtml(candidate.text)}"</div>
+        <div class="quote-source">${sourceIndicator} ${escapeHtml(displaySource)}${lineInfo}</div>
+        <div class="verification-status best-match">
+          <span class="status-icon">◐</span> Closest match (not verified as supporting)
+          <div style="margin-top: 4px;">Relevance: ${starDisplay} ${percentage}%</div>
+        </div>
+        <button class="btn btn-small btn-secondary" data-action="addQuote" data-snippet-id="${escapeHtml(candidate.id)}" data-confidence="${candidate.confidence}" data-search-source="${candidate.searchSource || 'literature'}" data-quote-text="${escapeHtml(candidate.text)}" data-quote-source="${escapeHtml(candidate.source)}" data-quote-url="${escapeHtml(candidate.filePath || '')}" data-candidate-index="${index}">${buttonLabel}</button>
+      </div>
+    `;
+    
+    // Attach add quote listener
+    const addBtn = item.querySelector('[data-action="addQuote"]');
+    if (addBtn) {
+      addBtn.addEventListener('click', () => {
+        const searchSource = addBtn.getAttribute('data-search-source');
+        if (type === 'web' || searchSource !== 'literature') {
+          const quoteText = addBtn.getAttribute('data-quote-text');
+          const quoteSource = addBtn.getAttribute('data-quote-source');
+          const quoteUrl = addBtn.getAttribute('data-quote-url');
+          const confidence = parseFloat(addBtn.getAttribute('data-confidence')) || 0;
+          acceptWebQuote(quoteText, quoteSource, quoteUrl, confidence, candidate);
+        } else {
+          acceptNewQuote(candidate.id, candidate.filePath || '', candidate.confidence);
+        }
+      });
+    }
   }
   
   return item;
@@ -1710,12 +1847,22 @@ function updateCandidateVerification(message) {
  * Display completion message
  */
 function displayNewQuotesComplete(message) {
+  searchComplete = true;
   const container = document.getElementById('newQuotesContainer');
   if (container) {
+    const supporting = allCandidates.filter(c => c.verified && c.supports).length;
     const status = container.querySelector('.new-quotes-status');
     if (status) {
-      status.textContent = `Search complete: ${message.metadata.supportingFound} supporting quotes found across ${message.metadata.roundsCompleted} rounds`;
+      if (supporting >= 5) {
+        status.textContent = `Search complete: ${supporting} supporting quotes found across ${message.metadata.roundsCompleted} rounds`;
+      } else if (supporting > 0) {
+        status.textContent = `Search complete: ${supporting} supporting quote${supporting !== 1 ? 's' : ''} found, filling remaining slots with best matches`;
+      } else {
+        status.textContent = `No verified supporting quotes found. Showing top candidates by relevance.`;
+      }
     }
+    // Final re-render to fill in best-match fallbacks
+    renderTopCandidates(container);
   }
 }
 
@@ -1846,15 +1993,21 @@ function showError(message) {
 function handleOperationsCancelled(message) {
   console.log('[ClaimReview] Operations cancelled:', message.reason);
   
-  // Always hide the search container when operations are cancelled (e.g., switching claims)
+  // Only hide the search container if we're switching to a different claim
+  // Don't hide it if we're just reloading the same claim (e.g., after adding a quote)
   const searchContainer = document.getElementById('newQuotesContainer');
-  if (searchContainer) {
+  const isSwitchingClaims = message.reason && message.reason.includes('Switching to new claim');
+  
+  if (searchContainer && isSwitchingClaims) {
+    console.log('[ClaimReview] Hiding search container - switching claims');
     searchContainer.style.display = 'none';
     // Clear the contents to prevent stale results from showing
     const list = searchContainer.querySelector('.new-quotes-list');
     if (list) {
       list.innerHTML = '';
     }
+  } else if (searchContainer) {
+    console.log('[ClaimReview] Keeping search container - same claim operation');
   }
   
   // Reset any progress indicators
@@ -1891,6 +2044,8 @@ function showNotification(message, type = 'info') {
 function handleSnippetTextLoaded(message) {
   if (!currentClaim) return;
   
+  console.log('[ClaimReview] handleSnippetTextLoaded:', message);
+  
   const quote = message.text;
   
   // Send message to add quote to supporting quotes
@@ -1911,6 +2066,8 @@ function handleSnippetTextLoaded(message) {
  */
 function acceptNewQuote(snippetId, filePath, confidence = 0) {
   if (!currentClaim) return;
+  
+  console.log('[ClaimReview] acceptNewQuote called:', { snippetId, filePath, confidence });
   
   // Request full text from extension
   vscode.postMessage({
@@ -2380,43 +2537,6 @@ function removeOrphanCitation(authorYear) {
   );
 }
 
-/**
- * Show confirmation modal
- */
-function showConfirmModal(title, message, callback) {
-  const modal = document.createElement('div');
-  modal.className = 'confirm-modal-overlay';
-  modal.innerHTML = `
-    <div class="confirm-modal">
-      <div class="confirm-modal-header">${escapeHtml(title)}</div>
-      <div class="confirm-modal-body">${escapeHtml(message)}</div>
-      <div class="confirm-modal-actions">
-        <button class="btn btn-secondary" id="confirmCancel">Cancel</button>
-        <button class="btn btn-primary" id="confirmOk">Confirm</button>
-      </div>
-    </div>
-  `;
-  
-  document.body.appendChild(modal);
-  
-  modal.querySelector('#confirmCancel').addEventListener('click', () => {
-    modal.remove();
-    callback(false);
-  });
-  
-  modal.querySelector('#confirmOk').addEventListener('click', () => {
-    modal.remove();
-    callback(true);
-  });
-  
-  modal.addEventListener('click', (e) => {
-    if (e.target === modal) {
-      modal.remove();
-      callback(false);
-    }
-  });
-}
-
 // ============================================================================
 // Debug Panel
 // ============================================================================
@@ -2480,6 +2600,46 @@ function renderDebugPanel() {
   content.innerHTML = debugLogs.map((entry, i) => {
     const time = new Date(entry.timestamp).toLocaleTimeString();
     
+    if (entry.type === 'claim-analysis') {
+      const analysis = entry.data.analysis;
+      return `
+        <div class="debug-entry claim-analysis">
+          <div class="debug-header">
+            <span class="debug-type">🔍 Claim Analysis</span>
+            <span class="debug-time">${time}</span>
+          </div>
+          <div class="debug-claim">"${escapeHtml(entry.data.claim)}"</div>
+          ${analysis.keyConcepts?.length ? `
+            <div class="debug-section">
+              <strong>Key Concepts:</strong>
+              <ul>${analysis.keyConcepts.map(c => `<li>${escapeHtml(c)}</li>`).join('')}</ul>
+            </div>
+          ` : ''}
+          ${analysis.requiredElements?.length ? `
+            <div class="debug-section">
+              <strong>Required Elements:</strong>
+              <ul>${analysis.requiredElements.map(e => `<li>${escapeHtml(e)}</li>`).join('')}</ul>
+            </div>
+          ` : ''}
+          ${analysis.strongSupportCriteria ? `
+            <div class="debug-section">
+              <strong>Strong Support:</strong> ${escapeHtml(analysis.strongSupportCriteria)}
+            </div>
+          ` : ''}
+          ${analysis.weakSupportIndicators ? `
+            <div class="debug-section">
+              <strong>Weak/Non-Support:</strong> ${escapeHtml(analysis.weakSupportIndicators)}
+            </div>
+          ` : ''}
+          ${analysis.searchTerms?.length ? `
+            <div class="debug-section">
+              <strong>Search Terms:</strong> ${analysis.searchTerms.map(t => `<code>${escapeHtml(t)}</code>`).join(', ')}
+            </div>
+          ` : ''}
+        </div>
+      `;
+    }
+    
     if (entry.type === 'query-refinement') {
       return `
         <div class="debug-entry">
@@ -2516,6 +2676,28 @@ function renderDebugPanel() {
           </div>
           <div class="debug-snippet">"${escapeHtml(entry.data.snippetText?.substring(0, 100) || '')}..."</div>
           <div class="debug-reasoning">${escapeHtml(entry.data.reasoning || '')}</div>
+        </div>
+      `;
+    }
+
+    if (entry.type === 'verification-with-analysis') {
+      return `
+        <div class="debug-entry ${entry.data.supports ? 'supports' : 'rejects'}">
+          <div class="debug-header">
+            <span class="debug-type">${entry.data.supports ? '✓' : '✗'} Verification with Analysis</span>
+            <span class="debug-time">${time}</span>
+            <span class="debug-confidence">${Math.round(entry.data.confidence * 100)}%</span>
+          </div>
+          <div class="debug-snippet">"${escapeHtml(entry.data.snippet?.substring(0, 150) || '')}..."</div>
+          <details class="debug-details">
+            <summary>Prompt with Claim Analysis</summary>
+            <pre class="debug-prompt">${escapeHtml(entry.data.prompt)}</pre>
+          </details>
+          <details class="debug-details">
+            <summary>LLM Response</summary>
+            <pre class="debug-response">${escapeHtml(entry.data.response)}</pre>
+          </details>
+          <div class="debug-reasoning"><strong>Reasoning:</strong> ${escapeHtml(entry.data.reasoning || '')}</div>
         </div>
       `;
     }
@@ -2568,8 +2750,65 @@ function initDebugPanel() {
         <button class="btn btn-small" onclick="clearDebugLogs()">Clear</button>
       </div>
       <div id="debugPanelContent" class="debug-panel-content"></div>
+      <div class="debug-panel-resize-handle"></div>
     `;
     document.body.appendChild(panel);
+    
+    // Add resize functionality
+    const resizeHandle = panel.querySelector('.debug-panel-resize-handle');
+    let isResizing = false;
+    
+    // Enhanced drag-to-expand functionality
+    resizeHandle.addEventListener('mousedown', (e) => {
+      isResizing = true;
+      const startY = e.clientY;
+      const startHeight = panel.offsetHeight;
+      
+      // Add active state for visual feedback
+      resizeHandle.style.background = 'var(--vscode-focusBorder)';
+      panel.style.userSelect = 'none';
+      
+      const handleMouseMove = (moveEvent) => {
+        if (!isResizing) return;
+        
+        // Calculate new height (dragging up increases height)
+        const deltaY = startY - moveEvent.clientY;
+        const newHeight = Math.max(100, startHeight + deltaY);
+        
+        // Constrain to reasonable maximum (80% of viewport)
+        const maxHeight = window.innerHeight * 0.8;
+        const constrainedHeight = Math.min(newHeight, maxHeight);
+        
+        panel.style.height = constrainedHeight + 'px';
+      };
+      
+      const handleMouseUp = () => {
+        isResizing = false;
+        resizeHandle.style.background = '';
+        panel.style.userSelect = '';
+        document.removeEventListener('mousemove', handleMouseMove);
+        document.removeEventListener('mouseup', handleMouseUp);
+      };
+      
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+      
+      // Prevent text selection during drag
+      e.preventDefault();
+    });
+    
+    // Add hover effect to resize handle
+    resizeHandle.addEventListener('mouseenter', () => {
+      if (!isResizing) {
+        resizeHandle.style.background = 'var(--vscode-panel-border)';
+      }
+    });
+    
+    resizeHandle.addEventListener('mouseleave', () => {
+      if (!isResizing) {
+        resizeHandle.style.background = '';
+      }
+    });
   }
 }
 

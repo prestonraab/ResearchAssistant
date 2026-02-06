@@ -31,6 +31,15 @@ export interface SupportValidation {
   analysis?: string;
 }
 
+export interface ClaimAnalysis {
+  exampleQuote: string;
+  keyConcepts: string[];
+  requiredElements: string[];
+  strongSupportCriteria: string;
+  weakSupportIndicators: string;
+  searchTerms: string[];
+}
+
 /**
  * Implements verification feedback loop:
  * 1. Search literature by embedding similarity
@@ -68,12 +77,12 @@ export class VerificationFeedbackLoop {
     // Initialize caches if workspace root is provided
     if (workspaceRoot) {
       this.confidenceCache = new ClaimQuoteConfidenceCache(workspaceRoot);
-      this.confidenceCache.initialize().catch(error => {
+      this.confidenceCache.initialize().catch((error: any) => {
         console.error('[VerificationFeedbackLoop] Failed to initialize confidence cache:', error);
       });
       
       this.validationCache = new ClaimValidationCache(workspaceRoot);
-      this.validationCache.initialize().catch(error => {
+      this.validationCache.initialize().catch((error: any) => {
         console.error('[VerificationFeedbackLoop] Failed to initialize validation cache:', error);
       });
     }
@@ -148,6 +157,16 @@ export class VerificationFeedbackLoop {
       // Yield to event loop after indexing
       await new Promise(resolve => setImmediate(resolve));
 
+      // Step 0: Analyze the claim to understand what would constitute support
+      checkCancelled();
+      console.log('[VerificationFeedbackLoop] Analyzing claim requirements...');
+      const claimAnalysis = await this.analyzeClaimRequirements(claim);
+      debugLog('claim-analysis', {
+        claim,
+        analysis: claimAnalysis
+      });
+      console.log('[VerificationFeedbackLoop] Claim analysis complete');
+
       // Track pending Semantic Scholar searches (fire-and-forget per round)
       const pendingSemanticScholarResults: Promise<void>[] = [];
 
@@ -162,7 +181,8 @@ export class VerificationFeedbackLoop {
           round,
           seenSnippetIds,
           streamCallbacks,
-          signal
+          signal,
+          claimAnalysis
         );
         pendingSemanticScholarResults.push(semanticScholarPromise);
 
@@ -219,7 +239,9 @@ export class VerificationFeedbackLoop {
           claimEmbedding,
           round,
           streamCallbacks?.onVerificationUpdate,
-          signal
+          signal,
+          claimAnalysis,
+          streamCallbacks?.onDebugLog
         );
         
         checkCancelled();
@@ -245,9 +267,12 @@ export class VerificationFeedbackLoop {
 
         console.log(`[VerificationFeedbackLoop] Round ${round}: ${roundSupportingSnippets.length}/${snippets.length} snippets support claim (total: ${supportingSnippets.length})`);
 
-        // Continue searching until we have at least 5 supporting quotes or run out of rounds
-        if (supportingSnippets.length >= 5) {
-          console.log(`[VerificationFeedbackLoop] Found ${supportingSnippets.length} supporting quotes, stopping`);
+        // Count only local literature snippets (not web sources) towards the 5-quote goal
+        const localSupportingSnippets = supportingSnippets.filter(s => !s.searchSource || s.searchSource === 'literature');
+        
+        // Continue searching until we have at least 5 supporting quotes from local literature or run out of rounds
+        if (localSupportingSnippets.length >= 5) {
+          console.log(`[VerificationFeedbackLoop] Found ${localSupportingSnippets.length} supporting quotes from local literature, stopping`);
           break;
         }
         
@@ -257,7 +282,7 @@ export class VerificationFeedbackLoop {
         // Step 3: Generate multiple refined queries based on verification feedback
         if (round < this.maxRounds) {
           checkCancelled();
-          const { queries: newQueries, debugInfo } = await this.refineQueriesWithDebug(claim, verifications, supportingSnippets, queryHistory);
+          const { queries: newQueries, debugInfo } = await this.refineQueriesWithDebug(claim, verifications, supportingSnippets, queryHistory, claimAnalysis);
           currentQueries = newQueries;
           queryHistory.push(...currentQueries);
           console.log('[VerificationFeedbackLoop] Refined queries:', currentQueries.map(q => q.substring(0, 40)));
@@ -317,6 +342,7 @@ export class VerificationFeedbackLoop {
     streamCallbacks?: { 
       onCandidatesFound?: (round: number, candidates: EmbeddedSnippet[]) => void;
       onVerificationUpdate?: (round: number, snippetId: string, result: VerificationResult) => void;
+      onDebugLog?: (entry: { type: string; timestamp: number; data: any }) => void;
     },
     signal?: AbortSignal
   ): Promise<SearchRound | null> {
@@ -354,7 +380,9 @@ export class VerificationFeedbackLoop {
         [], // No claim embedding for web results
         this.maxRounds + 1,
         streamCallbacks?.onVerificationUpdate,
-        signal
+        signal,
+        undefined,
+        streamCallbacks?.onDebugLog
       );
       
       if (signal?.aborted) return null;
@@ -383,6 +411,7 @@ export class VerificationFeedbackLoop {
     streamCallbacks?: { 
       onCandidatesFound?: (round: number, candidates: EmbeddedSnippet[]) => void;
       onVerificationUpdate?: (round: number, snippetId: string, result: VerificationResult) => void;
+      onDebugLog?: (entry: { type: string; timestamp: number; data: any }) => void;
     },
     onRoundComplete?: (round: SearchRound) => void,
     signal?: AbortSignal
@@ -430,7 +459,9 @@ export class VerificationFeedbackLoop {
     claimEmbedding: number[],
     round: number,
     onVerificationUpdate?: (round: number, snippetId: string, result: VerificationResult) => void,
-    signal?: AbortSignal
+    signal?: AbortSignal,
+    claimAnalysis?: ClaimAnalysis,
+    onDebugLog?: (entry: { type: string; timestamp: number; data: any }) => void
   ): Promise<VerificationResult[]> {
     const results: VerificationResult[] = [];
 
@@ -445,7 +476,7 @@ export class VerificationFeedbackLoop {
         const similarity = claimEmbedding.length > 0 && snippet.embedding?.length > 0
           ? this.calculateCosineSimilarity(claimEmbedding, snippet.embedding)
           : 0;
-        const result = await this.verifySnippet(claim, snippet, similarity);
+        const result = await this.verifySnippetWithAnalysis(claim, snippet, similarity, claimAnalysis, onDebugLog);
         results.push(result);
         
         // Stream verification result if callback provided
@@ -479,7 +510,26 @@ export class VerificationFeedbackLoop {
    * Uses cache if available, otherwise calls LLM
    * Public method for use in quote verification flows
    */
-  async verifySnippet(claim: string, snippet: EmbeddedSnippet, similarity: number = 0): Promise<VerificationResult> {
+  async verifySnippet(
+    claim: string, 
+    snippet: EmbeddedSnippet, 
+    similarity: number = 0,
+    onDebugLog?: (entry: { type: string; timestamp: number; data: any }) => void,
+    claimAnalysis?: ClaimAnalysis
+  ): Promise<VerificationResult> {
+    return this.verifySnippetWithAnalysis(claim, snippet, similarity, claimAnalysis, onDebugLog);
+  }
+
+  /**
+   * Verify a single snippet against the claim using claim analysis for better accuracy
+   */
+  private async verifySnippetWithAnalysis(
+    claim: string, 
+    snippet: EmbeddedSnippet, 
+    similarity: number = 0,
+    claimAnalysis?: ClaimAnalysis,
+    onDebugLog?: (entry: { type: string; timestamp: number; data: any }) => void
+  ): Promise<VerificationResult> {
     // Check cache first
     if (this.confidenceCache) {
       const cached = this.confidenceCache.get(claim, snippet.text);
@@ -506,25 +556,55 @@ export class VerificationFeedbackLoop {
 
     try {
       const similarityPercentage = Math.round(similarity * 100);
-      const prompt = `You are a rigorous fact-checking assistant. Determine if the following snippet directly supports or provides evidence for the specific claim. Do not count tangential or loosely related content as support.
+      
+      // Build analysis context if available
+      let analysisContext = '';
+      if (claimAnalysis && claimAnalysis.keyConcepts.length > 0) {
+        analysisContext = `
+CLAIM ANALYSIS (what constitutes support):
+- Example quote: ${claimAnalysis.exampleQuote}
+- Key concepts that must be addressed: ${claimAnalysis.keyConcepts.join(', ')}
+- Required elements: ${claimAnalysis.requiredElements.join(', ')}
+- Strong support criteria: ${claimAnalysis.strongSupportCriteria}
+- Weak/non-support indicators: ${claimAnalysis.weakSupportIndicators}
+`;
+      }
+      else {
+        analysisContext = `
+CLAIM ANALYSIS (general guidance):
+- Focus on whether the snippet provides direct evidence or support for this specific claim
+- Look for key concepts, phenomena, or mechanisms mentioned in the claim
+- Consider if the snippet describes results, methods, or observations that relate to the claim
+`;
+      }
+
+      const prompt = `You are a rigorous fact-checking assistant. Determine if the following snippet directly supports or provides evidence for the specific claim.
 
 CLAIM: ${claim}
-
+${analysisContext}
 SNIPPET: ${snippet.text}
 
 SEMANTIC SIMILARITY: ${similarityPercentage}% (how textually similar the snippet is to the claim)
 
-Consider the semantic similarity as context, but focus on whether the snippet provides direct evidence or support for the claim, regardless of textual similarity.
+${claimAnalysis ? 'Use the claim analysis above to evaluate whether this snippet addresses the required concepts and meets the criteria for strong support.' : 'Focus on whether the snippet provides direct evidence or support for the claim.'}
 
 Respond in JSON format:
 {
-  "supports": boolean (true only if snippet directly supports or provides evidence for this specific claim),
+  "reasoning": string (brief explanation - which required elements does it address or miss?),
   "confidence": number (0-1, how confident you are that this snippet directly supports the claim),
-  "reasoning": string (brief explanation of why or why not)
+  "supports": boolean (true only if snippet directly supports or provides evidence for this specific claim)
 }`;
 
-      const response = await this.callOpenAIAPI(prompt);
-      const parsed = JSON.parse(response);
+      const response = await this.callOpenAIAPI(prompt, true);
+      
+      // Extract JSON from markdown code blocks if present
+      let jsonStr = response;
+      const jsonMatch = response.match(/```(?:json)?\s*([\s\S]*?)```/);
+      if (jsonMatch) {
+        jsonStr = jsonMatch[1].trim();
+      }
+      
+      const parsed = JSON.parse(jsonStr);
 
       const result = {
         snippet,
@@ -532,6 +612,23 @@ Respond in JSON format:
         confidence: parsed.confidence || 0,
         reasoning: parsed.reasoning || ''
       };
+
+      // Log verification to debug panel
+      if (onDebugLog) {
+        onDebugLog({
+          type: 'verification-with-analysis',
+          timestamp: Date.now(),
+          data: {
+            claim,
+            snippet: snippet.text.substring(0, 200),
+            prompt,
+            response,
+            supports: result.supports,
+            confidence: result.confidence,
+            reasoning: result.reasoning
+          }
+        });
+      }
 
       // Store in cache
       if (this.confidenceCache) {
@@ -547,6 +644,70 @@ Respond in JSON format:
         supports: false,
         confidence: 0,
         reasoning: `Error: ${error}`
+      };
+    }
+  }
+
+  /**
+   * Analyze a claim to understand what would constitute supporting evidence
+   * Returns structured analysis that guides search and verification
+   */
+  private async analyzeClaimRequirements(claim: string): Promise<ClaimAnalysis> {
+    if (!this.openaiApiKey) {
+      return {
+        exampleQuote: '',
+        keyConcepts: [],
+        requiredElements: [],
+        strongSupportCriteria: '',
+        weakSupportIndicators: '',
+        searchTerms: []
+      };
+    }
+
+    try {
+      const prompt = `Analyze this research claim to understand what would constitute supporting evidence.
+
+CLAIM: ${claim}
+
+Respond in JSON format:
+{
+  "exampleQuote": "a short example of a quote that would strongly support this claim",
+  "negativeExamples: ["list of things that would contradict the claim"],
+  "keyConcepts": ["list of 3-5 key concepts that must be addressed"],
+  "requiredElements": ["what specific things must a quote declare to support this claim"],
+  "strongSupportCriteria": "description of what makes a quote strongly support this claim",
+  "weakSupportIndicators": "what would make a quote only weakly related or not actually supporting",
+  "searchTerms": ["5-8 technical terms or phrases to search for"]
+}`;
+
+      const response = await this.callOpenAIAPI(prompt, true);
+      
+      // Extract JSON from markdown code blocks if present
+      let jsonStr = response;
+      const jsonMatch = response.match(/```(?:json)?\s*([\s\S]*?)```/);
+      if (jsonMatch) {
+        jsonStr = jsonMatch[1].trim();
+      }
+      
+      const parsed = JSON.parse(jsonStr);
+      
+      return {
+        exampleQuote: parsed.exampleQuote || '',
+        keyConcepts: parsed.keyConcepts || [],
+        requiredElements: parsed.requiredElements || [],
+        strongSupportCriteria: parsed.strongSupportCriteria || '',
+        weakSupportIndicators: parsed.weakSupportIndicators || '',
+        searchTerms: parsed.searchTerms || []
+      };
+    } catch (error) {
+      console.error('[VerificationFeedbackLoop] Error analyzing claim:', error);
+      return {
+        exampleQuote: '',
+        keyConcepts: [],
+        requiredElements: [],
+        strongSupportCriteria: '',
+        weakSupportIndicators: '',
+        searchTerms: []
       };
     }
   }
@@ -581,7 +742,8 @@ Respond in JSON format:
     claim: string, 
     verifications: VerificationResult[],
     successfulSnippets: EmbeddedSnippet[],
-    queryHistory: string[]
+    queryHistory: string[],
+    claimAnalysis?: ClaimAnalysis
   ): Promise<{ queries: string[]; debugInfo: { prompt: string; response: string } }> {
     if (!this.openaiApiKey) {
       return { queries: [claim], debugInfo: { prompt: '', response: '' } };
@@ -604,11 +766,21 @@ Respond in JSON format:
 
       const previousQueries = queryHistory.slice(-5).join(', ');
 
+      // Build analysis context if available
+      let analysisContext = '';
+      if (claimAnalysis && claimAnalysis.searchTerms.length > 0) {
+        analysisContext = `
+CLAIM ANALYSIS (use these to guide your queries):
+- Key concepts: ${claimAnalysis.keyConcepts.join(', ')}
+- Suggested search terms: ${claimAnalysis.searchTerms.join(', ')}
+`;
+      }
+
       const prompt = `You are helping find academic literature to support a research claim. Generate 3-4 different search queries.
 
 CLAIM TO SUPPORT:
 ${claim}
-
+${analysisContext}
 ${successfulExcerpts ? `EXCERPTS THAT SUCCESSFULLY SUPPORTED THE CLAIM (find more like these):
 ${successfulExcerpts}
 ---` : ''}
@@ -619,11 +791,7 @@ ${failureReasons ? `WHY SOME RESULTS DIDN'T WORK:
 QUERIES ALREADY TRIED (avoid these):
 ${previousQueries}
 
-Generate 3-4 diverse search queries that might find supporting evidence. Each query can be a phrase or sentence fragment (5-15 words). Try different angles:
-- Technical terminology from the claim
-- Related concepts or methods
-- Specific phenomena or effects mentioned
-- Application domains
+Generate 3-4 diverse search queries that might find supporting evidence. Each query can be a phrase or sentence fragment (5-15 words). ${claimAnalysis ? 'Use the suggested search terms and key concepts above.' : 'Try different angles: technical terminology, related concepts, specific phenomena, application domains.'}
 
 Return ONLY the queries, one per line, no numbering or explanation.`;
 
@@ -656,8 +824,10 @@ Return ONLY the queries, one per line, no numbering or explanation.`;
     streamCallbacks?: { 
       onCandidatesFound?: (round: number, candidates: EmbeddedSnippet[]) => void;
       onVerificationUpdate?: (round: number, snippetId: string, result: VerificationResult) => void;
+      onDebugLog?: (entry: { type: string; timestamp: number; data: any }) => void;
     },
-    signal?: AbortSignal
+    signal?: AbortSignal,
+    claimAnalysis?: ClaimAnalysis
   ): Promise<void> {
     try {
       if (signal?.aborted) return;
@@ -681,9 +851,9 @@ Return ONLY the queries, one per line, no numbering or explanation.`;
 
       // Convert papers to snippet-like format for streaming
       const webSnippets = papers
-        .filter(p => p.abstract && p.abstract.length > 50)
+        .filter((p: any) => p.abstract && p.abstract.length > 50)
         .slice(0, 5)
-        .map(paper => {
+        .map((paper: any) => {
           const snippetId = `ss-${round}-${paper.title.substring(0, 20).replace(/\W/g, '')}`;
           if (seenSnippetIds.has(snippetId)) return null;
           seenSnippetIds.add(snippetId);
@@ -723,7 +893,7 @@ Return ONLY the queries, one per line, no numbering or explanation.`;
         if (signal?.aborted) return;
         
         try {
-          const result = await this.verifySnippet(claim, snippet, 0);
+          const result = await this.verifySnippet(claim, snippet, 0, streamCallbacks?.onDebugLog, claimAnalysis);
           
           if (signal?.aborted) return;
           
@@ -790,11 +960,11 @@ Return ONLY the queries, one per line, no numbering or explanation.`;
       
       const papers = await searcher.searchExternal(searchQuery);
       
-      return papers.map(paper => ({
+      return papers.map((paper: any) => ({
         title: paper.title,
         url: paper.url || '',
         snippet: paper.abstract || `${paper.authors.join(', ')} (${paper.year})`,
-      })).filter(r => r.url);
+      })).filter((r: any) => r.url);
     } catch (error) {
       console.error('[VerificationFeedbackLoop] Web search failed:', error);
       return [];
@@ -869,9 +1039,9 @@ Return ONLY the queries, one per line, no numbering or explanation.`;
   /**
    * Call OpenAI API
    */
-  private callOpenAIAPI(prompt: string): Promise<string> {
+  private callOpenAIAPI(prompt: string, jsonMode: boolean = false): Promise<string> {
     return new Promise((resolve, reject) => {
-      const payload = JSON.stringify({
+      const body: any = {
         model: 'gpt-4o-mini',
         messages: [
           {
@@ -880,7 +1050,13 @@ Return ONLY the queries, one per line, no numbering or explanation.`;
           }
         ],
         temperature: 0.3
-      });
+      };
+      
+      if (jsonMode) {
+        body.response_format = { type: 'json_object' };
+      }
+      
+      const payload = JSON.stringify(body);
 
       const options = {
         hostname: 'api.openai.com',

@@ -162,15 +162,17 @@ export class ClaimReviewProvider {
     }
 
     // Cancel any ongoing operations for the previous claim
+    const isActuallySwitchingClaims = this.currentClaimId !== claimId;
     if (this.currentAbortController) {
       console.log('[ClaimReview] Cancelling previous claim operations');
       this.currentAbortController.abort();
       
       // Notify webview that previous operations were cancelled
+      // Only indicate "switching" if we're actually changing claims
       if (this.panel) {
         this.panel.webview.postMessage({
           type: 'operationsCancelled',
-          reason: 'Switching to new claim'
+          reason: isActuallySwitchingClaims ? 'Switching to new claim' : 'Reloading current claim'
         });
       }
     }
@@ -211,6 +213,12 @@ export class ClaimReviewProvider {
         return;
       }
 
+      console.log('[ClaimReview] Sanitized claim for webview:', {
+        id: sanitizedClaim.id,
+        hasPrimaryQuote: !!(sanitizedClaim.primaryQuote && (sanitizedClaim.primaryQuote as any).text),
+        supportingQuotesCount: (sanitizedClaim.supportingQuotes as any[])?.length || 0
+      });
+
       // Enhance with additional data
       const claimData: any = {
         ...sanitizedClaim,
@@ -222,6 +230,7 @@ export class ClaimReviewProvider {
       const cachedValidation = this.verificationFeedbackLoop.getCachedValidation(claim.text);
       
       // Send initial claim data immediately (header + basic info)
+      console.log('[ClaimReview] Sending loadClaim message to webview');
       this.panel.webview.postMessage({
         type: 'loadClaim',
         claim: claimData,
@@ -1155,12 +1164,17 @@ export class ClaimReviewProvider {
    */
   private async handleLoadSnippetText(snippetId: string, filePath: string, confidence: number = 0): Promise<void> {
     try {
+      console.log('[ClaimReview] Loading snippet text:', { snippetId, filePath });
+      
       // Get snippet from embedding store
       const allSnippets = await this.literatureIndexer.getSnippets();
+      console.log('[ClaimReview] Total snippets in store:', allSnippets.length);
+      
       const snippet = allSnippets.find(s => s.id === snippetId);
 
       if (!snippet) {
         console.warn('[ClaimReview] Snippet not found:', snippetId);
+        console.log('[ClaimReview] Available snippet IDs sample:', allSnippets.slice(0, 5).map(s => s.id));
         if (this.panel) {
           this.panel.webview.postMessage({
             type: 'error',
@@ -1170,16 +1184,53 @@ export class ClaimReviewProvider {
         return;
       }
 
+      console.log('[ClaimReview] Found snippet:', {
+        id: snippet.id,
+        textLength: snippet.text?.length || 0,
+        textPreview: snippet.text?.substring(0, 100) || '(empty)',
+        fileName: snippet.fileName,
+        startLine: snippet.startLine,
+        endLine: snippet.endLine
+      });
+
+      // If text is empty, try to read it from the source file
+      let snippetText = snippet.text;
+      if (!snippetText || snippetText.trim() === '') {
+        console.log('[ClaimReview] Text empty in metadata, reading from source file');
+        try {
+          const fs = await import('fs');
+          const sourceContent = fs.readFileSync(snippet.filePath, 'utf-8');
+          const lines = sourceContent.split('\n');
+          
+          // Extract text from line range if available
+          if (snippet.startLine !== undefined && snippet.endLine !== undefined) {
+            snippetText = lines.slice(snippet.startLine, snippet.endLine + 1).join('\n');
+            console.log('[ClaimReview] Extracted text from lines', snippet.startLine, '-', snippet.endLine, 'length:', snippetText.length);
+          } else {
+            console.warn('[ClaimReview] No line range available, cannot extract text from file');
+          }
+        } catch (fileError) {
+          console.error('[ClaimReview] Failed to read text from source file:', fileError);
+        }
+      }
+
       // Send full text to webview
       if (this.panel) {
-        this.panel.webview.postMessage({
+        const message = {
           type: 'snippetTextLoaded',
           snippetId: snippetId,
-          text: snippet.text,
+          text: snippetText || '',
           source: snippet.fileName,
           lineRange: `${snippet.startLine}-${snippet.endLine}`,
           confidence: confidence
+        };
+        console.log('[ClaimReview] Sending snippetTextLoaded message:', {
+          type: message.type,
+          snippetId: message.snippetId,
+          textLength: message.text?.length || 0,
+          source: message.source
         });
+        this.panel.webview.postMessage(message);
       }
     } catch (error) {
       console.error('[ClaimReview] Failed to load snippet text:', error);
@@ -1211,6 +1262,8 @@ export class ClaimReviewProvider {
         return;
       }
 
+      console.log('[ClaimReview] Adding quote to claim:', { claimId, quote: quote.substring(0, 50), source });
+
       // Extract author-year from source filename (format: "Author et al. - YYYY - Title.txt")
       // We need just the "Author et al. - YYYY" part for verification
       const authorYearMatch = source.match(/^([^-]+\s*-\s*\d{4})/);
@@ -1218,6 +1271,7 @@ export class ClaimReviewProvider {
 
       // If primary quote is empty, add to primary quote instead of supporting
       if (!claim.primaryQuote || !claim.primaryQuote.text || claim.primaryQuote.text.trim() === '') {
+        console.log('[ClaimReview] Adding as primary quote');
         claim.primaryQuote = {
           text: quote,
           source: authorYear,
@@ -1225,6 +1279,7 @@ export class ClaimReviewProvider {
           confidence: confidence > 0 ? confidence : undefined
         };
       } else {
+        console.log('[ClaimReview] Adding as supporting quote');
         // Initialize supporting quotes array if needed
         if (!claim.supportingQuotes) {
           claim.supportingQuotes = [];
@@ -1248,6 +1303,7 @@ export class ClaimReviewProvider {
 
       // Update claim
       await this.extensionState.claimsManager.updateClaim(claimId, claim);
+      console.log('[ClaimReview] Claim updated, reloading display');
 
       // Ensure the claim is still linked to its original sentence(s)
       const linkedSentences = this.sentenceClaimMapper.getSentencesForClaim(claimId);

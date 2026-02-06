@@ -188,10 +188,13 @@ export class DataValidationService {
       } : null,
       supportingQuotes: Array.isArray(supportingQuotes) 
         ? supportingQuotes.map((q: unknown) => {
+            if (typeof q === 'string') {
+              return { text: q, source: '', verified: false };
+            }
             const quoteObj = q as Record<string, unknown>;
             return {
-              text: quoteObj.text || q,
-              source: quoteObj.source || '',
+              text: String(quoteObj.text || ''),
+              source: String(quoteObj.source || ''),
               verified: quoteObj.verified ?? false,
               confidence: quoteObj.confidence,
               sourceId: quoteObj.sourceId,

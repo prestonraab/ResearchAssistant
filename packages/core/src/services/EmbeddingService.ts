@@ -190,13 +190,25 @@ export class EmbeddingService {
       return [];
     }
 
+    // Approximate token limit constants for text-embedding-3-small
+    const MAX_TOKENS_PER_INPUT = 8191;
+    const MAX_TOKENS_PER_REQUEST = 300000;
+    // Conservative estimate: ~3 chars per token for academic/technical text
+    const CHARS_PER_TOKEN = 3;
+    const MAX_CHARS_PER_INPUT = MAX_TOKENS_PER_INPUT * CHARS_PER_TOKEN;
+
     const results: number[][] = [];
     const uncachedTexts: string[] = [];
     const uncachedIndices: number[] = [];
 
-    // Check cache for each text
+    // Check cache for each text, truncate oversized inputs
     for (let i = 0; i < texts.length; i++) {
-      const text = texts[i];
+      let text = texts[i];
+      // Truncate individual texts that would exceed per-input token limit
+      if (text.length > MAX_CHARS_PER_INPUT) {
+        text = text.substring(0, MAX_CHARS_PER_INPUT);
+      }
+
       const cacheKey = this.getCacheKey(text);
 
       if (this.cache.has(cacheKey)) {
@@ -217,36 +229,60 @@ export class EmbeddingService {
       }
     }
 
-    // Generate embeddings for uncached texts with rate limiting
+    // Generate embeddings for uncached texts, chunked to stay under per-request token limit
     if (uncachedTexts.length > 0) {
-      await this.queueRequest(async () => {
-        try {
-          const response = await this.openai.embeddings.create({
-            model: this.model,
-            input: uncachedTexts,
-          });
+      // Split uncached texts into sub-batches that fit within the per-request token limit
+      const subBatches: { texts: string[]; indices: number[] }[] = [];
+      let currentBatchTexts: string[] = [];
+      let currentBatchIndices: number[] = [];
+      let currentBatchChars = 0;
+      const maxCharsPerRequest = MAX_TOKENS_PER_REQUEST * CHARS_PER_TOKEN;
 
-          // Store results in correct positions
-          for (let i = 0; i < uncachedTexts.length; i++) {
-            const embedding = response.data[i].embedding;
-            const originalIndex = uncachedIndices[i];
-            const cacheKey = this.getCacheKey(uncachedTexts[i]);
-
-            results[originalIndex] = embedding;
-            this.cache.set(cacheKey, embedding);
-            this.saveToDiskCache(cacheKey, embedding);
-          }
-
-          // Trim cache if needed
-          if (this.cache.size > this.maxCacheSize) {
-            this.trimCache(this.maxCacheSize);
-          }
-        } catch (error) {
-          throw new Error(
-            `Failed to generate batch embeddings. Check your OpenAI API key and internet connection. ${error instanceof Error ? error.message : String(error)}`
-          );
+      for (let i = 0; i < uncachedTexts.length; i++) {
+        const textChars = uncachedTexts[i].length;
+        if (currentBatchTexts.length > 0 && currentBatchChars + textChars > maxCharsPerRequest) {
+          subBatches.push({ texts: currentBatchTexts, indices: currentBatchIndices });
+          currentBatchTexts = [];
+          currentBatchIndices = [];
+          currentBatchChars = 0;
         }
-      });
+        currentBatchTexts.push(uncachedTexts[i]);
+        currentBatchIndices.push(uncachedIndices[i]);
+        currentBatchChars += textChars;
+      }
+      if (currentBatchTexts.length > 0) {
+        subBatches.push({ texts: currentBatchTexts, indices: currentBatchIndices });
+      }
+
+      for (const subBatch of subBatches) {
+        await this.queueRequest(async () => {
+          try {
+            const response = await this.openai.embeddings.create({
+              model: this.model,
+              input: subBatch.texts,
+            });
+
+            for (let i = 0; i < subBatch.texts.length; i++) {
+              const embedding = response.data[i].embedding;
+              const originalIndex = subBatch.indices[i];
+              const cacheKey = this.getCacheKey(subBatch.texts[i]);
+
+              results[originalIndex] = embedding;
+              this.cache.set(cacheKey, embedding);
+              this.saveToDiskCache(cacheKey, embedding);
+            }
+          } catch (error) {
+            throw new Error(
+              `Failed to generate batch embeddings. Check your OpenAI API key and internet connection. ${error instanceof Error ? error.message : String(error)}`
+            );
+          }
+        });
+      }
+
+      // Trim cache if needed
+      if (this.cache.size > this.maxCacheSize) {
+        this.trimCache(this.maxCacheSize);
+      }
     }
 
     return results;
