@@ -73,19 +73,22 @@
 
 ## Adjusters for Gene Expression
 
+> [!question]- What are adjusters? (status:: DRAFT)
+> Statistical adjustment methods, commonly referred to as adjusters or batch correction methods, aim to remove technical variation while preserving biological signal. The balance between these objectives varies across methods and contexts.
+
 > [!question]- How do adjusters work? (status:: undefined)
 > Adjusters work by modeling and removing systematic technical variation introduced by batch effects, thereby improving the ability of downstream classifiers to distinguish true biological differences without influence from technical artifacts. These methods operate under the assumption that the underlying biological signal is consistent across batches, and that technical variation can be separated from biological variation.
 
-> [!question]- How can gene expression measurements be categorized? (status:: DRAFT)
+> [!question]- How can gene expression measurements be categorized? (status:: undefined)
 > The effectiveness of adjusters depends on the data type. For instance, gene expression measurements can be categorized into those which measure the bulk gene expression in a large sample, and those which measure the gene expression for thousands of individual cells.
 
 > [!question]- How does Combat adjust bulk data? (status:: undefined)
 > For bulk data, a common adjusting approach is ComBat, developed in 2007. Combat adjusts for batch effects by modeling batch-specific shifts and scaling factors for each gene.  The transformation that Combat applies is linear: each expression value for a particular gene is shifted and scaled the same as each other expression value for that gene. While the transformation acts on each gene seperately, the calculation of the correct transformation uses statistics across all genes to mitigate the effects of outliers. This transformation works well for bulk gene expression data, which varies continuously due to the continuous proportions of cell types represented in the sample. [source:: C_01]
 
-> [!question]- What is used to adjust single cell data? (status:: DRAFT)
+> [!question]- What is used to adjust single cell data? (status:: undefined)
 > Single cell data requires a different kind of adjustment. Single cell gene expression is characterized by distinct expression signatures for each cell type, with internal variation caused by various cell states at measurement time.  If bulk data is a continent of continuous variation, single cell data occupies islands of specialized differentiation.
 
-> [!question]- How is single cell data adjusted? (status:: DRAFT)
+> [!question]- How is single cell data adjusted? (status:: undefined)
 > Single cell adjusters may assume that samples of similar cell types will exhibit similar expression patterns, even in the presence of batch effects. By finding "nearerst neighbors", or the samples that have the most similar expression between batches, adjusters such as Harmony and Seurat can identify how to move cross-batch neighbors closer together to bring the batches into alignment. Since neighbors are found using many genes, and the transformation is sample-specific, the adjustment of single cell data is typically nonlinear.
 
 
@@ -93,67 +96,46 @@
 ## Confounding
 
 > [!question]- What is confounding? (status:: undefined)
-> These batch effects mimic real differences in expression levels and covariance structures between batches. Removing all differences can erase true differences between datasets. For example, one study might have a higher proportion of females than another study. It might be difficult to determine whether the differences in gene expression are technical artifact that should be removed, or true differences due to the sex imbalance between datasets. We might say that the batch effect is "confounded" with sex—the effect of the batch is somewhat tied to the effect of the sex imbalance on gene expression.
+> Batch effects can mimic or mask real differences in expression levels and covariance structures between batches. Not all differences between datasets are due to technical artifacts; not all differences should be removed. For example, two studies might have the same split of positive and negative cases, but different proportions of females. It might be difficult to determine whether the differences in gene expression between batches are technical artifacts that should be removed, or true differences due to the sex imbalance between datasets. We might say that the batch effect is "confounded" with sex—the effect of the batch on gene expression is somewhat tied up with the effect of the sex imbalance.
 
 > [!question]- How can confounding be resolved? (status:: undefined)
-> Confounding can often be removed if the batches are known and the values of the confounding variables are known.
+> Confounding can often be removed if the values of the confounding variables are known.
 
 > [!question]- How specifically does Combat account for confounding? (status:: undefined)
-> Draft
+> Combat, when provided with additional metadata for each sample, can temporarily remove the associations between the metadata and the gene expression, remove the remaining batch effects, then add back the metadata associations.
 
 > [!question]- When is confounding difficult to overcome? (status:: undefined)
-> If these other variables are not known, population differences can masquerade as technical artifacts.
+> However, if these other variables are not known, due to poor recording or unknown population differences, correcting for confounding can be more difficult.
 
-> [!question]- How should unknown batch effects be positioned? (status:: undefined)
-> Briefly acknowledge unknown batch effects and SVA, but clearly scope them as beyond the chapter's focus on known batch correction.
+> [!question]- How can dataset differences be preserved? (status:: undefined)
+> Some methods, like LIGER, have been developed to deal with this problem. LIGER uses matrix factorization of single cell data to identify shared and dataset-specific features of cell identity. Once differences are identified, they can be preserved, minimizing false alignment of the datasets.
 
-> [!question]- First mention of SVA: Define the problem (status:: undefined)
-> In some cases, batch labels may be unknown or only partially known, particularly when working with publicly available data where experimental metadata may be incomplete. Sometimes we don't know the batch labels—especially with public data where complete experimental metadata may not be provided. Methods such as surrogate variable analysis (SVA) can identify and adjust for unknown batch effects by extracting surrogate variables from high-dimensional data that capture unwanted effects. SVA was introduced by Leek and Storey (2007) to model unknown, latent sources of variation in genomics data, and is available in the Bioconductor sva package. This topic extends beyond the scope of the present chapter, which focuses on supervised batch correction methods where batch labels are known. A second discussion of SVA appears in "The Horizon" section, where we examine how SVA is being integrated into modern automated pipelines for advanced applications.
+> [!question]- How to deal with unknown batches? (status:: undefined)
+> A separate but related problem occurs when the batches are not known. Methods such as surrogate variable analysis (SVA) can identify and adjust for unknown batch effects by extracting surrogate variables that capture unwanted effects.
 
-> [!question]- How can unknown batch effect be adjusted for in single cell data? (status:: DRAFT)
-> 
+> [!question]- Why does batch effect mitigation matter clinically? (status:: undefined)
+> Batch effects must by identified and accounted for. If batch effects go undetected, predictors developed for clinical outcomes may produce results that are more variable than expected, resulting in lower-than-expected classification rates that might put patients at risk. Even modest drops in classifier performance due to batch effects can mean the difference between accurate diagnosis and misclassification.
 
-> [!question]- Transition to classifiers (status:: undefined)
-> We now transition to examining the classifiers themselves, followed by the adjustment methods designed to address batch effects, and finally the interaction between these two components in determining overall classification performance.
+> [!question]- Transition (status:: DRAFT)
+> To understand the effects of adjustment on classification, we will first describe the landscape of modern classification.
 
 
 
 ## Extras
 
-> [!question]- Why does batch effect mitigation matter clinically? (status:: undefined)
-> If batch effects go undetected, predictors developed for clinical outcomes may produce results that are more variable than expected, resulting in lower-than-expected classification rates that might put patients at risk. Even modest drops in classifier performance due to batch effects can mean the difference between accurate diagnosis and misclassification.
-
-> [!question]- How important is single-patient data? (status:: undefined)
-> Single-patient data processing is vital to the translation of molecular assays, as patient samples in clinical settings are typically collected in small numbers, often one at a time, making batch effect correction essential for clinical translation.
-
-> [!question]- New question? (status:: undefined)
-> However, many correction techniques rely on several samples to characterize the distribution of the new batch.
-
-> [!question]- How can batch effects can be remedied? (status:: undefined)
-> Statistical adjustment methods, commonly referred to as adjusters or batch correction methods, aim to remove technical variation while preserving biological signal. The balance between these objectives varies across methods and contexts. [source:: C_01, C_02]
+> [!question]- How important is single-patient data? (status:: DRAFT)
+> Single-patient data processing is vital to the translation of molecular assays, as patient samples in clinical settings are typically collected in small numbers, often one at a time, making batch effect correction essential for clinical translation. However, many correction techniques rely on several samples to characterize the distribution of the new batch.
 
 
 
 ## Machine Learning Classifiers for Gene Expression Data
 
-> [!question]- How should the classifiers section be framed? (status:: undefined)
-> Frame classifiers in the context of the $p \gg n$ problem (features vastly outnumber samples) that is characteristic of gene expression data. Emphasize the shift from traditional methods to modern approaches.
-
-> [!question]- What is the opening framing for classifiers? (status:: undefined)
-> The landscape of gene expression classification has shifted from traditional linear discriminant analysis toward methods capable of handling the $p \gg n$ problem, where the number of features (genes) vastly outnumbers the number of samples.
-
-> [!question]- Explain great performing classifiers in general (status:: undefined)
-> Machine learning classifiers have demonstrated strong performance across diverse biomedical classification tasks. The field encompasses both traditional statistical methods and modern machine learning approaches, with the direction of the field increasingly favoring flexible, data-driven methods that can capture complex patterns in high-dimensional data. [source:: C_05]
-
 > [!question]- ML, traditional, broad strokes, direction of field in usage (status:: undefined)
-> The field has evolved from traditional statistical methods (logistic regression, linear discriminant analysis) toward modern machine learning approaches (support vector machines, random forests, neural networks). The direction increasingly favors flexible, data-driven methods that can capture complex, non-linear patterns in high-dimensional genomic data. [source:: C_05]
+> Classification has evolved from traditional statistical methods (logistic regression, linear discriminant analysis) toward modern machine learning approaches (support vector machines, random forests, neural networks). The direction increasingly favors flexible methods that can capture complex, non-linear patterns in high-dimensional data. Modern techniques often use iterative and random (stochastic) training, improving the model in small steps to classify the training data correctly.[source:: C_05]
 
 
 
 ## Classifier Architectures
-
-> [!question]- How should classifiers be organized? (status:: undefined)
-> Group classifiers into three architectural categories: Regularized Linear Models, Ensemble Methods, and Non-linear Geometric Models. This organization emphasizes how different approaches handle high-dimensional genomic data.
 
 > [!question]- What specific classifiers do well with gene expression? (status:: undefined)
 > For gene expression data specifically, benchmark studies have identified several classifier types that perform particularly well: support vector machines (SVM) and random forests have been highlighted as top performers, with SVMs significantly outperforming random forests in some cases, though random forests outperform SVMs in others. Logistic regression with regularization (elastic net, lasso, ridge) and neural networks (when sufficient data are available) also show strong performance. Each classifier type has distinct characteristics that make it suitable for different scenarios and data types. [source:: C_06]
