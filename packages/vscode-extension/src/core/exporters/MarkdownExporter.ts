@@ -281,7 +281,7 @@ link-citations: true
     }
 
     try {
-      const items = await this.zoteroApiService.getItems(100);
+      const items = await this.zoteroApiService.getItems(500);
       const entries: string[] = [];
       
       // Generate entries for AuthorYear citations from [source:: ...] tags

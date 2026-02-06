@@ -30,6 +30,18 @@ export interface ZoteroItem {
   doi?: string;
   tags?: string[];
   attachments?: ZoteroAttachment[];
+  // Journal article fields
+  publicationTitle?: string;
+  volume?: string;
+  issue?: string;
+  pages?: string;
+  // Book fields
+  publisher?: string;
+  place?: string;
+  edition?: string;
+  // Identifiers
+  isbn?: string;
+  issn?: string;
 }
 
 export interface ZoteroAttachment {
@@ -162,7 +174,30 @@ export class ZoteroApiService {
         throw new Error(`Failed to fetch items: ${response.status}`);
       }
 
-      const items = (Array.isArray(response.data) ? response.data : []) as ZoteroItem[];
+      // Zotero API returns items with nested 'data' property
+      // Flatten the structure to match our ZoteroItem interface
+      const rawItems = Array.isArray(response.data) ? response.data : [];
+      const items: ZoteroItem[] = rawItems.map((item: any) => ({
+        key: item.key,
+        title: item.data?.title || '',
+        itemType: item.data?.itemType || 'document',
+        creators: item.data?.creators || [],
+        date: item.data?.date,
+        abstractNote: item.data?.abstractNote,
+        url: item.data?.url,
+        doi: item.data?.DOI,
+        tags: item.data?.tags,
+        publicationTitle: item.data?.publicationTitle,
+        volume: item.data?.volume,
+        issue: item.data?.issue,
+        pages: item.data?.pages,
+        publisher: item.data?.publisher,
+        place: item.data?.place,
+        edition: item.data?.edition,
+        isbn: item.data?.ISBN,
+        issn: item.data?.ISSN
+      }));
+      
       this.setCache(cacheKey, items);
       return items;
     } catch (error) {

@@ -75,9 +75,23 @@ export class ZoteroFieldInjector {
 
       onProgress?.('🔍 Scanning for citation fields...');
       
-      // Count how many fields we'll convert
-      const fieldMatches = documentXml.match(/<w:fldSimple\s+w:instr="[^"]*ADDIN\s+ZOTERO_ITEM[^"]*">[^]*?<\/w:fldSimple>/g) || [];
+      // Count how many fields we'll convert - match self-closing fldSimple tags
+      const fieldMatches = documentXml.match(/<w:fldSimple\s+w:instr="[^"]*ADDIN\s+ZOTERO_ITEM[^"]*"\s*\/>/g) || [];
       this.report.totalFields = fieldMatches.length;
+      
+      console.log('[ZoteroFieldInjector] Searching for pattern: <w:fldSimple w:instr="...ADDIN ZOTERO_ITEM..." />');
+      console.log('[ZoteroFieldInjector] Found', fieldMatches.length, 'matching fields');
+      
+      // Also check if there are ANY fldSimple elements at all
+      const allSimpleFields = documentXml.match(/<w:fldSimple[^>]*>/g) || [];
+      console.log('[ZoteroFieldInjector] Total <w:fldSimple> elements found:', allSimpleFields.length);
+      if (allSimpleFields.length > 0) {
+        console.log('[ZoteroFieldInjector] First fldSimple element:', allSimpleFields[0]);
+      }
+      
+      // Check if ADDIN ZOTERO_ITEM appears anywhere in the document
+      const hasZoteroText = documentXml.includes('ADDIN ZOTERO_ITEM');
+      console.log('[ZoteroFieldInjector] Document contains "ADDIN ZOTERO_ITEM":', hasZoteroText);
       
       if (this.report.totalFields === 0) {
         onProgress?.('⚠️ No Zotero citation fields found');
@@ -116,12 +130,10 @@ export class ZoteroFieldInjector {
   /**
    * Convert SimpleField elements to complex field structures
    * 
-   * Transforms:
-   *   <w:fldSimple w:instr="ADDIN ZOTERO_ITEM ...">
-   *     <w:r><w:t>citation text</w:t></w:r>
-   *   </w:fldSimple>
+   * Transforms self-closing SimpleField tags:
+   *   <w:fldSimple w:instr="ADDIN ZOTERO_ITEM ..." />
    * 
-   * Into:
+   * Into complex field structure:
    *   <w:r><w:fldChar w:fldCharType="begin"/></w:r>
    *   <w:r><w:instrText xml:space="preserve"> ADDIN ZOTERO_ITEM ... </w:instrText></w:r>
    *   <w:r><w:fldChar w:fldCharType="separate"/></w:r>
@@ -129,33 +141,40 @@ export class ZoteroFieldInjector {
    *   <w:r><w:fldChar w:fldCharType="end"/></w:r>
    */
   private convertSimpleFieldsToComplex(xml: string): string {
-    // Match SimpleField elements that contain ADDIN ZOTERO_ITEM
-    const simpleFieldRegex = /<w:fldSimple\s+w:instr="([^"]*ADDIN\s+ZOTERO_ITEM[^"]*)">([^]*?)<\/w:fldSimple>/g;
+    // Match self-closing SimpleField elements that contain ADDIN ZOTERO_ITEM
+    const simpleFieldRegex = /<w:fldSimple\s+w:instr="([^"]*ADDIN\s+ZOTERO_ITEM[^"]*)"\s*\/>/g;
 
     let sampleCount = 0;
     const maxSamples = 3;
 
-    return xml.replace(simpleFieldRegex, (match, instruction, content) => {
+    return xml.replace(simpleFieldRegex, (match, instruction) => {
       try {
         // The instruction is already XML-escaped by the docx library (&quot; etc.)
         // We need to unescape it for the instrText element
         const unescapedInstruction = this.unescapeXml(instruction);
         
-        // Extract the text content from inside the SimpleField
-        // The content typically contains <w:r><w:t>text</w:t></w:r>
-        const textMatch = content.match(/<w:t[^>]*>([^<]*)<\/w:t>/);
-        const displayText = textMatch ? textMatch[1] : '';
+        // Extract display text from the CSL citation if possible
+        let displayText = '[Citation]';
+        try {
+          const cslMatch = unescapedInstruction.match(/CSL_CITATION\s+(\{.*\})/);
+          if (cslMatch) {
+            const cslData = JSON.parse(cslMatch[1]);
+            displayText = cslData.properties?.formattedCitation || displayText;
+          }
+        } catch (e) {
+          // Fallback to default display text
+        }
 
         // Build the complex field structure
         const complexField = [
           // Begin field character
           '<w:r><w:fldChar w:fldCharType="begin"/></w:r>',
           // Field instruction - note: instrText content should NOT be XML-escaped
-          `<w:r><w:instrText xml:space="preserve"> ${unescapedInstruction} </w:instrText></w:r>`,
+          `<w:r><w:instrText xml:space="preserve">${unescapedInstruction}</w:instrText></w:r>`,
           // Separator
           '<w:r><w:fldChar w:fldCharType="separate"/></w:r>',
-          // Display text (field result) - this should remain escaped
-          `<w:r><w:t>${displayText}</w:t></w:r>`,
+          // Display text (field result)
+          `<w:r><w:t>${this.escapeXml(displayText)}</w:t></w:r>`,
           // End field character
           '<w:r><w:fldChar w:fldCharType="end"/></w:r>'
         ].join('');

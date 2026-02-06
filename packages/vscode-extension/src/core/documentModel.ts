@@ -149,6 +149,9 @@ export interface CslItemData {
   
   /** Publisher place */
   'publisher-place'?: string;
+  
+  /** Edition */
+  edition?: string;
 }
 
 /**

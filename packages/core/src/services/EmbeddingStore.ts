@@ -53,8 +53,10 @@ export class EmbeddingStore {
   private fileHashes: Map<string, string> = new Map();
   private initialized: boolean = false;
   private initPromise: Promise<void> | null = null;
+  private workspaceRoot: string;
 
   constructor(workspaceRoot: string) {
+    this.workspaceRoot = workspaceRoot;
     this.indexPath = path.join(workspaceRoot, '.cache', 'vectra-index');
     this.fileHashesPath = path.join(workspaceRoot, '.cache', 'file-hashes.json');
     this.vectraIndex = new LocalIndex(this.indexPath);
@@ -133,11 +135,47 @@ export class EmbeddingStore {
         const data = fs.readFileSync(this.fileHashesPath, 'utf-8');
         const parsed = JSON.parse(data);
         this.fileHashes = new Map(parsed);
-        console.log('[EmbeddingStore] Loaded', this.fileHashes.size, 'file hashes');
+        console.log('[EmbeddingStore] Loaded', this.fileHashes.size, 'file hashes from', this.fileHashesPath);
+        if (this.fileHashes.size > 0) {
+          const firstKey = Array.from(this.fileHashes.keys())[0];
+          console.log('[EmbeddingStore] Sample key:', firstKey);
+        }
+      } else {
+        console.log('[EmbeddingStore] No file hashes found at', this.fileHashesPath);
+        console.log('[EmbeddingStore] Will attempt to recover from vectra index on first use');
       }
     } catch (error) {
       console.error('[EmbeddingStore] Failed to load file hashes:', error);
       this.fileHashes = new Map();
+    }
+  }
+
+  /**
+   * Recover file hashes from vectra index metadata
+   * Called when file-hashes.json is missing but vectra index exists
+   */
+  private async recoverFileHashesFromIndex(): Promise<void> {
+    try {
+      await this.ensureInitialized();
+      const items = await this.vectraIndex.listItems();
+      
+      const recoveredHashes = new Map<string, string>();
+      for (const item of items) {
+        const fileName = item.metadata.fileName as string;
+        const fileHash = item.metadata.fileHash as string | undefined;
+        
+        if (fileName && fileHash && !recoveredHashes.has(fileName)) {
+          recoveredHashes.set(fileName, fileHash);
+        }
+      }
+      
+      if (recoveredHashes.size > 0) {
+        console.log(`[EmbeddingStore] Recovered ${recoveredHashes.size} file hashes from vectra index`);
+        this.fileHashes = recoveredHashes;
+        this.saveFileHashes();
+      }
+    } catch (error) {
+      console.error('[EmbeddingStore] Failed to recover file hashes from index:', error);
     }
   }
 
@@ -147,14 +185,45 @@ export class EmbeddingStore {
       if (!fs.existsSync(dir)) {
         fs.mkdirSync(dir, { recursive: true });
       }
+      
+      // Reload from disk to merge with any concurrent updates
+      let existingHashes = new Map<string, string>();
+      if (fs.existsSync(this.fileHashesPath)) {
+        try {
+          const data = fs.readFileSync(this.fileHashesPath, 'utf-8');
+          const parsed = JSON.parse(data);
+          existingHashes = new Map(parsed);
+        } catch (error) {
+          console.warn('[EmbeddingStore] Could not read existing hashes, will overwrite:', error);
+        }
+      }
+      
+      // Merge: our in-memory hashes take precedence
+      for (const [key, value] of this.fileHashes.entries()) {
+        existingHashes.set(key, value);
+      }
+      
+      // Write atomically using a temp file
+      const tempPath = this.fileHashesPath + '.tmp';
       fs.writeFileSync(
-        this.fileHashesPath,
-        JSON.stringify(Array.from(this.fileHashes.entries())),
+        tempPath,
+        JSON.stringify(Array.from(existingHashes.entries())),
         'utf-8'
       );
+      fs.renameSync(tempPath, this.fileHashesPath);
+      
+      console.log(`[EmbeddingStore] Saved ${existingHashes.size} file hashes`);
     } catch (error) {
       console.error('[EmbeddingStore] Failed to save file hashes:', error);
     }
+  }
+
+  /**
+   * Get a stable key for file hash tracking
+   * Uses just the filename to avoid path-dependent issues
+   */
+  private getFileKey(filePath: string): string {
+    return path.basename(filePath);
   }
 
   private computeFileHash(content: string): string {
@@ -162,13 +231,38 @@ export class EmbeddingStore {
   }
 
   hasFileChanged(filePath: string, content: string): boolean {
+    const fileKey = this.getFileKey(filePath);
     const currentHash = this.computeFileHash(content);
-    const storedHash = this.fileHashes.get(filePath);
-    return storedHash !== currentHash;
+    
+    // If we have no hashes loaded, try to recover from index
+    if (this.fileHashes.size === 0 && !fs.existsSync(this.fileHashesPath)) {
+      console.log('[EmbeddingStore] No file hashes available, attempting recovery from index...');
+      // Trigger async recovery (don't await to avoid blocking)
+      this.recoverFileHashesFromIndex().catch(err => {
+        console.error('[EmbeddingStore] Recovery failed:', err);
+      });
+    }
+    
+    const storedHash = this.fileHashes.get(fileKey);
+    const hasChanged = storedHash !== currentHash;
+    
+    console.log(`[EmbeddingStore] Checking file: ${fileKey}`);
+    console.log(`[EmbeddingStore]   Has stored hash: ${!!storedHash}`);
+    console.log(`[EmbeddingStore]   Has changed: ${hasChanged}`);
+    
+    if (hasChanged && storedHash) {
+      console.log(`[EmbeddingStore]   Stored hash: ${storedHash.substring(0, 16)}...`);
+      console.log(`[EmbeddingStore]   Current hash: ${currentHash.substring(0, 16)}...`);
+    }
+    
+    return hasChanged;
   }
 
   async addSnippets(snippets: EmbeddedSnippet[], filePath: string, content: string): Promise<void> {
     await this.ensureInitialized();
+
+    const fileKey = this.getFileKey(filePath);
+    const hash = this.computeFileHash(content);
 
     try {
       const existingItems = await this.vectraIndex.listItemsByMetadata({ filePath: { $eq: filePath } });
@@ -198,13 +292,13 @@ export class EmbeddingStore {
           text: snippet.text,
           startLine: snippet.startLine,
           endLine: snippet.endLine,
-          timestamp: snippet.timestamp
+          timestamp: snippet.timestamp,
+          fileHash: hash  // Store hash with each snippet for recovery
         }
       });
     }
 
-    const hash = this.computeFileHash(content);
-    this.fileHashes.set(filePath, hash);
+    this.fileHashes.set(fileKey, hash);
     this.saveFileHashes();
 
     console.log(`[EmbeddingStore] Added ${snippets.length} snippets from ${path.basename(filePath)}`);

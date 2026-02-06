@@ -278,8 +278,6 @@ export class WordRenderer {
   private createBodyParagraph(paragraph: DocumentParagraph): Paragraph {
     const runs: (TextRun | FootnoteReferenceRun | SimpleField)[] = [];
     
-    console.log('[WordRenderer] createBodyParagraph called with', paragraph.runs.length, 'runs');
-    
     let citationCount = 0;
     for (const run of paragraph.runs) {
       if (run.type === 'text') {
@@ -330,7 +328,8 @@ export class WordRenderer {
   private createZoteroCitationField(citation: any): SimpleField {
     const zoteroKey = citation.zoteroKey || citation.citeKey;
     const zoteroUserId = citation.zoteroUserId || 'local';
-    const displayText = citation.displayText || `[${citation.citeKey}]`;
+    // Don't include brackets - let Zotero format the citation
+    const displayText = citation.citeKey;
     
     console.log('[WordRenderer] Creating citation field:', { zoteroKey, displayText, hasItemData: !!citation.itemData });
     
@@ -369,18 +368,20 @@ export class WordRenderer {
     const cslCitation = {
       citationID: `cite_${zoteroKey}_${Date.now()}`,
       properties: {
-        formattedCitation: displayText,
-        plainCitation: displayText.replace(/[()[\]]/g, ''),
+        formattedCitation: displayText,  // Plain text without brackets
+        plainCitation: displayText,
         noteIndex: 0
       },
       citationItems: [citationItem],
       schema: 'https://github.com/citation-style-language/schema/raw/master/csl-citation.json'
     };
     
-    // SimpleField takes the instruction string directly
-    const fieldCode = `ADDIN ZOTERO_ITEM CSL_CITATION ${JSON.stringify(cslCitation)}`;
+    // SimpleField takes the instruction string as first parameter
+    // The display text is embedded in the field instruction
+    const fieldCode = ` ADDIN ZOTERO_ITEM CSL_CITATION ${JSON.stringify(cslCitation)} `;
     
     console.log('[WordRenderer] Created field code, length:', fieldCode.length);
+    console.log('[WordRenderer] Field code starts with:', fieldCode.substring(0, 50));
     
     return new SimpleField(fieldCode);
   }

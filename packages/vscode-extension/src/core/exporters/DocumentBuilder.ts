@@ -351,16 +351,12 @@ export class DocumentBuilder {
    * @returns Array of runs (text and citation)
    */
   private parseCitationsFromText(text: string): DocumentRun[] {
-    console.log('[DocumentBuilder] parseCitationsFromText called with text length:', text.length);
-    console.log('[DocumentBuilder] First 200 chars:', text.substring(0, 200));
     
     // Convert [source:: ...] tags to \cite{} format for unified processing
     let convertedText = this.convertSourceTagsToCite(text);
     
     // Also convert plain text citations like (Author Year), (AuthorYear), (Author et al. Year)
     convertedText = this.convertPlainTextCitationsToCite(convertedText);
-    
-    console.log('[DocumentBuilder] Text after conversion (first 200 chars):', convertedText.substring(0, 200));
     
     const runs: DocumentRun[] = [];
     const citationRegex = /\\cite\{([^}]+)\}/g;
@@ -407,9 +403,6 @@ export class DocumentBuilder {
 
       lastIndex = match.index + match[0].length;
     }
-
-    console.log('[DocumentBuilder] Total citations found in this text:', citationCount);
-    console.log('[DocumentBuilder] Total runs created:', runs.length);
 
     // Add remaining text
     if (lastIndex < convertedText.length) {
@@ -560,6 +553,39 @@ export class DocumentBuilder {
       cslItem.abstract = item.abstractNote;
     }
     
+    // Journal article fields
+    if (item.publicationTitle) {
+      cslItem['container-title'] = item.publicationTitle;
+    }
+    if (item.volume) {
+      cslItem.volume = item.volume;
+    }
+    if (item.issue) {
+      cslItem.issue = item.issue;
+    }
+    if (item.pages) {
+      cslItem.page = item.pages;
+    }
+    
+    // Book fields
+    if (item.publisher) {
+      cslItem.publisher = item.publisher;
+    }
+    if (item.place) {
+      cslItem['publisher-place'] = item.place;
+    }
+    if (item.edition) {
+      cslItem.edition = item.edition;
+    }
+    
+    // Additional identifiers
+    if (item.isbn) {
+      cslItem.ISBN = item.isbn;
+    }
+    if (item.issn) {
+      cslItem.ISSN = item.issn;
+    }
+    
     return cslItem;
   }
 
@@ -664,7 +690,7 @@ export class DocumentBuilder {
     // Fetch items from Zotero and cache them
     try {
       console.log('[DocumentBuilder] Fetching items from Zotero API...');
-      const items = await this.zoteroApiService.getItems(100);
+      const items = await this.zoteroApiService.getItems(500); // Fetch more items to ensure we get all citations
       console.log(`[DocumentBuilder] Retrieved ${items.length} items from Zotero`);
       
       let matchCount = 0;
@@ -679,6 +705,12 @@ export class DocumentBuilder {
         // Also cache by AuthorYear format for source tag lookups
         const itemAuthorYear = this.getItemAuthorYear(item);
         const normalizedAuthorYear = this.normalizeAuthorYear(itemAuthorYear);
+        
+        // Debug: show what we're comparing
+        if (matchCount < 3) {
+          console.log(`[DocumentBuilder] Checking item: ${normalizedAuthorYear} (from ${itemAuthorYear})`);
+        }
+        
         if (citeKeys.has(normalizedAuthorYear)) {
           this.zoteroItemCache.set(normalizedAuthorYear, item);
           matchCount++;
@@ -687,6 +719,11 @@ export class DocumentBuilder {
       }
       
       console.log(`[DocumentBuilder] Cached ${matchCount} matching items`);
+      console.log(`[DocumentBuilder] Cache now has ${this.zoteroItemCache.size} entries`);
+      if (matchCount === 0 && citeKeys.size > 0) {
+        console.log(`[DocumentBuilder] WARNING: No matches found! Looking for:`, Array.from(citeKeys).slice(0, 5));
+        console.log(`[DocumentBuilder] Sample normalized items:`, items.slice(0, 3).map(i => this.normalizeAuthorYear(this.getItemAuthorYear(i))));
+      }
     } catch (error) {
       // Silently fail - citations will just use fallback display
       console.warn('[DocumentBuilder] Failed to prefetch Zotero metadata:', error);
