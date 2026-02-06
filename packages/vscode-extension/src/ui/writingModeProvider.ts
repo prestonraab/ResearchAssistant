@@ -347,6 +347,8 @@ export class WritingModeProvider {
           }
         }
         
+        console.log(`[WritingMode] Pair ${pair.id}: Parsed cited author-years:`, Array.from(citedAuthorYears.entries()).map(([k, v]) => [k, Array.from(v)]));
+        
         // Create display version without Source comments (don't modify pair.answer)
         pair.displayAnswer = pair.answer.replace(/<!--\s*Source:[^>]+?-->/g, '').trim();
 
@@ -362,6 +364,8 @@ export class WritingModeProvider {
             if (claim.primaryQuote && !seenSources.has(claim.primaryQuote.source)) {
               const authorYear = this.extractAuthorYear(claim.primaryQuote.source);
               const isCited = authorYear ? citedSet.has(authorYear) : false;
+              
+              console.log(`[WritingMode] Primary quote: authorYear=${authorYear}, isCited=${isCited}, citedSet=`, Array.from(citedSet));
               
               linkedSources.push({
                 claimId: claimId,  // Track which claim this source belongs to
@@ -379,6 +383,8 @@ export class WritingModeProvider {
               if (!seenSources.has(supportingQuote.source)) {
                 const authorYear = this.extractAuthorYear(supportingQuote.source);
                 const isCited = authorYear ? citedSet.has(authorYear) : false;
+                
+                console.log(`[WritingMode] Supporting quote: authorYear=${authorYear}, isCited=${isCited}, citedSet=`, Array.from(citedSet));
                 
                 linkedSources.push({
                   claimId: claimId,  // Track which claim this source belongs to

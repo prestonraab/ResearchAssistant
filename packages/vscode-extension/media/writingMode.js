@@ -506,6 +506,8 @@ function renderCitationSidebar(pair) {
     const isChecked = source.cited ? 'checked' : '';
     const quoteText = escapeHtml(source.quote || '');
     
+    console.log(`[WritingMode] Rendering citation ${index}: cited=${source.cited}, authorYear=${source.authorYear}, source=${source.source}`);
+    
     return `
       <div class="citation-item" data-pair-id="${pair.id}" data-source-index="${index}">
         <input 
