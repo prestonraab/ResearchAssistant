@@ -61,7 +61,36 @@ export class SnippetExtractor {
       });
     }
 
-    return snippets;
+    // Filter out metadata/citation snippets
+    return snippets.filter(s => !this.isMetadataSnippet(s.text));
+  }
+
+  /**
+   * Check if a snippet is just metadata/citation info (not useful content)
+   */
+  private isMetadataSnippet(text: string): boolean {
+    const lowerText = text.toLowerCase();
+    
+    // Skip if starts with common metadata patterns
+    const metadataStarts = [
+      'citation:', 'doi:', 'received ', 'accepted ', 'published ',
+      'copyright', 'funding:', 'competing interests', 'e-mail:',
+      'correspondence should be addressed', 'academic editor',
+      '* e-mail', 'current address:', 'author contributions'
+    ];
+    
+    for (const pattern of metadataStarts) {
+      if (lowerText.startsWith(pattern)) return true;
+    }
+    
+    // Skip if mostly DOIs, URLs, or email addresses
+    const doiCount = (text.match(/10\.\d{4,}/g) || []).length;
+    const urlCount = (text.match(/https?:\/\//g) || []).length;
+    const emailCount = (text.match(/[\w.-]+@[\w.-]+/g) || []).length;
+    
+    if (doiCount + urlCount + emailCount > 2) return true;
+    
+    return false;
   }
 
   /**

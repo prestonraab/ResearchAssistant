@@ -345,7 +345,7 @@ export interface ExternalPaper {
     url: string;                 // Direct PDF download URL
     status?: string;             // Status (e.g., "GOLD", "GREEN", "BRONZE")
   };
-  source: 'scholar' | 'pubmed' | 'crossref'; // Source API
+  source: 'scholar' | 'semantic-scholar' | 'pubmed' | 'crossref' | 'arxiv'; // Source API
   venue?: string;                // Publication venue (optional)
 }
 

@@ -1576,6 +1576,18 @@ export class ClaimReviewProvider {
                 reasoning: result.reasoning
               });
             }
+          },
+          // Stream debug logs for LLM interactions
+          onDebugLog: (entry) => {
+            if (signal?.aborted) return;
+            
+            console.log(`[ClaimReview] Debug log:`, entry.type);
+            if (this.panel) {
+              this.panel.webview.postMessage({
+                type: 'debugLog',
+                entry
+              });
+            }
           }
         },
         signal  // Pass the abort signal to enable cancellation

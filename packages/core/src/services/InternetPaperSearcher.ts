@@ -85,6 +85,20 @@ export class InternetPaperSearcher {
   }
 
   /**
+   * Search only Semantic Scholar (for async/parallel searches)
+   * @param query - Search query string
+   * @returns Array of papers from Semantic Scholar
+   */
+  public async searchSemanticScholarOnly(query: string): Promise<ExternalPaper[]> {
+    try {
+      return await this.applyRateLimitAndSearch('semanticscholar', () => this.searchSemanticScholar(query));
+    } catch (error) {
+      console.warn('Semantic Scholar search failed:', error);
+      return [];
+    }
+  }
+
+  /**
    * Search external sources for papers
    * Searches all 4 academic sources in parallel with independent rate limiting
    * @param query - Search query string
@@ -381,7 +395,7 @@ export class InternetPaperSearcher {
                   year,
                   abstract: summaryMatch ? summaryMatch[1].trim() : '',
                   url: idMatch ? idMatch[1].replace('http://arxiv.org/abs/', 'https://arxiv.org/abs/') : '',
-                  source: 'scholar' as const,
+                  source: 'arxiv' as const,
                   venue: 'arXiv',
                 };
               }).filter((r: any) => r.url && r.title);
@@ -455,7 +469,7 @@ export class InternetPaperSearcher {
                     url: item.openAccessPdf.url,
                     status: item.openAccessPdf.status
                   } : undefined,
-                  source: 'scholar' as const,
+                  source: 'semantic-scholar' as const,
                   venue: item.fieldsOfStudy?.[0]?.category || 'Semantic Scholar',
                   citationCount: item.citationCount,
                 }));

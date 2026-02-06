@@ -144,6 +144,7 @@ const messageHandlers = {
   'operationsCancelled': (msg) => handleOperationsCancelled(msg),
   'displayOrphanCitations': (msg) => displayOrphanCitations(msg.orphanCitations),
   'quotesFromPaper': (msg) => displayQuotesFromPaper(msg.results, msg.authorYear),
+  'debugLog': (msg) => addDebugLogEntry(msg.entry),
   'quoteAttached': (msg) => {
     console.log('[ClaimReview] Quote attached successfully');
     // Reload claim to show updated quotes
@@ -1498,7 +1499,7 @@ function displaySearchCandidates(message) {
 }
 
 /**
- * Render the top candidates, sorted by confidence (verified supporting first)
+ * Render the top candidates, split into Verified Quotes (local) and Paper Leads (web)
  */
 function renderTopCandidates(container) {
   const list = container.querySelector('.new-quotes-list');
@@ -1507,95 +1508,164 @@ function renderTopCandidates(container) {
   // Filter out rejected candidates - only show verifying and supporting
   const visibleCandidates = allCandidates.filter(c => !c.verified || c.supports);
   
-  // Sort: verified supporting (by confidence) > verifying
-  const sorted = [...visibleCandidates].sort((a, b) => {
-    // Verified supporting quotes first, sorted by confidence
+  // Split into local quotes vs paper leads (web sources)
+  const isLocalSource = (c) => c.searchSource === 'literature' || !c.searchSource;
+  const localCandidates = visibleCandidates.filter(isLocalSource);
+  const webCandidates = visibleCandidates.filter(c => !isLocalSource(c));
+  
+  // Sort each group: verified supporting (by confidence) > verifying
+  const sortByConfidence = (a, b) => {
     if (a.verified && a.supports && b.verified && b.supports) {
       return b.confidence - a.confidence;
     }
     if (a.verified && a.supports) return -1;
     if (b.verified && b.supports) return 1;
-    
-    // Then verifying (not yet verified)
     return 0;
-  });
+  };
   
-  // Take top N
-  const topCandidates = sorted.slice(0, MAX_DISPLAYED_CANDIDATES);
+  const sortedLocal = [...localCandidates].sort(sortByConfidence);
+  const sortedWeb = [...webCandidates].sort(sortByConfidence);
   
-  topCandidates.forEach((candidate, i) => {
-    const item = document.createElement('div');
-    item.id = `candidate-${candidate.id}`;
+  // Render Verified Quotes section (local)
+  if (sortedLocal.length > 0) {
+    const localSection = document.createElement('div');
+    localSection.className = 'candidates-section local-quotes-section';
+    localSection.innerHTML = `
+      <h4 class="candidates-section-header">📁 Verified Quotes <span class="section-count">(${sortedLocal.filter(c => c.verified && c.supports).length} supporting)</span></h4>
+      <p class="section-description">From your indexed literature - ready to cite</p>
+    `;
     
-    // Build search source indicator for debugging
-    const searchSource = candidate.searchSource || 'literature';
-    const sourceIndicator = searchSource === 'web' 
-      ? '<span class="quote-source-indicator web">🌐 Web</span>'
-      : '<span class="quote-source-indicator local">📁 Local</span>';
+    const localList = document.createElement('div');
+    localList.className = 'candidates-list';
+    sortedLocal.slice(0, 5).forEach((candidate, i) => {
+      localList.appendChild(renderCandidate(candidate, i, 'local'));
+    });
     
-    if (!candidate.verified) {
-      item.className = 'new-quote-item candidate-verifying';
-      item.innerHTML = `
-        <div class="quote-number">${i + 1}</div>
-        <div class="quote-details">
-          <div class="quote-summary">"${escapeHtml(candidate.text)}"</div>
-          <div class="quote-source">${sourceIndicator} ${escapeHtml(candidate.source)} (lines ${candidate.lineRange})</div>
-          <div class="verification-status verifying">
-            <span class="status-spinner">⏳</span> Verifying...
-          </div>
-        </div>
-      `;
-    } else if (candidate.supports) {
-      const percentage = Math.round(candidate.confidence * 100);
-      const stars = Math.round(candidate.confidence * 5);
-      const starDisplay = '★'.repeat(stars) + '☆'.repeat(5 - stars);
-      
-      item.className = 'new-quote-item candidate-supports';
-      item.innerHTML = `
-        <div class="quote-number">${i + 1}</div>
-        <div class="quote-details">
-          <div class="quote-summary">"${escapeHtml(candidate.text)}"</div>
-          <div class="quote-source">${sourceIndicator} ${escapeHtml(candidate.source)} (lines ${candidate.lineRange})</div>
-          <div class="verification-status supports">
-            <span class="status-icon">✓</span> Supports claim
-            <div style="margin-top: 4px;">Support: ${starDisplay} ${percentage}%</div>
-          </div>
-          <button class="btn btn-small btn-primary" data-action="addQuote" data-snippet-id="${escapeHtml(candidate.id)}" data-confidence="${candidate.confidence}" data-search-source="${candidate.searchSource || 'literature'}" data-quote-text="${escapeHtml(candidate.text)}" data-quote-source="${escapeHtml(candidate.source)}" data-quote-url="${escapeHtml(candidate.filePath || '')}" data-candidate-index="${i}">Add Quote</button>
-        </div>
-      `;
-      
-      // Attach add quote listener
-      const addBtn = item.querySelector('[data-action="addQuote"]');
-      if (addBtn) {
-        addBtn.addEventListener('click', () => {
-          const searchSource = addBtn.getAttribute('data-search-source');
-          if (searchSource === 'web') {
-            // For web results, pass the full candidate data
-            const candidateIndex = parseInt(addBtn.getAttribute('data-candidate-index'));
-            const fullCandidate = allCandidates[candidateIndex];
-            const quoteText = addBtn.getAttribute('data-quote-text');
-            const quoteSource = addBtn.getAttribute('data-quote-source');
-            const quoteUrl = addBtn.getAttribute('data-quote-url');
-            const confidence = parseFloat(addBtn.getAttribute('data-confidence')) || 0;
-            acceptWebQuote(quoteText, quoteSource, quoteUrl, confidence, fullCandidate);
-          } else {
-            acceptNewQuote(candidate.id, candidate.filePath || '', candidate.confidence);
-          }
-        });
-      }
+    if (sortedLocal.length > 5) {
+      const moreDiv = document.createElement('div');
+      moreDiv.className = 'more-candidates-notice';
+      moreDiv.textContent = `+ ${sortedLocal.length - 5} more local quotes`;
+      localList.appendChild(moreDiv);
     }
     
-    list.appendChild(item);
-  });
-  
-  // Show count if there are more visible candidates
-  const hiddenCount = visibleCandidates.length - topCandidates.length;
-  if (hiddenCount > 0) {
-    const moreDiv = document.createElement('div');
-    moreDiv.className = 'more-candidates-notice';
-    moreDiv.textContent = `+ ${hiddenCount} more candidates not shown`;
-    list.appendChild(moreDiv);
+    localSection.appendChild(localList);
+    list.appendChild(localSection);
   }
+  
+  // Render Paper Leads section (web)
+  if (sortedWeb.length > 0) {
+    const webSection = document.createElement('div');
+    webSection.className = 'candidates-section paper-leads-section';
+    webSection.innerHTML = `
+      <h4 class="candidates-section-header">🔍 Paper Leads <span class="section-count">(${sortedWeb.filter(c => c.verified && c.supports).length} relevant)</span></h4>
+      <p class="section-description">Papers to consider adding to your library</p>
+    `;
+    
+    const webList = document.createElement('div');
+    webList.className = 'candidates-list';
+    sortedWeb.slice(0, 5).forEach((candidate, i) => {
+      webList.appendChild(renderCandidate(candidate, i, 'web'));
+    });
+    
+    if (sortedWeb.length > 5) {
+      const moreDiv = document.createElement('div');
+      moreDiv.className = 'more-candidates-notice';
+      moreDiv.textContent = `+ ${sortedWeb.length - 5} more paper leads`;
+      webList.appendChild(moreDiv);
+    }
+    
+    webSection.appendChild(webList);
+    list.appendChild(webSection);
+  }
+  
+  // Show message if nothing found
+  if (sortedLocal.length === 0 && sortedWeb.length === 0) {
+    const emptyDiv = document.createElement('div');
+    emptyDiv.className = 'no-candidates-notice';
+    emptyDiv.textContent = 'No supporting evidence found yet...';
+    list.appendChild(emptyDiv);
+  }
+}
+
+/**
+ * Render a single candidate item
+ */
+function renderCandidate(candidate, index, type) {
+  const item = document.createElement('div');
+  item.id = `candidate-${candidate.id}`;
+  
+  // Build search source indicator
+  const searchSource = candidate.searchSource || 'literature';
+  const sourceIndicators = {
+    'literature': '<span class="quote-source-indicator local">📁 Local</span>',
+    'semantic-scholar': '<span class="quote-source-indicator semantic-scholar">🎓 Semantic Scholar</span>',
+    'pubmed': '<span class="quote-source-indicator pubmed">🏥 PubMed</span>',
+    'arxiv': '<span class="quote-source-indicator arxiv">📄 arXiv</span>',
+    'crossref': '<span class="quote-source-indicator crossref">🔗 CrossRef</span>',
+    'web': '<span class="quote-source-indicator web">🌐 Web</span>'
+  };
+  const sourceIndicator = sourceIndicators[searchSource] || sourceIndicators['web'];
+  
+  // For web sources, show title if available
+  const displaySource = candidate.metadata?.title 
+    ? `${candidate.metadata.title} (${candidate.source})`
+    : candidate.source;
+  
+  const lineInfo = type === 'local' ? ` (lines ${candidate.lineRange})` : '';
+  
+  if (!candidate.verified) {
+    item.className = 'new-quote-item candidate-verifying';
+    item.innerHTML = `
+      <div class="quote-number">${index + 1}</div>
+      <div class="quote-details">
+        <div class="quote-summary">"${escapeHtml(candidate.text)}"</div>
+        <div class="quote-source">${sourceIndicator} ${escapeHtml(displaySource)}${lineInfo}</div>
+        <div class="verification-status verifying">
+          <span class="status-spinner">⏳</span> Verifying...
+        </div>
+      </div>
+    `;
+  } else if (candidate.supports) {
+    const percentage = Math.round(candidate.confidence * 100);
+    const stars = Math.round(candidate.confidence * 5);
+    const starDisplay = '★'.repeat(stars) + '☆'.repeat(5 - stars);
+    
+    const buttonLabel = type === 'local' ? 'Add Quote' : 'Add as Lead';
+    
+    item.className = 'new-quote-item candidate-supports';
+    item.innerHTML = `
+      <div class="quote-number">${index + 1}</div>
+      <div class="quote-details">
+        <div class="quote-summary">"${escapeHtml(candidate.text)}"</div>
+        <div class="quote-source">${sourceIndicator} ${escapeHtml(displaySource)}${lineInfo}</div>
+        <div class="verification-status supports">
+          <span class="status-icon">✓</span> ${type === 'local' ? 'Supports claim' : 'Relevant paper'}
+          <div style="margin-top: 4px;">Relevance: ${starDisplay} ${percentage}%</div>
+        </div>
+        <button class="btn btn-small btn-primary" data-action="addQuote" data-snippet-id="${escapeHtml(candidate.id)}" data-confidence="${candidate.confidence}" data-search-source="${candidate.searchSource || 'literature'}" data-quote-text="${escapeHtml(candidate.text)}" data-quote-source="${escapeHtml(candidate.source)}" data-quote-url="${escapeHtml(candidate.filePath || '')}" data-candidate-index="${index}">${buttonLabel}</button>
+      </div>
+    `;
+    
+    // Attach add quote listener
+    const addBtn = item.querySelector('[data-action="addQuote"]');
+    if (addBtn) {
+      addBtn.addEventListener('click', () => {
+        const searchSource = addBtn.getAttribute('data-search-source');
+        if (type === 'web' || searchSource !== 'literature') {
+          // For web results, pass the full candidate data
+          const quoteText = addBtn.getAttribute('data-quote-text');
+          const quoteSource = addBtn.getAttribute('data-quote-source');
+          const quoteUrl = addBtn.getAttribute('data-quote-url');
+          const confidence = parseFloat(addBtn.getAttribute('data-confidence')) || 0;
+          acceptWebQuote(quoteText, quoteSource, quoteUrl, confidence, candidate);
+        } else {
+          acceptNewQuote(candidate.id, candidate.filePath || '', candidate.confidence);
+        }
+      });
+    }
+  }
+  
+  return item;
 }
 
 /**
@@ -2345,4 +2415,167 @@ function showConfirmModal(title, message, callback) {
       callback(false);
     }
   });
+}
+
+// ============================================================================
+// Debug Panel
+// ============================================================================
+
+let debugLogs = [];
+let debugPanelVisible = false;
+
+/**
+ * Add a debug log entry
+ */
+function addDebugLogEntry(entry) {
+  debugLogs.push(entry);
+  
+  // Update debug panel if visible
+  if (debugPanelVisible) {
+    renderDebugPanel();
+  }
+  
+  // Update badge count
+  updateDebugBadge();
+}
+
+/**
+ * Update the debug badge count
+ */
+function updateDebugBadge() {
+  const badge = document.getElementById('debugBadge');
+  if (badge) {
+    badge.textContent = debugLogs.length;
+    badge.style.display = debugLogs.length > 0 ? 'inline' : 'none';
+  }
+}
+
+/**
+ * Toggle debug panel visibility
+ */
+function toggleDebugPanel() {
+  debugPanelVisible = !debugPanelVisible;
+  
+  const panel = document.getElementById('debugPanel');
+  if (panel) {
+    panel.style.display = debugPanelVisible ? 'block' : 'none';
+    if (debugPanelVisible) {
+      renderDebugPanel();
+    }
+  }
+}
+
+/**
+ * Render the debug panel content
+ */
+function renderDebugPanel() {
+  const content = document.getElementById('debugPanelContent');
+  if (!content) return;
+  
+  if (debugLogs.length === 0) {
+    content.innerHTML = '<div class="debug-empty">No LLM interactions yet. Start a quote search to see debug info.</div>';
+    return;
+  }
+  
+  content.innerHTML = debugLogs.map((entry, i) => {
+    const time = new Date(entry.timestamp).toLocaleTimeString();
+    
+    if (entry.type === 'query-refinement') {
+      return `
+        <div class="debug-entry">
+          <div class="debug-header">
+            <span class="debug-type">🔄 Query Refinement</span>
+            <span class="debug-time">${time}</span>
+            <span class="debug-round">Round ${entry.data.round}</span>
+          </div>
+          <details class="debug-details">
+            <summary>Prompt</summary>
+            <pre class="debug-prompt">${escapeHtml(entry.data.prompt)}</pre>
+          </details>
+          <details class="debug-details" open>
+            <summary>Response</summary>
+            <pre class="debug-response">${escapeHtml(entry.data.response)}</pre>
+          </details>
+          <div class="debug-queries">
+            <strong>Generated Queries:</strong>
+            <ul>
+              ${entry.data.generatedQueries.map(q => `<li>${escapeHtml(q)}</li>`).join('')}
+            </ul>
+          </div>
+        </div>
+      `;
+    }
+    
+    if (entry.type === 'verification') {
+      return `
+        <div class="debug-entry ${entry.data.supports ? 'supports' : 'rejects'}">
+          <div class="debug-header">
+            <span class="debug-type">${entry.data.supports ? '✓' : '✗'} Verification</span>
+            <span class="debug-time">${time}</span>
+            <span class="debug-confidence">${Math.round(entry.data.confidence * 100)}%</span>
+          </div>
+          <div class="debug-snippet">"${escapeHtml(entry.data.snippetText?.substring(0, 100) || '')}..."</div>
+          <div class="debug-reasoning">${escapeHtml(entry.data.reasoning || '')}</div>
+        </div>
+      `;
+    }
+    
+    return `
+      <div class="debug-entry">
+        <div class="debug-header">
+          <span class="debug-type">${entry.type}</span>
+          <span class="debug-time">${time}</span>
+        </div>
+        <pre class="debug-raw">${escapeHtml(JSON.stringify(entry.data, null, 2))}</pre>
+      </div>
+    `;
+  }).join('');
+}
+
+/**
+ * Clear debug logs
+ */
+function clearDebugLogs() {
+  debugLogs = [];
+  updateDebugBadge();
+  renderDebugPanel();
+}
+
+/**
+ * Initialize debug panel in the DOM
+ */
+function initDebugPanel() {
+  // Add debug toggle button to header
+  const header = document.querySelector('.claim-header') || document.querySelector('.header');
+  if (header && !document.getElementById('debugToggle')) {
+    const toggleBtn = document.createElement('button');
+    toggleBtn.id = 'debugToggle';
+    toggleBtn.className = 'btn btn-small btn-secondary debug-toggle';
+    toggleBtn.innerHTML = '🐛 Debug <span id="debugBadge" class="debug-badge" style="display:none">0</span>';
+    toggleBtn.onclick = toggleDebugPanel;
+    header.appendChild(toggleBtn);
+  }
+  
+  // Add debug panel container
+  if (!document.getElementById('debugPanel')) {
+    const panel = document.createElement('div');
+    panel.id = 'debugPanel';
+    panel.className = 'debug-panel';
+    panel.style.display = 'none';
+    panel.innerHTML = `
+      <div class="debug-panel-header">
+        <h4>🐛 LLM Debug Log</h4>
+        <button class="btn btn-small" onclick="clearDebugLogs()">Clear</button>
+      </div>
+      <div id="debugPanelContent" class="debug-panel-content"></div>
+    `;
+    document.body.appendChild(panel);
+  }
+}
+
+// Initialize debug panel when DOM is ready
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initDebugPanel);
+} else {
+  initDebugPanel();
 }

@@ -110,12 +110,22 @@ export class VerificationFeedbackLoop {
     streamCallbacks?: { 
       onCandidatesFound?: (round: number, candidates: EmbeddedSnippet[]) => void;
       onVerificationUpdate?: (round: number, snippetId: string, result: VerificationResult) => void;
+      onDebugLog?: (entry: { type: string; timestamp: number; data: any }) => void;
     },
     signal?: AbortSignal
   ): Promise<SearchRound[]> {
-    let currentQuery = claim;
+    let currentQueries: string[] = [claim]; // Track multiple query variants
     let supportingSnippets: EmbeddedSnippet[] = [];
     const completedRounds: SearchRound[] = [];
+    const queryHistory: string[] = [claim]; // Track all queries tried
+    const seenSnippetIds = new Set<string>(); // Avoid duplicate snippets
+    
+    // Helper to log debug info
+    const debugLog = (type: string, data: any) => {
+      if (streamCallbacks?.onDebugLog) {
+        streamCallbacks.onDebugLog({ type, timestamp: Date.now(), data });
+      }
+    };
 
     // Helper to check cancellation
     const checkCancelled = () => {
@@ -138,14 +148,39 @@ export class VerificationFeedbackLoop {
       // Yield to event loop after indexing
       await new Promise(resolve => setImmediate(resolve));
 
+      // Track pending Semantic Scholar searches (fire-and-forget per round)
+      const pendingSemanticScholarResults: Promise<void>[] = [];
+
       for (let round = 1; round <= this.maxRounds; round++) {
         checkCancelled();
         
-        console.log(`[VerificationFeedbackLoop] Round ${round}/${this.maxRounds}`);
+        console.log(`[VerificationFeedbackLoop] Round ${round}/${this.maxRounds}, queries: ${currentQueries.length}`);
 
-        // Step 1: Search literature
-        const snippets = await this.literatureIndexer.searchSnippets(currentQuery, 5);
-        console.log(`[VerificationFeedbackLoop] Found ${snippets.length} snippets`);
+        // Fire off async Semantic Scholar search (don't wait for it)
+        const semanticScholarPromise = this.fireSemanticScholarSearch(
+          currentQueries[0] || claim,
+          round,
+          seenSnippetIds,
+          streamCallbacks,
+          signal
+        );
+        pendingSemanticScholarResults.push(semanticScholarPromise);
+
+        // Step 1: Search literature with all query variants and combine results
+        const allSnippets: EmbeddedSnippet[] = [];
+        for (const query of currentQueries) {
+          const snippets = await this.literatureIndexer.searchSnippets(query, 10);
+          // Deduplicate by snippet ID
+          for (const snippet of snippets) {
+            if (!seenSnippetIds.has(snippet.id)) {
+              seenSnippetIds.add(snippet.id);
+              allSnippets.push(snippet);
+            }
+          }
+        }
+        // Limit total snippets per round to avoid too much LLM verification
+        const snippets = allSnippets.slice(0, 15);
+        console.log(`[VerificationFeedbackLoop] Found ${snippets.length} unique snippets (from ${currentQueries.length} queries)`);
 
         checkCancelled();
 
@@ -195,7 +230,7 @@ export class VerificationFeedbackLoop {
 
         const roundData: SearchRound = {
           round,
-          query: currentQuery,
+          query: currentQueries.join(' | '),
           snippets,
           verifications,
           supportingSnippets: roundSupportingSnippets
@@ -208,19 +243,32 @@ export class VerificationFeedbackLoop {
           onRoundComplete(roundData);
         }
 
-        console.log(`[VerificationFeedbackLoop] Round ${round}: ${roundSupportingSnippets.length}/${snippets.length} snippets support claim`);
+        console.log(`[VerificationFeedbackLoop] Round ${round}: ${roundSupportingSnippets.length}/${snippets.length} snippets support claim (total: ${supportingSnippets.length})`);
 
-        // If we found supporting evidence, we're done
-        if (roundSupportingSnippets.length > 0) {
-          console.log('[VerificationFeedbackLoop] Found supporting evidence, stopping');
+        // Continue searching until we have at least 5 supporting quotes or run out of rounds
+        if (supportingSnippets.length >= 5) {
+          console.log(`[VerificationFeedbackLoop] Found ${supportingSnippets.length} supporting quotes, stopping`);
           break;
         }
+        
+        // Keep searching through all rounds to find more supporting evidence
+        // Only stop early if we've exhausted all rounds
 
-        // Step 3: Refine query based on verification feedback
+        // Step 3: Generate multiple refined queries based on verification feedback
         if (round < this.maxRounds) {
           checkCancelled();
-          currentQuery = await this.refineQuery(claim, verifications);
-          console.log('[VerificationFeedbackLoop] Refined query:', currentQuery.substring(0, 50));
+          const { queries: newQueries, debugInfo } = await this.refineQueriesWithDebug(claim, verifications, supportingSnippets, queryHistory);
+          currentQueries = newQueries;
+          queryHistory.push(...currentQueries);
+          console.log('[VerificationFeedbackLoop] Refined queries:', currentQueries.map(q => q.substring(0, 40)));
+          
+          // Log debug info
+          debugLog('query-refinement', {
+            round,
+            prompt: debugInfo.prompt,
+            response: debugInfo.response,
+            generatedQueries: currentQueries
+          });
         }
         
         // On round 3, also trigger web search in parallel with continued local search
@@ -505,32 +553,199 @@ Respond in JSON format:
 
   /**
    * Refine search query based on verification feedback
+   * @deprecated Use refineQueries instead for multiple query variants
    */
   private async refineQuery(claim: string, verifications: VerificationResult[]): Promise<string> {
+    const queries = await this.refineQueries(claim, verifications, [], [claim]);
+    return queries[0] || claim;
+  }
+
+  /**
+   * Generate multiple refined search queries based on verification feedback
+   * Uses successful snippets, failure reasons, and query history to generate diverse queries
+   */
+  private async refineQueries(
+    claim: string, 
+    verifications: VerificationResult[],
+    successfulSnippets: EmbeddedSnippet[],
+    queryHistory: string[]
+  ): Promise<string[]> {
+    const result = await this.refineQueriesWithDebug(claim, verifications, successfulSnippets, queryHistory);
+    return result.queries;
+  }
+
+  /**
+   * Generate refined queries with debug info for UI display
+   */
+  private async refineQueriesWithDebug(
+    claim: string, 
+    verifications: VerificationResult[],
+    successfulSnippets: EmbeddedSnippet[],
+    queryHistory: string[]
+  ): Promise<{ queries: string[]; debugInfo: { prompt: string; response: string } }> {
     if (!this.openaiApiKey) {
-      return claim;
+      return { queries: [claim], debugInfo: { prompt: '', response: '' } };
     }
 
     try {
+      // Filter out cached results and get meaningful failure reasons
       const failureReasons = verifications
-        .filter(v => !v.supports)
+        .filter(v => !v.supports && v.reasoning && v.reasoning !== 'Cached result')
         .map(v => v.reasoning)
-        .join('; ');
+        .slice(0, 5)
+        .join('\n- ');
 
-      const prompt = `You are helping refine a search query for academic papers.
+      // Get actual text from successful snippets, not metadata
+      const successfulExcerpts = successfulSnippets
+        .slice(0, 3)
+        .map(s => s.text.substring(0, 300))
+        .filter(text => !text.toLowerCase().startsWith('citation:')) // Skip citation lines
+        .join('\n---\n');
 
-ORIGINAL CLAIM: ${claim}
+      const previousQueries = queryHistory.slice(-5).join(', ');
 
-REASONS WHY PREVIOUS RESULTS DIDN'T SUPPORT THE CLAIM:
-${failureReasons}
+      const prompt = `You are helping find academic literature to support a research claim. Generate 3-4 different search queries.
 
-Generate a refined search query (2-5 words) that would find more relevant papers. Return only the query, no explanation.`;
+CLAIM TO SUPPORT:
+${claim}
+
+${successfulExcerpts ? `EXCERPTS THAT SUCCESSFULLY SUPPORTED THE CLAIM (find more like these):
+${successfulExcerpts}
+---` : ''}
+
+${failureReasons ? `WHY SOME RESULTS DIDN'T WORK:
+- ${failureReasons}` : ''}
+
+QUERIES ALREADY TRIED (avoid these):
+${previousQueries}
+
+Generate 3-4 diverse search queries that might find supporting evidence. Each query can be a phrase or sentence fragment (5-15 words). Try different angles:
+- Technical terminology from the claim
+- Related concepts or methods
+- Specific phenomena or effects mentioned
+- Application domains
+
+Return ONLY the queries, one per line, no numbering or explanation.`;
 
       const response = await this.callOpenAIAPI(prompt);
-      return response.trim();
+      const queries = response
+        .split('\n')
+        .map(q => q.trim())
+        .filter(q => q.length > 0 && q.length < 200)
+        .filter(q => !queryHistory.includes(q)) // Filter out already-tried queries
+        .slice(0, 4);
+
+      return { 
+        queries: queries.length > 0 ? queries : [claim],
+        debugInfo: { prompt, response }
+      };
     } catch (error) {
-      console.error('[VerificationFeedbackLoop] Error refining query:', error);
-      return claim;
+      console.error('[VerificationFeedbackLoop] Error refining queries:', error);
+      return { queries: [claim], debugInfo: { prompt: '', response: `Error: ${error}` } };
+    }
+  }
+
+  /**
+   * Fire off a Semantic Scholar search asynchronously (non-blocking)
+   * Results are streamed to the UI and verified when they arrive
+   */
+  private async fireSemanticScholarSearch(
+    claim: string,
+    round: number,
+    seenSnippetIds: Set<string>,
+    streamCallbacks?: { 
+      onCandidatesFound?: (round: number, candidates: EmbeddedSnippet[]) => void;
+      onVerificationUpdate?: (round: number, snippetId: string, result: VerificationResult) => void;
+    },
+    signal?: AbortSignal
+  ): Promise<void> {
+    try {
+      if (signal?.aborted) return;
+
+      const { InternetPaperSearcher } = await import('@research-assistant/core');
+      const searcher = new InternetPaperSearcher();
+      
+      const semanticScholarApiKey = this.getSettingValue('semanticScholarApiKey');
+      if (semanticScholarApiKey) {
+        searcher.setSemanticScholarApiKey(semanticScholarApiKey);
+      }
+
+      // Extract search terms for better API results
+      const searchQuery = this.extractSearchTerms(claim);
+      console.log(`[VerificationFeedbackLoop] Round ${round}: Firing Semantic Scholar search: "${searchQuery}"`);
+
+      const papers = await searcher.searchSemanticScholarOnly(searchQuery);
+      
+      if (signal?.aborted) return;
+      if (papers.length === 0) return;
+
+      // Convert papers to snippet-like format for streaming
+      const webSnippets = papers
+        .filter(p => p.abstract && p.abstract.length > 50)
+        .slice(0, 5)
+        .map(paper => {
+          const snippetId = `ss-${round}-${paper.title.substring(0, 20).replace(/\W/g, '')}`;
+          if (seenSnippetIds.has(snippetId)) return null;
+          seenSnippetIds.add(snippetId);
+          
+          return {
+            id: snippetId,
+            text: paper.abstract || '',
+            fileName: `${paper.authors.slice(0, 2).join(', ')} (${paper.year})`,
+            filePath: paper.url || '',
+            startLine: 0,
+            endLine: 0,
+            embedding: [],
+            timestamp: Date.now(),
+            searchSource: 'semantic-scholar' as const,
+            metadata: {
+              title: paper.title,
+              authors: paper.authors,
+              year: paper.year,
+              url: paper.url,
+              doi: paper.doi,
+              openAccessPdf: paper.openAccessPdf
+            }
+          };
+        })
+        .filter(Boolean) as EmbeddedSnippet[];
+
+      if (webSnippets.length === 0) return;
+
+      // Stream candidates first
+      if (streamCallbacks?.onCandidatesFound) {
+        console.log(`[VerificationFeedbackLoop] Round ${round}: Semantic Scholar returned ${webSnippets.length} papers`);
+        streamCallbacks.onCandidatesFound(round, webSnippets);
+      }
+
+      // Now verify each snippet and stream updates
+      for (const snippet of webSnippets) {
+        if (signal?.aborted) return;
+        
+        try {
+          const result = await this.verifySnippet(claim, snippet, 0);
+          
+          if (signal?.aborted) return;
+          
+          if (streamCallbacks?.onVerificationUpdate) {
+            streamCallbacks.onVerificationUpdate(round, snippet.id, result);
+          }
+        } catch (error) {
+          console.warn(`[VerificationFeedbackLoop] Failed to verify Semantic Scholar snippet:`, error);
+          // Send a failed verification update
+          if (streamCallbacks?.onVerificationUpdate) {
+            streamCallbacks.onVerificationUpdate(round, snippet.id, {
+              supports: false,
+              confidence: 0,
+              reasoning: 'Verification failed',
+              snippet
+            });
+          }
+        }
+      }
+    } catch (error) {
+      // Don't fail the main search if Semantic Scholar fails
+      console.warn(`[VerificationFeedbackLoop] Round ${round}: Semantic Scholar search failed:`, error);
     }
   }
 
