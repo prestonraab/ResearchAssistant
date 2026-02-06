@@ -297,8 +297,8 @@ function initializeUI(message) {
   
   state.pairs = message.pairs || [];
   state.centerItemId = message.centerItemId || null;
-  
-  console.log('[WritingMode WebView] Pairs array:', state.pairs.length);
+
+
   
   renderPairs();
   
@@ -320,8 +320,6 @@ function initializeUI(message) {
 function renderPairs() {
   if (!pairsList) return;
   
-  console.log('[WritingMode] renderPairs called, pairs:', state.pairs.length);
-  
   if (state.pairs.length === 0) {
     pairsList.innerHTML = `
       <div class="empty-state">
@@ -333,13 +331,6 @@ function renderPairs() {
     return;
   }
 
-  // Log first pair to see structure
-  if (state.pairs.length > 0) {
-    console.log('[WritingMode] First pair structure:', {
-      keys: Object.keys(state.pairs[0]),
-      sample: state.pairs[0]
-    });
-  }
 
   // Group pairs by section and render with section headers
   let html = '';
@@ -368,8 +359,6 @@ function renderPairs() {
   });
   
   pairsList.innerHTML = html;
-  
-  console.log('[WritingMode] Rendered HTML length:', pairsList.innerHTML.length);
   
   // Measure actual heights of rendered pair rows
   requestAnimationFrame(() => {
@@ -1233,7 +1222,7 @@ function insertParagraphBreak(pairId) {
   
   // Find the index of the pair
   const pairIndex = state.pairs.findIndex(p => p.id === pairId);
-  if (pairIndex === -1) {
+  if (pairIndex < 0) {
     console.warn('[WritingMode] Pair not found:', pairId);
     return;
   }
@@ -1414,7 +1403,16 @@ function getCenterItem() {
  */
 function scrollToCenterItem(itemId) {
   const itemIndex = state.pairs.findIndex(p => p.id === itemId);
-  if (itemIndex < 0) return;
+  if (itemIndex < 0) {
+    console.warn('[WritingMode] Center item not found:', itemId);
+    return;
+  }
+
+  // Log pair to see structure
+  console.log('[WritingMode] Center pair structure:', {
+    keys: Object.keys(state.pairs[itemIndex]),
+    sample: state.pairs[itemIndex]
+  });
   
   const contentDiv = document.querySelector('.content');
   
@@ -1426,7 +1424,7 @@ function scrollToCenterItem(itemId) {
   const scrollTarget = Math.max(0, itemCenter - viewportCenter);
   
   contentDiv.scrollTop = scrollTarget;
-  console.log('[WritingMode WebView] Scrolled to center item:', itemId);
+  console.log('[WritingMode] Scrolled to center item:', itemId);
 }
 
 /**
@@ -1531,8 +1529,6 @@ function findMatchesInElement(element, searchTerm) {
   while (true) {
     const index = lowerText.indexOf(searchTerm, startIndex);
     if (index === -1) break;
-    
-    console.log(`[WritingMode] Found match at index ${index}`);
     
     state.findState.matches.push({
       element: element,
