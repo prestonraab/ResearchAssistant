@@ -427,16 +427,6 @@ function renderPair(pair) {
       </div>
     `;
   }
-
-  console.log('[WritingMode] Rendering pair:', {
-    id: pair.id,
-    question: pair.question?.substring(0, 50),
-    answerLength: pair.answer?.length || 0,
-    displayAnswerLength: pair.displayAnswer?.length || 0,
-    status: pair.status,
-    claimCount: pair.claims?.length || 0,
-    linkedSourcesCount: pair.linkedSources?.length || 0
-  });
   
   const status = pair.status || 'DRAFT';
   const statusClass = status.toLowerCase().replace(/\s+/g, '-');

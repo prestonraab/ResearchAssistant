@@ -646,3 +646,19 @@ This file contains all **uncategorized** claims with their supporting evidence.
 ---
 
 
+## C_1770403547313: Oncotype DX has been approved and implemented clinically to predict personalized recurrence risk in ER+ breast cancer and guide chemotherapy decisions
+
+**Category**: Uncategorized  
+**Source**: Buus2021  
+**Context**: Multi-gene prognostic signatures that have been approved and implemented clinically include Oncotype DX, EndoPredict, and Prosigna, which are used to predict personalized recurrence risk in ER+ breast cancer and guide chemotherapy decisions. [source:: C_05]
+
+**Primary Quote**:
+> "1234567890():,; <!-- image --> ## ARTICLE OPEN <!-- image --> ## Development and validation for research assessment of Oncotype DX ® Breast Recurrence Score, EndoPredict ® and Prosigna ® Richard Buus 1,2 , Zsolt Szijgyarto 3 , Eugene F. Schuster 1,2 , Hui Xiao 1,2 , Ben P. Haynes 2 , Ivana Sestak 4 , Jack Cuzick 4 , Laia Paré 5,6 , Elia Seguí 5,6 , Nuria Chic 5,6 , Aleix Prat 5,6 , Mitch Dowsett 1,2 and Maggie Chon U. Cheang 3 ✉ Multi-gene prognostic signatures including the Oncotype ® DX Recurrence Score (RS), EndoPredict ® (EP) and Prosigna ® (Risk Of Recurrence, ROR) are widely used to predict the likelihood of distant recurrence in patients with oestrogen-receptor-positive (ER + ), HER2-negative breast cancer. Here, we describe the development and validation of methods to recapitulate RS, EP and ROR scores from NanoString expression data."
+
+**Supporting Quotes**:
+- "However, a substantial risk remains for relapse. Multi-parameter gene-expression-based prognostic signatures are often used to estimate the residual risk of recurrence after surgery to guide patient management. Amongst the most widely used prognostic signatures in ER + breast cancer are the Oncotype DX Recurrence Score (RS) 4 , EndoPredict (EP/EPclin) 5 and Prosigna ® Risk Of Recurrence score (ROR) 6 . Each of these have been endorsed for prognostic use in authoritative guidelines 7,8 . RS consists of 16 prognostic genes and /uniFB01 ve reference genes assessed by RT-PCR. Thirteen of the prognostic genes are grouped into four modules (proliferation, oestrogen, HER2 and invasion), which allow these features to be weighted differently in the signature algorithm with scale between 0 and 100 4 . The HER2 and proliferation modules are thresholded such that quantitative readouts from those modules are only differentiated in tumours with high expression for the respective modules."
+
+
+---
+
+

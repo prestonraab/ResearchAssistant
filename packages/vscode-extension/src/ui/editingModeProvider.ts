@@ -264,11 +264,8 @@ export class EditingModeProvider {
       // Load manuscript
       const manuscript = await this.loadManuscript();
 
-      console.log(`[EditingMode] Manuscript length: ${manuscript.length} characters`);
-
       // Parse manuscript into question-answer pairs
       const questionAnswerPairs = this.questionAnswerParser.parseManuscript(manuscript);
-      console.log(`[EditingMode] Parsed ${questionAnswerPairs.length} question-answer pairs`);
 
       // Store original pairs for saving (preserves Source comments)
       this.questionAnswerPairs = questionAnswerPairs;
@@ -298,9 +295,6 @@ export class EditingModeProvider {
         this.sentences.push(item as any);
         itemIndex++;
       }
-
-      console.log(`[EditingMode] Created ${this.sentences.length} answer items`);
-      console.log(`[EditingMode] Items with claims: ${this.sentences.filter(s => s.claims && s.claims.length > 0).length}`);
 
       // Load full claim details for each answer
       const itemsWithClaims = await this.loadClaimsForSentences();
@@ -354,12 +348,10 @@ export class EditingModeProvider {
     try {
       const manuscriptPath = this.extensionState.getAbsolutePath('03_Drafting/manuscript.md');
 
-      console.log(`[EditingMode] Loading manuscript from: ${manuscriptPath}`);
-      console.log(`[EditingMode] File exists: ${fs.existsSync(manuscriptPath)}`);
+      console.log(`[EditingMode] ${manuscriptPath} exists: ${fs.existsSync(manuscriptPath)}`);
 
       if (fs.existsSync(manuscriptPath)) {
         const content = fs.readFileSync(manuscriptPath, 'utf-8');
-        console.log(`[EditingMode] Loaded ${content.length} characters`);
         return content;
       }
 

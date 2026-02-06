@@ -58,7 +58,6 @@ export class LiteratureIndexer {
           const content = fs.readFileSync(filePath, 'utf-8');
 
           if (!this.embeddingStore.hasFileChanged(filePath, content)) {
-            console.log(`[LiteratureIndexer] Skipping unchanged file: ${path.basename(filePath)}`);
             stats.skipped++;
             return;
           }

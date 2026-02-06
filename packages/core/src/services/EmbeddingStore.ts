@@ -257,9 +257,7 @@ export class EmbeddingStore {
     const storedHash = this.fileHashes.get(fileKey);
     const hasChanged = storedHash !== currentHash;
     
-    console.log(`[EmbeddingStore] Checking file: ${fileKey}`);
-    console.log(`[EmbeddingStore]   Has stored hash: ${!!storedHash}`);
-    console.log(`[EmbeddingStore]   Has changed: ${hasChanged}`);
+    console.log(`[EmbeddingStore] Checking file: ${fileKey} \nHas stored hash: ${!!storedHash} \nHas changed: ${hasChanged}`);
     
     if (hasChanged && storedHash) {
       console.log(`[EmbeddingStore]   Stored hash: ${storedHash.substring(0, 16)}...`);

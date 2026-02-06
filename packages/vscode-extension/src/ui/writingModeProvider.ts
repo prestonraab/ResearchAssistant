@@ -164,10 +164,7 @@ export class WritingModeProvider {
 
       // Load and parse manuscript
       const manuscript = await this.loadManuscript();
-      console.log(`[WritingMode] Loaded ${manuscript.length} characters`);
-      
       let questionAnswerPairs = this.questionAnswerParser.parseManuscript(manuscript);
-      console.log(`[WritingMode] Parsed ${questionAnswerPairs.length} question-answer pairs`);
 
       // Validate Q&A pairs
       if (!DataValidationService.validateQAPairsArray(questionAnswerPairs)) {
@@ -468,12 +465,10 @@ export class WritingModeProvider {
       const config = this.extensionState.getConfig();
       const manuscriptPath = this.extensionState.getAbsolutePath('03_Drafting/manuscript.md');
 
-      console.log(`[WritingMode] Loading manuscript from: ${manuscriptPath}`);
-      console.log(`[WritingMode] File exists: ${fs.existsSync(manuscriptPath)}`);
+      console.log(`[WritingMode] Loading manuscript from: ${manuscriptPath} \nFile exists: ${fs.existsSync(manuscriptPath)}`);
 
       if (fs.existsSync(manuscriptPath)) {
         const content = fs.readFileSync(manuscriptPath, 'utf-8');
-        console.log(`[WritingMode] Loaded ${content.length} characters`);
         return content;
       }
 
