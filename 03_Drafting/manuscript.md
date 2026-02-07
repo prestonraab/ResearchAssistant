@@ -133,15 +133,15 @@
 > [!question]- ML, traditional, broad strokes, direction of field in usage (status:: undefined)
 > Classification has evolved from traditional statistical methods (logistic regression, linear discriminant analysis) toward modern machine learning approaches (support vector machines, random forests, neural networks). The direction increasingly favors flexible methods that can capture complex, non-linear patterns in high-dimensional data. Modern techniques often use iterative and random (stochastic) training, improving the model in small steps to classify the training data correctly.[source:: C_05]
 
-> [!question]- New question? (status:: DRAFT)
-> 
+> [!question]- Compare stats and ML models (status:: DRAFT)
+> Simpler, rigid models use strong assumptions about how the inputs relate to the labels. This bias provides protection against variable data: the predicted model is not likely to change much in response to small changes in the data. More complex machine learning models are less constrained, which can lead to highly variable models. Many machine learning algorithms use some form of regularization, or assumptions of simple relationships that help to constrain the models. This can improve generalization, or the ability to classify unseen data.
 
 
 
 ## Classifier Architectures
 
 > [!question]- What specific classifiers do well with gene expression? (status:: undefined)
-> For gene expression data specifically, benchmark studies have identified several classifier types that perform particularly well: support vector machines (SVM) and random forests have been highlighted as top performers, with SVMs significantly outperforming random forests in some cases, though random forests outperform SVMs in others. Logistic regression with regularization (elastic net, lasso, ridge) and neural networks (when sufficient data are available) also show strong performance. Each classifier type has distinct characteristics that make it suitable for different scenarios and data types. [source:: C_06]
+> For gene expression data specifically, benchmark studies have identified several classifier types that perform particularly well: support vector machines (SVM) and random forests have been highlighted as top performers. Logistic regression with regularization (elastic net, lasso, ridge) and neural networks (when sufficient data are available) also show strong performance. XGBoost, a tree-based algorithm with strong performance on many datasets, can also be used. Each classifier type has distinct characteristics that make it suitable for different scenarios and data types. [source:: C_06(Piccolo2022)]
 
 
 
