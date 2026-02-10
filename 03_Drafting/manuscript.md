@@ -25,9 +25,6 @@
 > [!question]- Why is classification useful for biomedical tasks? (status:: undefined)
 > For instance, machine learning classifiers have demonstrated strong performance for cancer classification tasks using gene expression data, even being approved and implemented clinically to predict personalized recurrence risk for breast cancer and guide chemotherapy decisions. [source:: C_05, C_1770403547313(Buus2021)]
 
-> [!question]- What are some specific examples of clinically used classifiers? (status:: undefined)
-> This includes several multi-gene prognostic signatures  [source:: C_1770403547313(Buus2021)]
-
 
 
 ## Batch Effect Sources Across Data Types
@@ -73,58 +70,36 @@
 
 ## Adjusters for Gene Expression
 
-> [!question]- What are adjusters? (status:: DRAFT)
-> Statistical adjustment methods, commonly referred to as adjusters or batch correction methods, aim to remove technical variation while preserving biological signal. The balance between these objectives varies across methods and contexts.
+> [!question]- What are adjusters? (status:: undefined)
+> Statistical adjustment methods, also referred to as adjusters or batch correction methods, aim to remove technical variation while preserving biological signal.
 
 > [!question]- How do adjusters work? (status:: undefined)
-> Adjusters work by modeling and removing systematic technical variation introduced by batch effects, thereby improving the ability of downstream classifiers to distinguish true biological differences without influence from technical artifacts. These methods operate under the assumption that the underlying biological signal is consistent across batches, and that technical variation can be separated from biological variation.
+> Adjusters can work by modeling the technical variation and removing it, or by modeling the biological variation and removing all other variation. This has implications for the preservation of biological signal. If an adjuster that models biology fails to capture some variation, then that signal will be removed from the data. If an adjuster that models batch effect attributes too much variation to the batch, the same problem occurs. These methods operate under the assumption that the underlying biological signal is consistent across batches, and that technical variation can be separated from biological variation.
+
+> [!question]- Why do some adjusters work better in some contexts? (status:: DRAFT)
+> The effectiveness of adjusters depends on the data type. Adjusters must make assumptions when modeling batch effects or biology, and these will vary by data type. Differences in modeling assumptions can be seen by examining adjusters for two types of gene expression measurements.
 
 > [!question]- How can gene expression measurements be categorized? (status:: undefined)
-> The effectiveness of adjusters depends on the data type. For instance, gene expression measurements can be categorized into those which measure the bulk gene expression in a large sample, and those which measure the gene expression for thousands of individual cells.
+> These measurements can be categorized into those which measure the bulk gene expression in a large sample of cells and those which take measurements for individual cells.
 
 > [!question]- How does Combat adjust bulk data? (status:: undefined)
-> For bulk data, a common adjusting approach is ComBat, developed in 2007. Combat adjusts for batch effects by modeling batch-specific shifts and scaling factors for each gene.  The transformation that Combat applies is linear: each expression value for a particular gene is shifted and scaled the same as each other expression value for that gene. While the transformation acts on each gene seperately, the calculation of the correct transformation uses statistics across all genes to mitigate the effects of outliers. This transformation works well for bulk gene expression data, which varies continuously due to the continuous proportions of cell types represented in the sample. [source:: C_01]
+> For bulk data, a common adjusting approach is ComBat. ComBat adjusts for batch effects by modeling batch-specific shifts and scaling factors for each gene. ComBat models the batch effect to remove it. The transformation that ComBat applies is linear: each expression value for a particular gene is shifted and scaled the same as each other expression value for that gene. This transformation works well for bulk gene expression data, which varies continuously due to the random proportions of cell types represented in the sample. [source:: C_01]
 
 > [!question]- What is used to adjust single cell data? (status:: undefined)
-> Single cell data requires a different kind of adjustment. Single cell gene expression is characterized by distinct expression signatures for each cell type, with internal variation caused by various cell states at measurement time.  If bulk data is a continent of continuous variation, single cell data occupies islands of specialized differentiation.
+> Single cell data requires a different kind of adjustment. Single cell gene expression is characterized by distinct expression signatures for each cell type, with internal variation caused by various cell states at measurement time.  If bulk data spans a continent of continuous variation, single cell data occupies islands of specialized differentiation.
 
 > [!question]- How is single cell data adjusted? (status:: undefined)
-> Single cell adjusters may assume that samples of similar cell types will exhibit similar expression patterns, even in the presence of batch effects. By finding "nearerst neighbors", or the samples that have the most similar expression between batches, adjusters such as Harmony and Seurat can identify how to move cross-batch neighbors closer together to bring the batches into alignment. Since neighbors are found using many genes, and the transformation is sample-specific, the adjustment of single cell data is typically nonlinear.
+> Single cell adjusters may assume that samples of similar cell types will exhibit similar expression patterns, even in the presence of batch effects. By finding "nearerst neighbors", or the samples that have the most similar expression between batches, adjusters such as Harmony and Seurat can identify how to move cross-batch neighbors closer together to bring the batches into alignment. Harmony and Seurat model the biological space, then eliminate the batch differences. Since neighbors are found using many genes, and the transformation is sample-specific, the adjustment of single cell data is typically nonlinear.
+
+> [!question]- Feature space correction vs latent space alignment? (status:: DRAFT)
+> ComBat and the single cell methods have a difference in approach more fundamental than modeling batch or biology. ComBat is a feature-space correction method: it attempts to fix the original data and output new values for each sample and gene. Harmony and Seurat are latent-space alignment methods: they represent each sample using fewer variables, which represent simple ways the data can vary within a single batch, and adjust in that space. These new variables are called latent, or hidden, because they were not among the original genes yet hold most of the information.
+
+> [!question]- New question? (status:: DRAFT)
+> Batch correction can be thought of as a two-step process. First, find a transformation of the data into a space where there are no differences between batches. Then invert that transformation to align the data with an original dataset or some aggregation of the originals.
 
 
-
-## Confounding
-
-> [!question]- What is confounding? (status:: undefined)
-> Batch effects can mimic or mask real differences in expression levels and covariance structures between batches. Not all differences between datasets are due to technical artifacts; not all differences should be removed. For example, two studies might have the same split of positive and negative cases, but different proportions of females. It might be difficult to determine whether the differences in gene expression between batches are technical artifacts that should be removed, or true differences due to the sex imbalance between datasets. We might say that the batch effect is "confounded" with sex—the effect of the batch on gene expression is somewhat tied up with the effect of the sex imbalance.
-
-> [!question]- How can confounding be resolved? (status:: undefined)
-> Confounding can often be removed if the values of the confounding variables are known.
-
-> [!question]- How specifically does Combat account for confounding? (status:: undefined)
-> Combat, when provided with additional metadata for each sample, can temporarily remove the associations between the metadata and the gene expression, remove the remaining batch effects, then add back the metadata associations.
-
-> [!question]- When is confounding difficult to overcome? (status:: undefined)
-> However, if these other variables are not known, due to poor recording or unknown population differences, correcting for confounding can be more difficult.
-
-> [!question]- How can dataset differences be preserved? (status:: undefined)
-> Some methods, like LIGER, have been developed to deal with this problem. LIGER uses matrix factorization of single cell data to identify shared and dataset-specific features of cell identity. Once differences are identified, they can be preserved, minimizing false alignment of the datasets.
-
-> [!question]- How to deal with unknown batches? (status:: undefined)
-> A separate but related problem occurs when the batches are not known. Methods such as surrogate variable analysis (SVA) can identify and adjust for unknown batch effects by extracting surrogate variables that capture unwanted effects.
-
-> [!question]- Why does batch effect mitigation matter clinically? (status:: undefined)
-> Batch effects must by identified and accounted for. If batch effects go undetected, predictors developed for clinical outcomes may produce results that are more variable than expected, resulting in lower-than-expected classification rates that might put patients at risk. Even modest drops in classifier performance due to batch effects can mean the difference between accurate diagnosis and misclassification.
-
-> [!question]- Transition (status:: DRAFT)
+> [!question]- Transition (status:: undefined)
 > To understand the effects of adjustment on classification, we will first describe the landscape of modern classification.
-
-
-
-## Extras
-
-> [!question]- How important is single-patient data? (status:: DRAFT)
-> Single-patient data processing is vital to the translation of molecular assays, as patient samples in clinical settings are typically collected in small numbers, often one at a time, making batch effect correction essential for clinical translation. However, many correction techniques rely on several samples to characterize the distribution of the new batch.
 
 
 
@@ -133,12 +108,8 @@
 > [!question]- ML, traditional, broad strokes, direction of field in usage (status:: undefined)
 > Classification has evolved from traditional statistical methods (logistic regression, linear discriminant analysis) toward modern machine learning approaches (support vector machines, random forests, neural networks). The direction increasingly favors flexible methods that can capture complex, non-linear patterns in high-dimensional data. Modern techniques often use iterative and random (stochastic) training, improving the model in small steps to classify the training data correctly.[source:: C_05]
 
-> [!question]- Compare stats and ML models (status:: DRAFT)
-> Simpler, rigid models use strong assumptions about how the inputs relate to the labels. This bias provides protection against variable data: the predicted model is not likely to change much in response to small changes in the data. More complex machine learning models are less constrained, which can lead to highly variable models. Many machine learning algorithms use some form of regularization, or assumptions of simple relationships that help to constrain the models. This can improve generalization, or the ability to classify unseen data.
-
-
-
-## Classifier Architectures
+> [!question]- Compare stats and ML models (status:: undefined)
+> Simple, rigid models use strong assumptions about how the inputs relate to the labels. This bias provides protection against variable data: the predicted model will not change much in response to small changes in the data. More complex machine learning models are less constrained, which can lead to highly variable models. Many machine learning algorithms use some form of regularization, or assumptions of simple relationships that help to constrain the models. This can improve generalization, or the ability to classify unseen data.
 
 > [!question]- What specific classifiers do well with gene expression? (status:: undefined)
 > For gene expression data specifically, benchmark studies have identified several classifier types that perform particularly well: support vector machines (SVM) and random forests have been highlighted as top performers. Logistic regression with regularization (elastic net, lasso, ridge) and neural networks (when sufficient data are available) also show strong performance. XGBoost, a tree-based algorithm with strong performance on many datasets, can also be used. Each classifier type has distinct characteristics that make it suitable for different scenarios and data types. [source:: C_06(Piccolo2022)]
@@ -148,49 +119,33 @@
 ## Regularized Linear Models
 
 > [!question]- What is the key insight about regularization? (status:: undefined)
-> Built-in regularization is vital for high-dimensional gene expression data; without it, simpler models like standard logistic regression succumb to technical noise in batch-affected datasets.
+> Even for simple models, regularization is vital for high-dimensional gene expression data. Unregularized logistic regression succumbs to the noise of tens of thousands of genes when training, using small contributions from many genes to fit the training data exactly.
 
 > [!question]- How should elastic net be described for genomics? (status:: undefined)
-> Elastic net is particularly well-suited to the $p \gg n$ problem characteristic of gene expression data, where thousands of genes (features) vastly outnumber samples. By combining L1 and L2 regularization, elastic net simultaneously performs feature selection (identifying which genes matter) and shrinkage (preventing overfitting to noise). The L1 penalty drives coefficients of irrelevant genes to exactly zero, creating sparse models that are interpretable and computationally efficient. The L2 penalty encourages a grouping effect where correlated genes—common in biological pathways—tend to be selected or excluded together, preserving biological coherence. This dual regularization is particularly effective at ignoring technical noise from batch effects while retaining biological signal, as demonstrated by elastic net's superior performance across adjustment methods in our results. [source:: C_79]
-
-> [!question]- Explain each type of classifier (status:: undefined)
-> Logistic regression without regularization struggles in the $p \gg n$ regime because it attempts to fit a coefficient for every gene, leading to overfitting and instability. When combined with regularization techniques such as L1 (lasso) or L2 (ridge) penalties, logistic regression becomes viable for gene expression data by constraining the solution space and preventing overfitting. The L1 penalty (lasso) performs automatic feature selection by driving coefficients to exactly zero, while the L2 penalty (ridge) shrinks coefficients toward zero without eliminating them.
+> Elastic net accounts for this tendency by effectively limiting the number of genes the model can used. This is called feature selection. Feature selection, done manually or incorportated into models, is important whenever the number of features far exceeds the number of samples used for training. This is  characteristic of gene expression data, where thousands of genes vastly outnumber samples. Elastic net uses two common types of regularization, referred to as L1 and L2 regularization.   The L1 penalty drives coefficients of irrelevant genes to exactly zero, creating models that use few features. This results in interpretable and computationally efficient models. The L2 penalty penalizes large coefficients, which encodes the idea that genes with low variation should not have a large effect on classification. This regularization helps models generalize to new data.  [source:: C_79]
 
 
 
 ## Ensemble Methods
 
 > [!question]- What is the key characteristic of ensemble methods for genomics? (status:: undefined)
-> Ensemble methods are robust to the high-dimensional, noisy nature of gene expression data because they aggregate predictions across multiple models, each trained on different subsets of samples and features. This averaging effect reduces sensitivity to outliers and technical artifacts, including batch effects. Random forests construct ensembles of decision trees, where each tree is trained on a bootstrap sample of the data and a random subset of features. For gene expression data, this means each tree sees a different combination of genes and samples, preventing any single technical artifact from dominating the model. The final prediction aggregates votes across all trees, providing robustness to noise and the ability to capture complex interactions between genes. Random forests also provide measures of feature importance, which can aid in biological interpretation by identifying which genes contribute most to classification decisions. [source:: C_84]
+> Ensemble methods are robust to the high-dimensional, noisy nature of gene expression data because they aggregate predictions across multiple models, each trained on different subsets of samples and features. This averaging effect reduces sensitivity to outliers. Random forests construct ensembles of decision trees, where each tree is trained on a bootstrap sample of the data and a random subset of features. For gene expression data, this means each tree sees a different combination of genes and samples, preventing small deviations from patterns from dominating the model. The final prediction aggregates votes across all trees, providing robustness to noise and the ability to capture complex interactions between genes. Random forests also provide measures of feature importance, which can aid in biological interpretation by identifying which genes contribute most to classification decisions. [source:: C_84]
 
 > [!question]- How should XGBoost be described? (status:: undefined)
-> XGBoost, a gradient boosting implementation, builds trees sequentially to correct errors from previous iterations, often achieving excellent performance on structured data. The method uses a sparsity-aware algorithm for sparse data and provides efficient handling of large-scale datasets through optimized cache access patterns and data compression. [source:: C_81]
+> XGBoost, a gradient boosting implementation, builds trees sequentially to correct errors from previous iterations, often achieving excellent performance on structured data. It benefits from the same regularization methods as random forests. [source:: C_81]
 
 
 
 ## Non-linear Geometric Models
 
 > [!question]- What distinguishes geometric models in the genomic context? (status:: undefined)
-> These models identify decision boundaries in high-dimensional gene expression space using geometric principles. For gene expression data, where biological classes may not be linearly separable due to complex regulatory networks and pathway interactions, the ability to learn non-linear boundaries is crucial. Support vector machines identify optimal decision boundaries by finding hyperplanes that maximize the margin between classes. SVMs are particularly effective for the $p \gg n$ problem in gene expression data because they focus on support vectors—the most informative samples near the decision boundary—rather than attempting to model all samples equally. The kernel trick allows SVMs to implicitly map gene expression profiles into higher-dimensional spaces where complex, non-linear biological patterns become linearly separable, making them versatile for diverse biological patterns (Guyon 2002). Neural networks, including multi-layer perceptrons and more sophisticated architectures, can achieve excellent performance when sufficient data are available. For gene expression data, neural networks can learn hierarchical representations where early layers capture individual gene patterns and deeper layers integrate these into pathway-level or systems-level features. Neural networks outperform other methods only when training set sizes are very large, as the high-dimensional nature of gene expression data (many features, few samples) has historically limited deep learning effectiveness. Deep learning approaches have shown particular promise for identifying complex, non-linear patterns in gene expression data that may be missed by simpler methods. [source:: C_86]
+> These models identify decision boundaries in high-dimensional gene expression space using geometric principles. For gene expression data, where biological classes may not be linearly separable due to complex regulatory networks and pathway interactions, the ability to learn non-linear boundaries is crucial. Support vector machines identify optimal decision boundaries by finding hyperplanes that maximize the margin between classes. SVMs are particularly effective for the $p \gg n$ problem in gene expression data because they focus on support vectors—the most informative samples near the decision boundary—rather than attempting to model all samples equally. The kernel trick allows SVMs to implicitly map gene expression profiles into higher-dimensional spaces where complex, non-linear biological patterns become linearly separable, making them versatile for diverse biological patterns (Guyon 2002). [source:: C_86]
 
-> [!question]- Very general way, the kinds of genomics data that they are useful for (status:: undefined)
-> These classifiers are useful across various types of genomics data beyond gene expression, including DNA methylation profiles, copy number variations, and protein expression data, though the specific characteristics of each data type may favor certain classifier types.
+> [!question]- New question? (status:: undefined)
+> Neural networks, including multi-layer perceptrons and more sophisticated architectures, can achieve excellent performance when sufficient data are available. For gene expression data, neural networks can learn hierarchical representations where early layers capture individual gene patterns and deeper layers integrate these into pathway-level or systems-level features. Neural networks outperform other methods only when training set sizes are very large, as the high-dimensional nature of gene expression data (many features, few samples) has historically limited deep learning effectiveness. Deep learning approaches have shown particular promise for identifying complex, non-linear patterns that may be missed by simpler methods.
 
 > [!question]- The importance of algorithm and metric selection (status:: undefined)
 > Piccolo et al. (2022) demonstrated that classification performance for gene-expression data varies substantially by algorithm and performance metric. Critically, the performance rankings differed considerably depending on which evaluation metric was used, and conclusions drawn from benchmark comparisons depend heavily on which metrics are considered important. Surprisingly, the number of samples and genes did not strongly correlate with classification performance, suggesting that data quality and appropriate method selection matter more than raw dataset size. Hyperparameter tuning substantially affects performance, emphasizing that fair comparisons require consistent optimization across methods. This finding underscores the importance of: (1) testing multiple algorithms rather than relying on a single approach, (2) evaluating performance using multiple complementary metrics (accuracy, MCC, AUC, etc.), and (3) conducting proper hyperparameter optimization for each method. [source:: C_17]
-
-
-
-## The Role of Data Scale
-
-> [!question]- How should data scale be discussed? (status:: undefined)
-> Transition from classifier architectures to the role of data scale, particularly for neural networks.
-
-> [!question]- Neural Net if you have enough data, which sometimes happens (some kinds of genomics data) (status:: undefined)
-> Neural networks can achieve excellent performance when sufficient data are available, though they outperform other methods only when training set sizes are very large. For genomics data, this requirement is sometimes met, for example, when combining all available data from public repositories like the Gene Expression Omnibus (GEO), which contains millions of samples across thousands of studies. The availability of consistently computed RNA-seq count matrices from resources like GEO facilitates the application of deep learning approaches that can identify complex, non-linear patterns in large-scale gene expression data. [source:: C_87]
-
-> [!question]- Such as all of Geo (Jeff Leeks) or > 1000 (status:: undefined)
-> This is addressed by the previous point. [source:: C_31, C_32]
 
 
 
@@ -381,6 +336,38 @@
 
 > [!question]- Results (Figure 3) (status:: undefined)
 > ![Figure 3: Unbalanced TB Analysis](figures/unbalanced_tb_analysis.png) *Figure 3: The catastrophic delta of supervised adjustment. This figure shows the change in performance (MCC) for different classifier-adjuster combinations on imbalanced test data. The large negative deltas for KNN with supervised adjustment (red bars extending far below zero, reaching MCC of -0.47) demonstrate performance worse than random chance—a delta of approximately -0.7 from reasonable performance. This dramatic negative change occurs because supervised correction creates artificial separation in training data that completely fails to generalize, illustrating the "hall of mirrors" effect where internal validation appears perfect while real-world performance collapses.*
+
+
+
+## Confounding
+
+> [!question]- What is confounding? (status:: undefined)
+> Batch effects can mimic or mask real differences in expression levels and covariance structures between batches. Not all differences between datasets are due to technical artifacts; not all differences should be removed. For example, two studies might have the same split of positive and negative cases, but different proportions of females. It might be difficult to determine whether the differences in gene expression between batches are technical artifacts that should be removed, or true differences due to the sex imbalance between datasets. We might say that the batch effect is "confounded" with sex—the effect of the batch on gene expression is somewhat tied up with the effect of the sex imbalance.
+
+> [!question]- How can confounding be resolved? (status:: undefined)
+> Confounding can often be removed if the values of the confounding variables are known.
+
+> [!question]- How specifically does Combat account for confounding? (status:: undefined)
+> Combat, when provided with additional metadata for each sample, can temporarily remove the associations between the metadata and the gene expression, then remove the remaining batch effects, and finally add back the metadata associations.
+
+> [!question]- When is confounding difficult to overcome? (status:: undefined)
+> However, if these other variables are not known, due to poor recording or unknown population differences, correcting for confounding can be more difficult. In the multi-study context, these additional variables, or metadata, are rarely consistently recorded. One variable might be important to one study, but left out in another. These unshared variables are typically unable to be used for merging datasets.
+
+> [!question]- How can dataset differences be preserved? (status:: undefined)
+> Some datasets are fully confounded—one dataset could be fully healthy, and another fully diseased; one could be from human tissue, and another from mouse tissue. Some methods, like LIGER, have been developed to deal with this problem for single cell data. LIGER uses matrix factorization to identify shared and dataset-specific features of cell identity. Once differences are identified, they can be preserved, minimizing false alignment of the datasets.
+
+> [!question]- How to deal with unknown batches? (status:: undefined)
+> A separate but related problem occurs when the batches are not known. This is not a primary difficulty when combining datasets. Methods such as surrogate variable analysis (SVA) can identify and adjust for unknown batch effects by extracting surrogate variables that capture unwanted effects.
+
+> [!question]- How important is single-patient data? (status:: undefined)
+> For precision medicine, single-patient data can also pose a problem to batch correction. Single-patient data processing is vital to the translation of molecular assays, as patient samples in clinical settings are typically collected in small numbers, often one at a time. However, many correction techniques rely on several samples to characterize the distribution of the new batch. It is difficult to know if a single sample is an outlier if the distribution is not known. If at all possible, it is best to process several samples at the same time or use recent data identically collected to define the distribution of the new data.
+
+> [!question]- What if I only have single-patient data? (status:: DRAFT)
+> If this is not possible, some transformations are available to shift the data into a batch-independent space. This includes within-sample gene ranking and using Variational Autoencoders to encode the sample using latent variables.
+
+> [!question]- Why does batch effect mitigation matter clinically? (status:: undefined)
+> Batch effects must by identified and accounted for. If batch effects go undetected, predictors developed for clinical outcomes may produce results that are more variable than expected, resulting in lower-than-expected classification rates that might put patients at risk. Even modest drops in classifier performance due to batch effects can mean the difference between accurate diagnosis and misclassification.
+
 
 
 
@@ -593,11 +580,4 @@
 
 > [!question]- The evolution from manual batch correction to automated detection of latent factors (status:: undefined)
 > The integration of SVA into modern workflows represents an evolution from manual batch correction—where researchers explicitly identify and correct for known technical factors—to automated detection of latent factors that may include both known and unknown sources of variation. This is particularly important for large-scale data integration projects, such as building foundation models on the entire GEO repository, where manually curating batch labels for hundreds of thousands of samples is impractical. Automated pipelines that incorporate SVA can identify and adjust for systematic variation without requiring complete metadata, enabling more robust integration of heterogeneous public data. However, this automation comes with the caveat that SVA may identify and remove biological variation if it is confounded with technical factors, emphasizing the continued importance of careful experimental design and validation.
-
-
-
-## Narrative Transformation Summary
-
-> [!question]- How is traceability maintained? (status:: undefined)
-> Every factual claim in chapter_draft.md traces back to verified claims in manuscript.md, which in turn reference claims_matrix.md and source documents. The two-document workflow allows narrative polish while maintaining verification integrity.
 
