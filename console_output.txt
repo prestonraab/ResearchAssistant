@@ -1,4 +1,6 @@
-workbench.desktop.main.js:523 [Extension Host] High memory usage in claim review mode: 558MB / 620MB
+writingMode.js:1458 [WritingMode] Center pair structure: {keys: Array(7), sample: {…}}
+writingMode.js:1473 [WritingMode] Scrolled to center item: QA_81
+workbench.desktop.main.js:523 [Extension Host] High memory usage in writing mode: 64MB / 70MB
 ubs @ workbench.desktop.main.js:523
 $logExtensionHostMessage @ workbench.desktop.main.js:523
 S @ workbench.desktop.main.js:11502
@@ -10,265 +12,226 @@ C @ workbench.desktop.main.js:29
 fire @ workbench.desktop.main.js:29
 fire @ workbench.desktop.main.js:550
 l.onmessage @ workbench.desktop.main.js:11513
-workbench.desktop.main.js:34  INFO Extension host (LocalProcess pid: 32191) is responsive.
-workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Cancelling previous claim operations
-workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Initial claim loaded, starting background operations
-workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Claim has quotes - starting verification workflow
-workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Found cached validation result
-workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Manuscript usage locations loaded
-workbench.desktop.main.js:523 [Extension Host] [LiteratureIndexer] searchSnippetsWithSimilarity called with query: to date, mass spectrometry (ms) data remain inhere
-workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Orphan citations loaded: 0
-claimReview.js:1720 [ClaimReview] Operations cancelled: Switching to new claim
-workbench.desktop.main.js:523 [Extension Host] [LiteratureIndexer] Query embedding generated, searching store
-workbench.desktop.main.js:523 [Extension Host] [EmbeddingStore] Vectra search completed in 0.02ms, returning 0 results
-workbench.desktop.main.js:523 [Extension Host] [LiteratureIndexer] Search returned 0 results with similarity scores
-claimReview.js:184 [ClaimReview] Displaying claim: {id: 'C_96', text: 'Mass spectrometry-based proteomics data are inhere…o sample handling and instrumentation differences', category: 'Challenge', source: 'Välikangas2016', primaryQuote: {…}, …}
-claimReview.js:916 [ClaimReview] Validation result updated
-claimReview.js:927 [ClaimReview] Usage locations updated: 1 locations
-workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Cancelling previous claim operations
-workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Initial claim loaded, starting background operations
-claimReview.js:1720 [ClaimReview] Operations cancelled: Switching to new claim
-workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Claim has quotes - starting verification workflow
-claimReview.js:184 [ClaimReview] Displaying claim: {id: 'C_90', text: 'RMA cannot be used in clinical settings where samp…ust be processed individually or in small batches', category: 'Challenge', source: 'McCall2010', primaryQuote: {…}, …}
-claimReview.js:337 [ClaimReview] No cached validation - showing Validate button
-workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Manuscript usage locations loaded
-workbench.desktop.main.js:523 [Extension Host] [QuoteVerificationService] Cache hit for quote from McCall2010
-workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Orphan citations loaded: 0
-claimReview.js:927 [ClaimReview] Usage locations updated: 0 locations
-workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Primary quote verification result: {verified: true, similarity: 1}
-workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Running embedding search...
-workbench.desktop.main.js:523 [Extension Host] [LiteratureIndexer] searchSnippetsWithSimilarity called with query: Furthermore, for microarrays to be used in clinica
-workbench.desktop.main.js:523 [Extension Host] [LiteratureIndexer] Query embedding generated, searching store
-workbench.desktop.main.js:523 [Extension Host] [EmbeddingStore] Vectra search completed in 0.02ms, returning 0 results
-workbench.desktop.main.js:523 [Extension Host] [LiteratureIndexer] Search returned 0 results with similarity scores
-workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Running unified quote search...
-workbench.desktop.main.js:523 [Extension Host] [LiteratureIndexer] searchSnippetsWithSimilarity called with query: furthermore, for microarrays to be used in clinica
-workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Cancelling previous claim operations
-workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Initial claim loaded, starting background operations
-workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Claim has quotes - starting verification workflow
-workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Found cached validation result
-claimReview.js:1720 [ClaimReview] Operations cancelled: Switching to new claim
-workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Manuscript usage locations loaded
-workbench.desktop.main.js:523 [Extension Host] [LiteratureIndexer] searchSnippetsWithSimilarity called with query: to date, mass spectrometry (ms) data remain inhere
-claimReview.js:184 [ClaimReview] Displaying claim: {id: 'C_96', text: 'Mass spectrometry-based proteomics data are inhere…o sample handling and instrumentation differences', category: 'Challenge', source: 'Välikangas2016', primaryQuote: {…}, …}
-workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Orphan citations loaded: 0
-workbench.desktop.main.js:523 [Extension Host] [LiteratureIndexer] Query embedding generated, searching store
-workbench.desktop.main.js:523 [Extension Host] [EmbeddingStore] Vectra search completed in 0.02ms, returning 0 results
-workbench.desktop.main.js:523 [Extension Host] [LiteratureIndexer] Search returned 0 results with similarity scores
-claimReview.js:916 [ClaimReview] Validation result updated
-claimReview.js:927 [ClaimReview] Usage locations updated: 1 locations
-workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Cancelling previous claim operations
-workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Initial claim loaded, starting background operations
-workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Claim has quotes - starting verification workflow
-claimReview.js:1720 [ClaimReview] Operations cancelled: Switching to new claim
-workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Manuscript usage locations loaded
-claimReview.js:184 [ClaimReview] Displaying claim: {id: 'C_107', text: 'Gene expression classifiers must maintain accuracy… in different hospitals using different equipment', category: 'Challenge', source: 'Talhouk2016', primaryQuote: {…}, …}
-workbench.desktop.main.js:523 [Extension Host] [LiteratureIndexer] searchSnippetsWithSimilarity called with query: a major weakness in many high-throughput genomic s
-workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Orphan citations loaded: 0
-workbench.desktop.main.js:523 [Extension Host] [LiteratureIndexer] Query embedding generated, searching store
-workbench.desktop.main.js:523 [Extension Host] [EmbeddingStore] Vectra search completed in 0.01ms, returning 0 results
-workbench.desktop.main.js:523 [Extension Host] [LiteratureIndexer] Search returned 0 results with similarity scores
-claimReview.js:337 [ClaimReview] No cached validation - showing Validate button
-claimReview.js:927 [ClaimReview] Usage locations updated: 0 locations
-workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Cancelling previous claim operations
-workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Initial claim loaded, starting background operations
-claimReview.js:1720 [ClaimReview] Operations cancelled: Switching to new claim
-workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Claim has quotes - starting verification workflow
-claimReview.js:184 [ClaimReview] Displaying claim: {id: 'C_90', text: 'RMA cannot be used in clinical settings where samp…ust be processed individually or in small batches', category: 'Challenge', source: 'McCall2010', primaryQuote: {…}, …}
-workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Manuscript usage locations loaded
-workbench.desktop.main.js:523 [Extension Host] [QuoteVerificationService] Cache hit for quote from McCall2010
-workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Orphan citations loaded: 0
-claimReview.js:337 [ClaimReview] No cached validation - showing Validate button
-workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Primary quote verification result: {verified: true, similarity: 1}
-claimReview.js:927 [ClaimReview] Usage locations updated: 0 locations
-workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Running embedding search...
-workbench.desktop.main.js:523 [Extension Host] [LiteratureIndexer] searchSnippetsWithSimilarity called with query: Furthermore, for microarrays to be used in clinica
-workbench.desktop.main.js:523 [Extension Host] [LiteratureIndexer] Query embedding generated, searching store
-workbench.desktop.main.js:523 [Extension Host] [EmbeddingStore] Vectra search completed in 0.01ms, returning 0 results
-workbench.desktop.main.js:523 [Extension Host] [LiteratureIndexer] Search returned 0 results with similarity scores
-workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Running unified quote search...
-workbench.desktop.main.js:523 [Extension Host] [LiteratureIndexer] searchSnippetsWithSimilarity called with query: furthermore, for microarrays to be used in clinica
-workbench.desktop.main.js:523 [Extension Host] [NgramIndex] Query: 249 total 6-grams, 126 rare
-workbench.desktop.main.js:523 [Extension Host] [NgramIndex] Found 10 candidates (required 37+ matches, 30%+ containment)
-workbench.desktop.main.js:523 [Extension Host] [UnifiedQuoteSearch] Trigram pre-filter: 10 candidate docs (vs scanning all files)
-workbench.desktop.main.js:523 [Extension Host] [UnifiedQuoteSearch] Found exact match via trigram, stopping early
-workbench.desktop.main.js:523 [Extension Host] [QuoteVerificationCache] Evicted LRU entry (access count: 1)
-workbench.desktop.main.js:523 [Extension Host] [QuoteVerificationService] Cached verification result for Välikangas2016 (similarity: 1.00)
-workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Quote verification cancelled
-workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Quote verification cancelled
-workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Stored context: {claimId: 'C_96'}
-workbench.desktop.main.js:523 [Extension Host] [NgramIndex] Query: 249 total 6-grams, 126 rare
-workbench.desktop.main.js:523 [Extension Host] [NgramIndex] Found 10 candidates (required 37+ matches, 30%+ containment)
-workbench.desktop.main.js:523 [Extension Host] [UnifiedQuoteSearch] Trigram pre-filter: 10 candidate docs (vs scanning all files)
-workbench.desktop.main.js:523 [Extension Host] [UnifiedQuoteSearch] Found exact match via trigram, stopping early
-workbench.desktop.main.js:523 [Extension Host] [QuoteVerificationService] Cached verification result for Välikangas2016 (similarity: 1.00)
-workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Quote verification cancelled
-workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Quote verification cancelled
-workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Stored context: {claimId: 'C_96'}
-workbench.desktop.main.js:523 [Extension Host] [NgramIndex] Query: 153 total 6-grams, 82 rare
-workbench.desktop.main.js:523 [Extension Host] [NgramIndex] Found 16 candidates (required 24+ matches, 30%+ containment)
-workbench.desktop.main.js:523 [Extension Host] [UnifiedQuoteSearch] Trigram pre-filter: 16 candidate docs (vs scanning all files)
-workbench.desktop.main.js:523 [Extension Host] [UnifiedQuoteSearch] Found exact match via trigram, stopping early
-workbench.desktop.main.js:523 [Extension Host] [QuoteVerificationCache] Evicted LRU entry (access count: 1)
-workbench.desktop.main.js:523 [Extension Host] [QuoteVerificationService] Cached verification result for Talhouk2016 (similarity: 1.00)
-workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Quote verification cancelled
-workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Quote verification cancelled
-workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Stored context: {claimId: 'C_107'}
-workbench.desktop.main.js:523 [Extension Host] [QuoteVerificationCache] Evicted LRU entry (access count: 1)
-workbench.desktop.main.js:523 [Extension Host] [QuoteVerificationService] Cached verification result for Buus2021 (similarity: 0.99)
-workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Quote verification cancelled
-workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Quote verification cancelled
-workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Stored context: {claimId: 'C_107'}
-workbench.desktop.main.js:523 [Extension Host] [LiteratureIndexer] Query embedding generated, searching store
-workbench.desktop.main.js:523 [Extension Host] [EmbeddingStore] Vectra search completed in 0.02ms, returning 0 results
-workbench.desktop.main.js:523 [Extension Host] [LiteratureIndexer] Search returned 0 results with similarity scores
-workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Quote verification cancelled
-workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Quote verification cancelled
-workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Stored context: {claimId: 'C_90'}
-workbench.desktop.main.js:523 [Extension Host] [LiteratureIndexer] Query embedding generated, searching store
-workbench.desktop.main.js:523 [Extension Host] [EmbeddingStore] Vectra search completed in 0.02ms, returning 0 results
-workbench.desktop.main.js:523 [Extension Host] [LiteratureIndexer] Search returned 0 results with similarity scores
-workbench.desktop.main.js:523 [Extension Host] [NgramIndex] Query: 112 total 6-grams, 45 rare
-workbench.desktop.main.js:523 [Extension Host] [NgramIndex] Found 20 candidates (required 13+ matches, 30%+ containment)
-workbench.desktop.main.js:523 [Extension Host] [UnifiedQuoteSearch] Trigram pre-filter: 20 candidate docs (vs scanning all files)
-workbench.desktop.main.js:523 [Extension Host] [UnifiedQuoteSearch] Found exact match via trigram, stopping early
-workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Fuzzy search found 1 matches, top similarity: 1.000 in McCall et al. - 2010 - Frozen robust multiarray analysis (fRMA).txt
-workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Using fuzzy results (only match)
-workbench.desktop.main.js:523 [Extension Host] [PersistenceUtils] ✓ write applications.md (2ms)
-workbench.desktop.main.js:523 [Extension Host] [PersistenceUtils] ✓ write challenges.md (2ms)
-workbench.desktop.main.js:523 [Extension Host] [PersistenceUtils] ✓ write methods_batch_correction.md (2ms)
-workbench.desktop.main.js:523 [Extension Host] [PersistenceUtils] ✓ write results.md (1ms)
-workbench.desktop.main.js:523 [Extension Host] [PersistenceUtils] ✓ write data_sources.md (1ms)
-workbench.desktop.main.js:523 [Extension Host] [PersistenceUtils] ✓ write data_trends.md (1ms)
-workbench.desktop.main.js:523 [Extension Host] [PersistenceUtils] ✓ write impacts.md (1ms)
-workbench.desktop.main.js:523 [Extension Host] [PersistenceUtils] ✓ write phenomena.md (1ms)
-workbench.desktop.main.js:523 [Extension Host] [PersistenceUtils] ✓ write uncategorized.md (1ms)
-workbench.desktop.main.js:523 [Extension Host] Persisted 168 claims across 9 file(s)
-workbench.desktop.main.js:523 [Extension Host] [ClaimReview] Auto-updated primary quote metadata, source, and verification: {metadata: {…}, source: 'McCall2010', similarity: '1.000', verified: true}
-claimReview.js:289 [ClaimReview] Verification progress: 1 / 2
-workbench.desktop.main.js:523 [Extension Host] [LiteratureIndexer] searchSnippetsWithSimilarity called with query: the dependence on multiple arrays has 2 drawbacks:
-workbench.desktop.main.js:523 [Extension Host] [QuoteVerificationCache] Saved 200 entries to /Users/phr23/Writing/Chapter/.cache/quote-verification.json
-workbench.desktop.main.js:523 [Extension Host] [LiteratureIndexer] Query embedding generated, searching store
-workbench.desktop.main.js:523 [Extension Host] [EmbeddingStore] Vectra search completed in 0.01ms, returning 0 results
-workbench.desktop.main.js:523 [Extension Host] [LiteratureIndexer] Search returned 0 results with similarity scores
-workbench.desktop.main.js:523 [Extension Host] [NgramIndex] Query: 210 total 6-grams, 110 rare
-workbench.desktop.main.js:523 [Extension Host] [NgramIndex] Found 12 candidates (required 33+ matches, 30%+ containment)
-workbench.desktop.main.js:523 [Extension Host] [UnifiedQuoteSearch] Trigram pre-filter: 12 candidate docs (vs scanning all files)
-workbench.desktop.main.js:34  INFO Extension host (LocalProcess pid: 32191) is unresponsive.
-workbench.desktop.main.js:11513 Extension Host
-workbench.desktop.main.js:11513 Debugger attached.
-workbench.desktop.main.js:34  INFO UNRESPONSIVE extension host: starting to profile NOW
-workbench.desktop.main.js:34  WARN UNRESPONSIVE extension host: 'research-tools.research-assistant' took 99.91251646313818% of 4997.708ms, saved PROFILE here: 'file:///var/folders/2x/pxsr_9190jq1x9nh0r2xj_qm0000gr/T/exthost-d03c51.cpuprofile'
-warn @ workbench.desktop.main.js:34
-warn @ workbench.desktop.main.js:34
-warn @ workbench.desktop.main.js:11483
-r @ workbench.desktop.main.js:11530
-await in r
-q @ workbench.desktop.main.js:11530
-await in q
-C @ workbench.desktop.main.js:29
-fire @ workbench.desktop.main.js:29
-(anonymous) @ workbench.desktop.main.js:11509
-C @ workbench.desktop.main.js:29
-fire @ workbench.desktop.main.js:29
+workbench.desktop.main.js:523 [Extension Host] [DocumentBuilder] Starting Zotero metadata prefetch...
+workbench.desktop.main.js:523 [Extension Host] [DocumentBuilder] Found 4 unique citation keys: (4) ['Buus2021', 'Piccolo2022', 'Du2010', 'Välikangas2016']
+workbench.desktop.main.js:523 [Extension Host] [DocumentBuilder] Fetching items from Zotero API...
+workbench.desktop.main.js:523 [Extension Host] [DocumentBuilder] Retrieved 100 items from Zotero
+workbench.desktop.main.js:523 [Extension Host] [DocumentBuilder] Checking item: Tran2020 (from Tran2020)
+workbench.desktop.main.js:523 [Extension Host] [DocumentBuilder] Checking item: Unknown (from Unknown)
+workbench.desktop.main.js:523 [Extension Host] [DocumentBuilder] Checking item: Unknown (from Unknown)
+workbench.desktop.main.js:523 [Extension Host] [DocumentBuilder] Checking item: Kato2020 (from Kato2020)
+workbench.desktop.main.js:523 [Extension Host] [DocumentBuilder] Checking item: Unknown (from Unknown)
+workbench.desktop.main.js:523 [Extension Host] [DocumentBuilder] Checking item: Unknown (from Unknown)
+workbench.desktop.main.js:523 [Extension Host] [DocumentBuilder] Checking item: Ahmed2020 (from Ahmed2020)
+workbench.desktop.main.js:523 [Extension Host] [DocumentBuilder] Checking item: Pinker2018 (from Pinker2018)
+workbench.desktop.main.js:523 [Extension Host] [DocumentBuilder] Checking item: Unknown (from Unknown)
+workbench.desktop.main.js:523 [Extension Host] [DocumentBuilder] Checking item: Unknown (from Unknown)
+workbench.desktop.main.js:523 [Extension Host] [DocumentBuilder] Checking item: Robinson2012 (from Robinson2012)
+workbench.desktop.main.js:523 [Extension Host] [DocumentBuilder] Checking item: Unknown (from Unknown)
+workbench.desktop.main.js:523 [Extension Host] [DocumentBuilder] Checking item: Unknown (from Unknown)
+workbench.desktop.main.js:523 [Extension Host] [DocumentBuilder] Checking item: Yousefi2017 (from Yousefi2017)
+workbench.desktop.main.js:523 [Extension Host] [DocumentBuilder] Checking item: Unknown (from Unknown)
+workbench.desktop.main.js:523 [Extension Host] [DocumentBuilder] Checking item: Unknown (from Unknown)
+workbench.desktop.main.js:523 [Extension Host] [DocumentBuilder] Checking item: Leopold (from Leopold)
+workbench.desktop.main.js:523 [Extension Host] [DocumentBuilder] Checking item: Unknown (from Unknown)
+workbench.desktop.main.js:523 [Extension Host] [DocumentBuilder] Checking item: Unknown (from Unknown)
+workbench.desktop.main.js:523 [Extension Host] [DocumentBuilder] Checking item: Aybey2023 (from Aybey2023)
+workbench.desktop.main.js:523 [Extension Host] [DocumentBuilder] Checking item: Unknown2026 (from Unknown2026)
+workbench.desktop.main.js:523 [Extension Host] [DocumentBuilder] Checking item: Zhu2021 (from Zhu2021)
+workbench.desktop.main.js:523 [Extension Host] [DocumentBuilder] Checking item: Unknown (from Unknown)
+workbench.desktop.main.js:523 [Extension Host] [DocumentBuilder] Checking item: Unknown (from Unknown)
+workbench.desktop.main.js:523 [Extension Host] [DocumentBuilder] Checking item: Unknown (from Unknown)
+workbench.desktop.main.js:523 [Extension Host] [DocumentBuilder] Checking item: Unknown (from Unknown)
+workbench.desktop.main.js:523 [Extension Host] [DocumentBuilder] Checking item: Unknown (from Unknown)
+workbench.desktop.main.js:523 [Extension Host] [DocumentBuilder] Checking item: Unknown (from Unknown)
+workbench.desktop.main.js:523 [Extension Host] [DocumentBuilder] Checking item: Unknown (from Unknown)
+workbench.desktop.main.js:523 [Extension Host] [DocumentBuilder] Checking item: Unknown (from Unknown)
+workbench.desktop.main.js:523 [Extension Host] [DocumentBuilder] Checking item: Unknown (from Unknown)
+workbench.desktop.main.js:523 [Extension Host] [DocumentBuilder] Checking item: MartinezGarcia2022 (from Martínez-García2022)
+workbench.desktop.main.js:523 [Extension Host] [DocumentBuilder] Checking item: Unknown (from Unknown)
+workbench.desktop.main.js:523 [Extension Host] [DocumentBuilder] Checking item: Unknown (from Unknown)
+workbench.desktop.main.js:523 [Extension Host] [DocumentBuilder] Checking item: Unknown (from Unknown)
+workbench.desktop.main.js:523 [Extension Host] [DocumentBuilder] Checking item: Unknown (from Unknown)
+workbench.desktop.main.js:523 [Extension Host] [DocumentBuilder] Checking item: Clough2023 (from Clough2023)
+workbench.desktop.main.js:523 [Extension Host] [DocumentBuilder] Checking item: Unknown (from Unknown)
+workbench.desktop.main.js:523 [Extension Host] [DocumentBuilder] Checking item: Unknown (from Unknown)
+workbench.desktop.main.js:523 [Extension Host] [DocumentBuilder] Checking item: Hornung2017 (from Hornung2017)
+workbench.desktop.main.js:523 [Extension Host] [DocumentBuilder] Checking item: Unknown (from Unknown)
+workbench.desktop.main.js:523 [Extension Host] [DocumentBuilder] Checking item: Suliman2018 (from Suliman2018)
+workbench.desktop.main.js:523 [Extension Host] [DocumentBuilder] Checking item: Unknown (from Unknown)
+workbench.desktop.main.js:523 [Extension Host] [DocumentBuilder] Checking item: Corchete2020 (from Corchete2020)
+workbench.desktop.main.js:523 [Extension Host] [DocumentBuilder] Checking item: Unknown (from Unknown)
+workbench.desktop.main.js:523 [Extension Host] [DocumentBuilder] Checking item: Buus2021 (from Buus2021)
+workbench.desktop.main.js:523 [Extension Host] [DocumentBuilder] Matched by AuthorYear: Buus2021 -> Development and validation for research assessment
+workbench.desktop.main.js:523 [Extension Host] [DocumentBuilder] Checking item: Unknown (from Unknown)
+workbench.desktop.main.js:523 [Extension Host] [DocumentBuilder] Checking item: Gao2023 (from Gao2023)
+workbench.desktop.main.js:523 [Extension Host] [DocumentBuilder] Checking item: Unknown (from Unknown)
+workbench.desktop.main.js:523 [Extension Host] [DocumentBuilder] Checking item: Unknown (from Unknown)
+workbench.desktop.main.js:523 [Extension Host] [DocumentBuilder] Checking item: Geirhos2020 (from Geirhos2020)
+workbench.desktop.main.js:523 [Extension Host] [DocumentBuilder] Checking item: Unknown (from Unknown)
+workbench.desktop.main.js:523 [Extension Host] [DocumentBuilder] Checking item: Chen2016 (from Chen2016)
+workbench.desktop.main.js:523 [Extension Host] [DocumentBuilder] Checking item: Unknown (from Unknown)
+workbench.desktop.main.js:523 [Extension Host] [DocumentBuilder] Checking item: Talhouk2016 (from Talhouk2016)
+workbench.desktop.main.js:523 [Extension Host] [DocumentBuilder] Checking item: Unknown (from Unknown)
+workbench.desktop.main.js:523 [Extension Host] [DocumentBuilder] Checking item: Unknown (from Unknown)
+workbench.desktop.main.js:523 [Extension Host] [DocumentBuilder] Checking item: Zou2005 (from Zou2005)
+workbench.desktop.main.js:523 [Extension Host] [DocumentBuilder] Checking item: Unknown (from Unknown)
+workbench.desktop.main.js:523 [Extension Host] [DocumentBuilder] Checking item: Breiman2001 (from Breiman2001)
+workbench.desktop.main.js:523 [Extension Host] [DocumentBuilder] Checking item: Unknown (from Unknown)
+workbench.desktop.main.js:523 [Extension Host] [DocumentBuilder] Checking item: Ginsburg2018 (from Ginsburg2018)
+workbench.desktop.main.js:523 [Extension Host] [DocumentBuilder] Checking item: Unknown (from Unknown)
+workbench.desktop.main.js:523 [Extension Host] [DocumentBuilder] Checking item: Guyon2002 (from Guyon2002)
+workbench.desktop.main.js:523 [Extension Host] [DocumentBuilder] Checking item: Unknown (from Unknown)
+workbench.desktop.main.js:523 [Extension Host] [DocumentBuilder] Checking item: DiazUriarte2006 (from Díaz-Uriarte2006)
+workbench.desktop.main.js:523 [Extension Host] [DocumentBuilder] Checking item: Unknown (from Unknown)
+workbench.desktop.main.js:523 [Extension Host] [DocumentBuilder] Checking item: McCall2010 (from McCall2010)
+workbench.desktop.main.js:523 [Extension Host] [DocumentBuilder] Checking item: Unknown (from Unknown)
+workbench.desktop.main.js:523 [Extension Host] [DocumentBuilder] Checking item: Unknown (from Unknown)
+workbench.desktop.main.js:523 [Extension Host] [DocumentBuilder] Checking item: Ganin2017 (from Ganin2017)
+workbench.desktop.main.js:523 [Extension Host] [DocumentBuilder] Checking item: Unknown (from Unknown)
+workbench.desktop.main.js:523 [Extension Host] [DocumentBuilder] Checking item: Unknown (from Unknown)
+workbench.desktop.main.js:523 [Extension Host] [DocumentBuilder] Checking item: Du2010 (from Du2010)
+workbench.desktop.main.js:523 [Extension Host] [DocumentBuilder] Matched by AuthorYear: Du2010 -> Comparison of Beta-value and M-value methods for q
+workbench.desktop.main.js:523 [Extension Host] [DocumentBuilder] Checking item: Unknown (from Unknown)
+workbench.desktop.main.js:523 [Extension Host] [DocumentBuilder] Checking item: Hanczar2022 (from Hanczar2022)
+workbench.desktop.main.js:523 [Extension Host] [DocumentBuilder] Checking item: Unknown (from Unknown)
+workbench.desktop.main.js:523 [Extension Host] [DocumentBuilder] Checking item: Valikangas2016 (from Välikangas2016)
+workbench.desktop.main.js:523 [Extension Host] [DocumentBuilder] Checking item: Unknown (from Unknown)
+workbench.desktop.main.js:523 [Extension Host] [DocumentBuilder] Checking item: Unknown (from Unknown)
+workbench.desktop.main.js:523 [Extension Host] [DocumentBuilder] Checking item: Unknown (from Unknown)
+workbench.desktop.main.js:523 [Extension Host] [DocumentBuilder] Checking item: Jia2017 (from Jia2017)
+workbench.desktop.main.js:523 [Extension Host] [DocumentBuilder] Checking item: Unknown (from Unknown)
+workbench.desktop.main.js:523 [Extension Host] [DocumentBuilder] Checking item: Unknown (from Unknown)
+workbench.desktop.main.js:523 [Extension Host] [DocumentBuilder] Checking item: Collins2015 (from Collins2015)
+workbench.desktop.main.js:523 [Extension Host] [DocumentBuilder] Checking item: Unknown (from Unknown)
+workbench.desktop.main.js:523 [Extension Host] [DocumentBuilder] Checking item: Walter2016 (from Walter2016)
+workbench.desktop.main.js:523 [Extension Host] [DocumentBuilder] Checking item: Unknown (from Unknown)
+workbench.desktop.main.js:523 [Extension Host] [DocumentBuilder] Checking item: Unknown (from Unknown)
+workbench.desktop.main.js:523 [Extension Host] [DocumentBuilder] Checking item: Unknown (from Unknown)
+workbench.desktop.main.js:523 [Extension Host] [DocumentBuilder] Checking item: Leong2018 (from Leong2018)
+workbench.desktop.main.js:523 [Extension Host] [DocumentBuilder] Checking item: Unknown (from Unknown)
+workbench.desktop.main.js:523 [Extension Host] [DocumentBuilder] Checking item: Unknown (from Unknown)
+workbench.desktop.main.js:523 [Extension Host] [DocumentBuilder] Checking item: Unknown (from Unknown)
+workbench.desktop.main.js:523 [Extension Host] [DocumentBuilder] Checking item: Anderson2014 (from Anderson2014)
+workbench.desktop.main.js:523 [Extension Host] [DocumentBuilder] Checking item: Unknown (from Unknown)
+workbench.desktop.main.js:523 [Extension Host] [DocumentBuilder] Checking item: Unknown (from Unknown)
+workbench.desktop.main.js:523 [Extension Host] [DocumentBuilder] Checking item: Kaforou2013 (from Kaforou2013)
+workbench.desktop.main.js:523 [Extension Host] [DocumentBuilder] Checking item: Unknown (from Unknown)
+workbench.desktop.main.js:523 [Extension Host] [DocumentBuilder] Checking item: Unknown (from Unknown)
+workbench.desktop.main.js:523 [Extension Host] [DocumentBuilder] Cached 2 matching items
+workbench.desktop.main.js:523 [Extension Host] [DocumentBuilder] Cache now has 2 entries
+workbench.desktop.main.js:523 [Extension Host] [DocumentBuilder] Found \cite{Buus2021} at position 279
+workbench.desktop.main.js:523 [Extension Host] [DocumentBuilder] Enriched citation: Buus2021 with Zotero data
+workbench.desktop.main.js:523 [Extension Host] [DocumentBuilder] Creating citation run for: Buus2021
+workbench.desktop.main.js:523 [Extension Host] [DocumentBuilder] Found \cite{Piccolo2022} at position 579
+workbench.desktop.main.js:523 [Extension Host] [DocumentBuilder] No Zotero data for: Piccolo2022 (using fallback)
+workbench.desktop.main.js:523 [Extension Host] [DocumentBuilder] Creating citation run for: Piccolo2022
+workbench.desktop.main.js:523 [Extension Host] [DocumentBuilder] Converting plain citation: "(Du 2010)" -> "\cite{Du2010}"
+workbench.desktop.main.js:523 [Extension Host] [DocumentBuilder] Converting plain citation: "(Du 2010)" -> "\cite{Du2010}"
+workbench.desktop.main.js:523 [Extension Host] [DocumentBuilder] Converting plain citation: "(Du 2010)" -> "\cite{Du2010}"
+workbench.desktop.main.js:523 [Extension Host] [DocumentBuilder] Converted 3 plain text citations in this text segment
+workbench.desktop.main.js:523 [Extension Host] [DocumentBuilder] Found \cite{Du2010} at position 256
+workbench.desktop.main.js:523 [Extension Host] [DocumentBuilder] Enriched citation: Du2010 with Zotero data
+workbench.desktop.main.js:523 [Extension Host] [DocumentBuilder] Creating citation run for: Du2010
+workbench.desktop.main.js:523 [Extension Host] [DocumentBuilder] Found \cite{Du2010} at position 502
+workbench.desktop.main.js:523 [Extension Host] [DocumentBuilder] Enriched citation: Du2010 with Zotero data
+workbench.desktop.main.js:523 [Extension Host] [DocumentBuilder] Creating citation run for: Du2010
+workbench.desktop.main.js:523 [Extension Host] [DocumentBuilder] Found \cite{Du2010} at position 697
+workbench.desktop.main.js:523 [Extension Host] [DocumentBuilder] Enriched citation: Du2010 with Zotero data
+workbench.desktop.main.js:523 [Extension Host] [DocumentBuilder] Creating citation run for: Du2010
+workbench.desktop.main.js:523 [Extension Host] [DocumentBuilder] Converting plain citation: "(Välikangas 2016)" -> "\cite{Välikangas2016}"
+workbench.desktop.main.js:523 [Extension Host] [DocumentBuilder] Converting plain citation: "(Välikangas 2016)" -> "\cite{Välikangas2016}"
+workbench.desktop.main.js:523 [Extension Host] [DocumentBuilder] Converted 2 plain text citations in this text segment
+workbench.desktop.main.js:523 [Extension Host] [DocumentBuilder] Found \cite{Välikangas2016} at position 233
+workbench.desktop.main.js:523 [Extension Host] [DocumentBuilder] No Zotero data for: Välikangas2016 (using fallback)
+workbench.desktop.main.js:523 [Extension Host] [DocumentBuilder] Creating citation run for: Välikangas2016
+workbench.desktop.main.js:523 [Extension Host] [DocumentBuilder] Found \cite{Välikangas2016} at position 475
+workbench.desktop.main.js:523 [Extension Host] [DocumentBuilder] No Zotero data for: Välikangas2016 (using fallback)
+workbench.desktop.main.js:523 [Extension Host] [DocumentBuilder] Creating citation run for: Välikangas2016
+workbench.desktop.main.js:523 [Extension Host] [WordRenderer] Processing citation run: Buus2021
+workbench.desktop.main.js:523 [Extension Host] [WordRenderer] Creating citation field: {zoteroKey: 'NB9RB7TY', displayText: 'Buus2021', hasItemData: true}
+workbench.desktop.main.js:523 [Extension Host] [WordRenderer] Created field code, length: 3184
+workbench.desktop.main.js:523 [Extension Host] [WordRenderer] Field code starts with:  ADDIN ZOTERO_ITEM CSL_CITATION {"citationID":"cit
+workbench.desktop.main.js:523 [Extension Host] [WordRenderer] Created 1 citation fields in this paragraph
+workbench.desktop.main.js:523 [Extension Host] [WordRenderer] Processing citation run: Piccolo2022
+workbench.desktop.main.js:523 [Extension Host] [WordRenderer] Creating citation field: {zoteroKey: 'Piccolo2022', displayText: 'Piccolo2022', hasItemData: false}
+workbench.desktop.main.js:523 [Extension Host] [WordRenderer] Using fallback itemData for: Piccolo2022 {author: 'Piccolo', year: '2022'}
+workbench.desktop.main.js:523 [Extension Host] [WordRenderer] Created field code, length: 567
+workbench.desktop.main.js:523 [Extension Host] [WordRenderer] Field code starts with:  ADDIN ZOTERO_ITEM CSL_CITATION {"citationID":"cit
+workbench.desktop.main.js:523 [Extension Host] [WordRenderer] Created 1 citation fields in this paragraph
+workbench.desktop.main.js:523 [Extension Host] Image file not found: figures/average_rank_by_classifier.png
+ubs @ workbench.desktop.main.js:523
+$logExtensionHostMessage @ workbench.desktop.main.js:523
+S @ workbench.desktop.main.js:11502
+Q @ workbench.desktop.main.js:11502
+M @ workbench.desktop.main.js:11502
+L @ workbench.desktop.main.js:11502
 (anonymous) @ workbench.desktop.main.js:11502
 C @ workbench.desktop.main.js:29
 fire @ workbench.desktop.main.js:29
-I @ workbench.desktop.main.js:11502
-H @ workbench.desktop.main.js:11502
+fire @ workbench.desktop.main.js:550
+l.onmessage @ workbench.desktop.main.js:11513
+workbench.desktop.main.js:523 [Extension Host] Image file not found: figures/adjusters_on_classifiers_relative_aggregated.png
+ubs @ workbench.desktop.main.js:523
+$logExtensionHostMessage @ workbench.desktop.main.js:523
+S @ workbench.desktop.main.js:11502
+Q @ workbench.desktop.main.js:11502
+M @ workbench.desktop.main.js:11502
+L @ workbench.desktop.main.js:11502
 (anonymous) @ workbench.desktop.main.js:11502
-h @ workbench.desktop.main.js:30
-g @ workbench.desktop.main.js:30
-setTimeout
-e.setTimeout @ workbench.desktop.main.js:722
-schedule @ workbench.desktop.main.js:30
-H @ workbench.desktop.main.js:11502
+C @ workbench.desktop.main.js:29
+fire @ workbench.desktop.main.js:29
+fire @ workbench.desktop.main.js:550
+l.onmessage @ workbench.desktop.main.js:11513
+workbench.desktop.main.js:523 [Extension Host] Image file not found: figures/unbalanced_tb_analysis.png
+ubs @ workbench.desktop.main.js:523
+$logExtensionHostMessage @ workbench.desktop.main.js:523
+S @ workbench.desktop.main.js:11502
+Q @ workbench.desktop.main.js:11502
+M @ workbench.desktop.main.js:11502
+L @ workbench.desktop.main.js:11502
 (anonymous) @ workbench.desktop.main.js:11502
-h @ workbench.desktop.main.js:30
-g @ workbench.desktop.main.js:30
-setTimeout
-e.setTimeout @ workbench.desktop.main.js:722
-schedule @ workbench.desktop.main.js:30
-H @ workbench.desktop.main.js:11502
+C @ workbench.desktop.main.js:29
+fire @ workbench.desktop.main.js:29
+fire @ workbench.desktop.main.js:550
+l.onmessage @ workbench.desktop.main.js:11513
+workbench.desktop.main.js:523 [Extension Host] Image file not found: figures/ranking_comparison_balanced_vs_unbalanced.png
+ubs @ workbench.desktop.main.js:523
+$logExtensionHostMessage @ workbench.desktop.main.js:523
+S @ workbench.desktop.main.js:11502
+Q @ workbench.desktop.main.js:11502
+M @ workbench.desktop.main.js:11502
+L @ workbench.desktop.main.js:11502
 (anonymous) @ workbench.desktop.main.js:11502
-h @ workbench.desktop.main.js:30
-g @ workbench.desktop.main.js:30
-setTimeout
-e.setTimeout @ workbench.desktop.main.js:722
-schedule @ workbench.desktop.main.js:30
-F @ workbench.desktop.main.js:11502
-U @ workbench.desktop.main.js:11502
-n.<computed>.o.charCodeAt.n.<computed> @ workbench.desktop.main.js:11502
-(anonymous) @ workbench.desktop.main.js:506
 C @ workbench.desktop.main.js:29
 fire @ workbench.desktop.main.js:29
-(anonymous) @ workbench.desktop.main.js:557
-C @ workbench.desktop.main.js:29
-fire @ workbench.desktop.main.js:29
-(anonymous) @ workbench.desktop.main.js:11682
-(anonymous) @ workbench.desktop.main.js:11682
-H.onmessage @ workbench.desktop.main.js:11682
-workbench.desktop.main.js:34   ERR Error: Aborted onWillSaveTextDocument-event after 1750ms
-    at workbench.desktop.main.js:555:10248
-error @ workbench.desktop.main.js:34
-error @ workbench.desktop.main.js:34
-error @ workbench.desktop.main.js:11483
-(anonymous) @ workbench.desktop.main.js:11484
-await in (anonymous)
-o @ workbench.desktop.main.js:1241
-(anonymous) @ workbench.desktop.main.js:1241
-w @ workbench.desktop.main.js:1241
-withProgress @ workbench.desktop.main.js:1241
-participate @ workbench.desktop.main.js:11484
-runSaveParticipants @ workbench.desktop.main.js:11484
-(anonymous) @ workbench.desktop.main.js:1259
-Ob @ workbench.desktop.main.js:1259
-(anonymous) @ workbench.desktop.main.js:1259
-o @ workbench.desktop.main.js:1241
-(anonymous) @ workbench.desktop.main.js:1241
-w @ workbench.desktop.main.js:1241
-withProgress @ workbench.desktop.main.js:1241
-Nb @ workbench.desktop.main.js:1259
-save @ workbench.desktop.main.js:1259
-(anonymous) @ workbench.desktop.main.js:607
-setTimeout
-e.setTimeout @ workbench.desktop.main.js:722
-O @ workbench.desktop.main.js:607
-N @ workbench.desktop.main.js:607
-(anonymous) @ workbench.desktop.main.js:607
-C @ workbench.desktop.main.js:29
-D @ workbench.desktop.main.js:29
-fire @ workbench.desktop.main.js:29
-(anonymous) @ workbench.desktop.main.js:525
-C @ workbench.desktop.main.js:29
-fire @ workbench.desktop.main.js:29
-Jb @ workbench.desktop.main.js:1259
-(anonymous) @ workbench.desktop.main.js:1259
-(anonymous) @ workbench.desktop.main.js:267
-C @ workbench.desktop.main.js:29
-D @ workbench.desktop.main.js:29
-fire @ workbench.desktop.main.js:29
-endDeferredEmit @ workbench.desktop.main.js:276
-pushEditOperations @ workbench.desktop.main.js:274
-c @ workbench.desktop.main.js:277
-executeCommands @ workbench.desktop.main.js:277
-G @ workbench.desktop.main.js:276
-(anonymous) @ workbench.desktop.main.js:277
-L @ workbench.desktop.main.js:277
-paste @ workbench.desktop.main.js:277
-(anonymous) @ workbench.desktop.main.js:278
-(anonymous) @ workbench.desktop.main.js:278
-batchChanges @ workbench.desktop.main.js:280
-X @ workbench.desktop.main.js:278
-W @ workbench.desktop.main.js:278
-paste @ workbench.desktop.main.js:278
-$b @ workbench.desktop.main.js:280
-trigger @ workbench.desktop.main.js:280
-N @ workbench.desktop.main.js:416
-await in N
-(anonymous) @ workbench.desktop.main.js:416
-await in (anonymous)
-An @ workbench.desktop.main.js:30
-G @ workbench.desktop.main.js:416
-D @ workbench.desktop.main.js:416
-(anonymous) @ workbench.desktop.main.js:416
+fire @ workbench.desktop.main.js:550
+l.onmessage @ workbench.desktop.main.js:11513
+workbench.desktop.main.js:523 [Extension Host] [WordRenderer] Processing citation run: Du2010
+workbench.desktop.main.js:523 [Extension Host] [WordRenderer] Creating citation field: {zoteroKey: 'V5N5CRG3', displayText: 'Du2010', hasItemData: true}
+workbench.desktop.main.js:523 [Extension Host] [WordRenderer] Created field code, length: 2692
+workbench.desktop.main.js:523 [Extension Host] [WordRenderer] Field code starts with:  ADDIN ZOTERO_ITEM CSL_CITATION {"citationID":"cit
+workbench.desktop.main.js:523 [Extension Host] [WordRenderer] Processing citation run: Du2010
+workbench.desktop.main.js:523 [Extension Host] [WordRenderer] Creating citation field: {zoteroKey: 'V5N5CRG3', displayText: 'Du2010', hasItemData: true}
+workbench.desktop.main.js:523 [Extension Host] [WordRenderer] Created field code, length: 2692
+workbench.desktop.main.js:523 [Extension Host] [WordRenderer] Field code starts with:  ADDIN ZOTERO_ITEM CSL_CITATION {"citationID":"cit
+workbench.desktop.main.js:523 [Extension Host] [WordRenderer] Processing citation run: Du2010
+workbench.desktop.main.js:523 [Extension Host] [WordRenderer] Creating citation field: {zoteroKey: 'V5N5CRG3', displayText: 'Du2010', hasItemData: true}
+workbench.desktop.main.js:523 [Extension Host] [WordRenderer] Created field code, length: 2692
+workbench.desktop.main.js:523 [Extension Host] [WordRenderer] Field code starts with:  ADDIN ZOTERO_ITEM CSL_CITATION {"citationID":"cit
+workbench.desktop.main.js:523 [Extension Host] [WordRenderer] Processing citation run: Välikangas2016
+workbench.desktop.main.js:523 [Extension Host] [WordRenderer] Creating citation field: {zoteroKey: 'Välikangas2016', displayText: 'Välikangas2016', hasItemData: false}
+workbench.desktop.main.js:523 [Extension Host] [WordRenderer] Using fallback itemData for: Välikangas2016 {author: 'Unknown', year: '2026'}
+workbench.desktop.main.js:523 [Extension Host] [WordRenderer] Created field code, length: 584
+workbench.desktop.main.js:523 [Extension Host] [WordRenderer] Field code starts with:  ADDIN ZOTERO_ITEM CSL_CITATION {"citationID":"cit
+workbench.desktop.main.js:523 [Extension Host] [WordRenderer] Processing citation run: Välikangas2016
+workbench.desktop.main.js:523 [Extension Host] [WordRenderer] Creating citation field: {zoteroKey: 'Välikangas2016', displayText: 'Välikangas2016', hasItemData: false}
+workbench.desktop.main.js:523 [Extension Host] [WordRenderer] Using fallback itemData for: Välikangas2016 {author: 'Unknown', year: '2026'}
+workbench.desktop.main.js:523 [Extension Host] [WordRenderer] Created field code, length: 584
+workbench.desktop.main.js:523 [Extension Host] [WordRenderer] Field code starts with:  ADDIN ZOTERO_ITEM CSL_CITATION {"citationID":"cit
+workbench.desktop.main.js:523 [Extension Host] [WordRenderer] Created 5 citation fields in this paragraph
+workbench.desktop.main.js:523 [Extension Host] [ZoteroFieldInjector] Searching for pattern: <w:fldSimple w:instr="...ADDIN ZOTERO_ITEM..." />
+workbench.desktop.main.js:523 [Extension Host] [ZoteroFieldInjector] Found 7 matching fields
+workbench.desktop.main.js:523 [Extension Host] [ZoteroFieldInjector] Total <w:fldSimple> elements found: 7
+workbench.desktop.main.js:523 [Extension Host] [ZoteroFieldInjector] First fldSimple element: <w:fldSimple w:instr=" ADDIN ZOTERO_ITEM CSL_CITATION {&quot;citationID&quot;:&quot;cite_NB9RB7TY_1770754233612&quot;,&quot;properties&quot;:{&quot;formattedCitation&quot;:&quot;Buus2021&quot;,&quot;plainCitation&quot;:&quot;Buus2021&quot;,&quot;noteIndex&quot;:0},&quot;citationItems&quot;:[{&quot;id&quot;:1344434457,&quot;uris&quot;:[&quot;http://zotero.org/users/13215183/items/NB9RB7TY&quot;],&quot;uri&quot;:[&quot;http://zotero.org/users/13215183/items/NB9RB7TY&quot;],&quot;itemData&quot;:{&quot;id&quot;:1344434457,&quot;type&quot;:&quot;article-journal&quot;,&quot;title&quot;:&quot;Development and validation for research assessment of Oncotype DX® Breast Recurrence Score, EndoPredict® and Prosigna®&quot;,&quot;author&quot;:[{&quot;family&quot;:&quot;Buus&quot;,&quot;given&quot;:&quot;Richard&quot;},{&quot;family&quot;:&quot;Szijgyarto&quot;,&quot;given&quot;:&quot;Zsolt&quot;},{&quot;family&quot;:&quot;Schuster&quot;,&quot;given&quot;:&quot;Eugene F.&quot;},{&quot;family&quot;:&quot;Xiao&quot;,&quot;given&quot;:&quot;Hui&quot;},{&quot;family&quot;:&quot;Haynes&quot;,&quot;given&quot;:&quot;Ben P.&quot;},{&quot;family&quot;:&quot;Sestak&quot;,&quot;given&quot;:&quot;Ivana&quot;},{&quot;family&quot;:&quot;Cuzick&quot;,&quot;given&quot;:&quot;Jack&quot;},{&quot;family&quot;:&quot;Paré&quot;,&quot;given&quot;:&quot;Laia&quot;},{&quot;family&quot;:&quot;Seguí&quot;,&quot;given&quot;:&quot;Elia&quot;},{&quot;family&quot;:&quot;Chic&quot;,&quot;given&quot;:&quot;Nuria&quot;},{&quot;family&quot;:&quot;Prat&quot;,&quot;given&quot;:&quot;Aleix&quot;},{&quot;family&quot;:&quot;Dowsett&quot;,&quot;given&quot;:&quot;Mitch&quot;},{&quot;family&quot;:&quot;Cheang&quot;,&quot;given&quot;:&quot;Maggie Chon U.&quot;}],&quot;issued&quot;:{&quot;date-parts&quot;:[[2021]]},&quot;DOI&quot;:&quot;10.1038/s41523-021-00216-w&quot;,&quot;URL&quot;:&quot;https://www.nature.com/articles/s41523-021-00216-w&quot;,&quot;abstract&quot;:&quot;Multi-gene prognostic signatures including the Oncotype® DX Recurrence Score (RS), EndoPredict® (EP) and Prosigna® (Risk Of Recurrence, ROR) are widely used to predict the likelihood of distant recurrence in patients with oestrogen-receptor-positive (ER+), HER2-negative breast cancer. Here, we describe the development and validation of methods to recapitulate RS, EP and ROR scores from NanoString expression data. RNA was available from 107 tumours from postmenopausal women with early-stage, ER+, HER2− breast cancer from the translational Arimidex, Tamoxifen, Alone or in Combination study (TransATAC) where previously these signatures had been assessed with commercial methodology. Gene expression was measured using NanoString nCounter. For RS and EP, conversion factors to adjust for cross-platform variation were estimated using linear regression. For ROR, the steps to perform subgroup-specific normalisation of the gene expression data and calibration factors to calculate the 46-gene ROR score were assessed and verified. Training with bootstrapping (n = 59) was followed by validation (n = 48) using adjusted, research use only (RUO) NanoString-based algorithms. In the validation set, there was excellent concordance between the RUO scores and their commercial counterparts (rc(RS) = 0.96, 95% CI 0.93–0.97 with level of agreement (LoA) of −7.69 to 8.12; rc(EP) = 0.97, 95% CI 0.96–0.98 with LoA of −0.64 to 1.26 and rc(ROR) = 0.97 (95% CI 0.94–0.98) with LoA of −8.65 to 10.54). There was also a strong agreement in risk stratification: (RS: κ = 0.86, p &lt; 0.0001; EP: κ = 0.87, p &lt; 0.0001; ROR: κ = 0.92, p &lt; 0.001). In conclusion, the calibrated algorithms recapitulate the commercial RS and EP scores on individual biopsies and ROR scores on samples based on subgroup-centreing method using NanoString expression data.&quot;,&quot;container-title&quot;:&quot;npj Breast Cancer&quot;,&quot;volume&quot;:&quot;7&quot;,&quot;issue&quot;:&quot;1&quot;,&quot;page&quot;:&quot;15&quot;,&quot;publisher&quot;:&quot;Nature Publishing Group&quot;,&quot;ISSN&quot;:&quot;2374-4677&quot;}}],&quot;schema&quot;:&quot;https://github.com/citation-style-language/schema/raw/master/csl-citation.json&quot;} "/>
+workbench.desktop.main.js:523 [Extension Host] [ZoteroFieldInjector] Document contains "ADDIN ZOTERO_ITEM": true

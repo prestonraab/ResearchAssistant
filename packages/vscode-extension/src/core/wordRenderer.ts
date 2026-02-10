@@ -119,7 +119,11 @@ export class WordRenderer {
             }
           }
         }
-      ]
+      ],
+      // Ensure compatibility mode for better Word support
+      compatibility: {
+        version: 15  // Word 2013+
+      }
     });
 
     // Convert document to buffer

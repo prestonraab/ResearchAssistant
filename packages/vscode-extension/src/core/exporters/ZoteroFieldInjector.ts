@@ -149,14 +149,19 @@ export class ZoteroFieldInjector {
 
     return xml.replace(simpleFieldRegex, (match, instruction) => {
       try {
-        // The instruction is already XML-escaped by the docx library (&quot; etc.)
-        // We need to unescape it for the instrText element
-        const unescapedInstruction = this.unescapeXml(instruction);
+        // The instruction is XML-escaped in the fldSimple w:instr attribute (&quot; etc.)
+        // When moving to instrText element content:
+        //   - &quot; must be unescaped (quotes are fine in element text)
+        //   - &apos; must be unescaped (apostrophes are fine in element text)
+        //   - &amp; &lt; &gt; must STAY escaped (they're invalid in XML text content)
+        const instrTextContent = this.unescapeForInstrText(instruction);
         
         // Extract display text from the CSL citation if possible
         let displayText = '[Citation]';
         try {
-          const cslMatch = unescapedInstruction.match(/CSL_CITATION\s+(\{.*\})/);
+          // Parse using fully unescaped version (for JSON parsing only)
+          const fullyUnescaped = this.unescapeXml(instruction);
+          const cslMatch = fullyUnescaped.match(/CSL_CITATION\s+(\{.*\})/);
           if (cslMatch) {
             const cslData = JSON.parse(cslMatch[1]);
             displayText = cslData.properties?.formattedCitation || displayText;
@@ -169,8 +174,8 @@ export class ZoteroFieldInjector {
         const complexField = [
           // Begin field character
           '<w:r><w:fldChar w:fldCharType="begin"/></w:r>',
-          // Field instruction - note: instrText content should NOT be XML-escaped
-          `<w:r><w:instrText xml:space="preserve">${unescapedInstruction}</w:instrText></w:r>`,
+          // Field instruction - instrText is XML element content, so <, >, & must stay escaped
+          `<w:r><w:instrText xml:space="preserve">${instrTextContent}</w:instrText></w:r>`,
           // Separator
           '<w:r><w:fldChar w:fldCharType="separate"/></w:r>',
           // Display text (field result)
@@ -210,6 +215,18 @@ export class ZoteroFieldInjector {
       .replace(/&lt;/g, '<')
       .replace(/&gt;/g, '>')
       .replace(/&amp;/g, '&'); // Must be last
+  }
+
+  /**
+   * Unescape only attribute-specific entities for instrText element content.
+   * Quotes and apostrophes can be unescaped (they're valid in element text),
+   * but &amp; &lt; &gt; must remain escaped since instrText is XML element content.
+   */
+  private unescapeForInstrText(text: string): string {
+    return text
+      .replace(/&quot;/g, '"')
+      .replace(/&apos;/g, "'");
+    // Deliberately NOT unescaping &amp; &lt; &gt; — they must stay escaped in XML text
   }
 
   /**
