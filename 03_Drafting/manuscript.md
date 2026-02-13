@@ -194,10 +194,10 @@
 > Principal component analysis (PCA) and other visualization methods can help identify batch effects but do not directly measure their impact on classifier performance. While PCA can confirm that batches now 'overlap' visually, it cannot guarantee that the biological signal needed for classification has been preserved. Neighbor mixing metrics identify the proportions of nearest neigbors that share a batch or a metadata label. Ideally, samples are well mixed by batch and well seperated by label. This gives some insight into whether a classifier may perform well across datasets, but this is not guaranteed for non-KNN classifiers. BatchQC provides interactive software for evaluating sample and batch effects with multiple diagnostic approaches including PCA, heatmaps, dendrograms, and statistical metrics. These visualizations help researchers assess whether batch effects have been successfully removed while preserving biological structure, though visual overlap alone is insufficient. Cross-study validation is essential. [source:: C_15]
 
 
-## Datasets: A Natural Stress Test for Batch Correction
+## Datasets
 
-> [!question]- Why were these specific TB datasets chosen to represent "Real World Noise"? (status:: undefined)
-> To rigorously evaluate the impact of batch effects on classifier performance, we selected tuberculosis gene expression datasets that represent "Real World Noise"—the ultimate test of cross-population generalizability. Rather than choosing datasets that are technically similar, we deliberately selected studies that juxtapose adolescent and adult prospective cohorts with pediatric and adult case-control studies, household contact studies with clinical diagnostic studies, whole blood samples with sputum specimens, and data collected across four continents using different sequencing platforms. This heterogeneity is not a limitation but a feature: if batch correction methods can preserve biological signal while removing technical artifacts across this diversity, they are likely to succeed in real-world precision medicine applications.
+> [!question]- Why were these specific TB datasets chosen? (status:: undefined)
+> To rigorously evaluate the impact of batch effects on classifier performance, we selected tuberculosis gene expression datasets that represent real world noise. Rather than choosing datasets that are technically similar, we deliberately selected studies that juxtapose adolescent and adult prospective cohorts with pediatric and adult case-control studies, household contact studies with clinical diagnostic studies, whole blood samples with sputum specimens, and data collected across four continents using different sequencing platforms. If batch correction methods can preserve biological signal while removing technical artifacts across this diversity, they are likely to succeed in real-world precision medicine applications.
 
 
 > [!question]- What is the common biological thread across datasets that makes them comparable? (status:: undefined)
@@ -206,7 +206,7 @@
 > [!question]- What technical details should be captured in a summary table? (status:: undefined)
 > The study details are summarized in this table: | Study | Region | Population | Sample Type | Design | Key Characteristics | |-------|--------|------------|-------------|--------|---------------------| | Zak et al. (2016) | South Africa | Adolescents (12-18 years) | Whole blood | Prospective cohort | Longitudinal sampling every 6 months to predict progression  | | Suliman et al. (2018) | South Africa, Gambia, Ethiopia | Adults | Whole blood | Prospective cohort | Household contacts, RISK4 four-gene signature for TB progression  | | Anderson et al. (2014) | South Africa, Malawi, Kenya | Children | Whole blood | Case-control | Childhood TB diagnosis, 51-transcript signature  | | Leong et al. (2018) | India | Adults | Whole blood | Case-control | South Indian population, active vs latent  | | Kaforou et al. (2013) | South Africa | Adults (Xhosa, 18+) | Whole blood | Case-control | HIV-infected and -uninfected cohorts  | [source:: C_69, C_70, C_68, C_71, C_73]
 
-## Classifier Performance Rankings: Lessons Learned
+## Classifier Performance
 
 > [!question]- What is the key finding about classifier hierarchy? (status:: undefined)
 > The results show that regularization is essential for classifying high-dimensional gene expression data.
@@ -215,15 +215,11 @@
 > The analysis evaluated classifier performance across multiple tuberculosis gene expression datasets using leave-one-study-out cross-validation. Nine machine learning classifiers were tested: elastic net (regularized logistic regression), k-nearest neighbors (KNN), logistic regression, neural networks, random forests, shrinkage linear discriminant analysis (LDA), support vector machines (SVM), and XGBoost. Ten batch adjustment methods were compared: ComBat, ComBat with mean-only adjustment, ComBat-Seq supervised adjustment, naive merging (unadjusted), mutual nearest neighbors (MNN), FastMNN, nonparanormal transformation (NPN), rank-based normalization applied twice, rank-based normalization of samples, and within-study cross-validation as a baseline. Performance was assessed using Matthews correlation coefficient (MCC). MCC performance is decreased if a classifier has poor sensitivity, specificity, positive predictive value, or negative predictive value. MCC cannot therefore be gamed by only choosing the most common label. The experimental design included 3 to 6 datasets per analysis configuration, with test studies including GSE37250_SA (South Africa), GSE37250_M (Malawi), GSE39941_M (Malawi), India, USA, and Africa cohorts.
 
 > [!question]- Results (Figure 1) (status:: undefined)
-> ![Figure 1: Average Rank by Classifier](../figures/average_rank_by_classifier.png) *Figure 1: Figure description.*
-
-> [!question]- What does Figure 1 reveal about classifier rankings? (status:: undefined)
-> Summarize performance. FastMNN showed consistently poor performance across all classifiers, suggesting this method may not be well-suited for bulk RNA-seq data despite its success in single-cell applications.
-
+> ![Figure 1: Average Rank by Classifier](../figures/average_rank_by_classifier.png) *Figure 1: Classifier performance on cross-study tasks.*
 
 
 > [!question]- Discussion on classifier complexity (status:: undefined)
-> Classifier complexity relates to the model's capacity to capture patterns in the data. More complex models (e.g., neural networks) may overfit when sample sizes are small, while simpler models (e.g., logistic regression) may underfit when patterns are non-linear. The results demonstrate that moderately complex classifiers with built-in regularization (elastic net, random forests) achieved the best balance between model flexibility and generalization. Simple logistic regression without regularization performed poorly in this high-dimensional setting, while elastic net's L1/L2 regularization enabled effective feature selection and robust performance. Random forests' ensemble approach provided robustness to noise and batch effects. Neural networks and SVM, despite their complexity, also performed well. This required increasing regularization parameter on the neural net.
+> Classifier complexity relates to the model's capacity to capture patterns in the data. More complex models (e.g., neural networks) may overfit when sample sizes are small, while simpler models (e.g., logistic regression) may underfit when patterns are non-linear. The results demonstrate that moderately complex classifiers with built-in regularization (elastic net, XGBoost) achieved the best balance between model flexibility and generalization. Simple logistic regression without regularization performed poorly in this high-dimensional setting, while elastic net's L1/L2 regularization enabled effective feature selection and robust performance. The performance of shinkage LDA was highly variable, suggesting that additional regularization perhaps could have improved performance. A simple neural network and SVM, despite their complexity, also performed well. This required increasing the L2 regularization parameter on the neural net.
 
 
 ## Interaction Effects Between Adjusters and Classifiers
@@ -235,14 +231,11 @@
 > The analysis reveals that classifier performance is largely independent of the specific batch adjustment method used, with some notable exceptions. 
 
 > [!question]- Results (Figure 2) (status:: undefined)
-> ![Figure 2: Adjusters on Classifiers Relative Aggregated](../figures/adjusters_on_classifiers_relative_aggregated.png) *Figure 2: Change in classifier performance with batch adjustment. Each panel shows the delta (Δ, change in MCC) when applying a specific batch adjustment method compared to within-study baseline. Positive values indicate improvement; negative values indicate degradation. A negative delta indicates that the model is no longer exploiting batch-specific artifacts present in the training data, revealing the true difficulty of the biological task. The dramatic negative delta for supervised adjustment with KNN (bottom left) reveals the catastrophic failure mode when correction methods use class labels. Most other adjuster-classifier combinations show modest negative deltas, indicating that cross-study generalization is inherently more challenging than within-study validation, regardless of batch correction approach.*
+> ![Figure 2: MCC Rank by Adjuster](../figures/mcc_rank_by_adjuster.png) *Figure 2: Description*
 
 > [!question]- What does Figure 2 reveal about the change in performance? (status:: undefined)
-> Figure 2 reveals that most batch adjustment methods result in negative deltas (performance decreases) compared to within-study baseline, indicating that cross-study generalization is inherently more challenging than within-study validation. The magnitude of these deltas varies substantially across adjuster-classifier combinations.
+> Figure 2 .
 
-
-> [!question]- What patterns emerge from Figure 2? (status:: undefined)
-> Describe
 
 > [!question]- Show a few places where interactions occur, but mostly independent performance (status:: undefined)
 > While performance generally decreased consistently across adjusters for most classifiers, ComBat-supervised adjustment showed a particularly severe interaction with KNN far worse than its effect on other classifiers. This suggests that KNN's distance-based learning mechanism is particularly sensitive to the specific transformations introduced by supervised batch correction. In contrast, logistic regression showed relative robustness to most adjustment methods, with only ComBat-supervised causing significant degradation. 
@@ -254,17 +247,20 @@
 ## Other Warnings
 
 > [!question]- Imbalanced data (status:: undefined)
-> Imbalanced training data can introduce biases that are amplified by batch effects. When one class is underrepresented, batch effects may disproportionately affect that class, leading to poor generalization.
+> Imbalanced data can lead to heavy confounding between the batch and the target variable. When two datasets are adjusted and merged together, adjusters that are unaware of the class imbalance 
 
 > [!question]- Using labels, or known groups for batch adjustment (status:: undefined)
-> Using class labels or known groups for batch adjustment—supervised adjustment—can lead to overfitting and poor generalization. The adjustment process may inadvertently remove biological signal along with batch effects when class labels are used. ComBat-supervised adjustment demonstrated this failure mode dramatically in the unbalanced data analysis. ed, batch effects can further confound the relationship between features and outcomes, leading to classifiers that perform poorly on balanced test sets. 
+> Using class labels or known groups for batch adjustment—supervised adjustment—can lead to overfitting and poor generalization. The adjustment process may inadvertently remove biological signal along with batch effects when class labels are used. 
 
 > [!question]- Results (Figure 3) (status:: undefined)
-> ![Figure 3: Unbalanced TB Analysis](../figures/ranking_comparison_balanced_vs_unbalanced_saved.png) *Figure 3: This figure compares ComBat adjustment using target labels to the unsupervised version and to unadjusted data. The y axis shows mean rank comparing the three strategies for each test set and iteration. Vertical bars show the standard error. The results are generally consistent for balanced and imbalanced data (circles and triangles).*
+> ![Figure 3: Unbalanced TB Analysis](../figures/class_imbalance_trend.png) *Figure 3: This figure compares ComBat adjustment using target labels to the unsupervised version and to unadjusted data. The y axis shows mean rank comparing the three strategies for each test set and iteration. Vertical bars show the standard error. The results are generally consistent for balanced and imbalanced data (circles and triangles).*
 
 
 > [!question]- Show something about imbalanced training data (status:: undefined)
-> Even in imbalanced situations, where the supervised adjustment could potentially control for the confounding effect of the imbalance, the supervised adjustment generally fails to outperform the unsupervised version. This is most evident for the Elastic Net, KNN, Random Forest, SVM, and XGBoost classifiers. Shrinkage LDA perhaps shows better performance for the supervised method, but the relative advantage shrinks in the imbalanced case. The results are similar for the Neural Network. 
+> In imbalanced situations, where the supervised adjustment does control for the confounding effect of the imbalance. However, this effect is only seen in the most pronounced imbalance scenarios.
+
+> [!question]- Within Study vs Cross Validation (Figure 4) (status:: undefined)
+> ![Figure 4: Within Study vs Cross Validation](../figures/) *Figure 4: Within Study vs Cross Validation* Figure 4 reveals that most batch adjustment methods result in negative deltas (performance decreases) compared to within-study baseline, indicating that cross-study generalization is inherently more challenging than within-study validation. 
 
 
 ## The Limitations of Internal Cross-Validation
@@ -272,11 +268,6 @@
 > [!question]- Why comparing to internal cross validation performance may be misleading (status:: undefined)
 > Comparing internal cross-validation performance to cross-study performance reveals important limitations of standard evaluation approaches. Cross-validation within a single study may give optimistic performance estimates because the classifier can learn batch-specific patterns that do not generalize. This finding emphasizes the importance of independent validation cohorts for obtaining realistic performance estimates. [source:: C_03]
 
-> [!question]- Results aggregated over classifiers (Figure 4) (status:: undefined)
-> ![Figure 4: Ranking Comparison Balanced vs Unbalanced](figures/ranking_comparison_balanced_vs_unbalanced.png) *Figure 4: The optimism delta of within-study validation. Comparing within-study cross-validation (left) to cross-study validation (right) reveals a systematic positive delta in the former—classifiers appear to perform better when tested on the same batch they were trained on, even with cross-validation. This "optimism delta" occurs because within-study validation allows classifiers to exploit batch-specific patterns. Cross-study performance shows the true delta when these technical patterns are absent, providing a more realistic (and typically lower) estimate of how classifiers will perform on new data with different technical characteristics. This delta between validation strategies is the best predictor of clinical performance, where each patient sample represents a new "batch."*
-
-> [!question]- What does the "optimism delta" reveal about performance inflation? (status:: undefined)
-> The optimism delta quantifies how much within-study cross-validation overestimates true generalization performance. Classifiers appear to perform better on within-study validation because they can exploit batch-specific patterns that don't generalize to independent datasets. [source:: C_04]
 
 
 ## Batch Adjustment Versus Meta-Analysis
