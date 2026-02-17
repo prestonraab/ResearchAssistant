@@ -208,14 +208,14 @@
 
 > [!question]- What are the datasets? (status:: undefined)
 > The study details are summarized in this table:
-> | **Study**              | **Cohort Label** | **Region / Population**            | **# Samples** | **GEO Identifier** | **# Active** | **# Latent** | **Technology** | **Notes / Filtering Criteria**                                   |
-> | ---------------------- | ---------------- | ---------------------------------- | ------------- | ------------------ | ------------ | ------------ | -------------- | ---------------------------------------------------------------- |
-> | Zak et al. (2016)      | Africa           | South Africa / Adolescents (12-18) | 181           | GSE79362           | 77           | 104          | RNA-seq        | Training set only; relabeled strictly as Active/Latent           |
-> | Leong et al. (2018)    | India            | UK (South Asian descent) / Adults  | 103           | GSE107994          | 53           | 50           | RNA-seq        | Leicester cohort used as India proxy; Active vs Latent           |
-> | Anderson et al. (2014) | GSE39941_M       | Malawi / Children (<15)            | 70            | GSE39941           | 20           | 50           | Microarray     | HIV-negative only; Malawi subset only; 'Other' diseases removed  |
-> | Kaforou et al. (2013)  | GSE37250_SA      | South Africa / Adults (18+)        | 94            | GSE37250           | 46           | 48           | Microarray     | HIV-negative only; South Africa subset; 'Other' diseases removed |
-> | Kaforou et al. (2013)  | GSE37250_M       | Malawi / Adults (18+)              | 86            | GSE37250           | 51           | 35           | Microarray     | HIV-negative only; Malawi subset; 'Other' diseases removed       |
-> | Walter et al. (2016)   | USA              | USA (Denver, CO) / Adults          | 70            | GSE73408           | 35           | 35           | Microarray     | Filtered to TB/LTBI only; pneumonia cases removed                | [source:: C_69, C_70, C_68, C_71, C_73]
+> | **Study**              |  **Region** | **Age**            | **# Samples** | **GEO Identifier** | **# Active** | **# Latent** | **Technology** | **Notes / Filtering Criteria**                                   |
+> | ---------------------- |  ------------------ | ---------------- | ------------- | ------------------ | ------------ | ------------ | -------------- | ---------------------------------------------------------------- |
+> | Zak et al. (2016)      |  South Africa | Adolescents (12-18) | 181           | GSE79362           | 77           | 104          | RNA-seq        | Training set only; relabeled strictly as Active/Latent           |
+> | Leong et al. (2018)    |  UK (South Asian descent) | Adults  | 103           | GSE107994          | 53           | 50           | RNA-seq        | Leicester cohort used as India proxy; Active vs Latent           |
+> | Anderson et al. (2014) |  Malawi | Children (<15)            | 70            | GSE39941_M           | 20           | 50           | Microarray     | HIV-negative only; Malawi subset only; 'Other' diseases removed  |
+> | Kaforou et al. (2013)  |  South Africa | Adults (18+)        | 94            | GSE37250_SA           | 46           | 48           | Microarray     | HIV-negative only; South Africa subset; 'Other' diseases removed |
+> | Kaforou et al. (2013)  |  Malawi | Adults (18+)              | 86            | GSE37250_M           | 51           | 35           | Microarray     | HIV-negative only; Malawi subset; 'Other' diseases removed       |
+> | Walter et al. (2016)   |  USA (Denver, CO) | Adults          | 70            | GSE73408           | 35           | 35           | Microarray     | Filtered to TB/LTBI only; pneumonia cases removed                | [source:: C_69, C_70, C_68, C_71, C_73]
 
 
 
