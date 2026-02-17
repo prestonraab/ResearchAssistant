@@ -10,10 +10,7 @@
 > This potential is frequently undermined by "batch effects"—systematic technical variations that can lead a learner to distinguish between experimental batches rather than meaningful biological conditions. Batch effects can substantially degrade predictor performance when applied to new individuals.
 
 > [!question]- What is the chapter's scope in addressing these challenges? (status:: undefined)
-> This chapter examines how batch effects impact predictor performance and explores statistical adjustment methods designed to mitigate these artifacts while preserving biological signal.
-
-> [!question]- Leftover sentences: (status:: undefined)
-> Using external data is also helpful when validation across independent cohorts is needed.
+> This chapter examines how batch effects impact predictor performance and explores statistical adjustment methods designed to mitigate these artifacts while preserving biological signal. As these adjustment methods are designed to assist in generalization to new data, emphasis is placed on using external data across independent cohorts for validation of these methods.
 
 
 
@@ -23,7 +20,7 @@
 > Classification—the task of assigning observations to predefined categories based on their features—is vital to biomedical research and the implementation of precision medicine.
 
 > [!question]- Why is classification useful for biomedical tasks? (status:: undefined)
-> For instance, machine learning classifiers have demonstrated strong performance for cancer classification tasks using gene expression data, even being approved and implemented clinically to predict personalized recurrence risk for breast cancer and guide chemotherapy decisions. [source:: C_05, C_1770403547313(Buus2021)]
+> For instance, machine learning classifiers have demonstrated strong performance for cancer classification tasks using gene expression data, several having been approved and implemented clinically to predict personalized recurrence risk for breast cancer and guide chemotherapy decisions. [source:: C_05, C_1770403547313(Buus2021)]
 
 
 
@@ -33,7 +30,7 @@
 > Biomedical classification tasks are not limited to gene expression, but can utilize diverse data types, including protein abundance measurements, genomic sequences, clinical variables, and imaging data. Each of these data modalities provides complementary information about biological systems and disease mechanisms. [source:: C_05]
 
 > [!question]- How do batch effects sources vary by data type? (status:: undefined)
-> No modality is immune to batch effects, though many clinical variables (height, etc.) are resilient. Batch effects arise from differences in experimental protocols, equipment type and condition, reagent lots, environmental conditions, and other technical factors that vary between studies or even within studies over time. [source:: C_01, C_02]
+> No modality is immune to batch effects, though many simply measured clinical variables, such as weight, are resilient. Batch effects arise from differences in experimental protocols, equipment type and condition, reagent lots, environmental conditions, human error, and other technical factors that vary between studies or even within studies over time. Greater complexity and subjectivity in measurement proceedure generally implies greater succeptibility to batch effects. [source:: C_01, C_02]
 
 > [!question]- What type of data will this chapter focus on? (status:: undefined)
 > For our purposes, and without loss of generality, we will focus on RNA sequencing (RNA-seq) data, which has become the dominant technology for measuring gene expression. [source:: C_31]
@@ -49,22 +46,25 @@
 > Gene expression data are generated through high-throughput sequencing technologies that quantify the abundance of RNA transcripts in biological samples. These measurements provide a snapshot of cellular activity, reflecting which genes are actively transcribed under specific conditions, disease states, or in response to treatments. Gene expression data enable the identification of disease-associated pathways, the discovery of therapeutic targets, and the development of diagnostic and prognostic biomarkers. [source:: C_02]
 
 > [!question]- How can researchers access gene expression data? (status:: undefined)
-> The Gene Expression Omnibus (GEO) serves as a critical international public repository for such data, with over 200,000 studies and 6.5 million samples. For each molecular sample, data submitters also provide relevant clinical variables, enabling association between the variables [source:: C_31]
+> The Gene Expression Omnibus (GEO) serves as a critical international public repository for such data, with over 200,000 studies and 6.5 million samples. For each molecular sample, data submitters also provide relevant clinical variables, enabling associations between molecular signatures and clinical phenotypes. GEO gives researchers access to multiple datasets.  [source:: C_31]
 
 > [!question]- How is public gene expression data used? (status:: undefined)
-> Due to the ease of access, GEO data is widely reused for diverse applications, including identifying novel gene expression patterns, finding disease predictors, and developing computational methods. [source:: C_35]
+> [source:: C_35]
 
 > [!question]- Why integrate gene expression datasets? (status:: undefined)
-> Integrating gene expression data across multiple studies offers substantial benefits over single-study analysis: increased sample sizes improve the robustness of classifiers, independent validation cohorts provide evidence of generalizability, and meta-analyses can reveal consistent patterns across diverse populations.
+> Integrating gene expression data across multiple studies offers substantial benefits over single-study analysis: meta-analyses can reveal consistent patterns across diverse populations, increased sample sizes improve robustness to noisy data, and independent validation cohorts provide evidence of generalizability to further populations.
 
 > [!question]- How sensitive is gene expression to batch effects? (status:: undefined)
-> However, batch effects pose particular challenges for gene expression data due to the sensitivity of sequencing technologies to technical variation. These technical artifacts can be substantial—often comparable to or larger than the biological signals of interest—making them a primary concern when combining datasets. [source:: C_07]
+> However, batch effects pose particular challenges for gene expression data due to the sensitivity of sequencing technologies to technical variation. These technical artifacts are often comparable to or larger than the biological signals of interest, making them a primary concern when combining datasets. [source:: C_07]
 
 > [!question]- What specific effects do batches have on gene expression? (status:: undefined)
-> Batch effects manifest in gene expression data as systematic shifts in expression levels between batches, differences in variance structure, and alterations in the relationships between genes. [source:: C_07]
+> These artifacts of data collection manifest in gene expression data across batches as systematic shifts in expression levels, differences in variance structure, and even alterations in the relationships between genes. [source:: C_07]
 
 > [!question]- What about changes to distributional shape? When might this arise? (status:: undefined)
-> Batch effects can also manifest as changes in distributional shape for features shared between datasets. For gene expression data, this difficulty arises if a researcher wants to combine RNA-seq data and gene expression measured using microarrays, an older technology. Microarray measurements of  expression for a gene tend to be bell shaped, or normally distributed, taking on continuous values. RNA-seq measurements are discrete counts, with a  heavily right-skewed distribution.
+> Batch effects can also manifest as changes in distributional shape for features shared between datasets. For gene expression data, this difficulty arises in combining high throughput sequencing (RNA-seq) data and measurements obtained using microarrays, an older technology. Across samples, microarray measurements of single-gene expression tend to be bell shaped, or normally distributed, taking on continuous values. RNA-seq measurements are discrete counts, with heavily right-skewed distributions. These right-skewed distributions can be transformed using a log-based function to yield distributional shapes comparable with microarray data.
+
+> [!question]- What about shifts and scaling? (status:: DRAFT)
+> Shifts in expression levels and differences in variance structure are both addressed in the following section.
 
 
 
@@ -74,56 +74,56 @@
 > Statistical adjustment methods, also referred to as adjusters or batch correction methods, aim to remove technical variation while preserving biological signal.
 
 > [!question]- How do adjusters work? (status:: undefined)
-> Adjusters can work by modeling the technical variation and removing it, or by modeling the biological variation and removing all other variation. This has implications for the preservation of biological signal. If an adjuster that models biology fails to capture some variation, then that signal will be removed from the data. If an adjuster that models batch effect attributes too much variation to the batch, the same problem occurs. These methods operate under the assumption that the underlying biological signal is consistent across batches, and that technical variation can be separated from biological variation.
+> Adjusters can work by modeling the technical variation and removing it, or by modeling the biological space and removing all other *variation*. This has implications for the preservation of biological signal. If an adjuster that models biology fails to capture some variation, then that signal will be removed from the data. If an adjuster that models batch effects attributes too much variation to the batch, the same problem occurs. These methods operate under the assumption that the underlying biological signal is consistent across batches, and that technical variation can be separated from biological variation.
 
 > [!question]- Why do some adjusters work better in some contexts? (status:: undefined)
-> The effectiveness of adjusters depends on the data type. Adjusters must make assumptions when modeling batch effects or biology, and these will vary by data type. Differences in modeling assumptions can be seen by examining adjusters for two types of gene expression measurements.
+> The effectiveness of adjusters depends on viability of the assumptions made (whether about batch effects or biology) which vary by data modality. Variation in modeling assumptions are evident in the following comparison of adjusters for *two types of gene expression measurements*.
 
 > [!question]- How can gene expression measurements be categorized? (status:: undefined)
-> These measurements can be categorized into those which measure the bulk gene expression in a large sample of cells and those which take measurements for individual cells.
+> Two subtypes of gene expression measurements are bulk, which measures expression in a large sample of cells, and single cell, which takes measurements for individual cells.
 
 > [!question]- How does Combat adjust bulk data? (status:: undefined)
-> For bulk data, a common adjusting approach is ComBat. ComBat adjusts for batch effects by modeling batch-specific shifts and scaling factors for each gene. ComBat models the batch effect to remove it. The transformation that ComBat applies is linear: each expression value for a particular gene is shifted and scaled the same as each other expression value for that gene. This transformation works well for bulk gene expression data, which varies continuously due to the random proportions of cell types represented in the sample. [source:: C_01]
+> For bulk data, a common adjusting approach is ComBat. ComBat adjusts for batch effects by modeling batch-specific shifts and scaling factors for each gene. The modeled batch effect is then removed. The transformation that ComBat applies is linear: each expression value for a particular gene is shifted and scaled the same as each other expression value for that gene. This transformation works well for bulk gene expression data, which varies continuously due to the random proportions of cell types represented in the sample. [source:: C_01]
 
 > [!question]- What is used to adjust single cell data? (status:: undefined)
 > Single cell data requires a different kind of adjustment. Single cell gene expression is characterized by distinct expression signatures for each cell type, with internal variation caused by various cell states at measurement time.  If bulk data spans a continent of continuous variation, single cell data occupies islands of specialized differentiation.
 
 > [!question]- How is single cell data adjusted? (status:: undefined)
-> Single cell adjusters may assume that samples of similar cell types will exhibit similar expression patterns, even in the presence of batch effects. By finding "nearerst neighbors", or the samples that have the most similar expression between batches, adjusters such as Harmony and Seurat can identify how to move cross-batch neighbors closer together to bring the batches into alignment. Harmony and Seurat model the biological space, then eliminate the batch differences. Since neighbors are found using many genes, and the transformation is sample-specific, the adjustment of single cell data is typically nonlinear.
+> Single cell adjusters may assume that samples of similar cell types will exhibit similar expression patterns, even in the presence of batch effects. By finding "nearerst neighbors", or the samples with the most similar expression between batches, adjusters such as Harmony or Seurat can identify how to move cross-batch neighbors closer together to bring the batches into alignment. Harmony and Seurat model the biological space, then eliminate the batch differences. Since neighbors are found using many genes, and the transformation is sample-specific, the adjustment of single cell data is typically nonlinear.
 
 > [!question]- Feature space correction vs latent space alignment? (status:: undefined)
-> ComBat and the single cell methods have a difference in approach more fundamental than modeling batch or biology. ComBat is a feature-space correction method: it attempts to fix the original data and output new values for each sample and gene. Harmony and Seurat are latent-space alignment methods: they represent each sample using fewer variables, which represent simple ways the data can vary within a single batch, and adjust in that space. These new variables are called latent, or hidden, because they were not among the original genes yet hold most of the information.
+> ComBat and the single cell methods have a difference in approach more fundamental than modeling batch or biology. They vary by space, or the variables which they work with. ComBat is a feature-space correction method: it attempts to fix the original data and output new values for each sample and gene. Harmony and Seurat are latent-space alignment methods: they represent each sample using fewer variables, which represent simple ways the data can vary within a single batch. These new variables are called latent, or hidden, because they were not among the original genes yet hold most of the information. After changing the representation, Harmony and Seurat perform their adjustments in the latent space.
 
 
 
 ## Confounding
 
 > [!question]- What is confounding? (status:: undefined)
-> Batch effects can mimic or mask real differences in expression levels and covariance structures between batches. Not all differences between datasets are due to technical artifacts; not all differences should be removed. For example, two studies might have the same split of positive and negative cases, but different proportions of females. It might be difficult to determine whether the differences in gene expression between batches are technical artifacts that should be removed, or true differences due to the sex imbalance between datasets. We might say that the batch effect is "confounded" with sex—the effect of the batch on gene expression is somewhat tied up with the effect of the sex imbalance.
+> Batch effects can mimic or mask real differences in expression levels and covariance structures between batches. Not all differences between datasets are due to technical artifacts; not all differences should be removed. For example, two studies might have the same split of positive and negative cases, but different proportions of female subjects. It might be difficult to determine whether the differences in gene expression between batches are technical artifacts that should be removed, or true differences due to the sex imbalance between datasets. We might say that the batch effect is "confounded" with sex—the effect of the batch on gene expression is somewhat tied up with the effect of the population imbalance.
 
 > [!question]- How can confounding be resolved? (status:: undefined)
 > Confounding can often be removed if the values of the confounding variables are known.
 
 > [!question]- How specifically does Combat account for confounding? (status:: undefined)
-> Combat, when provided with additional metadata for each sample, can temporarily remove the associations between the metadata and the gene expression, then remove the remaining batch effects, and finally add back the metadata associations.
+> For example, ComBat, when provided with additional metadata for each sample, can temporarily remove the associations between the metadata and the gene expression, then remove the remaining batch effects, then add back the metadata associations.
 
 > [!question]- When is confounding difficult to overcome? (status:: undefined)
-> However, if these other variables are not known, due to poor recording or unknown population differences, correcting for confounding can be more difficult. In the multi-study context, these additional variables, or metadata, are rarely consistently recorded. One variable might be important to one study, but left out in another. These unshared variables are typically unable to be used for merging datasets.
+> However, if these other variables are not known, due to poor recording or unknown population differences, correcting for confounding can be more difficult. In the multi-study context, these additional variables, or metadata, are rarely consistently recorded. One variable might be important to one study, but left out in another. These unshared variables are typically unable to be used for merging datasets. Even when variables are shared, their names and values are rarely standardized, which adds practical difficulty to combining datasets.
 
 > [!question]- How can dataset differences be preserved? (status:: undefined)
-> Some datasets are fully confounded—one dataset could be fully healthy, and another fully diseased; one could be from human tissue, and another from mouse tissue. Some methods, like LIGER, have been developed to deal with this problem for single cell data. LIGER uses matrix factorization to identify shared and dataset-specific features of cell identity. Once differences are identified, they can be preserved, minimizing false alignment of the datasets.
+> In addition, some datasets are fully confounded—one dataset could be fully healthy, and another fully diseased; one could be from human tissue, and another from mouse tissue. Even if this information is preserved in the metadata, using this information in an adjuster is difficult—in a two-study merge, fully confounded variables carry the same information as a binary variable indicating which dataset the sample came from. Some methods, like LIGER, have been developed to deal with this problem for single cell data. LIGER uses matrix factorization to identify shared and dataset-specific features of cell identity. Once differences are identified, they can be preserved, minimizing false alignment of the datasets.
 
 > [!question]- How to deal with unknown batches? (status:: undefined)
 > A separate but related problem occurs when the batches are not known. This is not a primary difficulty when combining datasets. Methods such as surrogate variable analysis (SVA) can identify and adjust for unknown batch effects by extracting surrogate variables that capture unwanted effects.
 
 > [!question]- How important is single-patient data? (status:: undefined)
-> For precision medicine, single-patient data can also pose a problem to batch correction. Single-patient data processing is vital to the translation of molecular assays, as patient samples in clinical settings are typically collected in small numbers, often one at a time. However, many correction techniques rely on several samples to characterize the distribution of the new batch. It is difficult to know if a single sample is an outlier if the distribution is not known. If at all possible, it is best to process several samples at the same time or use recent data identically collected to define the distribution of the new data.
+> For precision medicine, single-patient data also poses a major problem to batch correction. Single-patient data processing is vital to the translation of molecular assays, as patient samples in clinical settings are typically collected in small numbers, often one at a time. However, many correction techniques rely on several samples to characterize the distribution of the new batch. It is difficult to know if a single sample is an outlier if the distribution is not known. If at all possible, it is best to process several samples at the same time or use recent data identically collected to define the distribution of the new data.
 
 > [!question]- What if I only have single-patient data? (status:: undefined)
-> If this is not possible, some transformations are available to shift the data into a batch-independent space. This includes within-sample gene ranking and using Variational Autoencoders to encode the sample using latent variables.
+> If this is not possible, some transformations are available to shift the data into a batch-independent space. This includes within-sample gene ranking and using Variational Autoencoders to encode the sample using latent variables. As shown later, the performance of within-sample gene ranking is weak compared to other methods that utilize information from multiple samples.
 
 > [!question]- Transition (status:: undefined)
-> To understand the effects of adjustment on classification, we will first describe the landscape of modern classification.
+> To understand the effects of adjustment on classification, we will first describe the modern classification landscape.
 
 
 
