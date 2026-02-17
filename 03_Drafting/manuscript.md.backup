@@ -208,15 +208,7 @@
 
 > [!question]- What are the datasets? (status:: undefined)
 > The study details are summarized in this table:
-> |**Study**|**Region**|**Population**|**# Samples**|**Key Characteristics**|**GEO Identifier**|**# Active**|**# Latent**|**# Progressors**|**# Non-progressors**|**# Other**|**Technology**|
-> |---|---|---|---|---|---|---|---|---|---|---|---|
-> |Zak et al. (2016)|South Africa|Adolescents (12-18)|153|Longitudinal sampling every 6 months to predict progression|GSE79362|-|-|46|107|-|RNA-seq|
-> |Suliman et al. (2018)|South Africa, Gambia, Ethiopia|Adults|407|Household contacts, RISK4 four-gene signature|GSE94438|-|-|79|328|-|RNA-seq|
-> |Anderson et al. (2014)|South Africa, Malawi, Kenya|Children (<15)|334|Childhood TB diagnosis, 51-transcript signature|GSE39941|111|54|-|-|169|Microarray|
-> |Leong et al. (2018)|India|Adults|44|South Indian population, active vs latent|GSE101705|28|16|-|-|-|RNA-seq|
-> |Kaforou et al. (2013)|South Africa, Malawi|Adults (18+)|584|HIV-infected and -uninfected cohorts|GSE37250|195|167|-|-|222|Microarray|
-> |Low-Endemic Comparators|USA, UK, Multinational|Adults / Mixed|440|Healthy controls and ODs used for analytical specificity testing|GSE19491, GSE42834|61|69|-|-|310|Microarray|
-> [source:: C_69, C_70, C_68, C_71, C_73] GSE37250_SA (South Africa), GSE37250_M (Malawi),  India, USA, and Africa cohorts.
+> The study details are summarized in this table: [source:: C_69, C_70, C_68, C_71, C_73]
 
 
 
