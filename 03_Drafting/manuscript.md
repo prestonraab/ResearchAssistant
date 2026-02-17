@@ -207,17 +207,16 @@
 > While most datasets focus on the classification task of distinguishing active tuberculosis from latent infection, the collection also includes studies examining TB progression risk. This diversity of biological questions, while introducing additional complexity, tests whether batch correction methods can preserve distinct biological signals across different experimental designs and research objectives. [source:: C_69, C_70]
 
 > [!question]- What are the datasets? (status:: undefined)
-> The study details are summarized in this table: 
-> | Study | Region | Population | Sample Type | Design | Key Characteristics |
-> |-------|--------|------------|-------------|--------|---------------------| 
-> | Zak et al. (2016) | South Africa | Adolescents (12-18 years) | Whole blood | Prospective cohort | Longitudinal sampling every 6 months to predict progression  | 
-> | Suliman et al. (2018) | South Africa, Gambia, Ethiopia | Adults | Whole blood | Prospective cohort | Household contacts, RISK4 four-gene signature for TB progression  | 
-> | Anderson et al. (2014) | South Africa, Malawi, Kenya | Children | Whole blood | Case-control | Childhood TB diagnosis, 51-transcript signature  | 
-> | Leong et al. (2018) | India | Adults | Whole blood | Case-control | South Indian population, active vs latent  | 
-> | Kaforou et al. (2013) | South Africa | Adults (Xhosa, 18+) | Whole blood | Case-control | HIV-infected and -uninfected cohorts  | 
-> [source:: C_69, C_70, C_68, C_71, C_73]
-> 
->  GSE37250_SA (South Africa), GSE37250_M (Malawi),  India, USA, and Africa cohorts.
+> The study details are summarized in this table:
+> |**Study**|**Region**|**Population**|**# Samples**|**Key Characteristics**|**GEO Identifier**|**# Active**|**# Latent**|**# Progressors**|**# Non-progressors**|**# Other**|**Technology**|
+> |---|---|---|---|---|---|---|---|---|---|---|---|
+> |Zak et al. (2016)|South Africa|Adolescents (12-18)|153|Longitudinal sampling every 6 months to predict progression|GSE79362|-|-|46|107|-|RNA-seq|
+> |Suliman et al. (2018)|South Africa, Gambia, Ethiopia|Adults|407|Household contacts, RISK4 four-gene signature|GSE94438|-|-|79|328|-|RNA-seq|
+> |Anderson et al. (2014)|South Africa, Malawi, Kenya|Children (<15)|334|Childhood TB diagnosis, 51-transcript signature|GSE39941|111|54|-|-|169|Microarray|
+> |Leong et al. (2018)|India|Adults|44|South Indian population, active vs latent|GSE101705|28|16|-|-|-|RNA-seq|
+> |Kaforou et al. (2013)|South Africa, Malawi|Adults (18+)|584|HIV-infected and -uninfected cohorts|GSE37250|195|167|-|-|222|Microarray|
+> |Low-Endemic Comparators|USA, UK, Multinational|Adults / Mixed|440|Healthy controls and ODs used for analytical specificity testing|GSE19491, GSE42834|61|69|-|-|310|Microarray|
+> [source:: C_69, C_70, C_68, C_71, C_73] GSE37250_SA (South Africa), GSE37250_M (Malawi),  India, USA, and Africa cohorts.
 
 
 
