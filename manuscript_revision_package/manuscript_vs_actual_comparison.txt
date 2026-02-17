@@ -1,0 +1,120 @@
+
+=== MANUSCRIPT TABLE vs ACTUAL DATA COMPARISON ===
+
+MANUSCRIPT TABLE (as written):
+==============================
+
+                    Study                GEO             Region
+1       Zak et al. (2016)           GSE79362       South Africa
+2   Suliman et al. (2018)           GSE94438 SA/Gambia/Ethiopia
+3  Anderson et al. (2014)           GSE39941    SA/Malawi/Kenya
+4     Leong et al. (2018)          GSE101705              India
+5   Kaforou et al. (2013)           GSE37250          SA/Malawi
+6 Low-Endemic Comparators GSE19491, GSE42834       USA/UK/Multi
+  Manuscript_Total Manuscript_Active Manuscript_Latent
+1              153                NA                NA
+2              407                NA                NA
+3              334               111                54
+4               44                28                16
+5              584               195               167
+6              440                61                69
+
+
+ACTUAL DATA (in TB_real_data.RData):
+====================================
+
+      Dataset Actual_Total Actual_Active Actual_Latent GEO_Match
+1      Africa          181            77           104  GSE79362
+2       India          103            53            50 GSE107994
+3  GSE39941_M           70            20            50  GSE39941
+4 GSE37250_SA           94            46            48  GSE37250
+5  GSE37250_M           86            51            35  GSE37250
+6         USA           70            35            35  GSE73408
+
+
+DISCREPANCIES:
+==============
+
+1. AFRICA (GSE79362 - Zak et al. 2016):
+   Manuscript: 153 samples (46 progressors, 107 non-progressors)
+   Actual:     181 samples (77 active TB, 104 latent TB)
+   Issue:      Different sample count AND different labels
+               - Manuscript describes progression study
+               - Actual data uses active/latent classification
+               - 181 samples suggests using ALL samples, not just progressors
+
+2. INDIA:
+   Manuscript: GSE101705, 44 samples (28 active, 16 latent) - Leong et al. 2018
+   Actual:     GSE107994, 103 samples (53 active, 50 latent) - Leong et al. 2018
+   Issue:      WRONG GEO ACCESSION in manuscript
+               - Should be GSE107994, not GSE101705
+               - Using Leicester UK cohort (South Asian descent)
+               - Much larger sample size than manuscript states
+
+3. GSE39941 (Anderson et al. 2014):
+   Manuscript: 334 samples (111 active, 54 latent, 169 other)
+   Actual:     70 samples (20 active, 50 latent) - Malawi subset only
+   Issue:      Using filtered subset
+               - HIV-negative only
+               - Malawi region only (not SA/Kenya)
+               - Removed 'other' disease states
+               - Much smaller than full study
+
+4. GSE37250 (Kaforou et al. 2013):
+   Manuscript: 584 samples (195 active, 167 latent, 222 other)
+   Actual:     180 samples total, split into:
+               - GSE37250_SA: 94 samples (46 active, 48 latent)
+               - GSE37250_M:  86 samples (51 active, 35 latent)
+   Issue:      Using filtered subsets
+               - HIV-negative only
+               - Split by region (SA vs Malawi)
+               - Removed 'other' disease states
+               - Much smaller than full study
+
+5. USA:
+   Manuscript: GSE19491/GSE42834, 440 samples (61 active, 69 latent, 310 other)
+   Actual:     GSE73408, 70 samples (35 active, 35 latent)
+   Issue:      COMPLETELY DIFFERENT STUDY
+               - Manuscript lists GSE19491/GSE42834
+               - Actually using GSE73408 (Walter et al. 2016)
+               - Different sample counts
+
+6. MISSING FROM ACTUAL DATA:
+   - GSE94438 (Suliman et al. 2018) - NOT USED
+   - GSE19491/GSE42834 - NOT USED
+
+
+
+SUMMARY:
+========
+
+The manuscript table does NOT accurately describe the data being analyzed.
+Major issues:
+  1. Wrong GEO accessions (India, USA)
+  2. Wrong sample counts (all datasets)
+  3. Wrong label types (Africa: progressors vs active/latent)
+  4. Missing information about filtering (HIV-negative, geographic subsets)
+  5. Two studies in manuscript (GSE94438, GSE19491/GSE42834) are NOT used
+
+RECOMMENDATION:
+===============
+Update the manuscript table to reflect the ACTUAL data:
+
+
+CORRECTED TABLE:
+                           Study       GEO           Region          Population
+1              Zak et al. (2016)  GSE79362     South Africa Adolescents (12-18)
+2            Leong et al. (2018) GSE107994 UK (South Asian)              Adults
+3         Anderson et al. (2014)  GSE39941           Malawi      Children (<15)
+4     Kaforou et al. (2013) - SA  GSE37250     South Africa        Adults (18+)
+5 Kaforou et al. (2013) - Malawi  GSE37250           Malawi        Adults (18+)
+6           Walter et al. (2016)  GSE73408              USA              Adults
+  Samples Active Latent   Platform                Notes
+1     181     77    104    RNA-seq    Training set only
+2     103     53     50    RNA-seq     Leicester cohort
+3      70     20     50 Microarray HIV-neg, Malawi only
+4      94     46     48 Microarray     HIV-neg, SA only
+5      86     51     35 Microarray HIV-neg, Malawi only
+6      70     35     35 Microarray    Removed pneumonia
+
+=== END OF COMPARISON ===

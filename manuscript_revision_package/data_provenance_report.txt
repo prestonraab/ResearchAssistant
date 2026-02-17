@@ -1,0 +1,219 @@
+================================================================================
+TB DATASET PROVENANCE AND SUMMARY REPORT
+================================================================================
+Generated: 2026-02-17 14:01:54.076605
+
+This report documents the datasets used in the TB batch effects analysis,
+including their sources, processing steps, and key statistics.
+
+================================================================================
+DATA SOURCES AND PROCESSING PIPELINE
+================================================================================
+
+PRIMARY DATA FILE: data/TB_real_data.RData
+Created by: scripts/2_TB_getdata.R
+
+This file contains harmonized gene expression data from 6 TB studies.
+All datasets have been:
+  - Filtered to common genes (intersection across all studies)
+  - Variance filtered (genes with variance > 0 in all batches)
+  - Subset to Active TB vs Latent TB samples only
+
+--------------------------------------------------------------------------------
+DATASET DETAILS
+--------------------------------------------------------------------------------
+
+DATASET: USA
+  GEO Accession: GSE73408
+  Citation: Walter et al. (2016)
+  Population: US Adults (Denver, CO)
+  Platform: Affymetrix HuGene 1.1 ST (Microarray)
+  Samples: 70 (35 Active TB, 35 Latent TB, 50.0% active)
+  Genes: 10695
+  Expression range: [0.90, 12.60] (mean: 6.31, SD: 1.73)
+  Processing: Downloaded from GEO, filtered to TB/LTBI (removed pneumonia cases)
+  Notes: HIV status not specified in filtering
+
+DATASET: Africa
+  GEO Accession: GSE79362
+  Citation: Zak et al. (2016)
+  Population: South African Adolescents (Western Cape, 12-18 years)
+  Platform: Illumina RNA-seq
+  Samples: 181 (77 Active TB, 104 Latent TB, 42.5% active)
+  Genes: 10695
+  Expression range: [0.00, 15.33] (mean: 3.41, SD: 1.94)
+  Processing: Loaded from data/combined_sub.RData (pre-processed RNA-seq)
+  Notes: Uses training set only (181 samples); test set (399 samples) not used
+
+DATASET: India
+  GEO Accession: GSE107994
+  Citation: Leong et al. (2018)
+  Population: UK Residents of South Asian descent (Leicester) - used as India proxy
+  Platform: Illumina RNA-seq (HT-12 v4 equivalent)
+  Samples: 103 (53 Active TB, 50 Latent TB, 51.5% active)
+  Genes: 10695
+  Expression range: [-5.99, 16.42] (mean: 4.05, SD: 2.54)
+  Processing: Loaded from Excel file: data/GSE107994/GSE107994_edgeR_normalized_Leicester_with_progressor_longitudinal.xlsx
+  Notes: Filtered to Active_TB and Control groups only
+
+DATASET: GSE37250_SA
+  GEO Accession: GSE37250
+  Citation: Kaforou et al. (2013)
+  Population: South African Adults (18+)
+  Platform: Illumina HumanHT-12 v4 (Microarray)
+  Samples: 94 (46 Active TB, 48 Latent TB, 48.9% active)
+  Genes: 10695
+  Expression range: [-72.59, 57967.29] (mean: 1036.46, SD: 3245.00)
+  Processing: Downloaded from GEO, filtered to: HIV-negative, South Africa region, Active TB or Latent TB
+  Notes: Subset of larger study that included HIV+ and other disease states
+
+DATASET: GSE37250_M
+  GEO Accession: GSE37250
+  Citation: Kaforou et al. (2013)
+  Population: Malawian Adults (18+)
+  Platform: Illumina HumanHT-12 v4 (Microarray)
+  Samples: 86 (51 Active TB, 35 Latent TB, 59.3% active)
+  Genes: 10695
+  Expression range: [-72.59, 57967.29] (mean: 1012.51, SD: 3183.75)
+  Processing: Downloaded from GEO, filtered to: HIV-negative, Malawi region, Active TB or Latent TB
+  Notes: Same study as GSE37250_SA but different geographic subset
+
+DATASET: GSE39941_M
+  GEO Accession: GSE39941
+  Citation: Anderson et al. (2014) / Berry et al.
+  Population: Malawian Children (<15 years)
+  Platform: Illumina HumanHT-12 v4 (Microarray)
+  Samples: 70 (20 Active TB, 50 Latent TB, 28.6% active)
+  Genes: 10695
+  Expression range: [-56.82, 65895.97] (mean: 1207.66, SD: 3755.07)
+  Processing: Downloaded from GEO, filtered to: HIV-negative, Malawi region, Active TB or Latent TB
+  Notes: Original study included other disease states (169 other samples removed)
+
+--------------------------------------------------------------------------------
+SOURCE DATA: data/combined_sub.RData
+--------------------------------------------------------------------------------
+
+This file contains the pre-processed RNA-seq data for GSE79362 (Zak et al.).
+It includes both training and test sets with SRA run accessions as sample IDs.
+
+Contents:
+  - train_expr: 24391 genes x 181 samples
+  - y_train: 181 labels (Active TB: 77, Latent TB: 104)
+  - test_expr: 24391 genes x 399 samples
+  - y_test: 399 labels (Active TB: 95, Latent TB: 304)
+
+Sample ID format: SRA run accessions (SRR numbers)
+  - Training samples: SRR3236094 ... SRR3236020
+  - Test samples: SRR5225505 ... SRR5225710
+
+Usage in analysis:
+  - Training set (181 samples) is used as 'Africa' dataset
+  - Test set (399 samples) is NOT used in current analysis
+
+Origin: Likely processed from raw FASTQ files downloaded from NCBI SRA
+        (alignment and quantification pipeline unknown)
+
+================================================================================
+SUMMARY STATISTICS
+================================================================================
+
+Dataset          Samples    Genes   Active   Latent     Expr_Min     Expr_Max
+--------------- -------- -------- -------- -------- ------------ ------------
+USA                   70    10695       35       35         0.90        12.60
+Africa               181    10695       77      104         0.00        15.33
+India                103    10695       53       50        -5.99        16.42
+GSE37250_SA           94    10695       46       48       -72.59     57967.29
+GSE37250_M            86    10695       51       35       -72.59     57967.29
+GSE39941_M            70    10695       20       50       -56.82     65895.97
+
+Notes:
+  - All datasets share the same gene set (intersection of all studies)
+  - Expression values vary by platform (microarray vs RNA-seq)
+  - Microarray data (GSE37250*, GSE39941*) has wider range due to probe intensities
+  - RNA-seq data (Africa, India) shows log-transformed counts
+  - USA data (microarray) shows log2-transformed intensities
+
+================================================================================
+KEY FINDINGS AND DISCREPANCIES
+================================================================================
+
+1. SAMPLE COUNTS:
+   The actual sample counts differ from some published studies because:
+   - Filtering to HIV-negative samples only
+   - Filtering to specific geographic regions
+   - Removing samples with other disease states
+   - Using only Active TB vs Latent TB (excluding progressors, other controls)
+
+2. GENE COUNTS:
+   All datasets harmonized to 10695 common genes
+   - Original studies had different gene coverage
+   - Intersection ensures all genes present across all platforms
+   - Variance filtering removed low-quality genes
+
+3. EXPRESSION SCALES:
+   Different platforms have different expression scales:
+   - RNA-seq: log-transformed normalized counts (range: -6 to 16)
+   - Microarray: probe intensities (range: -73 to 65,896)
+   - This is expected and handled by batch correction methods
+
+4. DATA PROVENANCE:
+   - USA, GSE37250*, GSE39941*: Downloaded directly from GEO
+   - Africa: Pre-processed RNA-seq from combined_sub.RData
+   - India: Pre-processed from Excel file (edgeR normalized)
+
+5. MISSING SOURCE:
+   - combined_sub.RData origin unknown (no generation script found)
+   - Contains pre-processed GSE79362 data with train/test split
+   - Sample IDs are SRA accessions suggesting raw data processing
+
+================================================================================
+OUTPUT FILES
+================================================================================
+
+Summary Statistics:
+  - data/dataset_summary_statistics.csv (comprehensive statistics table)
+  - data/dataset_summary_statistics.json (JSON format)
+  - data/data_provenance_report.txt (this report)
+
+Exported Data (data/exported/):
+
+  USA:
+    - USA_expression_preview.csv (first 100 genes)
+    - USA_expression_full.csv (complete expression matrix)
+    - USA_sample_info.csv (sample metadata and labels)
+    - USA_gene_stats.csv (per-gene statistics)
+
+  Africa:
+    - Africa_expression_preview.csv (first 100 genes)
+    - Africa_expression_full.csv (complete expression matrix)
+    - Africa_sample_info.csv (sample metadata and labels)
+    - Africa_gene_stats.csv (per-gene statistics)
+
+  India:
+    - India_expression_preview.csv (first 100 genes)
+    - India_expression_full.csv (complete expression matrix)
+    - India_sample_info.csv (sample metadata and labels)
+    - India_gene_stats.csv (per-gene statistics)
+
+  GSE37250_SA:
+    - GSE37250_SA_expression_preview.csv (first 100 genes)
+    - GSE37250_SA_expression_full.csv (complete expression matrix)
+    - GSE37250_SA_sample_info.csv (sample metadata and labels)
+    - GSE37250_SA_gene_stats.csv (per-gene statistics)
+
+  GSE37250_M:
+    - GSE37250_M_expression_preview.csv (first 100 genes)
+    - GSE37250_M_expression_full.csv (complete expression matrix)
+    - GSE37250_M_sample_info.csv (sample metadata and labels)
+    - GSE37250_M_gene_stats.csv (per-gene statistics)
+
+  GSE39941_M:
+    - GSE39941_M_expression_preview.csv (first 100 genes)
+    - GSE39941_M_expression_full.csv (complete expression matrix)
+    - GSE39941_M_sample_info.csv (sample metadata and labels)
+    - GSE39941_M_gene_stats.csv (per-gene statistics)
+
+================================================================================
+END OF REPORT
+================================================================================
+

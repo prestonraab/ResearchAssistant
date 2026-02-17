@@ -91,16 +91,11 @@ packages/mcp-server/dist/
 # Core library specific
 packages/core/dist/
 
-# Legacy directories (to be removed after migration)
-citation-hover-extension/node_modules
-citation-mcp-server/node_modules
-research-assistant-extension/node_modules
-research-assistant-extension/out
-research-assistant-extension/dist
-research-assistant-extension/*.vsix
-
 # Kiro settings (user-specific)
 .kiro
 
 # Cache directory (verification results, embeddings, etc.)
 .cache/
+
+# Data directory
+data

@@ -208,15 +208,14 @@
 
 > [!question]- What are the datasets? (status:: undefined)
 > The study details are summarized in this table:
-> |**Study**|**Region**|**Population**|**# Samples**|**Key Characteristics**|**GEO Identifier**|**# Active**|**# Latent**|**# Progressors**|**# Non-progressors**|**# Other**|**Technology**|
-> |---|---|---|---|---|---|---|---|---|---|---|---|
-> |Zak et al. (2016)|South Africa|Adolescents (12-18)|153|Longitudinal sampling every 6 months to predict progression|GSE79362|-|-|46|107|-|RNA-seq|
-> |Suliman et al. (2018)|South Africa, Gambia, Ethiopia|Adults|407|Household contacts, RISK4 four-gene signature|GSE94438|-|-|79|328|-|RNA-seq|
-> |Anderson et al. (2014)|South Africa, Malawi, Kenya|Children (<15)|334|Childhood TB diagnosis, 51-transcript signature|GSE39941|111|54|-|-|169|Microarray|
-> |Leong et al. (2018)|India|Adults|44|South Indian population, active vs latent|GSE101705|28|16|-|-|-|RNA-seq|
-> |Kaforou et al. (2013)|South Africa, Malawi|Adults (18+)|584|HIV-infected and -uninfected cohorts|GSE37250|195|167|-|-|222|Microarray|
-> |Low-Endemic Comparators|USA, UK, Multinational|Adults / Mixed|440|Healthy controls and ODs used for analytical specificity testing|GSE19491, GSE42834|61|69|-|-|310|Microarray|
-> [source:: C_69, C_70, C_68, C_71, C_73] GSE37250_SA (South Africa), GSE37250_M (Malawi),  India, USA, and Africa cohorts.
+> | **Study**              | **Cohort Label** | **Region / Population**            | **# Samples** | **GEO Identifier** | **# Active** | **# Latent** | **Technology** | **Notes / Filtering Criteria**                                   |
+> | ---------------------- | ---------------- | ---------------------------------- | ------------- | ------------------ | ------------ | ------------ | -------------- | ---------------------------------------------------------------- |
+> | Zak et al. (2016)      | Africa           | South Africa / Adolescents (12-18) | 181           | GSE79362           | 77           | 104          | RNA-seq        | Training set only; relabeled strictly as Active/Latent           |
+> | Leong et al. (2018)    | India            | UK (South Asian descent) / Adults  | 103           | GSE107994          | 53           | 50           | RNA-seq        | Leicester cohort used as India proxy; Active vs Latent           |
+> | Anderson et al. (2014) | GSE39941_M       | Malawi / Children (<15)            | 70            | GSE39941           | 20           | 50           | Microarray     | HIV-negative only; Malawi subset only; 'Other' diseases removed  |
+> | Kaforou et al. (2013)  | GSE37250_SA      | South Africa / Adults (18+)        | 94            | GSE37250           | 46           | 48           | Microarray     | HIV-negative only; South Africa subset; 'Other' diseases removed |
+> | Kaforou et al. (2013)  | GSE37250_M       | Malawi / Adults (18+)              | 86            | GSE37250           | 51           | 35           | Microarray     | HIV-negative only; Malawi subset; 'Other' diseases removed       |
+> | Walter et al. (2016)   | USA              | USA (Denver, CO) / Adults          | 70            | GSE73408           | 35           | 35           | Microarray     | Filtered to TB/LTBI only; pneumonia cases removed                | [source:: C_69, C_70, C_68, C_71, C_73]
 
 
 
