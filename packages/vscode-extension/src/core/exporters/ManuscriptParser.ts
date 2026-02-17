@@ -66,6 +66,8 @@ export class ManuscriptParser {
       const isTableLine = cleanedLine.includes('|') && cleanedLine.trim().length > 0;
       
       if (isTableLine) {
+        console.log(`[ManuscriptParser] Table line detected: "${cleanedLine}"`);
+        
         // Extract [source:: ...] tags from table rows and store separately
         const sourceMatch = cleanedLine.match(/\[source::\s*[^\]]+\]/);
         if (sourceMatch) {
@@ -73,6 +75,7 @@ export class ManuscriptParser {
           cleanedLine = cleanedLine.replace(/\[source::\s*[^\]]+\]/, '').trim();
           // Clean up trailing empty pipe if the source tag was at the end
           cleanedLine = cleanedLine.replace(/\|\s*$/, '|');
+          console.log(`[ManuscriptParser] Extracted source tag, cleaned line: "${cleanedLine}"`);
         }
         
         // If we were in a paragraph, save it first
@@ -83,11 +86,15 @@ export class ManuscriptParser {
         
         inTable = true;
         tableLines.push(cleanedLine);
+        console.log(`[ManuscriptParser] Added to table, total lines: ${tableLines.length}`);
         continue;
       } else if (inTable) {
         // End of table - save it as a paragraph
+        console.log(`[ManuscriptParser] End of table detected, saving ${tableLines.length} lines`);
         if (tableLines.length > 0) {
-          currentSection.paragraphs.push(tableLines.join('\n'));
+          const tableText = tableLines.join('\n');
+          console.log(`[ManuscriptParser] Table text:\n${tableText}`);
+          currentSection.paragraphs.push(tableText);
           if (tableSourceTag) {
             // Add source tag as a separate text paragraph so citation processing picks it up
             currentSection.paragraphs.push(tableSourceTag);

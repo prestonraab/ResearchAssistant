@@ -131,6 +131,7 @@ export class QuestionAnswerParser {
     let answer = '';
     const claims: string[] = [];
     let i = startLine;
+    let inTable = false;
     
     while (i < lines.length) {
       const line = lines[i];
@@ -146,6 +147,10 @@ export class QuestionAnswerParser {
       
       // Skip empty callout lines
       if (content.length === 0) {
+        // End of table if we were in one
+        if (inTable) {
+          inTable = false;
+        }
         i++;
         continue;
       }
@@ -162,11 +167,27 @@ export class QuestionAnswerParser {
         }
       }
       
-      // Remove inline fields from display text but keep for storage
-      // Store original with inline fields
-      if (answer) {
-        answer += ' ';
+      // Detect table lines (contain pipe characters)
+      const isTableLine = content.includes('|');
+      
+      if (isTableLine) {
+        // Use newline to separate table rows so they render properly
+        if (answer && !inTable) {
+          answer += '\n';
+        } else if (answer) {
+          answer += '\n';
+        }
+        inTable = true;
+      } else {
+        // Regular prose: use space to join, but add newline after table ends
+        if (inTable) {
+          answer += '\n';
+          inTable = false;
+        } else if (answer) {
+          answer += ' ';
+        }
       }
+      
       answer += content;
       
       i++;

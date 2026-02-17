@@ -89,11 +89,22 @@ export class DocumentBuilder {
               ? path.dirname(options.manuscriptPath)
               : undefined;
             
+            console.log(`[DocumentBuilder] Found ${images.length} image(s) in paragraph`);
+            
             if (manuscriptDir) {
               for (const img of images) {
+                const originalPath = img.image.path;
                 if (!path.isAbsolute(img.image.path)) {
                   img.image.path = path.resolve(manuscriptDir, img.image.path);
+                  console.log(`[DocumentBuilder] Resolved image path: ${originalPath} -> ${img.image.path}`);
+                } else {
+                  console.log(`[DocumentBuilder] Image path already absolute: ${img.image.path}`);
                 }
+              }
+            } else {
+              console.warn(`[DocumentBuilder] No manuscriptPath provided, cannot resolve relative image paths`);
+              for (const img of images) {
+                console.warn(`[DocumentBuilder] Image with unresolved path: ${img.image.path}`);
               }
             }
             // Split paragraph by images

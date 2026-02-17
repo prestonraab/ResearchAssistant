@@ -22,14 +22,19 @@ export class WordImageRenderer {
    */
   public createImageRun(image: DocumentImage): ImageRun | null {
     try {
+      console.log(`[WordImageRenderer] Attempting to load image: ${image.path}`);
+      
       // Check if file exists
       if (!fs.existsSync(image.path)) {
-        console.warn(`Image file not found: ${image.path}`);
+        console.warn(`[WordImageRenderer] Image file not found: ${image.path}`);
         return null;
       }
 
+      console.log(`[WordImageRenderer] Image file exists, reading data...`);
+      
       // Read image data
       const imageData = fs.readFileSync(image.path);
+      console.log(`[WordImageRenderer] Image data loaded, size: ${imageData.length} bytes`);
 
       // Determine image dimensions (use provided or default)
       const width = image.width || 600;
@@ -38,6 +43,8 @@ export class WordImageRenderer {
       // Determine image type from extension
       const ext = path.extname(image.path).toLowerCase();
       const imageType = ext === '.png' ? 'png' : 'jpg';
+      
+      console.log(`[WordImageRenderer] Creating ImageRun with type: ${imageType}, dimensions: ${width}x${height}`);
 
       return new ImageRun({
         data: imageData,
@@ -48,7 +55,7 @@ export class WordImageRenderer {
         type: imageType
       });
     } catch (error) {
-      console.error(`Error loading image ${image.path}:`, error);
+      console.error(`[WordImageRenderer] Error loading image ${image.path}:`, error);
       return null;
     }
   }

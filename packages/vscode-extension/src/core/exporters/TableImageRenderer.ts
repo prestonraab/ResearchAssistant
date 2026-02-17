@@ -34,13 +34,17 @@ export class TableImageRenderer {
    * Supports standard markdown table format with | delimiters
    */
   public parseMarkdownTable(text: string): DocumentTable | null {
+    console.log(`[TableImageRenderer] Parsing table from text (${text.length} chars)`);
+    
     const lines = text.trim().split('\n');
     if (lines.length < 2) {
+      console.log(`[TableImageRenderer] Not enough lines for a table: ${lines.length}`);
       return null;
     }
     
     // Check if this looks like a table (has | characters)
     if (!lines[0].includes('|')) {
+      console.log(`[TableImageRenderer] First line doesn't contain pipes`);
       return null;
     }
     
@@ -49,15 +53,19 @@ export class TableImageRenderer {
     let separatorFound = false;
     
     for (let i = 0; i < lines.length; i++) {
-      const line = lines[i].trim();
+      let line = lines[i].trim();
+      
+      console.log(`[TableImageRenderer] Processing line ${i}: "${line}"`);
       
       // Skip empty lines
       if (line.length === 0) {
+        console.log(`[TableImageRenderer] Skipping empty line ${i}`);
         continue;
       }
       
       // Check if this is a separator line (e.g., |---|---|)
       if (line.match(/^\|?[\s\-:|]+\|?$/)) {
+        console.log(`[TableImageRenderer] Line ${i} is a separator, marking hasHeader=true`);
         hasHeader = rows.length > 0; // If we have rows before separator, they're headers
         separatorFound = true;
         continue;
@@ -76,19 +84,20 @@ export class TableImageRenderer {
       
       const cells = rowContent
         .split('|')
-        .map(cell => cell.trim())
-        .filter((_, index, arr) => {
-          // Keep all cells from the split (they're between pipes)
-          return true;
-        });
+        .map(cell => cell.trim());
+      
+      console.log(`[TableImageRenderer] Line ${i} parsed into ${cells.length} cells:`, cells);
       
       // Filter out rows that are entirely empty cells
       if (cells.length > 0 && cells.some(cell => cell.length > 0)) {
         rows.push(cells);
+      } else {
+        console.log(`[TableImageRenderer] Skipping line ${i} - all cells empty`);
       }
     }
     
     if (rows.length === 0) {
+      console.log(`[TableImageRenderer] No valid rows found`);
       return null;
     }
     
@@ -96,6 +105,8 @@ export class TableImageRenderer {
     if (!separatorFound) {
       hasHeader = false;
     }
+    
+    console.log(`[TableImageRenderer] Table parsed: ${rows.length} rows, hasHeader=${hasHeader}`);
     
     return {
       rows,
