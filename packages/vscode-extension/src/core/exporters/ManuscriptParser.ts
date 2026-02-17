@@ -21,6 +21,7 @@ export class ManuscriptParser {
     let inCallout = false;
     let inTable = false;
     let tableLines: string[] = [];
+    let tableSourceTag = '';
 
     for (const line of lines) {
       let cleanedLine = line.trim();
@@ -32,11 +33,48 @@ export class ManuscriptParser {
       
       // Remove legacy question markers (bold text ending with ?)
       cleanedLine = cleanedLine.replace(/\*\*[^*]+\?\*\*\s*/g, '');
+
+      // Handle Obsidian callout format
+      // Skip question line: > [!question]- Question text? (status:: X)
+      if (cleanedLine.match(/^>\s*\[!question\]/)) {
+        // If we were building a table, finalize it
+        if (inTable && tableLines.length > 0) {
+          currentSection.paragraphs.push(tableLines.join('\n'));
+          if (tableSourceTag) {
+            currentSection.paragraphs.push(tableSourceTag);
+            tableSourceTag = '';
+          }
+          tableLines = [];
+          inTable = false;
+        }
+        inCallout = true;
+        continue; // Skip the question line entirely
+      }
       
-      // Check if this line is part of a markdown table
-      const isTableLine = cleanedLine.includes('|');
+      // Strip callout prefix (> ) early so table detection works for callout content
+      let isCalloutLine = false;
+      if (cleanedLine.startsWith('>')) {
+        isCalloutLine = true;
+        inCallout = true;
+        cleanedLine = cleanedLine.replace(/^>\s*/, '');
+        // Remove inline fields: (status:: X)
+        cleanedLine = cleanedLine.replace(/\(status::\s*[^)]+\)/g, '');
+        cleanedLine = cleanedLine.trim();
+      }
+      
+      // Check if this line is part of a markdown table (after callout prefix removal)
+      const isTableLine = cleanedLine.includes('|') && cleanedLine.trim().length > 0;
       
       if (isTableLine) {
+        // Extract [source:: ...] tags from table rows and store separately
+        const sourceMatch = cleanedLine.match(/\[source::\s*[^\]]+\]/);
+        if (sourceMatch) {
+          tableSourceTag = sourceMatch[0];
+          cleanedLine = cleanedLine.replace(/\[source::\s*[^\]]+\]/, '').trim();
+          // Clean up trailing empty pipe if the source tag was at the end
+          cleanedLine = cleanedLine.replace(/\|\s*$/, '|');
+        }
+        
         // If we were in a paragraph, save it first
         if (currentParagraph.trim() && !inTable) {
           currentSection.paragraphs.push(currentParagraph.trim());
@@ -50,29 +88,18 @@ export class ManuscriptParser {
         // End of table - save it as a paragraph
         if (tableLines.length > 0) {
           currentSection.paragraphs.push(tableLines.join('\n'));
+          if (tableSourceTag) {
+            // Add source tag as a separate text paragraph so citation processing picks it up
+            currentSection.paragraphs.push(tableSourceTag);
+            tableSourceTag = '';
+          }
           tableLines = [];
         }
         inTable = false;
       }
       
-      // Handle Obsidian callout format
-      // Skip question line: > [!question]- Question text? (status:: X)
-      if (cleanedLine.match(/^>\s*\[!question\]/)) {
-        inCallout = true;
-        continue; // Skip the question line entirely
-      }
-      
-      // Process callout content lines (lines starting with >)
-      if (cleanedLine.startsWith('>')) {
-        inCallout = true;
-        // Remove the > prefix
-        cleanedLine = cleanedLine.replace(/^>\s*/, '');
-        
-        // Remove inline fields: (status:: X) but KEEP [source:: X] for citation processing
-        cleanedLine = cleanedLine.replace(/\(status::\s*[^)]+\)/g, '');
-        // DO NOT remove [source:: ...] - it will be converted to citations later
-        cleanedLine = cleanedLine.trim();
-        
+      // Process callout content lines (already stripped of > prefix above)
+      if (isCalloutLine) {
         if (cleanedLine.length > 0) {
           currentParagraph += (currentParagraph ? ' ' : '') + cleanedLine;
         }
@@ -80,7 +107,7 @@ export class ManuscriptParser {
       }
       
       // Non-callout line after callout ends the callout
-      if (inCallout && !cleanedLine.startsWith('>')) {
+      if (inCallout && !isCalloutLine) {
         inCallout = false;
         // End the current paragraph when exiting callout
         if (currentParagraph.trim()) {
@@ -123,6 +150,9 @@ export class ManuscriptParser {
     // Save final table if any
     if (inTable && tableLines.length > 0) {
       currentSection.paragraphs.push(tableLines.join('\n'));
+      if (tableSourceTag) {
+        currentSection.paragraphs.push(tableSourceTag);
+      }
     }
 
     // Save final section

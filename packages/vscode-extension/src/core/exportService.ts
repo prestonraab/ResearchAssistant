@@ -24,6 +24,7 @@ export interface ManuscriptExportOptions {
   footnoteScope?: 'document' | 'section'; // continuous or per-section numbering
   manuscriptId?: string; // Document URI for sentence ID generation
   enrichCitations?: boolean; // Fetch citation metadata from Zotero
+  manuscriptPath?: string; // Absolute path to manuscript file, used for resolving relative image paths
 }
 
 export interface ExportOptions {

@@ -1,3 +1,4 @@
+import * as path from 'path';
 import type { SentenceParser, Sentence } from '@research-assistant/core';
 import type { DocumentModel, DocumentSection, DocumentParagraph, DocumentRun, DocumentFootnote, DocumentImage, DocumentTable, DocumentCitation, CslItemData, CslAuthor } from '../documentModel';
 import type { ManuscriptExportOptions, CitedQuote } from '../exportService';
@@ -83,6 +84,18 @@ export class DocumentBuilder {
           const images = this.tableImageRenderer.parseMarkdownImages(paragraphText);
           
           if (images.length > 0) {
+            // Resolve relative image paths against manuscript directory
+            const manuscriptDir = options.manuscriptPath
+              ? path.dirname(options.manuscriptPath)
+              : undefined;
+            
+            if (manuscriptDir) {
+              for (const img of images) {
+                if (!path.isAbsolute(img.image.path)) {
+                  img.image.path = path.resolve(manuscriptDir, img.image.path);
+                }
+              }
+            }
             // Split paragraph by images
             let lastIndex = 0;
             

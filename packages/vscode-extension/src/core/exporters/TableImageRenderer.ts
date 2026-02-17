@@ -51,6 +51,11 @@ export class TableImageRenderer {
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i].trim();
       
+      // Skip empty lines
+      if (line.length === 0) {
+        continue;
+      }
+      
       // Check if this is a separator line (e.g., |---|---|)
       if (line.match(/^\|?[\s\-:|]+\|?$/)) {
         hasHeader = rows.length > 0; // If we have rows before separator, they're headers
@@ -58,13 +63,27 @@ export class TableImageRenderer {
         continue;
       }
       
-      // Parse table row
-      const cells = line
+      // Parse table row - strip leading/trailing pipes then split
+      let rowContent = line;
+      // Remove leading pipe
+      if (rowContent.startsWith('|')) {
+        rowContent = rowContent.substring(1);
+      }
+      // Remove trailing pipe
+      if (rowContent.endsWith('|')) {
+        rowContent = rowContent.substring(0, rowContent.length - 1);
+      }
+      
+      const cells = rowContent
         .split('|')
         .map(cell => cell.trim())
-        .filter(cell => cell.length > 0);
+        .filter((_, index, arr) => {
+          // Keep all cells from the split (they're between pipes)
+          return true;
+        });
       
-      if (cells.length > 0) {
+      // Filter out rows that are entirely empty cells
+      if (cells.length > 0 && cells.some(cell => cell.length > 0)) {
         rows.push(cells);
       }
     }

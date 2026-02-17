@@ -214,7 +214,8 @@
 > | Suliman et al. (2018) | South Africa, Gambia, Ethiopia | Adults | Whole blood | Prospective cohort | Household contacts, RISK4 four-gene signature for TB progression  | 
 > | Anderson et al. (2014) | South Africa, Malawi, Kenya | Children | Whole blood | Case-control | Childhood TB diagnosis, 51-transcript signature  | 
 > | Leong et al. (2018) | India | Adults | Whole blood | Case-control | South Indian population, active vs latent  | 
-> | Kaforou et al. (2013) | South Africa | Adults (Xhosa, 18+) | Whole blood | Case-control | HIV-infected and -uninfected cohorts  | [source:: C_69, C_70, C_68, C_71, C_73]
+> | Kaforou et al. (2013) | South Africa | Adults (Xhosa, 18+) | Whole blood | Case-control | HIV-infected and -uninfected cohorts  | 
+> [source:: C_69, C_70, C_68, C_71, C_73]
 > 
 >  GSE37250_SA (South Africa), GSE37250_M (Malawi),  India, USA, and Africa cohorts.
 

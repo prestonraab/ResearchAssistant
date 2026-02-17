@@ -807,7 +807,8 @@ export function registerManuscriptCommands(
               includeBibliography: true,
               footnoteStyle: 'native',
               footnoteScope: 'document',
-              manuscriptId: manuscriptUri.toString()
+              manuscriptId: manuscriptUri.toString(),
+              manuscriptPath: manuscriptPath
             };
 
             // Progress callback to update the notification
@@ -930,7 +931,8 @@ export function registerManuscriptCommands(
               includeBibliography: true,
               footnoteStyle: 'native',
               footnoteScope: 'document',
-              manuscriptId: manuscriptUri.toString()
+              manuscriptId: manuscriptUri.toString(),
+              manuscriptPath: manuscriptPath
             };
 
             await extensionState!.exportService.exportManuscriptLatex(manuscriptText, options);
