@@ -201,10 +201,10 @@
 ## Datasets
 
 > [!question]- Why were these specific TB datasets chosen? (status:: undefined)
-> To evaluate the impact of batch effects on classifier performance, we selected tuberculosis gene expression datasets that represent real-world heterogeneity. We deliberately included studies spanning pediatric, adolescent, and adult populations, collected across multiple continents using both microarray and RNA-seq platforms. Although the original studies encompassed diverse research objectives—including longitudinal progression risk and clinical diagnostics—all datasets used in this analysis were harmonized to a standardized binary classification task: distinguishing active tuberculosis from latent infection. If batch correction methods can preserve this core biological signal while removing technical artifacts across such diverse cohorts, they are likely to succeed in broader precision medicine applications.
+> To evaluate the impact of batch effects on classifier performance, we selected tuberculosis gene expression datasets that represent real-world heterogeneity. We deliberately included studies spanning pediatric, adolescent, and adult populations, collected across multiple continents using both microarray and RNA-seq platforms.
 
-> [!question]- What is the common biological thread across datasets that makes them comparable? (status:: undefined)
-> While most datasets focus on the classification task of distinguishing active tuberculosis from latent infection, the collection also includes studies examining TB progression risk. This diversity of biological questions, while introducing additional complexity, tests whether batch correction methods can preserve distinct biological signals across different experimental designs and research objectives. [source:: C_69, C_70]
+> [!question]- What are these datasets comparable? (status:: undefined)
+> Although the original studies encompassed diverse research objectives—including longitudinal progression risk and clinical diagnostics—all datasets used in this analysis were harmonized to a standardized binary classification task: distinguishing active tuberculosis from latent infection. If batch correction methods can preserve this core biological signal while removing technical artifacts across such diverse cohorts, they are likely to succeed in broader precision medicine applications. [source:: C_69, C_70]
 
 > [!question]- What are the datasets? (status:: undefined)
 > The study details are summarized in this table:
@@ -215,6 +215,7 @@
 > | Anderson et al. (2014) | Malawi                   | Children (<15)      | 70            | 20           | 50           | Microarray     | HIV-negative only; Malawi subset only; 'Other' diseases removed  | GSE39941_M         |
 > | Zak et al. (2016)      | South Africa             | Adolescents (12-18) | 181           | 77           | 104          | RNA-seq        | Training set only; relabeled strictly as Active/Latent           | GSE79362           |
 > | Leong et al. (2018)    | UK (South Asian descent) | Adults              | 103           | 53           | 50           | RNA-seq        | Leicester cohort used as India proxy; Active vs Latent           | GSE107994          | [source:: C_69, C_70, C_68, C_71, C_73]
+
 
 
 ## Classifier Performance
