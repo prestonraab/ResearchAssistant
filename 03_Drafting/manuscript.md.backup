@@ -138,36 +138,35 @@
 > [!question]- What specific classifiers do well with gene expression? (status:: undefined)
 > For gene expression data specifically, benchmark studies have identified several classifier types that perform particularly well. Support vector machines (SVM) and random forests have been highlighted as top performers. Logistic regression with regularization and neural networks (when sufficient data are available) also show strong performance. XGBoost, a tree-based algorithm with strong performance on many datasets, can also be used. Each classifier type has distinct characteristics that make it suitable for different scenarios and data types. [source:: C_06(Piccolo2022)]
 
-> [!question]- Why is regularization useful? (status:: undefined)
-> Even for simple models, regularization is vital for high-dimensional gene expression data. Unregularized logistic regression succumbs to the noise of tens of thousands of genes when training, using small contributions from many genes to fit the training data exactly.
-
-> [!question]- What is Elastic Net? (status:: undefined)
-> Elastic net accounts for this tendency by effectively limiting the number of genes the model can used. This is called feature selection. Feature selection, done manually or incorportated into models, is important whenever the number of features far exceeds the number of samples used for training. This is characteristic of gene expression data, where thousands of genes vastly outnumber samples. Elastic net uses two common types of regularization, referred to as L1 and L2 regularization. The L1 penalty drives coefficients of irrelevant genes to exactly zero, creating models that use few features. This results in interpretable and computationally efficient models. The L2 penalty penalizes large coefficients, which encodes the idea that genes with low variation should not have a large effect on classification. Other models that utilize weights, such as neural networks, can also use L1 and L2 penalties. This regularization helps models generalize to new data.  [source:: C_79]
-
-> [!question]- What are ensemble methods? (status:: undefined)
-> Regularization can also be incorporated by training many simple learners into a more complex ensemble model. Since each simple learner is constrained in its ability to fit the data, this imposes a bias that adds regularity to the larger model. These ensemble methods are robust to the high-dimensional, noisy nature of gene expression data because they aggregate predictions across small models trained on random subsets of samples and features. This averaging effect reduces sensitivity to outliers. [source:: C_84]
-
-> [!question]- What are random forests? (status:: DRAFT)
-> One popular ensembe model is the random forest. Random forests construct ensembles of decision trees, where each tree is trained on a bootstrap sample of the data and a random subset of features. For gene expression data, this means each tree sees a different combination of genes and samples, preventing small deviations from patterns from dominating the model. The final prediction aggregates votes across all trees, providing robustness to noise and the ability to capture complex interactions between genes. Random forests also provide measures of feature importance, which can aid in biological interpretation by identifying which genes contribute most to classification decisions. [source:: C_84]
-
-> [!question]- How should XGBoost be described? (status:: undefined)
-> A similar model, XGBoost, builds trees sequentially to correct errors from previous iterations, often achieving excellent performance on structured data. It benefits from the same regularization methods as random forests. [source:: C_81]
-
 > [!question]- What distinguishes geometric models in the genomic context? (status:: undefined)
 > Support vector machines identify decision boundaries in high-dimensional gene expression space using geometric principles. For gene expression data, where biological classes may not be linearly separable due to complex regulatory networks and pathway interactions, the ability to learn non-linear boundaries is crucial. Support vector machines identify optimal decision boundaries by maximizing the margin between classes. SVMs are particularly effective for the few-sample problem in gene expression data because they focus on support vectors—the most informative samples near the decision boundary—rather than attempting to model all samples equally. [source:: C_86]
 
 > [!question]- New question? (status:: undefined)
 > Neural networks, including multi-layer perceptrons and more sophisticated architectures, can achieve excellent performance when sufficient data are available. For gene expression data, neural networks can learn hierarchical representations where early layers capture individual gene patterns and deeper layers integrate these into pathway-level or systems-level features. Neural networks outperform other methods only when training set sizes are very large, as the high-dimensional nature of gene expression data (many features, few samples) has historically limited deep learning effectiveness. Deep learning approaches have shown particular promise for identifying complex, non-linear patterns that may be missed by simpler methods.
 
+> [!question]- Why is regularization useful? (status:: undefined)
+> Even for simple models, regularization is vital for high-dimensional gene expression data. Unregularized logistic regression succumbs to the noise of tens of thousands of genes when training, using small contributions from many genes to fit the training data exactly.
 
+> [!question]- What is Elastic Net? (status:: undefined)
+> Elastic net accounts for this tendency by effectively limiting the number of genes the model can used. This is called feature selection. Feature selection, done manually or incorportated into models, is important whenever the number of features far exceeds the number of samples used for training. This is characteristic of gene expression data, where thousands of genes vastly outnumber samples. Elastic net uses two common types of regularization, referred to as L1 and L2 regularization. The L1 penalty drives coefficients of irrelevant genes to exactly zero, creating models that use few features. This results in interpretable and computationally efficient models.  [source:: C_79]
 
-## Feature Selection and Biological Interpretation
+> [!question]- Why feature selection matters (status:: undefined)
+> In the context of precision medicine, feature selection—whether by L1 penalties or using feature importances discussed later—enables minimal diagnostic signatures. This can reduce thousands of genes to a small panel suitable for cost-effective clinical assays. However, this utility depends entirely on selecting genes that represent genuine disease biology rather than technical artifacts. A minimal signature derived from batch-confounded data will fail catastrophically when deployed in a clinical setting with different technical conditions.
 
-> [!question]- Why this matters (status:: undefined)
-> In the context of Precision Medicine, feature selection enables minimal diagnostic signatures—reducing thousands of genes to a small panel suitable for cost-effective clinical assays. However, this utility depends entirely on selecting genes that represent genuine disease biology rather than technical artifacts. A minimal signature derived from batch-confounded data will fail catastrophically when deployed in a clinical setting with different technical conditions.
+> [!question]- New question? (status:: DRAFT)
+> Generalization to new settings, a requirement of precision medicine, also requires resiliance to noisy data. Fitting training data exactly is equivalent to fitting noise that will not be found in other settings. Overcoming noise requires regularization, such as the L2 penaly also incorporated into the elastic net model.
 
-> [!question]- Frame as prerequisite relationship (status:: undefined)
-> Batch effect mitigation is the prerequisite for reliable feature selection. Without proper batch correction first, feature selection identifies batch artifacts instead of biological signals. If the data is poorly corrected, the "features" selected will be technical noise, not biomarkers.
+> [!question]- New question? (status:: DRAFT)
+> The L2 penalty penalizes large coefficients, which encodes the idea that genes or features with low variation should not have a large effect on classification. The idea that features should not be weighted to strongly is a general idea that is widely applicable to all data types. Neural networks and other models that utilize weights can also use L1 and L2 penalties.
+
+> [!question]- What are ensemble methods? (status:: undefined)
+> Regularization can also be incorporated by training many simple learners into a more complex ensemble model. Since each simple learner is constrained in its ability to fit the data, this imposes a bias that adds regularity to the larger model. These ensemble methods are robust to the high-dimensional, noisy nature of gene expression data because they aggregate predictions across small models trained on random subsets of samples and features. This averaging effect reduces sensitivity to outliers. [source:: C_84]
+
+> [!question]- What are random forests? (status:: DRAFT)
+> One popular ensemble model is the random forest. Random forests construct ensembles of decision trees, where each tree is trained on a bootstrap sample of the data and a random subset of features. For gene expression data, this means each tree sees a different combination of genes and samples, preventing small deviations from patterns from dominating the model. The final prediction aggregates votes across all trees, providing robustness to noise and the ability to capture complex interactions between genes. Random forests also provide measures of feature importance, which can aid in biological interpretation by identifying which genes contribute most to classification decisions. [source:: C_84]
+
+> [!question]- What is XGBoost? (status:: undefined)
+> A similar model, XGBoost, builds trees sequentially to correct errors from previous iterations, often achieving excellent performance on structured data. It benefits from the same regularization methods as random forests. [source:: C_81]
 
 > [!question]- How to use each classifier to find important genes (status:: undefined)
 > Each classifier type can be used to identify important genes that drive classification decisions, but only after appropriate batch correction. Random forests provide feature importance measures that can identify key predictive genes, with variable importance measures serving as effective screening tools for gene expression studies. Logistic regression with L1 regularization (lasso) performs automatic feature selection by shrinking coefficients of less important features to zero, enabling sparse solutions suitable for high-dimensional data. Support vector machines with recursive feature elimination (SVM-RFE) can also perform gene selection. [source:: C_75]
