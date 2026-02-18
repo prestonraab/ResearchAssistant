@@ -245,10 +245,10 @@
 > The analysis reveals that classifier performance is largely independent of the specific batch adjustment method used, with some notable exceptions.
 
 > [!question]- Figure 2 (status:: undefined)
-> ![Figure 2: MCC Rank by Adjuster](../figures/mcc_rank_by_adjuster.png) *Figure 2: Description*
+> ![Figure 2: MCC Rank by Adjuster](../figures/mcc_rank_by_adjuster.png) *Figure 3. Horizontal violin plots illustrate the distribution of performance rankings for various batch adjustment methods across multiple cross-study validation scenarios. Methods are ordered by their pseudomedian performance, shown as grey vertical bars, with higher-performing adjusters positioned at the top. The x-axis represents the relative rank compared to other methods, where a rank of 1 (leftmost) indicates optimal performance. Gray violins represent the density of ranks across all scenarios. Colored points denote the pseudomedian rank achieved on specific classifiers (e.g., Random Forest, XGBoost) when using the corresponding adjustment method.  Outlier classifiers that deviate significantly from the method's central performance are labeled for clarity.*
 
 > [!question]- What does Figure 2 reveal about the change in performance? (status:: undefined)
-> Figure 2 displays results for each adjuster and classifier, aggregated over test and training sets. Using
+> Figure 2 displays results for each adjuster and classifier, aggregated over test and training sets. Using 
 
 > [!question]- Show a few places where interactions occur, but mostly independent performance (status:: undefined)
 > While performance generally decreased consistently across adjusters for most classifiers, ComBat-supervised adjustment showed a particularly severe interaction with KNN far worse than its effect on other classifiers. This suggests that KNN's distance-based learning mechanism is particularly sensitive to the specific transformations introduced by supervised batch correction. In contrast, logistic regression showed relative robustness to most adjustment methods, with only ComBat-supervised causing significant degradation.
