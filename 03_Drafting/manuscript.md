@@ -228,6 +228,15 @@
 > [!question]- Methods (status:: undefined)
 > The analysis evaluated classifier performance across multiple tuberculosis gene expression datasets using leave-one-study-out cross-validation. Nine machine learning classifiers were tested: logistic regression, elastic net (regularized logistic regression), k-nearest neighbors (KNN), a three layer neural network, random forests, shrinkage linear discriminant analysis (LDA), support vector machines (SVM), and XGBoost. Ten batch adjustment methods were compared: ComBat, ComBat with mean-only adjustment, ComBat with supervised adjustment, naive mean and variance matching, mutual nearest neighbors (MNN), FastMNN, nonparanormal transformation (NPN), rank-based normalization over genes within samples, the same but additionally ranked over samples, and unadjusted merged and within-study cross-validation as baselines. Performance was assessed using Matthews correlation coefficient (MCC). MCC performance is decreased if a classifier has poor sensitivity, specificity, positive predictive value, or negative predictive value, and provides a good lower bound on performance. MCC ranges from 1, perfect, to 0, random, to -1, perfectly inverted. The test study labels and descriptions are found in Table 1.
 
+> [!question]- Adjusters (status:: undefined)
+> The adjusters compared are summarized in Table 2.
+> | ---------------------- | ------------------------ | ------------------- | ------------- | ------------ | ------------ | -------------- | ---------------------------------------------------------------- | ------------------ |
+> | Kaforou et al. (2013)  | Malawi                   | Adults (18+)        | 86            | 51           | 35           | Microarray     | HIV-negative only; Malawi subset; 'Other' diseases removed       | GSE37250_M         |
+> | Kaforou et al. (2013)  | South Africa             | Adults (18+)        | 94            | 46           | 48           | Microarray     | HIV-negative only; South Africa subset; 'Other' diseases removed | GSE37250_SA        |
+> | Anderson et al. (2014) | Malawi                   | Children (<15)      | 70            | 20           | 50           | Microarray     | HIV-negative only; Malawi subset only; 'Other' diseases removed  | GSE39941_M         |
+> | Zak et al. (2016)      | South Africa             | Adolescents (12-18) | 181           | 77           | 104          | RNA-seq        | Training set only; relabeled strictly as Active/Latent           | GSE79362           |
+> | Leong et al. (2018)    | UK (South Asian descent) | Adults              | 103           | 53           | 50           | RNA-seq        | Leicester cohort used as India proxy; Active vs Latent           | GSE107994          | [source:: C_69, C_70, C_68, C_71, C_73]
+
 > [!question]- Results (Figure 1) (status:: undefined)
 > ![Figure 1: Average Rank by Classifier](../figures/average_rank_by_classifier.png) *Figure 1: Classifier performance on cross-study tasks.*
 
@@ -248,7 +257,7 @@
 > ![Figure 2: MCC Rank by Adjuster](../figures/mcc_rank_by_adjuster.png) *Figure 3. Horizontal violin plots illustrate the distribution of performance rankings for various batch adjustment methods across multiple cross-study validation scenarios. Methods are ordered by their pseudomedian performance, shown as grey vertical bars, with higher-performing adjusters positioned at the top. The x-axis represents the relative rank compared to other methods, where a rank of 1 (leftmost) indicates optimal performance. Gray violins represent the density of ranks across all scenarios. Colored points denote the pseudomedian rank achieved on specific classifiers (e.g., Random Forest, XGBoost) when using the corresponding adjustment method.  Outlier classifiers that deviate significantly from the method's central performance are labeled for clarity.*
 
 > [!question]- What does Figure 2 reveal about the change in performance? (status:: undefined)
-> Figure 2 displays results for each adjuster and classifier, aggregated over test and training sets. Using 
+> Figure 2 displays results for each adjuster and classifier, aggregated over test and training sets. Most adjusters have consistent performance over all classifiers. This includes Naive 
 
 > [!question]- Show a few places where interactions occur, but mostly independent performance (status:: undefined)
 > While performance generally decreased consistently across adjusters for most classifiers, ComBat-supervised adjustment showed a particularly severe interaction with KNN far worse than its effect on other classifiers. This suggests that KNN's distance-based learning mechanism is particularly sensitive to the specific transformations introduced by supervised batch correction. In contrast, logistic regression showed relative robustness to most adjustment methods, with only ComBat-supervised causing significant degradation.
