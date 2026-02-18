@@ -98,6 +98,7 @@
 > Talk about relationship to domain adaptation
 
 
+
 ## Confounding
 
 > [!question]- What is confounding? (status:: undefined)
@@ -229,19 +230,27 @@
 > The analysis evaluated classifier performance across multiple tuberculosis gene expression datasets using leave-one-study-out cross-validation. Nine machine learning classifiers were tested: logistic regression, elastic net (regularized logistic regression), k-nearest neighbors (KNN), a three layer neural network, random forests, shrinkage linear discriminant analysis (LDA), support vector machines (SVM), and XGBoost. Ten batch adjustment methods were compared: ComBat, ComBat with mean-only adjustment, ComBat with supervised adjustment, naive mean and variance matching, mutual nearest neighbors (MNN), FastMNN, nonparanormal transformation (NPN), rank-based normalization over genes within samples, the same but additionally ranked over samples, and unadjusted merged and within-study cross-validation as baselines. Performance was assessed using Matthews correlation coefficient (MCC). MCC performance is decreased if a classifier has poor sensitivity, specificity, positive predictive value, or negative predictive value, and provides a good lower bound on performance. MCC ranges from 1, perfect, to 0, random, to -1, perfectly inverted. The test study labels and descriptions are found in Table 1.
 
 > [!question]- Adjusters (status:: undefined)
-> The adjusters compared are summarized in Table 2.
-> | ---------------------- | ------------------------ | ------------------- | ------------- | ------------ | ------------ | -------------- | ---------------------------------------------------------------- | ------------------ |
-> | Kaforou et al. (2013)  | Malawi                   | Adults (18+)        | 86            | 51           | 35           | Microarray     | HIV-negative only; Malawi subset; 'Other' diseases removed       | GSE37250_M         |
-> | Kaforou et al. (2013)  | South Africa             | Adults (18+)        | 94            | 46           | 48           | Microarray     | HIV-negative only; South Africa subset; 'Other' diseases removed | GSE37250_SA        |
-> | Anderson et al. (2014) | Malawi                   | Children (<15)      | 70            | 20           | 50           | Microarray     | HIV-negative only; Malawi subset only; 'Other' diseases removed  | GSE39941_M         |
-> | Zak et al. (2016)      | South Africa             | Adolescents (12-18) | 181           | 77           | 104          | RNA-seq        | Training set only; relabeled strictly as Active/Latent           | GSE79362           |
-> | Leong et al. (2018)    | UK (South Asian descent) | Adults              | 103           | 53           | 50           | RNA-seq        | Leicester cohort used as India proxy; Active vs Latent           | GSE107994          | [source:: C_69, C_70, C_68, C_71, C_73]
+> The adjusters compared are summarized in Table 2. Before each adjuster is applied, the data is transformed using the formula New Data = log(1 + Data - Global Batch Minimum). This transformation acts as a very coarse single-parameter batch adjustment. It is essential to eliminate the right skew defining the RNA-seq data, and is harmless when applied to the microarray data.
 
 > [!question]- Results (Figure 1) (status:: undefined)
 > ![Figure 1: Average Rank by Classifier](../figures/average_rank_by_classifier.png) *Figure 1: Classifier performance on cross-study tasks.*
 
 > [!question]- Discussion on classifier complexity (status:: undefined)
 > Classifier complexity relates to the model's capacity to capture patterns in the data. More complex models (e.g., neural networks) may overfit when sample sizes are small, while simpler models (e.g., logistic regression) may underfit when patterns are non-linear. The results demonstrate that moderately complex classifiers with built-in regularization (elastic net, XGBoost) achieved the best balance between model flexibility and generalization. Simple logistic regression without regularization performed poorly in this high-dimensional setting, while elastic net's L1/L2 regularization enabled effective feature selection and robust performance. The performance of shinkage LDA was highly variable, having individual performances near perfection like XGBoost, but also having a long tail of poor performances, suggesting that additional regularization perhaps could have improved performance. A simple L2-regularized neural network despite its complexity, also performed well.
+
+> [!question]- Table 2, Adjusters (status:: DRAFT)
+> | Method                             | Description                                                                                                         | Assumptions                                                                                                            | 1 Sample | 1 Feature |
+> | ---------------------------------- | ------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- | -------- | --------- |
+> | Unadjusted                         | Log-transform only; expresses gene relative to the batch minimum.                                                   | Batches variation is a simple global shift.                                                                            | **Yes**  | **Yes**   |
+> | Naive (Mean/Var)                   | Standardizes genes to share a common mean/variance across batches.<br>                                              | Shifting and scaling are the primary drivers of batch-related technical noise.                                         | No       | **Yes**   |
+> | ComBat                             | Uses Empirical Bayes to regress out batch while shrinking towards a global prior.                                   | Batch effects are additive and multiplicative; sharing data across genes improves estimation.                          | No       | No        |
+> | ComBat Mean                        | ComBat without variance adjustment, <br>shift-only                                                                  | Batch effects are only additive.                                                                                       | No       | No        |
+> | ComBat Supervised                  | Mitigates confounding by using phenotype labels to protect biological signal. Only used when merging training data. | Label-correlated variation is biological and should be preserved.                                                      | No       | No        |
+> | Non-Paranormal Normalization (NPN) | Maps feature ranks over samples within batches to a Gaussian distribution.                                          | Batch effects do not alter feature quantiles.                                                                          | No       | **Yes**   |
+> | Rank within Samples                | Rank features within each sample.                                                                                   | Pairwise feature comparisons are more robust than absolute magnitude.                                                  | **Yes**  | No        |
+> | Rank Twice                         | Ranks features within samples, then ranks those results across all samples.                                         | It is useful to know if feature ranks are high or low across samples.                                                  | No       | No        |
+> | Mutual Nearest Neighbors (MNN)     | Shifts samples into the domain of a reference batch using nearest-neighbor pairs.                                   | At least one clearly identifiable biological state is shared between batches; batch effects are orthogonal to biology. | No       | No        |
+> | Fast Mutual Nearest Neighbors      | Performs MNN alignment within a low-dimensional latent PCA space.                                                   | A few latent variables capture the essential biological characteristics of each sample.                                | No       | No        |
 
 
 
@@ -257,7 +266,7 @@
 > ![Figure 2: MCC Rank by Adjuster](../figures/mcc_rank_by_adjuster.png) *Figure 3. Horizontal violin plots illustrate the distribution of performance rankings for various batch adjustment methods across multiple cross-study validation scenarios. Methods are ordered by their pseudomedian performance, shown as grey vertical bars, with higher-performing adjusters positioned at the top. The x-axis represents the relative rank compared to other methods, where a rank of 1 (leftmost) indicates optimal performance. Gray violins represent the density of ranks across all scenarios. Colored points denote the pseudomedian rank achieved on specific classifiers (e.g., Random Forest, XGBoost) when using the corresponding adjustment method.  Outlier classifiers that deviate significantly from the method's central performance are labeled for clarity.*
 
 > [!question]- What does Figure 2 reveal about the change in performance? (status:: undefined)
-> Figure 2 displays results for each adjuster and classifier, aggregated over test and training sets. Most adjusters have consistent performance over all classifiers. This includes Naive 
+> Figure 2 displays results for each adjuster and classifier, aggregated over test and training sets. Most adjusters have consistent performance over all classifiers. This includes Naive
 
 > [!question]- Show a few places where interactions occur, but mostly independent performance (status:: undefined)
 > While performance generally decreased consistently across adjusters for most classifiers, ComBat-supervised adjustment showed a particularly severe interaction with KNN far worse than its effect on other classifiers. This suggests that KNN's distance-based learning mechanism is particularly sensitive to the specific transformations introduced by supervised batch correction. In contrast, logistic regression showed relative robustness to most adjustment methods, with only ComBat-supervised causing significant degradation.
