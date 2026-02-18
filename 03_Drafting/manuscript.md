@@ -91,9 +91,11 @@
 > [!question]- How is single cell data adjusted? (status:: undefined)
 > Single cell adjusters may assume that samples of similar cell types will exhibit similar expression patterns, even in the presence of batch effects. By finding "nearerst neighbors", or the samples with the most similar expression between batches, adjusters such as Harmony or Seurat can identify how to move cross-batch neighbors closer together to bring the batches into alignment. Harmony and Seurat model the biological space, then eliminate the batch differences. Since neighbors are found using many genes, and the transformation is sample-specific, the adjustment of single cell data is typically nonlinear.
 
-> [!question]- Feature space correction vs latent space alignment? (status:: undefined)
+> [!question]- What is feature space correction vs latent space alignment? (status:: undefined)
 > ComBat and the single cell methods have a difference in approach more fundamental than modeling batch or biology. They vary by space, or the variables which they work with. ComBat is a feature-space correction method: it attempts to fix the original data and output new values for each sample and gene. Harmony and Seurat are latent-space alignment methods: they represent each sample using fewer variables, which represent simple ways the data can vary within a single batch. These new variables are called latent, or hidden, because they were not among the original genes yet hold most of the information. After changing the representation, Harmony and Seurat perform their adjustments in the latent space.
 
+> [!question]- How is this related to domain adaptation? (status:: undefined)
+> Talk about relationship to domain adaptation
 
 
 ## Confounding
